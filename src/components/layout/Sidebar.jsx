@@ -14,7 +14,8 @@ import {
   User,
   ChevronLeft,
   LogOut,
-  Bell
+  Bell,
+  Shield
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -28,9 +29,11 @@ const menuItems = [
   { divider: true },
   { name: "Newsletter", icon: Newspaper, page: "Newsletter" },
   { name: "Central de Ajuda", icon: HelpCircle, page: "Ajuda" },
+  { divider: true },
+  { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
 ];
 
-export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingDemandas = 0, onLogout }) {
+export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingDemandas = 0, onLogout, user }) {
   return (
     <aside className={cn(
       "fixed left-0 top-0 h-screen bg-slate-900 text-white transition-all duration-300 z-40 flex flex-col",
@@ -70,6 +73,11 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
         {menuItems.map((item, index) => {
           if (item.divider) {
             return <div key={index} className="h-px bg-slate-800 my-3" />;
+          }
+
+          // Hide admin-only items for non-admin users
+          if (item.adminOnly && user?.tipo_usuario !== 'voxx_admin' && user?.tipo_usuario !== 'voxx_manager') {
+            return null;
           }
 
           const isActive = currentPage === item.page;

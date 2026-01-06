@@ -44,7 +44,7 @@ export function getAccessibleClienteIds(user) {
 }
 
 export function canManageUsers(user) {
-  return isVoxxAdmin(user) || isClienteAdmin(user);
+  return isVoxxAdmin(user) || isVoxxManager(user) || isClienteAdmin(user);
 }
 
 export function canCreateDemanda(user) {
