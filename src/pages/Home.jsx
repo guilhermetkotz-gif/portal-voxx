@@ -7,6 +7,7 @@ import AlertsSection from '@/components/home/AlertsSection';
 import RecentDemandas from '@/components/home/RecentDemandas';
 import AcoesVoxxCard from '@/components/home/AcoesVoxxCard';
 import AguardandoAprovacao from '@/pages/AguardandoAprovacao';
+import BoasVindas from '@/pages/BoasVindas';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
@@ -31,7 +32,6 @@ const formatCurrency = (value) => {
 export default function Home({ currentCliente, selectedClienteId, user }) {
   // User not authenticated → show BoasVindas
   if (!user) {
-    const BoasVindas = require('./BoasVindas').default;
     return <BoasVindas />;
   }
 
@@ -53,7 +53,6 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   // 2. User has no access (no cliente) and is not admin → show BoasVindas
   if (!currentCliente && user?.tipo_usuario !== 'voxx_admin') {
-    const BoasVindas = require('./BoasVindas').default;
     return <BoasVindas />;
   }
   const { data: demandas = [] } = useQuery({
