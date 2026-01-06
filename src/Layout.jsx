@@ -9,10 +9,6 @@ import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from 
 import { Card } from "@/components/ui/card";
 import ClienteSelector from '@/components/auth/ClienteSelector';
 import { Loader2 } from 'lucide-react';
-import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from '@/utils/auth';
-import { Card } from "@/components/ui/card";
-import ClienteSelector from '@/components/auth/ClienteSelector';
-import { Loader2 } from 'lucide-react';
 
 const pageTitles = {
   Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
