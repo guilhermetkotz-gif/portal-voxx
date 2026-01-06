@@ -220,19 +220,24 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // 2. User is pendente WITH request → show AguardandoAprovacao
-  if (user?.status === 'pendente' && userRequest && userRequest.length > 0) {
-    return React.cloneElement(children, { user });
-  }
+  // Base44 admin bypass - skip all checks
+  if (user?.role === 'admin') {
+    // Admin has full access, skip to main app
+  } else {
+    // 2. User is pendente WITH request → show AguardandoAprovacao
+    if (user?.status === 'pendente' && userRequest && userRequest.length > 0) {
+      return React.cloneElement(children, { user });
+    }
 
-  // 3. User is pendente WITHOUT request → redirect to BoasVindas
-  if (user?.status === 'pendente' && (!userRequest || userRequest.length === 0)) {
-    return React.cloneElement(children, { user });
-  }
+    // 3. User is pendente WITHOUT request → redirect to BoasVindas
+    if (user?.status === 'pendente' && (!userRequest || userRequest.length === 0)) {
+      return React.cloneElement(children, { user });
+    }
 
-  // 4. User has no active access (not admin) → redirect to BoasVindas
-  if (clientes.length === 0 && !isVoxxAdmin(user) && user?.role !== 'admin' && user?.status !== 'pendente') {
-    return React.cloneElement(children, { user });
+    // 4. User has no active access (not admin) → redirect to BoasVindas
+    if (clientes.length === 0 && !isVoxxAdmin(user) && user?.status !== 'pendente') {
+      return React.cloneElement(children, { user });
+    }
   }
 
   return (
