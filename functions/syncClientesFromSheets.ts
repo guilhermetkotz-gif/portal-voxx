@@ -43,22 +43,24 @@ Deno.serve(async (req) => {
         // Map column names to indices
         const getColumnIndex = (name) => headers.findIndex(h => h && h.toLowerCase().includes(name.toLowerCase()));
         
-        const nomeIdx = getColumnIndex('unidade');
-        console.log('Column indices - nome:', nomeIdx);
-        const cidadeIdx = getColumnIndex('cidade');
-        const estadoIdx = getColumnIndex('estado');
-        const statusIdx = getColumnIndex('status');
-        const leadsMetaIdx = getColumnIndex('leads meta');
-        const cplMetaIdx = getColumnIndex('cpl meta');
-        const investimentoMetaIdx = getColumnIndex('investimento meta');
+        const nomeIdx = getColumnIndex('cliente');
+        const leadsMetaIdx = getColumnIndex('leads entregues este mês meta');
+        const cplMetaIdx = getColumnIndex('custo por lead meta');
+        const investimentoMetaIdx = getColumnIndex('investimento no meta');
         const saldoMetaIdx = getColumnIndex('saldo meta');
-        const leadsGoogleCadastroIdx = getColumnIndex('leads google cadastro');
-        const leadsGoogleLigacaoIdx = getColumnIndex('leads google ligação');
-        const cliquesWhatsAppIdx = getColumnIndex('cliques whatsapp');
+        const investimentoDiaMetaIdx = getColumnIndex('investimento por dia meta');
+        const dataProximoInvestimentoMetaIdx = getColumnIndex('data proximo investimento meta');
+        
+        const leadsGoogleCadastroIdx = getColumnIndex('leads entregues google cadastro');
+        const leadsGoogleLigacaoIdx = getColumnIndex('leads entregues google ligação');
+        const cliquesWhatsAppIdx = getColumnIndex('cliques google whatsapp');
         const cpcGoogleIdx = getColumnIndex('cpc google');
-        const investimentoGoogleIdx = getColumnIndex('investimento google');
+        const investimentoGoogleIdx = getColumnIndex('investimento no google');
         const saldoGoogleIdx = getColumnIndex('saldo google');
-        const healthScoreIdx = getColumnIndex('health score');
+        const investimentoDiaGoogleIdx = getColumnIndex('investimento por dia google');
+        const dataProximoInvestimentoGoogleIdx = getColumnIndex('data proximo investimento google');
+        
+        console.log('Indices encontrados:', { nomeIdx, leadsMetaIdx, cplMetaIdx, saldoMetaIdx });
         
         let updatedCount = 0;
         let createdCount = 0;
