@@ -1,33 +1,33 @@
 import AbrirDemanda from './pages/AbrirDemanda';
+import AguardandoAprovacao from './pages/AguardandoAprovacao';
 import Ajuda from './pages/Ajuda';
+import BoasVindas from './pages/BoasVindas';
 import Conta from './pages/Conta';
 import Demandas from './pages/Demandas';
+import GerenciarAcessos from './pages/GerenciarAcessos';
 import Home from './pages/Home';
 import Newsletter from './pages/Newsletter';
 import Performance from './pages/Performance';
 import Saldos from './pages/Saldos';
-import Timeline from './pages/Timeline';
-import GerenciarAcessos from './pages/GerenciarAcessos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
-import AguardandoAprovacao from './pages/AguardandoAprovacao';
-import BoasVindas from './pages/BoasVindas';
+import Timeline from './pages/Timeline';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AbrirDemanda": AbrirDemanda,
+    "AguardandoAprovacao": AguardandoAprovacao,
     "Ajuda": Ajuda,
+    "BoasVindas": BoasVindas,
     "Conta": Conta,
     "Demandas": Demandas,
+    "GerenciarAcessos": GerenciarAcessos,
     "Home": Home,
     "Newsletter": Newsletter,
     "Performance": Performance,
     "Saldos": Saldos,
-    "Timeline": Timeline,
-    "GerenciarAcessos": GerenciarAcessos,
     "SolicitarAcesso": SolicitarAcesso,
-    "AguardandoAprovacao": AguardandoAprovacao,
-    "BoasVindas": BoasVindas,
+    "Timeline": Timeline,
 }
 
 export const pagesConfig = {

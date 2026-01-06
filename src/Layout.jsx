@@ -49,6 +49,14 @@ export default function Layout({ children, currentPageName }) {
     retry: false
   });
 
+  // Check if user has access request (must be called before any conditional returns)
+  const { data: userRequest } = useQuery({
+    queryKey: ['userRequest', user?.id],
+    queryFn: () => base44.entities.AccessRequest.filter({ usuario_id: user?.id }, '-created_date', 1),
+    enabled: !!user?.id && user?.status === 'pendente',
+    staleTime: 30 * 1000
+  });
+
   // Fetch user's client access (UserClientAccess)
   const { data: userAccess = [], isLoading: loadingAccess } = useQuery({
     queryKey: ['userAccess', user?.id],
@@ -206,15 +214,6 @@ export default function Layout({ children, currentPageName }) {
       </div>
     );
   }
-
-  // ROUTING LOGIC
-  // 1. Check if user has access request
-  const { data: userRequest } = useQuery({
-    queryKey: ['userRequest', user?.id],
-    queryFn: () => base44.entities.AccessRequest.filter({ usuario_id: user?.id }, '-created_date', 1),
-    enabled: !!user?.id && user?.status === 'pendente',
-    staleTime: 30 * 1000
-  });
 
   // 2. User is pendente WITH request → show AguardandoAprovacao
   if (user?.status === 'pendente' && userRequest && userRequest.length > 0) {
