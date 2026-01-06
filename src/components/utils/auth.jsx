@@ -6,15 +6,19 @@ export function getUserClienteId(user) {
 }
 
 export function isVoxxUser(user) {
-  return user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_operacao';
+  return user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_operacao' || user?.tipo_usuario === 'voxx_manager';
 }
 
 export function isVoxxAdmin(user) {
   return user?.tipo_usuario === 'voxx_admin';
 }
 
+export function isVoxxManager(user) {
+  return user?.tipo_usuario === 'voxx_manager';
+}
+
 export function isVoxxOperacao(user) {
-  return user?.tipo_usuario === 'voxx_operacao';
+  return user?.tipo_usuario === 'voxx_operacao' || user?.tipo_usuario === 'voxx_manager';
 }
 
 export function isClienteAdmin(user) {
