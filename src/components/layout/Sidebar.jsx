@@ -76,7 +76,7 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
           }
 
           // Hide admin-only items for non-admin users
-          if (item.adminOnly && user?.tipo_usuario !== 'voxx_admin' && user?.tipo_usuario !== 'voxx_manager') {
+          if (item.adminOnly && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin' && user?.tipo_usuario !== 'voxx_manager') {
             return null;
           }
 
