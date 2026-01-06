@@ -16,17 +16,22 @@ import {
   Eye,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import EditarAcessoUsuario from '@/components/admin/EditarAcessoUsuario';
 import AprovarSolicitacao from '@/components/admin/AprovarSolicitacao';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 export default function GerenciarAcessos({ user }) {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [deleteUserId, setDeleteUserId] = useState(null);
 
   const { data: usuarios = [] } = useQuery({
     queryKey: ['todosUsuarios'],
@@ -55,13 +60,55 @@ export default function GerenciarAcessos({ user }) {
   });
 
   const filteredUsuarios = usuarios.filter(u => 
-    u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase())
+    (u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.email?.toLowerCase().includes(search.toLowerCase())) &&
+    u.status !== 'excluido'
   );
 
   const getUsuarioAcessos = (usuarioId) => {
     return acessos.filter(a => a.usuario_id === usuarioId && a.status === 'ativo');
   };
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId) => {
+      // Delete user access records
+      const userAccess = await base44.entities.UserClientAccess.filter({ usuario_id: userId });
+      for (const access of userAccess) {
+        await base44.entities.UserClientAccess.delete(access.id);
+      }
+
+      // Delete access requests
+      const accessRequests = await base44.entities.AccessRequest.filter({ usuario_id: userId });
+      for (const request of accessRequests) {
+        await base44.entities.AccessRequest.delete(request.id);
+      }
+
+      // Delete user notifications
+      const userToDelete = usuarios.find(u => u.id === userId);
+      if (userToDelete?.email) {
+        const notifications = await base44.entities.Notificacao.filter({ user_email: userToDelete.email });
+        for (const notif of notifications) {
+          await base44.entities.Notificacao.delete(notif.id);
+        }
+      }
+
+      // Mark user as deleted
+      await base44.entities.User.update(userId, {
+        status: 'excluido',
+        tipo_usuario: 'excluido'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['todosUsuarios']);
+      queryClient.invalidateQueries(['todosAcessos']);
+      queryClient.invalidateQueries(['solicitacoesAcesso']);
+      setDeleteUserId(null);
+      toast.success('Usuário excluído com sucesso!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao excluir usuário: ' + error.message);
+    }
+  });
 
   const statusColors = {
     pendente: 'bg-amber-100 text-amber-700',
@@ -169,14 +216,24 @@ export default function GerenciarAcessos({ user }) {
                       )}
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setSelectedUser(usuario)}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar Acesso
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSelectedUser(usuario)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Editar Acesso
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteUserId(usuario.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </Button>
+                  </div>
                 </div>
               </Card>
             );
@@ -283,6 +340,27 @@ export default function GerenciarAcessos({ user }) {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este usuário? Esta ação irá remover todos os acessos, solicitações e notificações associados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteUserMutation.mutate(deleteUserId)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
