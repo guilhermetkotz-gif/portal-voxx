@@ -149,10 +149,22 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // Show loading state
-  if (loadingClientes || !user || !currentCliente) {
+  if (loadingClientes || !user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+      </div>
+    );
+  }
+
+  // If no clientes found, show message
+  if (clientes.length === 0) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full p-6 text-center">
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Nenhum cliente encontrado</h2>
+          <p className="text-slate-500">Entre em contato com o administrador.</p>
+        </Card>
       </div>
     );
   }
@@ -199,11 +211,11 @@ export default function Layout({ children, currentPageName }) {
           onMobileMenuClick={() => setMobileMenuOpen(true)}
         />
         <div className="p-4 lg:p-8">
-          {React.cloneElement(children, { 
+          {currentCliente ? React.cloneElement(children, { 
             currentCliente,
             selectedClienteId,
             user
-          })}
+          }) : children}
         </div>
       </main>
     </div>
