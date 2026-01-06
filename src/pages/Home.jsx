@@ -29,14 +29,26 @@ const formatCurrency = (value) => {
 };
 
 export default function Home({ currentCliente, selectedClienteId, user }) {
-  // Redirect if user is pendente
-  if (user?.status === 'pendente') {
+  const { data: userRequest } = useQuery({
+    queryKey: ['userRequestHome', user?.id],
+    queryFn: () => base44.entities.AccessRequest.filter({ usuario_id: user?.id }, '-created_date', 1),
+    enabled: !!user?.id,
+    staleTime: 30 * 1000
+  });
+
+  // Check access status
+  const hasRequest = userRequest && userRequest.length > 0;
+  const hasPendingRequest = hasRequest && userRequest[0]?.status === 'pendente';
+
+  // 1. User is pendente WITH pending request → show AguardandoAprovacao
+  if (user?.status === 'pendente' && hasPendingRequest) {
     return <AguardandoAprovacao user={user} />;
   }
 
-  // Redirect if no cliente access
+  // 2. User has no access (no cliente) and is not admin → show BoasVindas
   if (!currentCliente && user?.tipo_usuario !== 'voxx_admin') {
-    return <AguardandoAprovacao user={user} />;
+    const BoasVindas = require('./BoasVindas').default;
+    return <BoasVindas />;
   }
   const { data: demandas = [] } = useQuery({
     queryKey: ['demandas', selectedClienteId],

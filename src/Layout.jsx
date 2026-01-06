@@ -178,11 +178,6 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Check if user is pendente
-  if (user?.status === 'pendente') {
-    return React.cloneElement(children, { user });
-  }
-
   // Show loading state
   if (loadingClientes || loadingAccess || !user) {
     return (
@@ -192,8 +187,27 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // If no clientes found and not admin, show no access message
-  if (clientes.length === 0 && !isVoxxAdmin(user)) {
+  // ROUTING LOGIC
+  // 1. Check if user has access request
+  const { data: userRequest } = useQuery({
+    queryKey: ['userRequest', user?.id],
+    queryFn: () => base44.entities.AccessRequest.filter({ usuario_id: user?.id }, '-created_date', 1),
+    enabled: !!user?.id && user?.status === 'pendente',
+    staleTime: 30 * 1000
+  });
+
+  // 2. User is pendente WITH request → show AguardandoAprovacao
+  if (user?.status === 'pendente' && userRequest && userRequest.length > 0) {
+    return React.cloneElement(children, { user });
+  }
+
+  // 3. User is pendente WITHOUT request → redirect to BoasVindas
+  if (user?.status === 'pendente' && (!userRequest || userRequest.length === 0)) {
+    return React.cloneElement(children, { user });
+  }
+
+  // 4. User has no active access (not admin) → redirect to BoasVindas
+  if (clientes.length === 0 && !isVoxxAdmin(user) && user?.status !== 'pendente') {
     return React.cloneElement(children, { user });
   }
 

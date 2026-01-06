@@ -58,11 +58,11 @@ export default function AguardandoAprovacao({ user }) {
           
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Aguardando Aprovação</h1>
           <p className="text-slate-600 mb-6">
-            Olá, <strong>{user?.full_name || user?.email}</strong>! 
-            Sua solicitação está em análise pela equipe Voxx.
+            Sua solicitação de acesso foi enviada e está em análise pela equipe Voxx.
+            Assim que for aprovada, você terá acesso completo ao portal.
           </p>
 
-          {solicitacaoPendente ? (
+          {solicitacaoPendente && (
             <div className="bg-slate-50 rounded-lg p-6 text-left space-y-4">
               <div className="flex items-start justify-between">
                 <div>
@@ -80,7 +80,7 @@ export default function AguardandoAprovacao({ user }) {
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-700 mb-2">Contas solicitadas:</p>
+                <p className="text-sm font-medium text-slate-700 mb-2">Unidades solicitadas:</p>
                 <div className="space-y-2">
                   {solicitacaoPendente.contas_solicitadas_nomes?.map((nome, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm text-slate-600">
@@ -92,16 +92,9 @@ export default function AguardandoAprovacao({ user }) {
               </div>
 
               <div>
-                <p className="text-sm font-medium text-slate-700 mb-1">Motivo:</p>
+                <p className="text-sm font-medium text-slate-700 mb-1">Função:</p>
                 <p className="text-sm text-slate-600">{solicitacaoPendente.motivo}</p>
               </div>
-            </div>
-          ) : (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <AlertCircle className="w-5 h-5 text-blue-600 mx-auto mb-2" />
-              <p className="text-sm text-blue-800">
-                Nenhuma solicitação pendente encontrada. Entre em contato com a Voxx.
-              </p>
             </div>
           )}
 

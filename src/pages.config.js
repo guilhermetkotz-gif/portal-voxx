@@ -10,6 +10,7 @@ import Timeline from './pages/Timeline';
 import GerenciarAcessos from './pages/GerenciarAcessos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import AguardandoAprovacao from './pages/AguardandoAprovacao';
+import BoasVindas from './pages/BoasVindas';
 import __Layout from './Layout.jsx';
 
 
@@ -26,6 +27,7 @@ export const PAGES = {
     "GerenciarAcessos": GerenciarAcessos,
     "SolicitarAcesso": SolicitarAcesso,
     "AguardandoAprovacao": AguardandoAprovacao,
+    "BoasVindas": BoasVindas,
 }
 
 export const pagesConfig = {
