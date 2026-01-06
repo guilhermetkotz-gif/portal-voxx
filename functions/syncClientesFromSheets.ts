@@ -58,11 +58,17 @@ Deno.serve(async (req) => {
         const existingClientes = await base44.asServiceRole.entities.Cliente.list('nome', 500);
         
         // Process each row (skip header)
+        console.log('Total rows:', rows.length, 'nomeIdx:', nomeIdx);
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
-            
+            console.log('Row', i, ':', row);
+
             const nome = row[nomeIdx]?.trim();
-            if (!nome) continue; // Skip empty rows
+            console.log('Nome encontrado:', nome);
+            if (!nome) {
+                console.log('Skipping row', i, '- no name');
+                continue; // Skip empty rows
+            }
             
             // Parse numeric values
             const parseNumber = (val) => {
