@@ -69,7 +69,8 @@ export default function Performance() {
       return [];
     },
     enabled: !!user,
-    staleTime: 60 * 1000
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000
   });
 
   const cliente = clientes[0];
