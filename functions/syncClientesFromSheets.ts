@@ -89,8 +89,15 @@ Deno.serve(async (req) => {
                 return isNaN(num) ? null : num;
             };
             
+            // Extract cidade and estado from nome (format: "NOME - CIDADE - UF")
+            const parts = nome.split('-').map(p => p.trim());
+            const cidade = parts.length > 1 ? parts[parts.length - 2] : 'N/A';
+            const estado = parts.length > 1 ? parts[parts.length - 1] : 'N/A';
+            
             const clienteData = {
                 nome,
+                cidade,
+                estado,
                 leads_meta_mes: leadsMetaIdx >= 0 ? parseNumber(row[leadsMetaIdx]) : null,
                 custo_por_lead_meta: cplMetaIdx >= 0 ? parseNumber(row[cplMetaIdx]) : null,
                 investimento_meta_mes: investimentoMetaIdx >= 0 ? parseNumber(row[investimentoMetaIdx]) : null,
