@@ -55,15 +55,6 @@ export default function Header({
             onChangeCliente={onChangeCliente}
           />
 
-          {/* Search - hidden on mobile */}
-          <div className="hidden md:flex relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <Input 
-              placeholder="Buscar..." 
-              className="pl-9 w-48 lg:w-64 bg-slate-50 border-slate-200"
-            />
-          </div>
-
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
