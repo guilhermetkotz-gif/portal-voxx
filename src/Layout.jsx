@@ -43,26 +43,55 @@ export default function Layout({ children, currentPageName }) {
     staleTime: 5 * 60 * 1000
   });
 
-  // Fetch all accessible clientes
-  const { data: clientes = [], isLoading: loadingClientes } = useQuery({
-    queryKey: ['clientes', user?.tipo_usuario, user?.cliente_id, user?.clientes_atribuidos],
+  // Fetch user's client access (UserClientAccess)
+  const { data: userAccess = [], isLoading: loadingAccess } = useQuery({
+    queryKey: ['userAccess', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
-      const accessibleIds = getAccessibleClienteIds(user);
+      // Voxx users might not have UserClientAccess, they use clientes_atribuidos
+      if (isVoxxAdmin(user)) {
+        return 'all'; // Admin sees all
+      }
       
-      if (accessibleIds === 'all') {
+      if (isVoxxOperacao(user)) {
+        // Get clientes from clientes_atribuidos
+        if (user.clientes_atribuidos?.length > 0) {
+          return user.clientes_atribuidos.map(id => ({ cliente_id: id, status: 'ativo' }));
+        }
+      }
+      
+      // For client users, get from UserClientAccess
+      const access = await base44.entities.UserClientAccess.filter({
+        usuario_id: user.id,
+        status: 'ativo'
+      });
+      
+      return access;
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000
+  });
+
+  // Fetch all accessible clientes based on UserClientAccess
+  const { data: clientes = [], isLoading: loadingClientes } = useQuery({
+    queryKey: ['clientes', user?.tipo_usuario, userAccess],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      if (userAccess === 'all') {
         return base44.entities.Cliente.list('-updated_date', 500);
       }
       
-      if (Array.isArray(accessibleIds) && accessibleIds.length > 0) {
+      if (Array.isArray(userAccess) && userAccess.length > 0) {
+        const clienteIds = userAccess.map(a => a.cliente_id);
         const allClientes = await base44.entities.Cliente.list('-updated_date', 500);
-        return allClientes.filter(c => accessibleIds.includes(c.id));
+        return allClientes.filter(c => clienteIds.includes(c.id));
       }
       
       return [];
     },
-    enabled: !!user,
+    enabled: !!user && !!userAccess,
     staleTime: 2 * 60 * 1000
   });
 
@@ -149,8 +178,13 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
+  // Check if user is pendente
+  if (user?.status === 'pendente') {
+    return React.cloneElement(children, { user });
+  }
+
   // Show loading state
-  if (loadingClientes || !user) {
+  if (loadingClientes || loadingAccess || !user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
@@ -158,16 +192,9 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // If no clientes found, show message
-  if (clientes.length === 0) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-6 text-center">
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Nenhum cliente encontrado</h2>
-          <p className="text-slate-500">Entre em contato com o administrador.</p>
-        </Card>
-      </div>
-    );
+  // If no clientes found and not admin, show no access message
+  if (clientes.length === 0 && !isVoxxAdmin(user)) {
+    return React.cloneElement(children, { user });
   }
 
   return (

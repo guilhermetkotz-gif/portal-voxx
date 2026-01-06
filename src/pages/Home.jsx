@@ -28,6 +28,15 @@ const formatCurrency = (value) => {
 };
 
 export default function Home({ currentCliente, selectedClienteId, user }) {
+  // Redirect if user is pendente
+  if (user?.status === 'pendente') {
+    return <AguardandoAprovacao user={user} />;
+  }
+
+  // Redirect if no cliente access
+  if (!currentCliente && user?.tipo_usuario !== 'voxx_admin') {
+    return <AguardandoAprovacao user={user} />;
+  }
   const { data: demandas = [] } = useQuery({
     queryKey: ['demandas', selectedClienteId],
     queryFn: () => base44.entities.Demanda.filter({ cliente_id: selectedClienteId, status: { $ne: 'concluida' } }, '-updated_date', 10),

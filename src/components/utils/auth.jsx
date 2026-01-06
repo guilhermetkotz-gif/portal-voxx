@@ -41,10 +41,36 @@ export function canViewCliente(user, clienteId) {
   return user?.cliente_id === clienteId;
 }
 
-export function getAccessibleClienteIds(user) {
+export async function getAccessibleClienteIds(user) {
   if (isVoxxAdmin(user)) return 'all';
-  if (isVoxxOperacao(user)) return user?.clientes_atribuidos || [];
-  return user?.cliente_id ? [user.cliente_id] : [];
+  
+  if (isVoxxOperacao(user)) {
+    return user?.clientes_atribuidos || [];
+  }
+  
+  // For client users, get from UserClientAccess
+  try {
+    const access = await base44.entities.UserClientAccess.filter({
+      usuario_id: user.id,
+      status: 'ativo'
+    });
+    return access.map(a => a.cliente_id);
+  } catch (error) {
+    console.error('Error fetching user access:', error);
+    return [];
+  }
+}
+
+export function hasAccessToCliente(userAccess, clienteId) {
+  if (userAccess === 'all') return true;
+  if (!Array.isArray(userAccess)) return false;
+  return userAccess.some(a => a.cliente_id === clienteId);
+}
+
+export function getAccessLevel(userAccess, clienteId) {
+  if (!Array.isArray(userAccess)) return null;
+  const access = userAccess.find(a => a.cliente_id === clienteId);
+  return access?.nivel_acesso || null;
 }
 
 export function canManageUsers(user) {

@@ -8,6 +8,8 @@ import Performance from './pages/Performance';
 import Saldos from './pages/Saldos';
 import Timeline from './pages/Timeline';
 import GerenciarAcessos from './pages/GerenciarAcessos';
+import SolicitarAcesso from './pages/SolicitarAcesso';
+import AguardandoAprovacao from './pages/AguardandoAprovacao';
 import __Layout from './Layout.jsx';
 
 
@@ -22,6 +24,8 @@ export const PAGES = {
     "Saldos": Saldos,
     "Timeline": Timeline,
     "GerenciarAcessos": GerenciarAcessos,
+    "SolicitarAcesso": SolicitarAcesso,
+    "AguardandoAprovacao": AguardandoAprovacao,
 }
 
 export const pagesConfig = {
