@@ -112,59 +112,61 @@ export default function BoasVindas() {
 
   if (etapa === 'boas-vindas') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-slate-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <div className="max-w-4xl w-full">
           {/* Logo e Título */}
           <div className="text-center mb-12">
-            <div className="w-16 h-16 bg-gradient-to-br from-violet-600 to-violet-700 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <span className="text-3xl font-bold text-white">V</span>
-            </div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-3">
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695d14d862b9c933054dfba4/33a91785b_image.png" 
+              alt="Voxx Logo" 
+              className="w-32 h-32 mx-auto mb-6 object-contain"
+            />
+            <h1 className="text-4xl font-bold text-white mb-3">
               Bem-vindo ao Portal Voxx
             </h1>
-            <p className="text-xl text-slate-600">
+            <p className="text-xl text-slate-300">
               Acompanhe performance, demandas e entregas da sua unidade em um só lugar.
             </p>
           </div>
 
           {/* O que você encontra aqui */}
           <div className="grid sm:grid-cols-2 gap-4 mb-12">
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-slate-900 border-slate-800">
+              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
+                <BarChart3 className="w-6 h-6 text-blue-400" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Performance de Campanhas</h3>
-              <p className="text-sm text-slate-600">
+              <h3 className="font-semibold text-white mb-2">Performance de Campanhas</h3>
+              <p className="text-sm text-slate-400">
                 Acompanhe métricas de Meta e Google Ads em tempo real
               </p>
             </Card>
 
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-violet-100 rounded-lg flex items-center justify-center mb-4">
-                <FileText className="w-6 h-6 text-violet-600" />
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-slate-900 border-slate-800">
+              <div className="w-12 h-12 bg-violet-500/20 rounded-lg flex items-center justify-center mb-4">
+                <FileText className="w-6 h-6 text-violet-400" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Status de Demandas</h3>
-              <p className="text-sm text-slate-600">
+              <h3 className="font-semibold text-white mb-2">Status de Demandas</h3>
+              <p className="text-sm text-slate-400">
                 Veja o andamento de todas as suas solicitações
               </p>
             </Card>
 
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4">
-                <Wallet className="w-6 h-6 text-emerald-600" />
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-slate-900 border-slate-800">
+              <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-4">
+                <Wallet className="w-6 h-6 text-emerald-400" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Saldos e Investimentos</h3>
-              <p className="text-sm text-slate-600">
+              <h3 className="font-semibold text-white mb-2">Saldos e Investimentos</h3>
+              <p className="text-sm text-slate-400">
                 Controle financeiro e próximos investimentos
               </p>
             </Card>
 
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-4">
-                <Zap className="w-6 h-6 text-amber-600" />
+            <Card className="p-6 hover:shadow-lg transition-shadow bg-slate-900 border-slate-800">
+              <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center mb-4">
+                <Zap className="w-6 h-6 text-amber-400" />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-2">Transparência Total</h3>
-              <p className="text-sm text-slate-600">
+              <h3 className="font-semibold text-white mb-2">Transparência Total</h3>
+              <p className="text-sm text-slate-400">
                 Organização sem precisar cobrar no WhatsApp
               </p>
             </Card>
@@ -183,7 +185,7 @@ export default function BoasVindas() {
             <Button
               onClick={() => base44.auth.redirectToLogin()}
               variant="outline"
-              className="text-lg px-8 py-6 h-auto"
+              className="text-lg px-8 py-6 h-auto bg-slate-900 border-slate-700 text-white hover:bg-slate-800"
               size="lg"
             >
               Já tenho acesso — Entrar
