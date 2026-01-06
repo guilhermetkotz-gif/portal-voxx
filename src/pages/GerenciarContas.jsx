@@ -64,7 +64,7 @@ export default function GerenciarContas({ user }) {
     personalizado: 'Personalizado'
   };
 
-  if (!user || (user.tipo_usuario !== 'voxx_admin' && user.tipo_usuario !== 'voxx_manager')) {
+  if (!user || (user.role !== 'admin' && user.tipo_usuario !== 'voxx_admin' && user.tipo_usuario !== 'voxx_manager')) {
     return (
       <Card className="p-8 text-center">
         <Building2 className="w-12 h-12 text-red-500 mx-auto mb-4" />

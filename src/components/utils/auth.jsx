@@ -30,7 +30,7 @@ export function isClienteUsuario(user) {
 }
 
 export function canViewAllClientes(user) {
-  return isVoxxAdmin(user);
+  return user?.role === 'admin' || isVoxxAdmin(user);
 }
 
 export function canViewCliente(user, clienteId) {
