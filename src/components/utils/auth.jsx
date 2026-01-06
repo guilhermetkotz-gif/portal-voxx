@@ -10,7 +10,7 @@ export function isVoxxUser(user) {
 }
 
 export function isVoxxAdmin(user) {
-  return user?.tipo_usuario === 'voxx_admin';
+  return user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
 }
 
 export function isVoxxManager(user) {

@@ -5,13 +5,13 @@ import BoasVindas from './pages/BoasVindas';
 import Conta from './pages/Conta';
 import Demandas from './pages/Demandas';
 import GerenciarAcessos from './pages/GerenciarAcessos';
+import GerenciarContas from './pages/GerenciarContas';
 import Home from './pages/Home';
 import Newsletter from './pages/Newsletter';
 import Performance from './pages/Performance';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import GerenciarContas from './pages/GerenciarContas';
 import __Layout from './Layout.jsx';
 
 
@@ -23,13 +23,13 @@ export const PAGES = {
     "Conta": Conta,
     "Demandas": Demandas,
     "GerenciarAcessos": GerenciarAcessos,
+    "GerenciarContas": GerenciarContas,
     "Home": Home,
     "Newsletter": Newsletter,
     "Performance": Performance,
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "GerenciarContas": GerenciarContas,
 }
 
 export const pagesConfig = {

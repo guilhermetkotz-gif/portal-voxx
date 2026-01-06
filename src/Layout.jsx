@@ -63,6 +63,11 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       if (!user) return [];
       
+      // Base44 admin (role === 'admin') has full access
+      if (user.role === 'admin') {
+        return 'all';
+      }
+      
       // Voxx users might not have UserClientAccess, they use clientes_atribuidos
       if (isVoxxAdmin(user)) {
         return 'all'; // Admin sees all
@@ -226,7 +231,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // 4. User has no active access (not admin) → redirect to BoasVindas
-  if (clientes.length === 0 && !isVoxxAdmin(user) && user?.status !== 'pendente') {
+  if (clientes.length === 0 && !isVoxxAdmin(user) && user?.role !== 'admin' && user?.status !== 'pendente') {
     return React.cloneElement(children, { user });
   }
 
