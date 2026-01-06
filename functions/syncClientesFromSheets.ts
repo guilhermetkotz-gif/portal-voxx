@@ -5,25 +5,32 @@ const SHEET_NAME = 'beta voxx';
 
 Deno.serve(async (req) => {
     try {
+        console.log('=== INÍCIO DA SINCRONIZAÇÃO ===');
         const base44 = createClientFromRequest(req);
         
         // Get access token for Google Sheets
         const accessToken = await base44.asServiceRole.connectors.getAccessToken("googlesheets");
+        console.log('Access token obtido');
         
         // Fetch data from Google Sheets
         const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}`;
+        console.log('Fetching:', sheetUrl);
         const response = await fetch(sheetUrl, {
             headers: {
                 'Authorization': `Bearer ${accessToken}`
             }
         });
         
+        console.log('Response status:', response.status);
         if (!response.ok) {
+            const errorText = await response.text();
+            console.log('Error response:', errorText);
             throw new Error(`Failed to fetch sheet data: ${response.statusText}`);
         }
         
         const data = await response.json();
         const rows = data.values || [];
+        console.log('Rows fetched:', rows.length);
         
         if (rows.length < 2) {
             return Response.json({ error: 'Planilha vazia ou sem dados' }, { status: 400 });
