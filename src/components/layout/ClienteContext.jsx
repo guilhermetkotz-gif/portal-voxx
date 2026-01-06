@@ -12,7 +12,7 @@ import ClienteSelector from '@/components/auth/ClienteSelector';
 
 export default function ClienteContext({ user, cliente, clientes = [], onChangeCliente }) {
   const [open, setOpen] = React.useState(false);
-  const canSwitchCliente = user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_operacao';
+  const canSwitchCliente = user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_operacao' || clientes.length > 1;
 
   if (!cliente) return null;
 
