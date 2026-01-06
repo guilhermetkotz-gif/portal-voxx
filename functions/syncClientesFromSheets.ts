@@ -101,15 +101,19 @@ Deno.serve(async (req) => {
             const existingCliente = existingClientes.find(c => 
                 c.nome?.toLowerCase() === nome.toLowerCase()
             );
-            
+
+            console.log('Processing:', nome, 'Existing:', !!existingCliente, 'Data:', clienteData);
+
             if (existingCliente) {
                 // Update existing cliente
                 await base44.asServiceRole.entities.Cliente.update(existingCliente.id, clienteData);
                 updatedCount++;
+                console.log('Updated:', nome);
             } else {
                 // Create new cliente
                 await base44.asServiceRole.entities.Cliente.create(clienteData);
                 createdCount++;
+                console.log('Created:', nome);
             }
         }
         
