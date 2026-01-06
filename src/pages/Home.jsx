@@ -29,6 +29,12 @@ const formatCurrency = (value) => {
 };
 
 export default function Home({ currentCliente, selectedClienteId, user }) {
+  // User not authenticated → show BoasVindas
+  if (!user) {
+    const BoasVindas = require('./BoasVindas').default;
+    return <BoasVindas />;
+  }
+
   const { data: userRequest } = useQuery({
     queryKey: ['userRequestHome', user?.id],
     queryFn: () => base44.entities.AccessRequest.filter({ usuario_id: user?.id }, '-created_date', 1),

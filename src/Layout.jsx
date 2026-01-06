@@ -28,19 +28,25 @@ export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedClienteId, setSelectedClienteId] = useState(null);
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading: loadingUser, error: userError } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
-      const userData = await base44.auth.me();
-      // Update last access
-      if (userData?.id) {
-        await base44.entities.User.update(userData.id, {
-          ultimo_acesso: new Date().toISOString()
-        }).catch(() => {});
+      try {
+        const userData = await base44.auth.me();
+        // Update last access
+        if (userData?.id) {
+          await base44.entities.User.update(userData.id, {
+            ultimo_acesso: new Date().toISOString()
+          }).catch(() => {});
+        }
+        return userData;
+      } catch (error) {
+        // User not authenticated
+        return null;
       }
-      return userData;
     },
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
+    retry: false
   });
 
   // Fetch user's client access (UserClientAccess)
@@ -178,8 +184,22 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Show loading state
-  if (loadingClientes || loadingAccess || !user) {
+  // Show loading state while checking authentication
+  if (loadingUser) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+      </div>
+    );
+  }
+
+  // User not authenticated → show content (will be BoasVindas in Home page)
+  if (!user) {
+    return React.cloneElement(children, { user: null });
+  }
+
+  // Show loading state for user data
+  if (loadingClientes || loadingAccess) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
