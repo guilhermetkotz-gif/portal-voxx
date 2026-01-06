@@ -27,67 +27,31 @@ const formatCurrency = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
-export default function Home() {
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    staleTime: 5 * 60 * 1000
-  });
-
-  const { data: clientes = [], isLoading: loadingClientes } = useQuery({
-    queryKey: ['clientes', user?.cliente_id, user?.tipo_acesso],
-    queryFn: async () => {
-      if (user?.tipo_acesso === 'voxx_admin') {
-        return base44.entities.Cliente.list('-updated_date', 200);
-      }
-      if (user?.tipo_acesso === 'voxx_operacao' && user?.clientes_atribuidos?.length) {
-        const all = await base44.entities.Cliente.list('-updated_date', 200);
-        return all.filter(c => user.clientes_atribuidos.includes(c.id));
-      }
-      if (user?.cliente_id) {
-        return base44.entities.Cliente.filter({ id: user.cliente_id });
-      }
-      return [];
-    },
-    enabled: !!user,
-    staleTime: 60 * 1000
-  });
-
-  const cliente = clientes[0];
-
+export default function Home({ currentCliente, selectedClienteId, user }) {
   const { data: demandas = [] } = useQuery({
-    queryKey: ['demandas', user?.cliente_id],
-    queryFn: () => {
-      if (user?.tipo_acesso?.startsWith('voxx')) {
-        return base44.entities.Demanda.list('-updated_date', 100);
-      }
-      return base44.entities.Demanda.filter({ cliente_id: user?.cliente_id }, '-updated_date', 50);
-    },
-    enabled: !!user,
+    queryKey: ['demandas', selectedClienteId],
+    queryFn: () => base44.entities.Demanda.filter({ cliente_id: selectedClienteId, status: { $ne: 'concluida' } }, '-updated_date', 10),
+    enabled: !!selectedClienteId,
     staleTime: 60 * 1000
   });
-
-  const demandasAbertas = demandas.filter(d => d.status !== 'concluida');
 
   const { data: acoes = [] } = useQuery({
-    queryKey: ['acoes', user?.cliente_id],
-    queryFn: () => {
-      if (user?.tipo_acesso?.startsWith('voxx')) {
-        return base44.entities.AcaoVoxx.list('-created_date', 20);
-      }
-      return base44.entities.AcaoVoxx.filter({ cliente_id: user?.cliente_id }, '-created_date', 10);
-    },
-    enabled: !!user,
+    queryKey: ['acoes', selectedClienteId],
+    queryFn: () => base44.entities.AcaoVoxx.filter({ cliente_id: selectedClienteId }, '-created_date', 5),
+    enabled: !!selectedClienteId,
     staleTime: 60 * 1000
   });
 
-  if (loadingClientes) {
+  if (!user || !currentCliente) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
       </div>
     );
   }
+
+  const cliente = currentCliente;
+  const demandasAbertas = demandas;
 
   const totalLeadsGoogle = (cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0);
   const diasRestantesMeta = cliente?.investimento_dia_meta > 0 

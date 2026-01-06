@@ -11,11 +11,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import ClienteContext from './ClienteContext';
 
 export default function Header({ 
   title, 
   subtitle, 
-  user, 
+  user,
+  cliente,
+  clientes = [],
+  onChangeCliente,
   notificacoes = [], 
   onMobileMenuClick,
   onNotificationClick 
@@ -43,6 +47,16 @@ export default function Header({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Cliente Context */}
+          <div className="hidden lg:block">
+            <ClienteContext 
+              user={user} 
+              cliente={cliente}
+              clientes={clientes}
+              onChangeCliente={onChangeCliente}
+            />
+          </div>
+
           {/* Search - hidden on mobile */}
           <div className="hidden md:flex relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
