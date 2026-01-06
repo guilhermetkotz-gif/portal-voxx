@@ -31,11 +31,13 @@ Deno.serve(async (req) => {
         
         // First row is headers
         const headers = rows[0];
+        console.log('Headers:', headers);
         
         // Map column names to indices
         const getColumnIndex = (name) => headers.findIndex(h => h && h.toLowerCase().includes(name.toLowerCase()));
         
         const nomeIdx = getColumnIndex('unidade');
+        console.log('Column indices - nome:', nomeIdx);
         const cidadeIdx = getColumnIndex('cidade');
         const estadoIdx = getColumnIndex('estado');
         const statusIdx = getColumnIndex('status');
