@@ -56,10 +56,9 @@ export default function AguardandoAprovacao({ user }) {
             <Clock className="w-8 h-8 text-amber-600 animate-pulse" />
           </div>
           
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Aguardando Aprovação</h1>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Estamos quase terminando!</h1>
           <p className="text-slate-600 mb-6">
-            Sua solicitação de acesso foi enviada e está em análise pela equipe Voxx.
-            Assim que for aprovada, você terá acesso completo ao portal.
+            Logo seu acesso será liberado.
           </p>
 
           {solicitacaoPendente && (

@@ -21,7 +21,7 @@ import { createPageUrl } from '@/utils';
 
 export default function BoasVindas() {
   const navigate = useNavigate();
-  const [etapa, setEtapa] = useState('boas-vindas'); // 'boas-vindas' | 'cadastro'
+  const [etapa, setEtapa] = useState('boas-vindas'); // 'boas-vindas' | 'cadastro' | 'obrigado'
   
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -79,9 +79,7 @@ export default function BoasVindas() {
       return true;
     },
     onSuccess: () => {
-      toast.success('Solicitação enviada com sucesso!');
-      // Reload to trigger the new routing logic
-      window.location.reload();
+      setEtapa('obrigado');
     },
     onError: (error) => {
       toast.error('Erro ao enviar solicitação. Tente novamente.');
@@ -109,6 +107,36 @@ export default function BoasVindas() {
 
     criarSolicitacao.mutate();
   };
+
+  if (etapa === 'obrigado') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-violet-50 to-slate-100 flex items-center justify-center p-4">
+        <Card className="max-w-2xl w-full p-8 text-center">
+          <div className="w-16 h-16 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Building2 className="w-8 h-8 text-violet-600" />
+          </div>
+          
+          <h1 className="text-3xl font-bold text-slate-900 mb-4">Obrigado!</h1>
+          <p className="text-lg text-slate-600 mb-8">
+            Estamos configurando seu acesso, verifique a confirmação de cadastro no seu email por favor.
+          </p>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-slate-700">
+              📧 Um email de confirmação foi enviado para <strong>{email}</strong>
+            </p>
+          </div>
+
+          <Button
+            onClick={() => base44.auth.redirectToLogin()}
+            className="bg-violet-600 hover:bg-violet-700"
+          >
+            Fazer Login
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   if (etapa === 'boas-vindas') {
     return (
