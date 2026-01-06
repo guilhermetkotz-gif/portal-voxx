@@ -48,14 +48,12 @@ export default function Header({
 
         <div className="flex items-center gap-3">
           {/* Cliente Context */}
-          <div className="hidden lg:block">
-            <ClienteContext 
-              user={user} 
-              cliente={cliente}
-              clientes={clientes}
-              onChangeCliente={onChangeCliente}
-            />
-          </div>
+          <ClienteContext 
+            user={user} 
+            cliente={cliente}
+            clientes={clientes}
+            onChangeCliente={onChangeCliente}
+          />
 
           {/* Search - hidden on mobile */}
           <div className="hidden md:flex relative">
