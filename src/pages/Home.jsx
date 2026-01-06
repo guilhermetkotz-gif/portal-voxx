@@ -6,6 +6,7 @@ import HealthScore from '@/components/ui/HealthScore';
 import AlertsSection from '@/components/home/AlertsSection';
 import RecentDemandas from '@/components/home/RecentDemandas';
 import AcoesVoxxCard from '@/components/home/AcoesVoxxCard';
+import AguardandoAprovacao from '@/pages/AguardandoAprovacao';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
