@@ -77,17 +77,17 @@ Deno.serve(async (req) => {
                 cidade: row[cidadeIdx]?.trim() || '',
                 estado: row[estadoIdx]?.trim() || '',
                 status: row[statusIdx]?.toLowerCase()?.trim() || 'ativo',
-                leads_meta_mes: parseNumber(row[leadsMetaIdx]),
-                custo_por_lead_meta: parseNumber(row[cplMetaIdx]),
-                investimento_meta_mes: parseNumber(row[investimentoMetaIdx]),
-                saldo_meta: parseNumber(row[saldoMetaIdx]),
-                leads_google_cadastro: parseNumber(row[leadsGoogleCadastroIdx]),
-                leads_google_ligacao: parseNumber(row[leadsGoogleLigacaoIdx]),
-                cliques_google_whatsapp: parseNumber(row[cliquesWhatsAppIdx]),
-                cpc_google: parseNumber(row[cpcGoogleIdx]),
-                investimento_google_mes: parseNumber(row[investimentoGoogleIdx]),
-                saldo_google: parseNumber(row[saldoGoogleIdx]),
-                health_score: parseNumber(row[healthScoreIdx])
+                leads_meta_mes: leadsMetaIdx >= 0 ? parseNumber(row[leadsMetaIdx]) : null,
+                custo_por_lead_meta: cplMetaIdx >= 0 ? parseNumber(row[cplMetaIdx]) : null,
+                investimento_meta_mes: investimentoMetaIdx >= 0 ? parseNumber(row[investimentoMetaIdx]) : null,
+                saldo_meta: saldoMetaIdx >= 0 ? parseNumber(row[saldoMetaIdx]) : null,
+                leads_google_cadastro: leadsGoogleCadastroIdx >= 0 ? parseNumber(row[leadsGoogleCadastroIdx]) : null,
+                leads_google_ligacao: leadsGoogleLigacaoIdx >= 0 ? parseNumber(row[leadsGoogleLigacaoIdx]) : null,
+                cliques_google_whatsapp: cliquesWhatsAppIdx >= 0 ? parseNumber(row[cliquesWhatsAppIdx]) : null,
+                cpc_google: cpcGoogleIdx >= 0 ? parseNumber(row[cpcGoogleIdx]) : null,
+                investimento_google_mes: investimentoGoogleIdx >= 0 ? parseNumber(row[investimentoGoogleIdx]) : null,
+                saldo_google: saldoGoogleIdx >= 0 ? parseNumber(row[saldoGoogleIdx]) : null,
+                health_score: healthScoreIdx >= 0 ? parseNumber(row[healthScoreIdx]) : null
             };
             
             // Remove null/undefined values
