@@ -5,10 +5,10 @@ import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from '@/components/utils/auth';
 import { Card } from "@/components/ui/card";
 import ClienteSelector from '@/components/auth/ClienteSelector';
 import { Loader2 } from 'lucide-react';
+import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from '@/components/utils/auth';
 
 const pageTitles = {
   Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
