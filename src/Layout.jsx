@@ -19,7 +19,8 @@ const pageTitles = {
   AbrirDemanda: { title: "Abrir Demanda", subtitle: "Nova solicitação" },
   Newsletter: { title: "Newsletter & Insights", subtitle: "Atualizações da Voxx" },
   Ajuda: { title: "Central de Ajuda", subtitle: "Playbook e FAQ" },
-  Conta: { title: "Minha Conta", subtitle: "Configurações do perfil" }
+  Conta: { title: "Minha Conta", subtitle: "Configurações do perfil" },
+  GerenciarAcessos: { title: "Gerenciar Acessos", subtitle: "Controle de usuários e permissões" }
 };
 
 export default function Layout({ children, currentPageName }) {
@@ -179,6 +180,7 @@ export default function Layout({ children, currentPageName }) {
           setCollapsed={setSidebarCollapsed}
           pendingDemandas={pendingDemandas.length}
           onLogout={handleLogout}
+          user={user}
         />
       </div>
 
@@ -191,6 +193,7 @@ export default function Layout({ children, currentPageName }) {
             setCollapsed={() => {}}
             pendingDemandas={pendingDemandas.length}
             onLogout={handleLogout}
+            user={user}
           />
         </SheetContent>
       </Sheet>

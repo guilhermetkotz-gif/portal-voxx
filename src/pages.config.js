@@ -7,6 +7,7 @@ import Newsletter from './pages/Newsletter';
 import Performance from './pages/Performance';
 import Saldos from './pages/Saldos';
 import Timeline from './pages/Timeline';
+import GerenciarAcessos from './pages/GerenciarAcessos';
 import __Layout from './Layout.jsx';
 
 
@@ -20,6 +21,7 @@ export const PAGES = {
     "Performance": Performance,
     "Saldos": Saldos,
     "Timeline": Timeline,
+    "GerenciarAcessos": GerenciarAcessos,
 }
 
 export const pagesConfig = {
