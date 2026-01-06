@@ -91,20 +91,18 @@ Deno.serve(async (req) => {
             
             const clienteData = {
                 nome,
-                cidade: row[cidadeIdx]?.trim() || '',
-                estado: row[estadoIdx]?.trim() || '',
-                status: row[statusIdx]?.toLowerCase()?.trim() || 'ativo',
                 leads_meta_mes: leadsMetaIdx >= 0 ? parseNumber(row[leadsMetaIdx]) : null,
                 custo_por_lead_meta: cplMetaIdx >= 0 ? parseNumber(row[cplMetaIdx]) : null,
                 investimento_meta_mes: investimentoMetaIdx >= 0 ? parseNumber(row[investimentoMetaIdx]) : null,
                 saldo_meta: saldoMetaIdx >= 0 ? parseNumber(row[saldoMetaIdx]) : null,
+                investimento_dia_meta: investimentoDiaMetaIdx >= 0 ? parseNumber(row[investimentoDiaMetaIdx]) : null,
                 leads_google_cadastro: leadsGoogleCadastroIdx >= 0 ? parseNumber(row[leadsGoogleCadastroIdx]) : null,
                 leads_google_ligacao: leadsGoogleLigacaoIdx >= 0 ? parseNumber(row[leadsGoogleLigacaoIdx]) : null,
                 cliques_google_whatsapp: cliquesWhatsAppIdx >= 0 ? parseNumber(row[cliquesWhatsAppIdx]) : null,
                 cpc_google: cpcGoogleIdx >= 0 ? parseNumber(row[cpcGoogleIdx]) : null,
                 investimento_google_mes: investimentoGoogleIdx >= 0 ? parseNumber(row[investimentoGoogleIdx]) : null,
                 saldo_google: saldoGoogleIdx >= 0 ? parseNumber(row[saldoGoogleIdx]) : null,
-                health_score: healthScoreIdx >= 0 ? parseNumber(row[healthScoreIdx]) : null
+                investimento_dia_google: investimentoDiaGoogleIdx >= 0 ? parseNumber(row[investimentoDiaGoogleIdx]) : null
             };
             
             // Remove null/undefined values
