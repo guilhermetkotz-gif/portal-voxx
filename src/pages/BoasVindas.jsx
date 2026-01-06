@@ -7,12 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { 
-  CheckCircle, 
   Building2, 
-  Search, 
   BarChart3,
   FileText,
   Wallet,
@@ -32,15 +28,8 @@ export default function BoasVindas() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [tipoUsuario, setTipoUsuario] = useState('cliente_usuario');
-  const [contasSelecionadas, setContasSelecionadas] = useState([]);
+  const [unidadesDesejadas, setUnidadesDesejadas] = useState('');
   const [funcao, setFuncao] = useState('');
-  const [search, setSearch] = useState('');
-
-  const { data: clientes = [] } = useQuery({
-    queryKey: ['clientesPublicos'],
-    queryFn: () => base44.entities.Cliente.filter({ status: 'ativo' }, 'nome', 500),
-    staleTime: 5 * 60 * 1000
-  });
 
   const criarSolicitacao = useMutation({
     mutationFn: async () => {
@@ -61,18 +50,13 @@ export default function BoasVindas() {
         });
 
         // Create access request
-        const contasNomes = contasSelecionadas.map(id => {
-          const cliente = clientes.find(c => c.id === id);
-          return cliente?.nome || id;
-        });
-
         await base44.entities.AccessRequest.create({
           usuario_id: newUser.id,
           usuario_nome: nome,
           usuario_email: email,
-          contas_solicitadas: contasSelecionadas,
-          contas_solicitadas_nomes: contasNomes,
-          motivo: `Função: ${funcao}`,
+          contas_solicitadas: [],
+          contas_solicitadas_nomes: [],
+          motivo: `Função: ${funcao}\nUnidades desejadas: ${unidadesDesejadas}`,
           status: 'pendente'
         });
 
@@ -86,7 +70,7 @@ export default function BoasVindas() {
             user_email: admin.email,
             tipo: 'nova_solicitacao',
             titulo: 'Nova Solicitação de Acesso',
-            mensagem: `${nome} (${email}) solicitou acesso a ${contasSelecionadas.length} conta(s).`,
+            mensagem: `${nome} (${email}) solicitou acesso ao portal.`,
             lida: false
           });
         }
@@ -108,7 +92,7 @@ export default function BoasVindas() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!nome || !email || !senha || !funcao || contasSelecionadas.length === 0) {
+    if (!nome || !email || !senha || !funcao || !unidadesDesejadas.trim()) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
@@ -125,20 +109,6 @@ export default function BoasVindas() {
 
     criarSolicitacao.mutate();
   };
-
-  const toggleConta = (clienteId) => {
-    if (contasSelecionadas.includes(clienteId)) {
-      setContasSelecionadas(contasSelecionadas.filter(id => id !== clienteId));
-    } else {
-      setContasSelecionadas([...contasSelecionadas, clienteId]);
-    }
-  };
-
-  const clientesFiltrados = clientes.filter(c =>
-    c.nome?.toLowerCase().includes(search.toLowerCase()) ||
-    c.cidade?.toLowerCase().includes(search.toLowerCase()) ||
-    c.marca?.toLowerCase().includes(search.toLowerCase())
-  );
 
   if (etapa === 'boas-vindas') {
     return (
@@ -310,59 +280,18 @@ export default function BoasVindas() {
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold text-slate-900 mb-1">Unidades/Contas *</h3>
-              <p className="text-sm text-slate-500">Selecione as unidades que você precisa acessar</p>
+              <p className="text-sm text-slate-500">
+                Informe as unidades ou contas que você precisa acessar. O administrador irá vincular seu acesso após análise da solicitação.
+              </p>
             </div>
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Buscar cliente, cidade ou marca..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            <div className="border rounded-lg max-h-64 overflow-y-auto">
-              {clientesFiltrados.map(cliente => (
-                <label
-                  key={cliente.id}
-                  className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b last:border-b-0"
-                >
-                  <Checkbox
-                    checked={contasSelecionadas.includes(cliente.id)}
-                    onCheckedChange={() => toggleConta(cliente.id)}
-                  />
-                  <Building2 className="w-4 h-4 text-slate-400" />
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900">{cliente.nome}</p>
-                    <p className="text-xs text-slate-500">
-                      {cliente.cidade}, {cliente.estado}
-                      {cliente.marca && ` • ${cliente.marca}`}
-                    </p>
-                  </div>
-                </label>
-              ))}
-
-              {clientesFiltrados.length === 0 && (
-                <div className="p-8 text-center text-slate-500">
-                  <p>Nenhuma conta encontrada</p>
-                </div>
-              )}
-            </div>
-
-            {contasSelecionadas.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {contasSelecionadas.map(id => {
-                  const cliente = clientes.find(c => c.id === id);
-                  return (
-                    <Badge key={id} variant="outline">
-                      {cliente?.nome}
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
+            <Textarea
+              value={unidadesDesejadas}
+              onChange={(e) => setUnidadesDesejadas(e.target.value)}
+              placeholder="Ex: Clínica Oral Sin - São Paulo (Jardins), Clínica Oral Sin - Campinas..."
+              className="min-h-[100px]"
+              required
+            />
           </div>
 
           {/* Submit */}
