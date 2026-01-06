@@ -16,6 +16,7 @@ export default function SolicitarAcesso() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [funcao, setFuncao] = useState('');
   const [contasSelecionadas, setContasSelecionadas] = useState([]);
   const [motivo, setMotivo] = useState('');
   const [search, setSearch] = useState('');
@@ -39,8 +40,10 @@ export default function SolicitarAcesso() {
       if (newUser) {
         // Update user with additional info
         await base44.entities.User.update(newUser.id, {
+          full_name: nome,
           tipo_usuario: 'cliente_usuario',
-          status: 'pendente'
+          status: 'pendente',
+          cargo: funcao
         });
 
         // Create access request
@@ -74,8 +77,6 @@ export default function SolicitarAcesso() {
           });
         }
       }
-
-      return true;
     },
     onSuccess: () => {
       setSucesso(true);
@@ -90,7 +91,7 @@ export default function SolicitarAcesso() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!nome || !email || !senha || !motivo || contasSelecionadas.length === 0) {
+    if (!nome || !email || !senha || !funcao || !motivo || contasSelecionadas.length === 0) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
@@ -202,6 +203,16 @@ export default function SolicitarAcesso() {
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <Label>Qual sua função na unidade? *</Label>
+              <Input
+                value={funcao}
+                onChange={(e) => setFuncao(e.target.value)}
+                placeholder="Ex: gestor, CRC, coordenador..."
+                required
+              />
             </div>
           </div>
 

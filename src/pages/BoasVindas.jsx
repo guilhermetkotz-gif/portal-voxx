@@ -75,11 +75,10 @@ export default function BoasVindas() {
           });
         }
       }
-
-      return true;
     },
     onSuccess: () => {
       setEtapa('obrigado');
+      toast.success('Solicitação enviada com sucesso!');
     },
     onError: (error) => {
       toast.error('Erro ao enviar solicitação. Tente novamente.');
