@@ -33,10 +33,11 @@ export default function GerenciarAcessos({ user }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [deleteUserId, setDeleteUserId] = useState(null);
 
-  const { data: usuarios = [] } = useQuery({
+  const { data: usuarios = [], refetch: refetchUsuarios } = useQuery({
     queryKey: ['todosUsuarios'],
     queryFn: () => base44.entities.User.list('-created_date', 500),
-    staleTime: 30 * 1000
+    staleTime: 10 * 1000,
+    refetchInterval: 10 * 1000
   });
 
   const { data: solicitacoes = [] } = useQuery({
