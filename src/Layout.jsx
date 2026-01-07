@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/card";
 import ClienteSelector from '@/components/auth/ClienteSelector';
 import { Loader2 } from 'lucide-react';
 import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from '@/components/utils/auth';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 const pageTitles = {
   Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
@@ -24,6 +26,7 @@ const pageTitles = {
 };
 
 export default function Layout({ children, currentPageName }) {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedClienteId, setSelectedClienteId] = useState(null);
@@ -224,18 +227,30 @@ export default function Layout({ children, currentPageName }) {
   if (user?.role === 'admin') {
     // Admin has full access, skip to main app
   } else {
-    // 2. User is pendente WITH request → show AguardandoAprovacao
+    // 2. User is pendente WITH request → redirect to AguardandoAprovacao
     if (user?.status === 'pendente' && userRequest && userRequest.length > 0) {
+      if (currentPageName !== 'AguardandoAprovacao') {
+        navigate(createPageUrl('AguardandoAprovacao'));
+        return null;
+      }
       return React.cloneElement(children, { user });
     }
 
     // 3. User is pendente WITHOUT request → redirect to BoasVindas
     if (user?.status === 'pendente' && (!userRequest || userRequest.length === 0)) {
+      if (currentPageName !== 'BoasVindas') {
+        navigate(createPageUrl('BoasVindas'));
+        return null;
+      }
       return React.cloneElement(children, { user });
     }
 
     // 4. User has no active access (not admin) → redirect to BoasVindas
     if (clientes.length === 0 && !isVoxxAdmin(user) && user?.status !== 'pendente') {
+      if (currentPageName !== 'BoasVindas') {
+        navigate(createPageUrl('BoasVindas'));
+        return null;
+      }
       return React.cloneElement(children, { user });
     }
   }
