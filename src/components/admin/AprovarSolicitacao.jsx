@@ -7,12 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Building2
+  Building2,
+  Search
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,14 +26,28 @@ export default function AprovarSolicitacao({ solicitacao, onClose, currentUser }
   const [nivelAcesso, setNivelAcesso] = useState('viewer');
   const [observacao, setObservacao] = useState('');
   const [motivo, setMotivo] = useState('');
+  const [search, setSearch] = useState('');
+
+  const { data: todosClientes = [] } = useQuery({
+    queryKey: ['clientesParaAprovacao'],
+    queryFn: () => base44.entities.Cliente.filter({ status: 'ativo' }, 'nome', 500),
+    staleTime: 60 * 1000
+  });
 
   const aprovarSolicitacao = useMutation({
     mutationFn: async () => {
       // Criar acessos
       for (const clienteId of contasSelecionadas) {
-        const clienteNome = solicitacao.contas_solicitadas_nomes[
-          solicitacao.contas_solicitadas.indexOf(clienteId)
-        ];
+        // Get client name from todosClientes or from solicitacao
+        let clienteNome;
+        if (solicitacao.contas_solicitadas && solicitacao.contas_solicitadas.includes(clienteId)) {
+          const index = solicitacao.contas_solicitadas.indexOf(clienteId);
+          clienteNome = solicitacao.contas_solicitadas_nomes?.[index];
+        }
+        if (!clienteNome) {
+          const cliente = todosClientes.find(c => c.id === clienteId);
+          clienteNome = cliente?.nome;
+        }
         
         await base44.entities.UserClientAccess.create({
           usuario_id: solicitacao.usuario_id,
@@ -47,7 +63,7 @@ export default function AprovarSolicitacao({ solicitacao, onClose, currentUser }
       }
 
       // Atualizar status da solicitação
-      const statusFinal = contasSelecionadas.length === solicitacao.contas_solicitadas.length 
+      const statusFinal = !temContasSolicitadas || contasSelecionadas.length === solicitacao.contas_solicitadas.length 
         ? 'aprovado' 
         : 'aprovado_parcial';
 
@@ -143,6 +159,14 @@ export default function AprovarSolicitacao({ solicitacao, onClose, currentUser }
     }
   };
 
+  const clientesFiltrados = todosClientes.filter(c =>
+    c.nome?.toLowerCase().includes(search.toLowerCase()) ||
+    c.cidade?.toLowerCase().includes(search.toLowerCase()) ||
+    c.marca?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const temContasSolicitadas = solicitacao.contas_solicitadas && solicitacao.contas_solicitadas.length > 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -174,30 +198,88 @@ export default function AprovarSolicitacao({ solicitacao, onClose, currentUser }
       {/* Contas Solicitadas */}
       <Card className="p-6">
         <h3 className="font-semibold text-slate-900 mb-4">Contas Solicitadas</h3>
-        <p className="text-sm text-slate-500 mb-4">Selecione quais contas serão aprovadas:</p>
-        
-        <div className="space-y-2">
-          {solicitacao.contas_solicitadas?.map((clienteId, index) => (
-            <div key={clienteId} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-              <Checkbox
-                checked={contasSelecionadas.includes(clienteId)}
-                onCheckedChange={() => toggleConta(clienteId)}
-              />
-              <Building2 className="w-5 h-5 text-slate-400" />
-              <span className="font-medium text-slate-900">
-                {solicitacao.contas_solicitadas_nomes?.[index] || clienteId}
-              </span>
-            </div>
-          ))}
-        </div>
 
-        {contasSelecionadas.length < solicitacao.contas_solicitadas.length && (
-          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800">
-              Aprovação parcial: {contasSelecionadas.length} de {solicitacao.contas_solicitadas.length} contas selecionadas
-            </p>
-          </div>
+        {temContasSolicitadas ? (
+          <>
+            <p className="text-sm text-slate-500 mb-4">Selecione quais contas serão aprovadas:</p>
+            <div className="space-y-2">
+              {solicitacao.contas_solicitadas?.map((clienteId, index) => (
+                <div key={clienteId} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                  <Checkbox
+                    checked={contasSelecionadas.includes(clienteId)}
+                    onCheckedChange={() => toggleConta(clienteId)}
+                  />
+                  <Building2 className="w-5 h-5 text-slate-400" />
+                  <span className="font-medium text-slate-900">
+                    {solicitacao.contas_solicitadas_nomes?.[index] || clienteId}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {contasSelecionadas.length < solicitacao.contas_solicitadas.length && (
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800">
+                  Aprovação parcial: {contasSelecionadas.length} de {solicitacao.contas_solicitadas.length} contas selecionadas
+                </p>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                Este usuário não selecionou contas específicas. Selecione manualmente as contas que deseja atribuir:
+              </p>
+            </div>
+
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Buscar cliente, cidade ou marca..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            <div className="border rounded-lg max-h-64 overflow-y-auto">
+              {clientesFiltrados.map(cliente => (
+                <label
+                  key={cliente.id}
+                  className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b last:border-b-0"
+                >
+                  <Checkbox
+                    checked={contasSelecionadas.includes(cliente.id)}
+                    onCheckedChange={() => toggleConta(cliente.id)}
+                  />
+                  <Building2 className="w-4 h-4 text-slate-400" />
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-900">{cliente.nome}</p>
+                    <p className="text-xs text-slate-500">
+                      {cliente.cidade}, {cliente.estado}
+                      {cliente.marca && ` • ${cliente.marca}`}
+                    </p>
+                  </div>
+                </label>
+              ))}
+
+              {clientesFiltrados.length === 0 && (
+                <div className="p-8 text-center text-slate-500">
+                  <p>Nenhuma conta encontrada</p>
+                </div>
+              )}
+            </div>
+
+            {contasSelecionadas.length > 0 && (
+              <div className="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-sm text-emerald-800 font-medium">
+                  {contasSelecionadas.length} conta(s) selecionada(s)
+                </p>
+              </div>
+            )}
+          </>
         )}
       </Card>
 
