@@ -18,6 +18,7 @@ const pageTitles = {
   Saldos: { title: "Saldos & Investimentos", subtitle: "Controle financeiro" },
   Demandas: { title: "Demandas", subtitle: "Acompanhe suas solicitações" },
   Timeline: { title: "Timeline", subtitle: "Histórico de entregas" },
+  Cronograma: { title: "Cronograma", subtitle: "Cronograma Oral Sin" },
   AbrirDemanda: { title: "Abrir Demanda", subtitle: "Nova solicitação" },
   Newsletter: { title: "Newsletter & Insights", subtitle: "Atualizações da Voxx" },
   Ajuda: { title: "Central de Ajuda", subtitle: "Playbook e FAQ" },
