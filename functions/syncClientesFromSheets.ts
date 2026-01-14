@@ -52,20 +52,24 @@ Deno.serve(async (req) => {
         // Fetch SALDOS - FACE sheet
         console.log('Fetching SALDOS sheet...');
         const saldosSheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SALDOS_SPREADSHEET_ID}/values/${encodeURIComponent('SALDOS -FACE')}`;
-        const saldosResponse = await fetch(saldosSheetUrl, {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
         
         let saldosRows = [];
-        if (!saldosResponse.ok) {
-            console.log('Warning: Failed to fetch SALDOS sheet:', saldosResponse.statusText);
-            // Continue without saldos data
-        } else {
-            const saldosData = await saldosResponse.json();
-            saldosRows = saldosData.values || [];
-            console.log('Saldos rows fetched:', saldosRows.length);
+        try {
+            const saldosResponse = await fetch(saldosSheetUrl, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            
+            if (!saldosResponse.ok) {
+                console.log('Warning: Failed to fetch SALDOS sheet:', saldosResponse.statusText);
+            } else {
+                const saldosData = await saldosResponse.json();
+                saldosRows = saldosData.values || [];
+                console.log('Saldos rows fetched:', saldosRows.length);
+            }
+        } catch (error) {
+            console.log('Error fetching SALDOS sheet:', error.message);
         }
         
         // Build saldos map using IDENTIFICADOR (account ID) as key
