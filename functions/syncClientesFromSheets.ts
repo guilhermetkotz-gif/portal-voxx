@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 const SPREADSHEET_ID = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
+const SALDOS_SPREADSHEET_ID = '1wn0BplK_-735LDcochYWeWHYx_7GhsyZ8aVKMkv2bEs';
 const SHEET_NAME = 'Planilha1';
 
 Deno.serve(async (req) => {
@@ -47,6 +48,50 @@ Deno.serve(async (req) => {
         const data = await response.json();
         const rows = data.values || [];
         console.log('Rows fetched:', rows.length);
+        
+        // Fetch SALDOS - FACE sheet
+        console.log('Fetching SALDOS sheet...');
+        const saldosSheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SALDOS_SPREADSHEET_ID}/values/${encodeURIComponent('SALDOS -FACE')}`;
+        const saldosResponse = await fetch(saldosSheetUrl, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (!saldosResponse.ok) {
+            console.log('Warning: Failed to fetch SALDOS sheet:', saldosResponse.statusText);
+        }
+        
+        const saldosData = await saldosResponse.json();
+        const saldosRows = saldosData.values || [];
+        console.log('Saldos rows fetched:', saldosRows.length);
+        
+        // Build saldos map (nome -> saldo)
+        const saldosMap = {};
+        if (saldosRows.length > 1) {
+            const saldosHeaders = saldosRows[0];
+            const nomeColIdx = saldosHeaders.findIndex(h => h && h.toLowerCase().includes('nome'));
+            const saldoColIdx = saldosHeaders.findIndex(h => h && h.toLowerCase().includes('saldo'));
+            
+            console.log('Saldos columns:', { nomeColIdx, saldoColIdx });
+            
+            for (let i = 1; i < saldosRows.length; i++) {
+                const row = saldosRows[i];
+                const nome = row[nomeColIdx]?.trim();
+                const saldo = row[saldoColIdx];
+                
+                if (nome && saldo) {
+                    const parseNumber = (val) => {
+                        if (!val) return null;
+                        const cleaned = val.toString().replace(/[^\d,.-]/g, '').replace(',', '.');
+                        const num = parseFloat(cleaned);
+                        return isNaN(num) ? null : num;
+                    };
+                    saldosMap[nome.toLowerCase()] = parseNumber(saldo);
+                }
+            }
+            console.log('Saldos map built with', Object.keys(saldosMap).length, 'entries');
+        }
         
         if (rows.length < 2) {
             return Response.json({ error: 'Planilha vazia ou sem dados' }, { status: 400 });
@@ -109,6 +154,9 @@ Deno.serve(async (req) => {
             const cidade = parts.length > 1 ? parts[parts.length - 2] : 'N/A';
             const estado = parts.length > 1 ? parts[parts.length - 1] : 'N/A';
             
+            // Get saldo from saldos map
+            const saldoMeta = saldosMap[nome.toLowerCase()] || null;
+            
             const clienteData = {
                 nome,
                 cidade,
@@ -117,6 +165,7 @@ Deno.serve(async (req) => {
                 leads_meta_mes: messagingConversationsIdx >= 0 ? parseNumber(row[messagingConversationsIdx]) : null,
                 custo_por_lead_meta: costPerMessagingIdx >= 0 ? parseNumber(row[costPerMessagingIdx]) : null,
                 investimento_meta_mes: amountSpentIdx >= 0 ? parseNumber(row[amountSpentIdx]) : null,
+                saldo_meta: saldoMeta,
                 // Campos adicionais da nova planilha
                 impressions: impressionsIdx >= 0 ? parseNumber(row[impressionsIdx]) : null,
                 page_engagement: pageEngagementIdx >= 0 ? parseNumber(row[pageEngagementIdx]) : null,
