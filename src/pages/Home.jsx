@@ -19,7 +19,11 @@ import {
   Wallet,
   Calendar,
   PlusCircle,
-  Loader2
+  Loader2,
+  Eye,
+  ThumbsUp,
+  Radio,
+  Target
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -153,6 +157,68 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
           variant="default"
         />
       </div>
+
+      {/* Métricas de Alcance e Engajamento */}
+      <Card className="p-5">
+        <h3 className="font-semibold text-slate-900 mb-4">Métricas de Performance</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <div className="p-2 bg-violet-100 rounded-lg">
+                <Eye className="w-5 h-5 text-violet-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">
+              {cliente?.impressions?.toLocaleString('pt-BR') || '-'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Impressions</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <MousePointerClick className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">
+              {cliente?.page_engagement?.toLocaleString('pt-BR') || '-'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Page Engagement</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <div className="p-2 bg-pink-100 rounded-lg">
+                <ThumbsUp className="w-5 h-5 text-pink-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">
+              {cliente?.page_likes?.toLocaleString('pt-BR') || '-'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Page Likes</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Radio className="w-5 h-5 text-green-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">
+              {cliente?.reach?.toLocaleString('pt-BR') || '-'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Reach</p>
+          </div>
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-2">
+              <div className="p-2 bg-amber-100 rounded-lg">
+                <Target className="w-5 h-5 text-amber-600" />
+              </div>
+            </div>
+            <p className="text-2xl font-bold text-slate-900">
+              {cliente?.clicks_all?.toLocaleString('pt-BR') || '-'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">Clicks (All)</p>
+          </div>
+        </div>
+      </Card>
 
       {/* Saldos */}
       <div className="grid sm:grid-cols-2 gap-4">

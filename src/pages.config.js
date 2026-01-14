@@ -3,6 +3,7 @@ import AguardandoAprovacao from './pages/AguardandoAprovacao';
 import Ajuda from './pages/Ajuda';
 import BoasVindas from './pages/BoasVindas';
 import Conta from './pages/Conta';
+import Cronograma from './pages/Cronograma';
 import Demandas from './pages/Demandas';
 import GerenciarAcessos from './pages/GerenciarAcessos';
 import GerenciarContas from './pages/GerenciarContas';
@@ -12,7 +13,6 @@ import Performance from './pages/Performance';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import Cronograma from './pages/Cronograma';
 import __Layout from './Layout.jsx';
 
 
@@ -22,6 +22,7 @@ export const PAGES = {
     "Ajuda": Ajuda,
     "BoasVindas": BoasVindas,
     "Conta": Conta,
+    "Cronograma": Cronograma,
     "Demandas": Demandas,
     "GerenciarAcessos": GerenciarAcessos,
     "GerenciarContas": GerenciarContas,
@@ -31,7 +32,6 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "Cronograma": Cronograma,
 }
 
 export const pagesConfig = {
