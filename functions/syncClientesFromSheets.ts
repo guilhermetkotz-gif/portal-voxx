@@ -70,27 +70,33 @@ Deno.serve(async (req) => {
         const saldosMap = {};
         if (saldosRows.length > 1) {
             const saldosHeaders = saldosRows[0];
-            const nomeColIdx = saldosHeaders.findIndex(h => h && h.toLowerCase().includes('nome'));
+            const nomeColIdx = saldosHeaders.findIndex(h => h && (h.toLowerCase().includes('unidade') || h.toLowerCase().includes('nome')));
             const saldoColIdx = saldosHeaders.findIndex(h => h && h.toLowerCase().includes('saldo'));
             
             console.log('Saldos columns:', { nomeColIdx, saldoColIdx });
+            console.log('Saldos headers:', saldosHeaders);
             
             for (let i = 1; i < saldosRows.length; i++) {
                 const row = saldosRows[i];
                 const nome = row[nomeColIdx]?.trim();
                 const saldo = row[saldoColIdx];
                 
-                if (nome && saldo) {
+                if (nome && saldo && nome !== '#REF!') {
                     const parseNumber = (val) => {
                         if (!val) return null;
                         const cleaned = val.toString().replace(/[^\d,.-]/g, '').replace(',', '.');
                         const num = parseFloat(cleaned);
                         return isNaN(num) ? null : num;
                     };
-                    saldosMap[nome.toLowerCase()] = parseNumber(saldo);
+                    const parsedSaldo = parseNumber(saldo);
+                    if (parsedSaldo !== null) {
+                        saldosMap[nome.toLowerCase()] = parsedSaldo;
+                        console.log(`Saldo mapping: "${nome}" -> ${parsedSaldo}`);
+                    }
                 }
             }
             console.log('Saldos map built with', Object.keys(saldosMap).length, 'entries');
+            console.log('First 5 entries:', Object.entries(saldosMap).slice(0, 5));
         }
         
         if (rows.length < 2) {
