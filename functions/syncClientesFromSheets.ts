@@ -58,13 +58,13 @@ Deno.serve(async (req) => {
             }
         });
         
+        let saldosRows = [];
         if (!saldosResponse.ok) {
             console.log('Warning: Failed to fetch SALDOS sheet:', saldosResponse.statusText);
             // Continue without saldos data
-            const saldosRows = [];
         } else {
             const saldosData = await saldosResponse.json();
-            const saldosRows = saldosData.values || [];
+            saldosRows = saldosData.values || [];
             console.log('Saldos rows fetched:', saldosRows.length);
         }
         
