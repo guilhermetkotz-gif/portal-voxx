@@ -59,22 +59,21 @@ Deno.serve(async (req) => {
         // Map column names to indices
         const getColumnIndex = (name) => headers.findIndex(h => h && h.toLowerCase().includes(name.toLowerCase()));
         
-        const nomeIdx = getColumnIndex('cliente');
-        const leadsMetaIdx = getColumnIndex('leads entregues este mês meta');
-        const cplMetaIdx = getColumnIndex('custo por lead meta');
-        const investimentoMetaIdx = getColumnIndex('investimento no meta');
-        const saldoMetaIdx = getColumnIndex('saldo meta');
-        const investimentoDiaMetaIdx = getColumnIndex('investimento por dia meta');
-        const dataProximoInvestimentoMetaIdx = getColumnIndex('data proximo investimento meta');
-        
-        const leadsGoogleCadastroIdx = getColumnIndex('leads entregues google cadastro');
-        const leadsGoogleLigacaoIdx = getColumnIndex('leads entregues google ligação');
-        const cliquesWhatsAppIdx = getColumnIndex('cliques google whatsapp');
-        const cpcGoogleIdx = getColumnIndex('cpc google');
-        const investimentoGoogleIdx = getColumnIndex('investimento no google');
-        const saldoGoogleIdx = getColumnIndex('saldo google');
-        const investimentoDiaGoogleIdx = getColumnIndex('investimento por dia google');
-        const dataProximoInvestimentoGoogleIdx = getColumnIndex('data proximo investimento google');
+        // Nova planilha tem diferentes nomes de colunas
+        const nomeIdx = getColumnIndex('account name');
+        const impressionsIdx = getColumnIndex('impressions');
+        const costPerMessagingIdx = getColumnIndex('cost per messaging conversations started');
+        const pageEngagementIdx = getColumnIndex('page engagement');
+        const pageLikesIdx = getColumnIndex('page likes');
+        const reachIdx = getColumnIndex('reach');
+        const amountSpentIdx = getColumnIndex('amount spent');
+        const clicksAllIdx = getColumnIndex('clicks (all)');
+        const cpcLinkClickIdx = getColumnIndex('cpc (cost per link click)');
+        const cpcAllIdx = getColumnIndex('cpc (all)');
+        const messagingConversationsIdx = getColumnIndex('messaging conversations started');
+        const costPerNewMessagingIdx = getColumnIndex('cost per new messaging connection');
+        const costPerUniqueLinkIdx = getColumnIndex('cost per unique link click');
+        const newMessagingConnectionsIdx = getColumnIndex('new messaging connections');
         
         console.log('Indices encontrados:', { nomeIdx, leadsMetaIdx, cplMetaIdx, saldoMetaIdx });
         
@@ -114,18 +113,21 @@ Deno.serve(async (req) => {
                 nome,
                 cidade,
                 estado,
-                leads_meta_mes: leadsMetaIdx >= 0 ? parseNumber(row[leadsMetaIdx]) : null,
-                custo_por_lead_meta: cplMetaIdx >= 0 ? parseNumber(row[cplMetaIdx]) : null,
-                investimento_meta_mes: investimentoMetaIdx >= 0 ? parseNumber(row[investimentoMetaIdx]) : null,
-                saldo_meta: saldoMetaIdx >= 0 ? parseNumber(row[saldoMetaIdx]) : null,
-                investimento_dia_meta: investimentoDiaMetaIdx >= 0 ? parseNumber(row[investimentoDiaMetaIdx]) : null,
-                leads_google_cadastro: leadsGoogleCadastroIdx >= 0 ? parseNumber(row[leadsGoogleCadastroIdx]) : null,
-                leads_google_ligacao: leadsGoogleLigacaoIdx >= 0 ? parseNumber(row[leadsGoogleLigacaoIdx]) : null,
-                cliques_google_whatsapp: cliquesWhatsAppIdx >= 0 ? parseNumber(row[cliquesWhatsAppIdx]) : null,
-                cpc_google: cpcGoogleIdx >= 0 ? parseNumber(row[cpcGoogleIdx]) : null,
-                investimento_google_mes: investimentoGoogleIdx >= 0 ? parseNumber(row[investimentoGoogleIdx]) : null,
-                saldo_google: saldoGoogleIdx >= 0 ? parseNumber(row[saldoGoogleIdx]) : null,
-                investimento_dia_google: investimentoDiaGoogleIdx >= 0 ? parseNumber(row[investimentoDiaGoogleIdx]) : null
+                // Mapeando novos campos da planilha
+                leads_meta_mes: messagingConversationsIdx >= 0 ? parseNumber(row[messagingConversationsIdx]) : null,
+                custo_por_lead_meta: costPerMessagingIdx >= 0 ? parseNumber(row[costPerMessagingIdx]) : null,
+                investimento_meta_mes: amountSpentIdx >= 0 ? parseNumber(row[amountSpentIdx]) : null,
+                // Campos adicionais da nova planilha
+                impressions: impressionsIdx >= 0 ? parseNumber(row[impressionsIdx]) : null,
+                page_engagement: pageEngagementIdx >= 0 ? parseNumber(row[pageEngagementIdx]) : null,
+                page_likes: pageLikesIdx >= 0 ? parseNumber(row[pageLikesIdx]) : null,
+                reach: reachIdx >= 0 ? parseNumber(row[reachIdx]) : null,
+                clicks_all: clicksAllIdx >= 0 ? parseNumber(row[clicksAllIdx]) : null,
+                cpc_link_click: cpcLinkClickIdx >= 0 ? parseNumber(row[cpcLinkClickIdx]) : null,
+                cpc_all: cpcAllIdx >= 0 ? parseNumber(row[cpcAllIdx]) : null,
+                new_messaging_connections: newMessagingConnectionsIdx >= 0 ? parseNumber(row[newMessagingConnectionsIdx]) : null,
+                cost_per_new_messaging: costPerNewMessagingIdx >= 0 ? parseNumber(row[costPerNewMessagingIdx]) : null,
+                cost_per_unique_link: costPerUniqueLinkIdx >= 0 ? parseNumber(row[costPerUniqueLinkIdx]) : null
             };
             
             // Remove null/undefined values
