@@ -66,22 +66,24 @@ Deno.serve(async (req) => {
         const saldosRows = saldosData.values || [];
         console.log('Saldos rows fetched:', saldosRows.length);
         
-        // Build saldos map (nome -> saldo)
-        const saldosMap = {};
+        // Build saldos map using IDENTIFICADOR (account ID) as key
+        const saldosMapByNome = {};
+        const saldosMapById = {};
         if (saldosRows.length > 1) {
             const saldosHeaders = saldosRows[0];
             const nomeColIdx = saldosHeaders.findIndex(h => h && (h.toLowerCase().includes('unidade') || h.toLowerCase().includes('nome')));
             const saldoColIdx = saldosHeaders.findIndex(h => h && h.toLowerCase().includes('saldo'));
+            const idColIdx = saldosHeaders.findIndex(h => h && h.toLowerCase().includes('identificador'));
             
-            console.log('Saldos columns:', { nomeColIdx, saldoColIdx });
-            console.log('Saldos headers:', saldosHeaders);
+            console.log('Saldos columns:', { nomeColIdx, saldoColIdx, idColIdx });
             
             for (let i = 1; i < saldosRows.length; i++) {
                 const row = saldosRows[i];
                 const nome = row[nomeColIdx]?.trim();
                 const saldo = row[saldoColIdx];
+                const identifier = row[idColIdx]?.trim();
                 
-                if (nome && saldo && nome !== '#REF!') {
+                if (saldo) {
                     const parseNumber = (val) => {
                         if (!val) return null;
                         const cleaned = val.toString().replace(/[^\d,.-]/g, '').replace(',', '.');
@@ -89,14 +91,21 @@ Deno.serve(async (req) => {
                         return isNaN(num) ? null : num;
                     };
                     const parsedSaldo = parseNumber(saldo);
-                    if (parsedSaldo !== null) {
-                        saldosMap[nome.toLowerCase()] = parsedSaldo;
-                        console.log(`Saldo mapping: "${nome}" -> ${parsedSaldo}`);
+                    
+                    if (parsedSaldo !== null && parsedSaldo > 0) {
+                        // Map by nome
+                        if (nome && nome !== '#REF!') {
+                            saldosMapByNome[nome.toLowerCase().trim()] = parsedSaldo;
+                        }
+                        // Map by identifier (account ID from sheet 1)
+                        if (identifier) {
+                            saldosMapById[identifier] = parsedSaldo;
+                            console.log(`Saldo by ID: ${identifier} -> ${parsedSaldo}`);
+                        }
                     }
                 }
             }
-            console.log('Saldos map built with', Object.keys(saldosMap).length, 'entries');
-            console.log('First 5 entries:', Object.entries(saldosMap).slice(0, 5));
+            console.log('Saldos map built:', Object.keys(saldosMapByNome).length, 'by name,', Object.keys(saldosMapById).length, 'by ID');
         }
         
         if (rows.length < 2) {
@@ -160,22 +169,27 @@ Deno.serve(async (req) => {
             const cidade = parts.length > 1 ? parts[parts.length - 2] : 'N/A';
             const estado = parts.length > 1 ? parts[parts.length - 1] : 'N/A';
             
-            // Get saldo from saldos map - try exact match first, then partial match
-            let saldoMeta = saldosMap[nome.toLowerCase()] || null;
+            // Get account ID from first column of performance sheet (row[0])
+            const accountId = row[0];
             
-            // If no exact match, try to find partial match
-            if (!saldoMeta) {
-                // Clean the name for comparison (remove numbers, special chars, extra spaces)
-                const cleanNome = nome.replace(/\d+/g, '').replace(/[^\w\s]/g, '').trim().toLowerCase();
+            // Try to match saldo by account ID first, then by name
+            let saldoMeta = null;
+            if (accountId && saldosMapById[accountId]) {
+                saldoMeta = saldosMapById[accountId];
+                console.log(`Matched by ID: ${accountId} -> ${saldoMeta}`);
+            } else {
+                // Try name matching as fallback
+                const cleanNome = nome.toLowerCase().trim();
+                saldoMeta = saldosMapByNome[cleanNome] || null;
                 
-                for (const [saldoNome, saldo] of Object.entries(saldosMap)) {
-                    const cleanSaldoNome = saldoNome.replace(/\d+/g, '').replace(/[^\w\s]/g, '').trim();
-                    
-                    // Check if one contains the other
-                    if (cleanNome.includes(cleanSaldoNome) || cleanSaldoNome.includes(cleanNome)) {
-                        saldoMeta = saldo;
-                        console.log(`Partial match: "${nome}" matched with "${saldoNome}" -> ${saldo}`);
-                        break;
+                if (!saldoMeta) {
+                    // Try partial match
+                    for (const [saldoNome, saldo] of Object.entries(saldosMapByNome)) {
+                        if (cleanNome.includes(saldoNome) || saldoNome.includes(cleanNome)) {
+                            saldoMeta = saldo;
+                            console.log(`Partial match: "${nome}" -> ${saldo}`);
+                            break;
+                        }
                     }
                 }
             }
