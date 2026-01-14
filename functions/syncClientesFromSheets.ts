@@ -87,10 +87,12 @@ Deno.serve(async (req) => {
                             saldosMapByNome[nome.toLowerCase().trim()] = parsedSaldo;
                         }
                         if (identifier) {
-                            saldosMapById[identifier] = parsedSaldo;
+                            // Normalizar ID: remover pontos e espaços
+                            const normalizedId = identifier.replace(/[.\s]/g, '');
+                            saldosMapById[normalizedId] = parsedSaldo;
                             // Log se contém "londrina" ou "bandeirantes"
                             if (nome && (nome.toLowerCase().includes('londrina') || nome.toLowerCase().includes('bandeirantes'))) {
-                                console.log(`Saldo Londrina mapeado: ${nome} -> ID: ${identifier} -> ${parsedSaldo}`);
+                                console.log(`Saldo Londrina mapeado: ${nome} -> ID: ${identifier} (normalized: ${normalizedId}) -> ${parsedSaldo}`);
                             }
                         }
                     }
@@ -152,12 +154,14 @@ Deno.serve(async (req) => {
             
             // Get account ID from first column
             const accountId = row[0];
+            // Normalizar ID: remover pontos e espaços
+            const normalizedAccountId = accountId ? accountId.toString().replace(/[.\s]/g, '') : null;
             
             // Match saldo by account ID first, then by name
             let saldoMeta = null;
-            if (accountId && saldosMapById[accountId]) {
-                saldoMeta = saldosMapById[accountId];
-                console.log(`✓ Saldo matched by ID for "${nome}": ${accountId} -> ${saldoMeta}`);
+            if (normalizedAccountId && saldosMapById[normalizedAccountId]) {
+                saldoMeta = saldosMapById[normalizedAccountId];
+                console.log(`✓ Saldo matched by ID for "${nome}": ${accountId} (normalized: ${normalizedAccountId}) -> ${saldoMeta}`);
             } else {
                 const cleanNome = nome.toLowerCase().trim();
                 saldoMeta = saldosMapByNome[cleanNome] || null;
