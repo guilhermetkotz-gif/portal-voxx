@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 const SPREADSHEET_ID = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
-const SHEET_NAME = 'Sheet1'; // Alterado para a primeira aba da nova planilha
+const SHEET_NAME = 'Planilha1';
 
 Deno.serve(async (req) => {
     console.log('=== TESTE CONEXÃO SHEETS ===');
