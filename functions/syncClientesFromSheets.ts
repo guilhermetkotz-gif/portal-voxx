@@ -76,7 +76,12 @@ Deno.serve(async (req) => {
                 if (saldo) {
                     const parseNumber = (val) => {
                         if (!val) return null;
-                        const cleaned = val.toString().replace(/[^\d,.-]/g, '').replace(',', '.');
+                        // Remove R$, espaços, e outros caracteres não numéricos exceto . e ,
+                        let cleaned = val.toString().replace(/[^\d,.]/g, '');
+                        // Remove pontos (separadores de milhar)
+                        cleaned = cleaned.replace(/\./g, '');
+                        // Substitui vírgula por ponto (separador decimal)
+                        cleaned = cleaned.replace(',', '.');
                         const num = parseFloat(cleaned);
                         return isNaN(num) ? null : num;
                     };
@@ -143,7 +148,12 @@ Deno.serve(async (req) => {
             
             const parseNumber = (val) => {
                 if (!val) return null;
-                const cleaned = val.toString().replace(/[^\d,.-]/g, '').replace(',', '.');
+                // Remove R$, espaços, e outros caracteres não numéricos exceto . e ,
+                let cleaned = val.toString().replace(/[^\d,.]/g, '');
+                // Remove pontos (separadores de milhar)
+                cleaned = cleaned.replace(/\./g, '');
+                // Substitui vírgula por ponto (separador decimal)
+                cleaned = cleaned.replace(',', '.');
                 const num = parseFloat(cleaned);
                 return isNaN(num) ? null : num;
             };
