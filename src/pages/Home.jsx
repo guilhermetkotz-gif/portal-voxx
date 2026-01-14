@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import KPICard from '@/components/ui/KPICard';
 import HealthScore from '@/components/ui/HealthScore';
 import AlertsSection from '@/components/home/AlertsSection';
@@ -23,7 +23,8 @@ import {
   Eye,
   ThumbsUp,
   Radio,
-  Target
+  Target,
+  RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,6 +35,16 @@ const formatCurrency = (value) => {
 };
 
 export default function Home({ currentCliente, selectedClienteId, user }) {
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    await queryClient.invalidateQueries(['clientes']);
+    await queryClient.refetchQueries(['clientes']);
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
   // User not authenticated → show BoasVindas
   if (!user) {
     return <BoasVindas />;
@@ -111,12 +122,23 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
                 Qualquer dúvida, estamos aqui!
               </p>
             </div>
-            <Link to={createPageUrl('AbrirDemanda')}>
-              <Button className="bg-white text-violet-700 hover:bg-violet-50 font-semibold">
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Nova Demanda
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleRefreshData}
+                disabled={isRefreshing}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Atualizar
               </Button>
-            </Link>
+              <Link to={createPageUrl('AbrirDemanda')}>
+                <Button className="bg-white text-violet-700 hover:bg-violet-50 font-semibold">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Nova Demanda
+                </Button>
+              </Link>
+            </div>
           </div>
         </Card>
 
