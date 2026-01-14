@@ -68,6 +68,11 @@ Deno.serve(async (req) => {
                 const saldo = row[saldoColIdx];
                 const identifier = row[idColIdx]?.trim();
                 
+                // Log linha 59 especificamente (índice 58 + 1 header = 59)
+                if (i === 58) {
+                    console.log('LINHA 59 da planilha SALDOS:', { nome, saldo, identifier, row });
+                }
+                
                 if (saldo) {
                     const parseNumber = (val) => {
                         if (!val) return null;
@@ -83,6 +88,10 @@ Deno.serve(async (req) => {
                         }
                         if (identifier) {
                             saldosMapById[identifier] = parsedSaldo;
+                            // Log se contém "londrina" ou "bandeirantes"
+                            if (nome && (nome.toLowerCase().includes('londrina') || nome.toLowerCase().includes('bandeirantes'))) {
+                                console.log(`Saldo Londrina mapeado: ${nome} -> ID: ${identifier} -> ${parsedSaldo}`);
+                            }
                         }
                     }
                 }
@@ -124,6 +133,11 @@ Deno.serve(async (req) => {
             const nome = row[nomeIdx]?.trim();
             
             if (!nome) continue;
+            
+            // Log clientes de Londrina da planilha de performance
+            if (nome.toLowerCase().includes('londrina')) {
+                console.log(`Cliente Londrina na planilha performance: "${nome}" (Account ID: ${row[0]})`);
+            }
             
             const parseNumber = (val) => {
                 if (!val) return null;
