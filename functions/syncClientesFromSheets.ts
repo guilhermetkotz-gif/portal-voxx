@@ -12,8 +12,24 @@ Deno.serve(async (req) => {
         const accessToken = await base44.asServiceRole.connectors.getAccessToken("googlesheets");
         console.log('Access token obtido');
         
-        // Fetch data from Google Sheets
-        const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}`;
+        // Fetch data from Google Sheets - get all sheets first
+        const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`;
+        console.log('Fetching metadata:', metadataUrl);
+        const metadataResponse = await fetch(metadataUrl, {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+        
+        if (!metadataResponse.ok) {
+            throw new Error(`Failed to fetch metadata: ${metadataResponse.statusText}`);
+        }
+        
+        const metadata = await metadataResponse.json();
+        const firstSheetName = metadata.sheets[0]?.properties?.title;
+        console.log('First sheet name:', firstSheetName);
+        
+        const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(firstSheetName)}`;
         console.log('Fetching:', sheetUrl);
         const response = await fetch(sheetUrl, {
             headers: {
