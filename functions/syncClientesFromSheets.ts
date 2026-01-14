@@ -60,20 +60,20 @@ Deno.serve(async (req) => {
         const getColumnIndex = (name) => headers.findIndex(h => h && h.toLowerCase().includes(name.toLowerCase()));
         
         // Nova planilha tem diferentes nomes de colunas
-        const nomeIdx = getColumnIndex('account name');
-        const impressionsIdx = getColumnIndex('impressions');
-        const costPerMessagingIdx = getColumnIndex('cost per messaging conversations started');
-        const pageEngagementIdx = getColumnIndex('page engagement');
-        const pageLikesIdx = getColumnIndex('page likes');
-        const reachIdx = getColumnIndex('reach');
-        const amountSpentIdx = getColumnIndex('amount spent');
-        const clicksAllIdx = getColumnIndex('clicks (all)');
-        const cpcLinkClickIdx = getColumnIndex('cpc (cost per link click)');
-        const cpcAllIdx = getColumnIndex('cpc (all)');
-        const messagingConversationsIdx = getColumnIndex('messaging conversations started');
-        const costPerNewMessagingIdx = getColumnIndex('cost per new messaging connection');
-        const costPerUniqueLinkIdx = getColumnIndex('cost per unique link click');
-        const newMessagingConnectionsIdx = getColumnIndex('new messaging connections');
+        const nomeIdx = headers.findIndex(h => h && h.toLowerCase() === 'account name');
+        const impressionsIdx = headers.findIndex(h => h && h.toLowerCase() === 'impressions');
+        const costPerMessagingIdx = headers.findIndex(h => h && h.toLowerCase() === 'cost per messaging conversations started');
+        const pageEngagementIdx = headers.findIndex(h => h && h.toLowerCase() === 'page engagement');
+        const pageLikesIdx = headers.findIndex(h => h && h.toLowerCase() === 'page likes');
+        const reachIdx = headers.findIndex(h => h && h.toLowerCase() === 'reach');
+        const amountSpentIdx = headers.findIndex(h => h && h.toLowerCase() === 'amount spent');
+        const clicksAllIdx = headers.findIndex(h => h && h.toLowerCase() === 'clicks (all)');
+        const cpcLinkClickIdx = headers.findIndex(h => h && h.toLowerCase() === 'cpc (cost per link click)');
+        const cpcAllIdx = headers.findIndex(h => h && h.toLowerCase() === 'cpc (all)');
+        const messagingConversationsIdx = headers.findIndex(h => h && h.toLowerCase() === 'messaging conversations started');
+        const costPerNewMessagingIdx = headers.findIndex(h => h && h.toLowerCase() === 'cost per new messaging connection');
+        const costPerUniqueLinkIdx = headers.findIndex(h => h && h.toLowerCase() === 'cost per unique link click');
+        const newMessagingConnectionsIdx = headers.findIndex(h => h && h.toLowerCase() === 'new messaging connections');
         
         console.log('Indices encontrados:', { nomeIdx, messagingConversationsIdx, costPerMessagingIdx, amountSpentIdx });
         
