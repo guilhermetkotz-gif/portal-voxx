@@ -60,11 +60,13 @@ Deno.serve(async (req) => {
         
         if (!saldosResponse.ok) {
             console.log('Warning: Failed to fetch SALDOS sheet:', saldosResponse.statusText);
+            // Continue without saldos data
+            const saldosRows = [];
+        } else {
+            const saldosData = await saldosResponse.json();
+            const saldosRows = saldosData.values || [];
+            console.log('Saldos rows fetched:', saldosRows.length);
         }
-        
-        const saldosData = await saldosResponse.json();
-        const saldosRows = saldosData.values || [];
-        console.log('Saldos rows fetched:', saldosRows.length);
         
         // Build saldos map using IDENTIFICADOR (account ID) as key
         const saldosMapByNome = {};
