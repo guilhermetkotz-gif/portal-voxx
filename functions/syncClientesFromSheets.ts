@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
             const saldosHeaders = saldosRows[0];
             const nomeColIdx = saldosHeaders.findIndex(h => h && (h.toLowerCase().includes('unidade') || h.toLowerCase().includes('nome')));
             const saldoColIdx = saldosHeaders.findIndex(h => h && h.toLowerCase().includes('saldo'));
-            const idColIdx = saldosHeaders.findIndex(h => h && h.toLowerCase().includes('identificador'));
+            const idColIdx = saldosHeaders.findIndex(h => h && (h.toLowerCase().includes('identificador') || h.toLowerCase().includes('account id')));
             
             console.log('Saldos columns:', { nomeColIdx, saldoColIdx, idColIdx });
             
