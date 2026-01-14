@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
         const costPerUniqueLinkIdx = getColumnIndex('cost per unique link click');
         const newMessagingConnectionsIdx = getColumnIndex('new messaging connections');
         
-        console.log('Indices encontrados:', { nomeIdx, leadsMetaIdx, cplMetaIdx, saldoMetaIdx });
+        console.log('Indices encontrados:', { nomeIdx, messagingConversationsIdx, costPerMessagingIdx, amountSpentIdx });
         
         let updatedCount = 0;
         let createdCount = 0;
