@@ -43,22 +43,12 @@ Deno.serve(async (req) => {
         console.log('Fetching SALDOS sheet...');
         const saldosSheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SALDOS_SPREADSHEET_ID}/values/${encodeURIComponent('SALDOS -FACE')}`;
         
-        let saldosRows = [];
-        try {
-            const saldosResponse = await fetch(saldosSheetUrl, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            
-            if (saldosResponse.ok) {
-                const saldosData = await saldosResponse.json();
-                saldosRows = saldosData.values || [];
-                console.log('Saldos rows fetched:', saldosRows.length);
-            } else {
-                console.log('Warning: Failed to fetch SALDOS sheet:', saldosResponse.statusText);
-            }
-        } catch (error) {
-            console.log('Error fetching SALDOS sheet:', error.message);
-        }
+        const saldosResponse = await fetch(saldosSheetUrl, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        
+        const saldosRows = saldosResponse.ok ? (await saldosResponse.json()).values || [] : [];
+        console.log('Saldos rows fetched:', saldosRows.length);
         
         // Build saldos map using Account ID as key
         const saldosMapByNome = {};
@@ -153,6 +143,7 @@ Deno.serve(async (req) => {
             let saldoMeta = null;
             if (accountId && saldosMapById[accountId]) {
                 saldoMeta = saldosMapById[accountId];
+                console.log(`✓ Saldo matched by ID for "${nome}": ${accountId} -> ${saldoMeta}`);
             } else {
                 const cleanNome = nome.toLowerCase().trim();
                 saldoMeta = saldosMapByNome[cleanNome] || null;
@@ -161,9 +152,14 @@ Deno.serve(async (req) => {
                     for (const [saldoNome, saldo] of Object.entries(saldosMapByNome)) {
                         if (cleanNome.includes(saldoNome) || saldoNome.includes(cleanNome)) {
                             saldoMeta = saldo;
+                            console.log(`✓ Saldo matched by partial name for "${nome}": ${saldoNome} -> ${saldo}`);
                             break;
                         }
                     }
+                }
+                
+                if (!saldoMeta) {
+                    console.log(`✗ NO MATCH for "${nome}" (Account ID: ${accountId})`);
                 }
             }
             
