@@ -160,8 +160,25 @@ Deno.serve(async (req) => {
             const cidade = parts.length > 1 ? parts[parts.length - 2] : 'N/A';
             const estado = parts.length > 1 ? parts[parts.length - 1] : 'N/A';
             
-            // Get saldo from saldos map
-            const saldoMeta = saldosMap[nome.toLowerCase()] || null;
+            // Get saldo from saldos map - try exact match first, then partial match
+            let saldoMeta = saldosMap[nome.toLowerCase()] || null;
+            
+            // If no exact match, try to find partial match
+            if (!saldoMeta) {
+                // Clean the name for comparison (remove numbers, special chars, extra spaces)
+                const cleanNome = nome.replace(/\d+/g, '').replace(/[^\w\s]/g, '').trim().toLowerCase();
+                
+                for (const [saldoNome, saldo] of Object.entries(saldosMap)) {
+                    const cleanSaldoNome = saldoNome.replace(/\d+/g, '').replace(/[^\w\s]/g, '').trim();
+                    
+                    // Check if one contains the other
+                    if (cleanNome.includes(cleanSaldoNome) || cleanSaldoNome.includes(cleanNome)) {
+                        saldoMeta = saldo;
+                        console.log(`Partial match: "${nome}" matched with "${saldoNome}" -> ${saldo}`);
+                        break;
+                    }
+                }
+            }
             
             const clienteData = {
                 nome,
