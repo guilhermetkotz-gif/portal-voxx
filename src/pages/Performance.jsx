@@ -260,6 +260,24 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                   {formatCurrency(cliente?.cost_per_new_messaging)}
                 </p>
               </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <Users className="w-5 h-5 text-orange-600" />
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 mb-1">% Leads Repetidos</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {(() => {
+                    const leads = cliente?.leads_meta_mes || 0;
+                    const newConnections = cliente?.new_messaging_connections || 0;
+                    const diff = leads - newConnections;
+                    if (leads === 0 || diff === 0) return '-';
+                    const percentage = ((leads / diff) * 100 - 100).toFixed(1);
+                    return `${percentage}%`;
+                  })()}
+                </p>
+              </div>
             </div>
           </Card>
 
