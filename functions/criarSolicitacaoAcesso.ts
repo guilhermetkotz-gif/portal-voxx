@@ -15,11 +15,13 @@ Deno.serve(async (req) => {
         }
 
         // Check if user already exists
-        const existingUsers = await base44.asServiceRole.entities.User.filter({ email });
+        let allUsers = await base44.asServiceRole.entities.User.list('-created_date', 500);
+        let existingUser = allUsers.find(u => u.email === email);
         let newUser;
         
-        if (existingUsers.length > 0) {
-            newUser = existingUsers[0];
+        if (existingUser) {
+            newUser = existingUser;
+            console.log('User already exists:', newUser.id);
             
             // Check if already has a pending request
             const existingRequests = await base44.asServiceRole.entities.AccessRequest.filter({ 
@@ -39,17 +41,22 @@ Deno.serve(async (req) => {
                 cargo: funcao
             });
         } else {
+            console.log('Creating new user with email:', email);
+            
             // Invite user (creates the user account)
             await base44.asServiceRole.users.inviteUser(email, 'user');
 
-            // Wait a bit and get the created user
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 100);
+            // Wait and get the created user
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            allUsers = await base44.asServiceRole.entities.User.list('-created_date', 500);
             newUser = allUsers.find(u => u.email === email);
 
             if (!newUser) {
+                console.error('User not found after creation');
                 return Response.json({ error: 'Erro ao criar usuário' }, { status: 500 });
             }
+
+            console.log('User created:', newUser.id);
 
             // Update user with additional info
             await base44.asServiceRole.entities.User.update(newUser.id, {
