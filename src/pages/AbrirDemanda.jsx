@@ -140,7 +140,7 @@ const setores = [
   }
 ];
 
-export default function AbrirDemanda() {
+export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
@@ -176,28 +176,16 @@ export default function AbrirDemanda() {
     staleTime: 5 * 60 * 1000
   });
 
-  const { data: clientes = [] } = useQuery({
-    queryKey: ['clientes', user?.cliente_id],
-    queryFn: async () => {
-      if (user?.cliente_id) {
-        return base44.entities.Cliente.filter({ id: user.cliente_id });
-      }
-      return [];
-    },
-    enabled: !!user?.cliente_id,
-    staleTime: 60 * 1000
-  });
-
-  const cliente = clientes[0];
+  const cliente = currentCliente;
 
   const { data: demandasExistentes = [] } = useQuery({
-    queryKey: ['demandasExistentes', user?.cliente_id, setor],
+    queryKey: ['demandasExistentes', selectedClienteId, setor],
     queryFn: () => base44.entities.Demanda.filter({
-      cliente_id: user?.cliente_id,
+      cliente_id: selectedClienteId,
       setor: setor,
       status: { $ne: 'concluida' }
     }),
-    enabled: !!user?.cliente_id && !!setor,
+    enabled: !!selectedClienteId && !!setor,
     staleTime: 30 * 1000
   });
 
@@ -246,7 +234,7 @@ export default function AbrirDemanda() {
     if (!setor || !titulo) return;
 
     const data = {
-      cliente_id: user?.cliente_id,
+      cliente_id: selectedClienteId,
       cliente_nome: cliente?.nome,
       setor,
       subcategoria,
