@@ -135,13 +135,13 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
     }
   });
 
-  const clientesDisponiveis = clientes
-    .filter(c => !acessos.some(a => a.cliente_id === c.id))
-    .filter(c => 
-      c.nome?.toLowerCase().includes(searchCliente.toLowerCase()) ||
-      c.cidade?.toLowerCase().includes(searchCliente.toLowerCase()) ||
-      c.estado?.toLowerCase().includes(searchCliente.toLowerCase())
-    );
+  const clientesNaoAtribuidos = clientes.filter(c => !acessos.some(a => a.cliente_id === c.id));
+  
+  const clientesDisponiveis = clientesNaoAtribuidos.filter(c => 
+    c.nome?.toLowerCase().includes(searchCliente.toLowerCase()) ||
+    c.cidade?.toLowerCase().includes(searchCliente.toLowerCase()) ||
+    c.estado?.toLowerCase().includes(searchCliente.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -225,7 +225,7 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
       <Card className="p-6">
         <h3 className="font-semibold text-slate-900 mb-4">Atribuir Novo Acesso</h3>
         
-        {clientesDisponiveis.length === 0 ? (
+        {clientesNaoAtribuidos.length === 0 ? (
           <p className="text-sm text-slate-500">Todas as contas já foram atribuídas</p>
         ) : (
           <div className="space-y-4">
@@ -256,11 +256,15 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
                   <SelectValue placeholder="Escolha um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clientesDisponiveis.map(cliente => (
-                    <SelectItem key={cliente.id} value={cliente.id}>
-                      {cliente.nome} - {cliente.cidade}, {cliente.estado}
-                    </SelectItem>
-                  ))}
+                  {clientesDisponiveis.length === 0 ? (
+                    <div className="p-2 text-sm text-slate-500">Nenhum cliente encontrado</div>
+                  ) : (
+                    clientesDisponiveis.map(cliente => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome} - {cliente.cidade}, {cliente.estado}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
 
