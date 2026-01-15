@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import KPICard from '@/components/ui/KPICard';
-import { Loader2, HelpCircle, TrendingUp, Target, Users, DollarSign, MousePointerClick, Phone, MessageCircle } from 'lucide-react';
+import { Loader2, HelpCircle, TrendingUp, Target, Users, DollarSign, MousePointerClick, Phone, MessageCircle, Eye, Radio, ThumbsUp } from 'lucide-react';
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined) return '-';
@@ -151,60 +151,110 @@ export default function Performance({ currentCliente, selectedClienteId, user })
             <h3 className="font-semibold text-slate-900 mb-4">Métricas Detalhadas</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-violet-100 rounded-lg">
+                    <Eye className="w-5 h-5 text-violet-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">Impressions</p>
                 <p className="text-lg font-bold text-slate-900">
                   {cliente?.impressions?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Radio className="w-5 h-5 text-green-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">Reach</p>
                 <p className="text-lg font-bold text-slate-900">
                   {cliente?.reach?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <MousePointerClick className="w-5 h-5 text-blue-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">Page Engagement</p>
                 <p className="text-lg font-bold text-slate-900">
                   {cliente?.page_engagement?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-pink-100 rounded-lg">
+                    <ThumbsUp className="w-5 h-5 text-pink-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">Page Likes</p>
                 <p className="text-lg font-bold text-slate-900">
                   {cliente?.page_likes?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-amber-100 rounded-lg">
+                    <Target className="w-5 h-5 text-amber-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">Clicks (All)</p>
                 <p className="text-lg font-bold text-slate-900">
                   {cliente?.clicks_all?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">CPC (Link Click)</p>
                 <p className="text-lg font-bold text-slate-900">
                   {formatCurrency(cliente?.cpc_link_click)}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-teal-100 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-teal-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">CPC (All)</p>
                 <p className="text-lg font-bold text-slate-900">
                   {formatCurrency(cliente?.cpc_all)}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-cyan-100 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-cyan-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">Cost per Unique Link Click</p>
                 <p className="text-lg font-bold text-slate-900">
                   {formatCurrency(cliente?.cost_per_unique_link)}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <MessageCircle className="w-5 h-5 text-indigo-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">New Messaging Connections</p>
                 <p className="text-lg font-bold text-slate-900">
                   {cliente?.new_messaging_connections?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
+                <div className="flex items-center justify-center mb-2">
+                  <div className="p-2 bg-slate-100 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-slate-600" />
+                  </div>
+                </div>
                 <p className="text-xs text-slate-500 mb-1">Cost per New Messaging</p>
                 <p className="text-lg font-bold text-slate-900">
                   {formatCurrency(cliente?.cost_per_new_messaging)}
