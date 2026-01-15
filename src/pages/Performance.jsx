@@ -44,37 +44,17 @@ const MetricTooltip = ({ term, children }) => {
   );
 };
 
-export default function Performance() {
+export default function Performance({ currentCliente, selectedClienteId, user }) {
   const [activeTab, setActiveTab] = useState('meta');
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    staleTime: 5 * 60 * 1000
-  });
-
   const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ['clientes', user?.cliente_id, user?.tipo_acesso],
-    queryFn: async () => {
-      if (user?.tipo_acesso === 'voxx_admin') {
-        return base44.entities.Cliente.list('-updated_date', 200);
-      }
-      if (user?.tipo_acesso === 'voxx_operacao' && user?.clientes_atribuidos?.length) {
-        const all = await base44.entities.Cliente.list('-updated_date', 200);
-        return all.filter(c => user.clientes_atribuidos.includes(c.id));
-      }
-      if (user?.cliente_id) {
-        return base44.entities.Cliente.filter({ id: user.cliente_id });
-      }
-      return [];
-    },
-    enabled: !!user,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000
+    queryKey: ['clientes'],
+    queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
+    staleTime: 2 * 60 * 1000
   });
 
-  const cliente = clientes[0];
-  const isVoxx = user?.tipo_acesso?.startsWith('voxx');
+  const cliente = currentCliente;
+  const isVoxx = user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_operacao';
 
   if (isLoading) {
     return (
