@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { 
   ArrowLeft, 
   Plus, 
@@ -12,7 +13,8 @@ import {
   Shield,
   Building2,
   CheckCircle,
-  XCircle
+  XCircle,
+  Search
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -22,6 +24,7 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
   const queryClient = useQueryClient();
   const [selectedClientes, setSelectedClientes] = useState([]);
   const [nivelAcesso, setNivelAcesso] = useState('viewer');
+  const [searchCliente, setSearchCliente] = useState('');
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientes'],
@@ -132,9 +135,13 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
     }
   });
 
-  const clientesDisponiveis = clientes.filter(c => 
-    !acessos.some(a => a.cliente_id === c.id)
-  );
+  const clientesDisponiveis = clientes
+    .filter(c => !acessos.some(a => a.cliente_id === c.id))
+    .filter(c => 
+      c.nome?.toLowerCase().includes(searchCliente.toLowerCase()) ||
+      c.cidade?.toLowerCase().includes(searchCliente.toLowerCase()) ||
+      c.estado?.toLowerCase().includes(searchCliente.toLowerCase())
+    );
 
   return (
     <div className="space-y-6">
@@ -222,6 +229,19 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
           <p className="text-sm text-slate-500">Todas as contas já foram atribuídas</p>
         ) : (
           <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Buscar Cliente</label>
+              <div className="relative mb-2">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar por nome, cidade ou estado..."
+                  value={searchCliente}
+                  onChange={(e) => setSearchCliente(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="text-sm font-medium text-slate-700 mb-2 block">Selecionar Clientes</label>
               <Select 
