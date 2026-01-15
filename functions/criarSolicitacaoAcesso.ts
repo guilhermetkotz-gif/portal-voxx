@@ -16,29 +16,49 @@ Deno.serve(async (req) => {
 
         // Check if user already exists
         const existingUsers = await base44.asServiceRole.entities.User.filter({ email });
+        let newUser;
+        
         if (existingUsers.length > 0) {
-            return Response.json({ error: 'Este email já está cadastrado' }, { status: 400 });
+            newUser = existingUsers[0];
+            
+            // Check if already has a pending request
+            const existingRequests = await base44.asServiceRole.entities.AccessRequest.filter({ 
+                usuario_email: email,
+                status: 'pendente'
+            });
+            
+            if (existingRequests.length > 0) {
+                return Response.json({ error: 'Você já possui uma solicitação pendente' }, { status: 400 });
+            }
+            
+            // Update user info if needed
+            await base44.asServiceRole.entities.User.update(newUser.id, {
+                full_name: nome,
+                tipo_usuario: tipoUsuario,
+                status: 'pendente',
+                cargo: funcao
+            });
+        } else {
+            // Invite user (creates the user account)
+            await base44.asServiceRole.users.inviteUser(email, 'user');
+
+            // Wait a bit and get the created user
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 100);
+            newUser = allUsers.find(u => u.email === email);
+
+            if (!newUser) {
+                return Response.json({ error: 'Erro ao criar usuário' }, { status: 500 });
+            }
+
+            // Update user with additional info
+            await base44.asServiceRole.entities.User.update(newUser.id, {
+                full_name: nome,
+                tipo_usuario: tipoUsuario,
+                status: 'pendente',
+                cargo: funcao
+            });
         }
-
-        // Invite user (creates the user account)
-        await base44.asServiceRole.users.inviteUser(email, 'user');
-
-        // Wait a bit and get the created user
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 100);
-        const newUser = allUsers.find(u => u.email === email);
-
-        if (!newUser) {
-            return Response.json({ error: 'Erro ao criar usuário' }, { status: 500 });
-        }
-
-        // Update user with additional info
-        await base44.asServiceRole.entities.User.update(newUser.id, {
-            full_name: nome,
-            tipo_usuario: tipoUsuario,
-            status: 'pendente',
-            cargo: funcao
-        });
 
         // Create access request
         await base44.asServiceRole.entities.AccessRequest.create({
