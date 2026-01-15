@@ -41,7 +41,7 @@ const prioridadeOptions = [
   { value: 'baixa', label: 'Baixa' }
 ];
 
-export default function Demandas() {
+export default function Demandas({ currentCliente, selectedClienteId, user }) {
   const [selectedDemanda, setSelectedDemanda] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -59,28 +59,22 @@ export default function Demandas() {
     }
   }, []);
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    staleTime: 5 * 60 * 1000
-  });
-
   const { data: demandas = [], isLoading } = useQuery({
-    queryKey: ['demandas', user?.cliente_id, user?.tipo_acesso],
+    queryKey: ['demandas', selectedClienteId, user?.tipo_usuario],
     queryFn: async () => {
-      if (user?.tipo_acesso === 'voxx_admin') {
+      if (user?.tipo_usuario === 'voxx_admin') {
         return base44.entities.Demanda.list('-updated_date', 200);
       }
-      if (user?.tipo_acesso === 'voxx_operacao' && user?.clientes_atribuidos?.length) {
+      if (user?.tipo_usuario === 'voxx_operacao' && user?.clientes_atribuidos?.length) {
         const all = await base44.entities.Demanda.list('-updated_date', 200);
         return all.filter(d => user.clientes_atribuidos.includes(d.cliente_id));
       }
-      if (user?.cliente_id) {
-        return base44.entities.Demanda.filter({ cliente_id: user.cliente_id }, '-updated_date', 100);
+      if (selectedClienteId) {
+        return base44.entities.Demanda.filter({ cliente_id: selectedClienteId }, '-updated_date', 100);
       }
       return [];
     },
-    enabled: !!user,
+    enabled: !!user && !!selectedClienteId,
     staleTime: 30 * 1000
   });
 
