@@ -146,6 +146,73 @@ export default function Performance({ currentCliente, selectedClienteId, user })
             </Card>
           )}
 
+          {/* Métricas Detalhadas Meta */}
+          <Card className="p-5">
+            <h3 className="font-semibold text-slate-900 mb-4">Métricas Detalhadas</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">Impressions</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {cliente?.impressions?.toLocaleString('pt-BR') || '-'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">Reach</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {cliente?.reach?.toLocaleString('pt-BR') || '-'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">Page Engagement</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {cliente?.page_engagement?.toLocaleString('pt-BR') || '-'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">Page Likes</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {cliente?.page_likes?.toLocaleString('pt-BR') || '-'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">Clicks (All)</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {cliente?.clicks_all?.toLocaleString('pt-BR') || '-'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">CPC (Link Click)</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {formatCurrency(cliente?.cpc_link_click)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">CPC (All)</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {formatCurrency(cliente?.cpc_all)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">Cost per Unique Link Click</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {formatCurrency(cliente?.cost_per_unique_link)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">New Messaging Connections</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {cliente?.new_messaging_connections?.toLocaleString('pt-BR') || '-'}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-slate-500 mb-1">Cost per New Messaging</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {formatCurrency(cliente?.cost_per_new_messaging)}
+                </p>
+              </div>
+            </div>
+          </Card>
+
           {/* Recommendations */}
           <Card className="p-5">
             <h3 className="font-semibold text-slate-900 mb-3">💡 Ações Recomendadas</h3>
