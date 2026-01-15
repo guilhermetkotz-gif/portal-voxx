@@ -271,9 +271,9 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                   {(() => {
                     const leads = cliente?.leads_meta_mes || 0;
                     const newConnections = cliente?.new_messaging_connections || 0;
+                    if (leads === 0) return '-';
                     const diff = leads - newConnections;
-                    if (leads === 0 || diff === 0) return '-';
-                    const percentage = ((leads / diff) * 100 - 100).toFixed(1);
+                    const percentage = ((diff / leads) * 100).toFixed(1);
                     return `${percentage}%`;
                   })()}
                 </p>
