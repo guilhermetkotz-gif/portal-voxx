@@ -40,10 +40,11 @@ export default function GerenciarAcessos({ user }) {
     refetchInterval: 10 * 1000
   });
 
-  const { data: solicitacoes = [] } = useQuery({
+  const { data: solicitacoes = [], refetch: refetchSolicitacoes } = useQuery({
     queryKey: ['solicitacoesAcesso'],
     queryFn: () => base44.entities.AccessRequest.filter({ status: 'pendente' }, '-created_date', 100),
-    staleTime: 30 * 1000
+    staleTime: 5 * 1000,
+    refetchInterval: 5 * 1000
   });
 
   const { data: acessos = [] } = useQuery({
@@ -175,7 +176,10 @@ export default function GerenciarAcessos({ user }) {
             className="pl-10"
           />
         </div>
-        <Button variant="outline" onClick={() => refetchUsuarios()}>
+        <Button variant="outline" onClick={() => {
+          refetchUsuarios();
+          refetchSolicitacoes();
+        }}>
           Atualizar
         </Button>
       </div>

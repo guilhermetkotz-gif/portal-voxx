@@ -21,6 +21,7 @@ import { createPageUrl } from '@/utils';
 
 export default function BoasVindas() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [etapa, setEtapa] = useState('boas-vindas'); // 'boas-vindas' | 'cadastro' | 'obrigado'
   
   const [nome, setNome] = useState('');
@@ -46,6 +47,7 @@ export default function BoasVindas() {
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['solicitacoesAcesso'] });
       setEtapa('obrigado');
       toast.success('Solicitação enviada com sucesso!');
     },
