@@ -44,6 +44,10 @@ export default function BoasVindas() {
         unidadesDesejadas
       });
 
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
       return response.data;
     },
     onSuccess: () => {
@@ -52,8 +56,8 @@ export default function BoasVindas() {
       toast.success('Solicitação enviada com sucesso!');
     },
     onError: (error) => {
-      toast.error(error.response?.data?.error || 'Erro ao enviar solicitação. Tente novamente.');
-      console.error(error);
+      toast.error(error.message || 'Erro ao enviar solicitação. Tente novamente.');
+      console.error('Erro completo:', error);
     }
   });
 
