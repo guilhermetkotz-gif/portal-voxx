@@ -48,10 +48,18 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
         results.push(acesso);
       }
 
-      // Update user status to ativo if pendente
-      if (usuario.status === 'pendente') {
-        await base44.entities.User.update(usuario.id, { status: 'ativo' });
-      }
+      // Get all active client accesses for this user
+      const allUserAccesses = await base44.entities.UserClientAccess.filter({
+        usuario_id: usuario.id,
+        status: 'ativo'
+      });
+      const activeClientIds = allUserAccesses.map(a => a.cliente_id);
+
+      // Update user with clientes_atribuidos and status
+      await base44.entities.User.update(usuario.id, { 
+        status: 'ativo',
+        clientes_atribuidos: activeClientIds
+      });
 
       // Log action
       await base44.entities.LogAuditoria.create({
@@ -82,6 +90,17 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
         status: 'revogado',
         data_revogacao: new Date().toISOString(),
         revogado_por_usuario_id: currentUser.id
+      });
+
+      // Update user's clientes_atribuidos
+      const allUserAccesses = await base44.entities.UserClientAccess.filter({
+        usuario_id: usuario.id,
+        status: 'ativo'
+      });
+      const activeClientIds = allUserAccesses.map(a => a.cliente_id);
+      
+      await base44.entities.User.update(usuario.id, {
+        clientes_atribuidos: activeClientIds
       });
 
       await base44.entities.LogAuditoria.create({
