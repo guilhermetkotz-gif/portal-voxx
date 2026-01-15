@@ -33,55 +33,24 @@ export default function BoasVindas() {
 
   const criarSolicitacao = useMutation({
     mutationFn: async () => {
-      // Create user via invitation
-      await base44.users.inviteUser(email, 'user');
+      // Call backend function to create user and request
+      const response = await base44.functions.invoke('criarSolicitacaoAcesso', {
+        nome,
+        email,
+        senha,
+        tipoUsuario,
+        funcao,
+        unidadesDesejadas
+      });
 
-      // Get the created user
-      const allUsers = await base44.entities.User.list('-created_date', 100);
-      const newUser = allUsers.find(u => u.email === email);
-
-      if (newUser) {
-        // Update user with additional info
-        await base44.entities.User.update(newUser.id, {
-          full_name: nome,
-          tipo_usuario: tipoUsuario,
-          status: 'pendente',
-          cargo: funcao
-        });
-
-        // Create access request
-        await base44.entities.AccessRequest.create({
-          usuario_id: newUser.id,
-          usuario_nome: nome,
-          usuario_email: email,
-          contas_solicitadas: [],
-          contas_solicitadas_nomes: [],
-          motivo: `Função: ${funcao}\nUnidades desejadas: ${unidadesDesejadas}`,
-          status: 'pendente'
-        });
-
-        // Create notification for admins
-        const admins = await base44.entities.User.filter({ 
-          tipo_usuario: { $in: ['voxx_admin', 'voxx_manager'] }
-        });
-        
-        for (const admin of admins) {
-          await base44.entities.Notificacao.create({
-            user_email: admin.email,
-            tipo: 'nova_solicitacao',
-            titulo: 'Nova Solicitação de Acesso',
-            mensagem: `${nome} (${email}) solicitou acesso ao portal.`,
-            lida: false
-          });
-        }
-      }
+      return response.data;
     },
     onSuccess: () => {
       setEtapa('obrigado');
       toast.success('Solicitação enviada com sucesso!');
     },
     onError: (error) => {
-      toast.error('Erro ao enviar solicitação. Tente novamente.');
+      toast.error(error.response?.data?.error || 'Erro ao enviar solicitação. Tente novamente.');
       console.error(error);
     }
   });
