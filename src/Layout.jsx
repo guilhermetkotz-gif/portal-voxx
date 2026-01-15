@@ -246,14 +246,8 @@ export default function Layout({ children, currentPageName }) {
       return React.cloneElement(children, { user });
     }
 
-    // 4. User has no active access (not admin) → redirect to BoasVindas
-    if (clientes.length === 0 && !isVoxxAdmin(user) && user?.status !== 'pendente') {
-      if (currentPageName !== 'BoasVindas') {
-        navigate(createPageUrl('BoasVindas'));
-        return null;
-      }
-      return React.cloneElement(children, { user });
-    }
+    // 4. Users with status 'ativo' can access the app even without clients
+    // They will see an appropriate message on the Home page
   }
 
   return (
