@@ -43,6 +43,16 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     previsao_entrega: demanda?.previsao_entrega || ''
   });
 
+  // Recarrega demanda atual
+  const { data: demandaAtual } = useQuery({
+    queryKey: ['demanda', demanda?.id],
+    queryFn: () => base44.entities.Demanda.filter({ id: demanda?.id }).then(d => d[0]),
+    enabled: !!demanda?.id && open,
+    initialData: demanda
+  });
+
+  const currentDemanda = demandaAtual || demanda;
+
   const { data: timeline = [] } = useQuery({
     queryKey: ['timeline', demanda?.id],
     queryFn: () => base44.entities.TimelineEvent.filter({ demanda_id: demanda?.id }, '-created_date', 100),
@@ -58,6 +68,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     mutationFn: (data) => base44.entities.Demanda.update(demanda.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(['demandasKanban']);
+      queryClient.invalidateQueries(['demanda', demanda.id]);
       queryClient.invalidateQueries(['timeline']);
       toast.success('Demanda atualizada!');
       setEditMode(false);
@@ -115,11 +126,12 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     updateDemandaMutation.mutate(editData);
   };
 
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = async (newStatus) => {
     const statusAnterior = demanda.status;
-    updateDemandaMutation.mutate({ status: newStatus });
     
-    base44.entities.TimelineEvent.create({
+    await updateDemandaMutation.mutateAsync({ status: newStatus });
+    
+    await base44.entities.TimelineEvent.create({
       demanda_id: demanda.id,
       cliente_id: demanda.cliente_id,
       tipo: 'status_change',
@@ -129,6 +141,8 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
       status_anterior: statusAnterior,
       status_novo: newStatus
     });
+    
+    queryClient.invalidateQueries(['timeline']);
   };
 
   if (!demanda) return null;
@@ -164,9 +178,9 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
           <SheetHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <SheetTitle className="text-xl pr-8">{demanda.titulo}</SheetTitle>
+                <SheetTitle className="text-xl pr-8">{currentDemanda.titulo}</SheetTitle>
                 <SheetDescription className="mt-1">
-                  Cliente: {demanda.cliente_nome}
+                  Cliente: {currentDemanda.cliente_nome}
                 </SheetDescription>
               </div>
               <Button
@@ -183,14 +197,14 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
           <div className="mt-6 space-y-6">
             {/* Status e Prioridade */}
             <div className="flex flex-wrap gap-2">
-              {demanda.urgente && (
+              {currentDemanda.urgente && (
                 <Badge variant="destructive">Urgente</Badge>
               )}
-              <Badge className={cn(statusColors[demanda.status], 'text-white')}>
-                {demanda.status.replace(/_/g, ' ').charAt(0).toUpperCase() + demanda.status.replace(/_/g, ' ').slice(1)}
+              <Badge className={cn(statusColors[currentDemanda.status], 'text-white')}>
+                {currentDemanda.status.replace(/_/g, ' ').charAt(0).toUpperCase() + currentDemanda.status.replace(/_/g, ' ').slice(1)}
               </Badge>
-              <Badge className={cn(priorityColors[demanda.prioridade], 'text-white')}>
-                Prioridade: {demanda.prioridade}
+              <Badge className={cn(priorityColors[currentDemanda.prioridade], 'text-white')}>
+                Prioridade: {currentDemanda.prioridade}
               </Badge>
             </div>
 
@@ -274,33 +288,33 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                       <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
                       <div className="flex-1">
                         <p className="font-medium text-slate-700">Setor</p>
-                        <p className="text-slate-600">{demanda.setor.replace(/_/g, ' ')}</p>
+                        <p className="text-slate-600">{currentDemanda.setor.replace(/_/g, ' ')}</p>
                       </div>
                     </div>
-                    {demanda.subcategoria && (
+                    {currentDemanda.subcategoria && (
                       <div className="flex items-start gap-2">
                         <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
                         <div className="flex-1">
                           <p className="font-medium text-slate-700">Subcategoria</p>
-                          <p className="text-slate-600">{demanda.subcategoria}</p>
+                          <p className="text-slate-600">{currentDemanda.subcategoria}</p>
                         </div>
                       </div>
                     )}
-                    {demanda.descricao && (
+                    {currentDemanda.descricao && (
                       <div className="flex items-start gap-2">
                         <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
                         <div className="flex-1">
                           <p className="font-medium text-slate-700">Descrição</p>
-                          <p className="text-slate-600 whitespace-pre-wrap">{demanda.descricao}</p>
+                          <p className="text-slate-600 whitespace-pre-wrap">{currentDemanda.descricao}</p>
                         </div>
                       </div>
                     )}
-                    {demanda.previsao_entrega && (
+                    {currentDemanda.previsao_entrega && (
                       <div className="flex items-start gap-2">
                         <Calendar className="h-4 w-4 text-slate-500 mt-0.5" />
                         <div className="flex-1">
                           <p className="font-medium text-slate-700">Previsão de Entrega</p>
-                          <p className="text-slate-600">{moment(demanda.previsao_entrega).format('DD/MM/YYYY')}</p>
+                          <p className="text-slate-600">{moment(currentDemanda.previsao_entrega).format('DD/MM/YYYY')}</p>
                         </div>
                       </div>
                     )}
@@ -308,20 +322,20 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                       <Clock className="h-4 w-4 text-slate-500 mt-0.5" />
                       <div className="flex-1">
                         <p className="font-medium text-slate-700">Criada em</p>
-                        <p className="text-slate-600">{moment(demanda.created_date).format('DD/MM/YYYY HH:mm')}</p>
+                        <p className="text-slate-600">{moment(currentDemanda.created_date).format('DD/MM/YYYY HH:mm')}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Anexos */}
-                {demanda.anexos && demanda.anexos.length > 0 && (
+                {currentDemanda.anexos && currentDemanda.anexos.length > 0 && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base">Anexos</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
-                      {demanda.anexos.map((url, idx) => (
+                      {currentDemanda.anexos.map((url, idx) => (
                         <a
                           key={idx}
                           href={url}
@@ -338,13 +352,13 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                 )}
 
                 {/* Campos Adicionais */}
-                {demanda.campos_adicionais && Object.keys(demanda.campos_adicionais).length > 0 && (
+                {currentDemanda.campos_adicionais && Object.keys(currentDemanda.campos_adicionais).length > 0 && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-base">Informações Adicionais</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
-                      {Object.entries(demanda.campos_adicionais).map(([key, value]) => (
+                      {Object.entries(currentDemanda.campos_adicionais).map(([key, value]) => (
                         <div key={key}>
                           <p className="font-medium text-slate-700">{key.replace(/_/g, ' ')}</p>
                           <p className="text-slate-600">{value}</p>
@@ -437,7 +451,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                     <CardTitle className="text-base">Mudar Status</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Select value={demanda.status} onValueChange={handleStatusChange}>
+                    <Select value={currentDemanda.status} onValueChange={handleStatusChange}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
