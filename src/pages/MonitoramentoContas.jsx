@@ -12,11 +12,28 @@ import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-export default function MonitoramentoContas() {
+export default function MonitoramentoContas({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [prioridadeFilter, setPrioridadeFilter] = useState('all');
     const [classificacaoFilter, setClassificacaoFilter] = useState('all');
     const queryClient = useQueryClient();
+
+    // Verificar se é admin
+    const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_manager';
+
+    if (!isAdmin) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Card className="max-w-md w-full p-8 text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertTriangle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
+                    <p className="text-slate-600">Esta página é exclusiva para administradores.</p>
+                </Card>
+            </div>
+        );
+    }
 
     const { data: accounts = [], isLoading } = useQuery({
         queryKey: ['metaAdsAccounts'],

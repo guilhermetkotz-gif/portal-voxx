@@ -9,15 +9,32 @@ import { createPageUrl } from '@/utils';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
-export default function DetalheConta() {
+export default function DetalheConta({ user }) {
     const [searchParams] = useSearchParams();
     const accountName = searchParams.get('account');
+
+    // Verificar se é admin
+    const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_manager';
 
     const { data: accounts = [], isLoading } = useQuery({
         queryKey: ['metaAdsAccounts'],
         queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
         staleTime: 2 * 60 * 1000
     });
+
+    if (!isAdmin) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Card className="max-w-md w-full p-8 text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertTriangle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
+                    <p className="text-slate-600">Esta página é exclusiva para administradores.</p>
+                </Card>
+            </div>
+        );
+    }
 
     const account = accounts.find(acc => acc.account_name === accountName);
 
