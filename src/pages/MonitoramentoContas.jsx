@@ -143,7 +143,7 @@ export default function MonitoramentoContas({ user }) {
             </div>
 
             {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
                 <Card>
                     <CardHeader className="pb-3">
                         <CardTitle className="text-sm font-medium text-slate-500">Total de Contas</CardTitle>
@@ -203,6 +203,29 @@ export default function MonitoramentoContas({ user }) {
                                 R$ {totalGasto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                             </span>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="lg:col-span-2">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium text-slate-500">Distribuição por Classificação</CardTitle>
+                    </CardHeader>
+                    <CardContent className="h-32">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={distribuicaoClassificacao} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                                <YAxis tick={{ fontSize: 10 }} />
+                                <Tooltip 
+                                    formatter={(value) => [`${value} contas`, 'Quantidade']}
+                                    contentStyle={{ fontSize: 12 }}
+                                />
+                                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                    {distribuicaoClassificacao.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
                     </CardContent>
                 </Card>
             </div>
