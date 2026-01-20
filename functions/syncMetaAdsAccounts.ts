@@ -27,7 +27,9 @@ Deno.serve(async (req) => {
         );
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch sheet data: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('Google Sheets API Error:', errorText);
+            throw new Error(`Failed to fetch sheet data: ${response.statusText} - ${errorText}`);
         }
 
         const data = await response.json();
