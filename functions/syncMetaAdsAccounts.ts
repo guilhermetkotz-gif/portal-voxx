@@ -171,9 +171,12 @@ Deno.serve(async (req) => {
 
         // Delete all existing accounts and insert new ones
         const existingAccounts = await base44.asServiceRole.entities.ContaMetaAds.list('-created_date', 1000);
-        for (const acc of existingAccounts) {
-            await base44.asServiceRole.entities.ContaMetaAds.delete(acc.id);
-        }
+        
+        // Delete in batches to avoid timeout
+        const deletePromises = existingAccounts.map(acc => 
+            base44.asServiceRole.entities.ContaMetaAds.delete(acc.id)
+        );
+        await Promise.all(deletePromises);
 
         // Bulk create new accounts
         if (accounts.length > 0) {
