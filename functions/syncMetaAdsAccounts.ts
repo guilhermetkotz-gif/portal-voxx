@@ -10,10 +10,32 @@ Deno.serve(async (req) => {
         }
 
         const spreadsheetId = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
-        const range = 'Sheet1!A:V';
 
         // Get access token for Google Sheets
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+
+        // First, get the sheet metadata to find the correct sheet name
+        const metaResponse = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        if (!metaResponse.ok) {
+            const errorText = await metaResponse.text();
+            console.error('Google Sheets Metadata Error:', errorText);
+            throw new Error(`Failed to fetch sheet metadata: ${metaResponse.statusText}`);
+        }
+
+        const metadata = await metaResponse.json();
+        const firstSheet = metadata.sheets[0].properties.title;
+        const range = `${firstSheet}!A:V`;
+
+        console.log('Using sheet name:', firstSheet);
 
         // Fetch data from Google Sheets
         const response = await fetch(
