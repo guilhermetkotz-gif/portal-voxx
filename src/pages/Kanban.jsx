@@ -11,7 +11,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 const Kanban = ({ user, selectedClienteId }) => {
   const queryClient = useQueryClient();
@@ -90,14 +90,14 @@ const Kanban = ({ user, selectedClienteId }) => {
       }
       
       if (filters.prazo !== 'all') {
-        const hoje = moment().startOf('day');
+        const hoje = moment().tz('America/Sao_Paulo').startOf('day');
         filteredDemandas = filteredDemandas.filter(d => {
           if (filters.prazo === 'sem_prazo') {
             return !d.previsao_entrega;
           }
           if (!d.previsao_entrega) return false;
           
-          const prazo = moment(d.previsao_entrega);
+          const prazo = moment(d.previsao_entrega).tz('America/Sao_Paulo');
           if (filters.prazo === 'atrasado') {
             return prazo.isBefore(hoje);
           }
@@ -105,7 +105,7 @@ const Kanban = ({ user, selectedClienteId }) => {
             return prazo.isSame(hoje, 'day');
           }
           if (filters.prazo === 'proximos_7_dias') {
-            return prazo.isBetween(hoje, moment().add(7, 'days'), 'day', '[]');
+            return prazo.isBetween(hoje, moment().tz('America/Sao_Paulo').add(7, 'days'), 'day', '[]');
           }
           return true;
         });

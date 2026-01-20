@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CalendarDays, User } from 'lucide-react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 const KanbanDemandCard = ({ demanda, onClick }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by } = demanda;
@@ -52,7 +52,7 @@ const KanbanDemandCard = ({ demanda, onClick }) => {
         {previsao_entrega && (
           <div className="flex items-center gap-1 text-slate-600">
             <CalendarDays className="h-3 w-3" />
-            <span>Prazo: {moment(previsao_entrega).format('DD/MM/YYYY')}</span>
+            <span>Prazo: {moment(previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY')}</span>
           </div>
         )}
         

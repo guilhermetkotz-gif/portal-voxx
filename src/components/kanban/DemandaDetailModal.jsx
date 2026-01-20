@@ -27,6 +27,7 @@ import {
 import moment from 'moment';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import 'moment-timezone';
 
 const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const queryClient = useQueryClient();
@@ -314,7 +315,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                         <Calendar className="h-4 w-4 text-slate-500 mt-0.5" />
                         <div className="flex-1">
                           <p className="font-medium text-slate-700">Previsão de Entrega</p>
-                          <p className="text-slate-600">{moment(currentDemanda.previsao_entrega).format('DD/MM/YYYY')}</p>
+                          <p className="text-slate-600">{moment(currentDemanda.previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY')}</p>
                         </div>
                       </div>
                     )}
@@ -322,7 +323,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                       <Clock className="h-4 w-4 text-slate-500 mt-0.5" />
                       <div className="flex-1">
                         <p className="font-medium text-slate-700">Criada em</p>
-                        <p className="text-slate-600">{moment(currentDemanda.created_date).format('DD/MM/YYYY HH:mm')}</p>
+                        <p className="text-slate-600">{moment(currentDemanda.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -385,7 +386,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                               <User className="h-3 w-3" />
                               <span>{event.autor}</span>
                               <span>•</span>
-                              <span>{moment(event.created_date).format('DD/MM/YYYY HH:mm')}</span>
+                              <span>{moment(event.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</span>
                             </div>
                             {event.anexo_url && (
                               <a
