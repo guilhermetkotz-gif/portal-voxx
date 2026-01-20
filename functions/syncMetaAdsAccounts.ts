@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
                 amount_spent: parseNumber(row[amountSpentIdx]),
                 clicks_all: parseNumber(row[clicksAllIdx]),
                 cpc: parseNumber(row[cpcIdx]),
-                messaging_conversations: parseNumber(row[messagingConversationsIdx]),
+                messaging_conversations: parseNumber(row[messagingConversationsIdx]) || 0,
                 cost_per_new_messaging: parseNumber(row[costPerNewMessagingIdx]),
                 new_messaging_connections: parseNumber(row[newMessagingConnectionsIdx]),
                 custo_engajamento: parseNumber(row[custoEngajamentoIdx]),
