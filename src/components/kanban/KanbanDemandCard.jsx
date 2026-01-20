@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { CalendarDays } from 'lucide-react';
 import moment from 'moment';
 
-const KanbanDemandCard = ({ demanda }) => {
+const KanbanDemandCard = ({ demanda, onClick }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente } = demanda;
 
   const priorityColors = {
@@ -24,7 +24,13 @@ const KanbanDemandCard = ({ demanda }) => {
   };
 
   return (
-    <Card className="mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow">
+    <Card 
+      className="mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.(demanda);
+      }}
+    >
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-3">
         <CardTitle className="text-sm font-semibold line-clamp-2">{titulo}</CardTitle>
         {urgente && <Badge variant="destructive" className="ml-2 shrink-0">Urgente</Badge>}

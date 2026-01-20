@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext } from '@hello-pangea/dnd';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
+import DemandaDetailModal from '@/components/kanban/DemandaDetailModal';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 const Kanban = ({ user, selectedClienteId }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [selectedDemanda, setSelectedDemanda] = useState(null);
 
   const [columns, setColumns] = useState({
     TRAFEGO_GOOGLE: { name: "Tráfego Google", items: [] },
@@ -161,10 +163,22 @@ const Kanban = ({ user, selectedClienteId }) => {
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {Object.entries(columns).map(([columnId, column]) => (
-            <KanbanColumn key={columnId} id={columnId} title={column.name} demands={column.items} />
+            <KanbanColumn 
+              key={columnId} 
+              id={columnId} 
+              title={column.name} 
+              demands={column.items}
+              onCardClick={setSelectedDemanda}
+            />
           ))}
         </div>
       </DragDropContext>
+
+      <DemandaDetailModal 
+        demanda={selectedDemanda} 
+        open={!!selectedDemanda} 
+        onClose={() => setSelectedDemanda(null)} 
+      />
     </div>
   );
 };

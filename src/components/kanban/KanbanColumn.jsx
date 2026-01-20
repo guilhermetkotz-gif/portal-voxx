@@ -4,7 +4,7 @@ import KanbanDemandCard from './KanbanDemandCard';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-const KanbanColumn = ({ title, demands, id }) => {
+const KanbanColumn = ({ title, demands, id, onCardClick }) => {
   return (
     <Card className="flex flex-col flex-shrink-0 w-80 max-h-[calc(100vh-200px)]">
       <CardHeader className="p-4 border-b bg-slate-50">
@@ -31,7 +31,7 @@ const KanbanColumn = ({ title, demands, id }) => {
                     {...providedDraggable.dragHandleProps}
                     className={cn(snapshotDraggable.isDragging && "opacity-50")}
                   >
-                    <KanbanDemandCard demanda={demanda} />
+                    <KanbanDemandCard demanda={demanda} onClick={onCardClick} />
                   </div>
                 )}
               </Draggable>

@@ -1,0 +1,495 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { 
+  Calendar, 
+  User, 
+  Clock, 
+  FileText, 
+  Paperclip, 
+  Send, 
+  Upload, 
+  Trash2,
+  Edit,
+  X,
+  AlertTriangle,
+  Loader2
+} from 'lucide-react';
+import moment from 'moment';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+const DemandaDetailModal = ({ demanda, open, onClose }) => {
+  const queryClient = useQueryClient();
+  const [comentario, setComentario] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  const [editData, setEditData] = useState({
+    titulo: demanda?.titulo || '',
+    descricao: demanda?.descricao || '',
+    status: demanda?.status || '',
+    prioridade: demanda?.prioridade || '',
+    previsao_entrega: demanda?.previsao_entrega || ''
+  });
+
+  const { data: timeline = [] } = useQuery({
+    queryKey: ['timeline', demanda?.id],
+    queryFn: () => base44.entities.TimelineEvent.filter({ demanda_id: demanda?.id }, '-created_date', 100),
+    enabled: !!demanda?.id && open,
+  });
+
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const updateDemandaMutation = useMutation({
+    mutationFn: (data) => base44.entities.Demanda.update(demanda.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['demandasKanban']);
+      queryClient.invalidateQueries(['timeline']);
+      toast.success('Demanda atualizada!');
+      setEditMode(false);
+    },
+  });
+
+  const addComentarioMutation = useMutation({
+    mutationFn: async ({ texto, anexo }) => {
+      const event = await base44.entities.TimelineEvent.create({
+        demanda_id: demanda.id,
+        cliente_id: demanda.cliente_id,
+        tipo: anexo ? 'anexo' : 'comentario',
+        descricao: texto,
+        autor: user?.full_name || user?.email,
+        autor_tipo: user?.tipo_usuario?.startsWith('voxx') ? 'voxx' : 'cliente',
+        anexo_url: anexo || null
+      });
+      return event;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['timeline']);
+      setComentario('');
+      toast.success('Comentário adicionado!');
+    },
+  });
+
+  const deleteDemandaMutation = useMutation({
+    mutationFn: () => base44.entities.Demanda.delete(demanda.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['demandasKanban']);
+      toast.success('Demanda excluída!');
+      onClose();
+    },
+  });
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await addComentarioMutation.mutateAsync({ 
+        texto: `Novo anexo: ${file.name}`, 
+        anexo: file_url 
+      });
+    } catch (error) {
+      toast.error('Erro ao fazer upload');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    updateDemandaMutation.mutate(editData);
+  };
+
+  const handleStatusChange = (newStatus) => {
+    const statusAnterior = demanda.status;
+    updateDemandaMutation.mutate({ status: newStatus });
+    
+    base44.entities.TimelineEvent.create({
+      demanda_id: demanda.id,
+      cliente_id: demanda.cliente_id,
+      tipo: 'status_change',
+      descricao: `Status alterado`,
+      autor: user?.full_name || user?.email,
+      autor_tipo: user?.tipo_usuario?.startsWith('voxx') ? 'voxx' : 'cliente',
+      status_anterior: statusAnterior,
+      status_novo: newStatus
+    });
+  };
+
+  if (!demanda) return null;
+
+  const statusOptions = [
+    { value: 'recebida', label: 'Recebida' },
+    { value: 'em_triagem', label: 'Em Triagem' },
+    { value: 'em_execucao', label: 'Em Execução' },
+    { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
+    { value: 'em_revisao', label: 'Em Revisão' },
+    { value: 'concluida', label: 'Concluída' }
+  ];
+
+  const priorityColors = {
+    alta: 'bg-red-500',
+    media: 'bg-yellow-500',
+    baixa: 'bg-green-500',
+  };
+
+  const statusColors = {
+    recebida: 'bg-blue-500',
+    em_triagem: 'bg-indigo-500',
+    em_execucao: 'bg-purple-500',
+    aguardando_cliente: 'bg-orange-500',
+    em_revisao: 'bg-yellow-500',
+    concluida: 'bg-green-500',
+  };
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={onClose}>
+        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <SheetTitle className="text-xl pr-8">{demanda.titulo}</SheetTitle>
+                <SheetDescription className="mt-1">
+                  Cliente: {demanda.cliente_nome}
+                </SheetDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setEditMode(!editMode)}
+                className="flex-shrink-0"
+              >
+                {editMode ? <X className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
+              </Button>
+            </div>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-6">
+            {/* Status e Prioridade */}
+            <div className="flex flex-wrap gap-2">
+              {demanda.urgente && (
+                <Badge variant="destructive">Urgente</Badge>
+              )}
+              <Badge className={cn(statusColors[demanda.status], 'text-white')}>
+                {demanda.status.replace(/_/g, ' ').charAt(0).toUpperCase() + demanda.status.replace(/_/g, ' ').slice(1)}
+              </Badge>
+              <Badge className={cn(priorityColors[demanda.prioridade], 'text-white')}>
+                Prioridade: {demanda.prioridade}
+              </Badge>
+            </div>
+
+            {/* Modo de Edição */}
+            {editMode ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Editar Demanda</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label>Título</Label>
+                    <Input
+                      value={editData.titulo}
+                      onChange={(e) => setEditData({ ...editData, titulo: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Descrição</Label>
+                    <Textarea
+                      value={editData.descricao}
+                      onChange={(e) => setEditData({ ...editData, descricao: e.target.value })}
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Status</Label>
+                      <Select value={editData.status} onValueChange={(v) => setEditData({ ...editData, status: v })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statusOptions.map(opt => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Prioridade</Label>
+                      <Select value={editData.prioridade} onValueChange={(v) => setEditData({ ...editData, prioridade: v })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="baixa">Baixa</SelectItem>
+                          <SelectItem value="media">Média</SelectItem>
+                          <SelectItem value="alta">Alta</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label>Previsão de Entrega</Label>
+                    <Input
+                      type="date"
+                      value={editData.previsao_entrega}
+                      onChange={(e) => setEditData({ ...editData, previsao_entrega: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveEdit} disabled={updateDemandaMutation.isPending}>
+                      {updateDemandaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
+                    </Button>
+                    <Button variant="outline" onClick={() => setEditMode(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {/* Detalhes */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Detalhes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    <div className="flex items-start gap-2">
+                      <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-700">Setor</p>
+                        <p className="text-slate-600">{demanda.setor.replace(/_/g, ' ')}</p>
+                      </div>
+                    </div>
+                    {demanda.subcategoria && (
+                      <div className="flex items-start gap-2">
+                        <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-700">Subcategoria</p>
+                          <p className="text-slate-600">{demanda.subcategoria}</p>
+                        </div>
+                      </div>
+                    )}
+                    {demanda.descricao && (
+                      <div className="flex items-start gap-2">
+                        <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-700">Descrição</p>
+                          <p className="text-slate-600 whitespace-pre-wrap">{demanda.descricao}</p>
+                        </div>
+                      </div>
+                    )}
+                    {demanda.previsao_entrega && (
+                      <div className="flex items-start gap-2">
+                        <Calendar className="h-4 w-4 text-slate-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-700">Previsão de Entrega</p>
+                          <p className="text-slate-600">{moment(demanda.previsao_entrega).format('DD/MM/YYYY')}</p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-4 w-4 text-slate-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-700">Criada em</p>
+                        <p className="text-slate-600">{moment(demanda.created_date).format('DD/MM/YYYY HH:mm')}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Anexos */}
+                {demanda.anexos && demanda.anexos.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Anexos</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {demanda.anexos.map((url, idx) => (
+                        <a
+                          key={idx}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-violet-600 hover:text-violet-700"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                          Anexo {idx + 1}
+                        </a>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Campos Adicionais */}
+                {demanda.campos_adicionais && Object.keys(demanda.campos_adicionais).length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Informações Adicionais</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                      {Object.entries(demanda.campos_adicionais).map(([key, value]) => (
+                        <div key={key}>
+                          <p className="font-medium text-slate-700">{key.replace(/_/g, ' ')}</p>
+                          <p className="text-slate-600">{value}</p>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Timeline */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Histórico</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {timeline.length === 0 ? (
+                      <p className="text-sm text-slate-500 text-center py-4">Nenhum evento registrado</p>
+                    ) : (
+                      timeline.map((event) => (
+                        <div key={event.id} className="flex gap-3 text-sm border-l-2 border-slate-200 pl-3 py-1">
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-800">{event.descricao}</p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                              <User className="h-3 w-3" />
+                              <span>{event.autor}</span>
+                              <span>•</span>
+                              <span>{moment(event.created_date).format('DD/MM/YYYY HH:mm')}</span>
+                            </div>
+                            {event.anexo_url && (
+                              <a
+                                href={event.anexo_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 mt-2 text-violet-600 hover:text-violet-700"
+                              >
+                                <Paperclip className="h-3 w-3" />
+                                Ver anexo
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Adicionar Comentário */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Adicionar Comentário</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Textarea
+                      value={comentario}
+                      onChange={(e) => setComentario(e.target.value)}
+                      placeholder="Digite seu comentário..."
+                      className="min-h-[80px]"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => addComentarioMutation.mutate({ texto: comentario })}
+                        disabled={!comentario.trim() || addComentarioMutation.isPending}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        Enviar
+                      </Button>
+                      <Button variant="outline" disabled={uploading}>
+                        <label className="cursor-pointer flex items-center">
+                          {uploading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4 mr-2" />
+                          )}
+                          Anexar
+                          <input
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                            disabled={uploading}
+                          />
+                        </label>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Ações Rápidas */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Mudar Status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Select value={demanda.status} onValueChange={handleStatusChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+
+                {/* Excluir */}
+                <Button
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir Demanda
+                </Button>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirmar Exclusão
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta demanda? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteDemandaMutation.mutate()}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
+export default DemandaDetailModal;
