@@ -149,11 +149,15 @@ Deno.serve(async (req) => {
             else if (notaGPT >= 50) classificacao = 'ALERTA';
             else classificacao = 'CRÍTICO';
 
-            // Calculate Prioridade
+            // Calculate Prioridade (baseado em impacto financeiro e volume)
             let prioridade;
-            if (notaGPT < 50 || (frequency >= 3.2 && leadsRepetidos >= 22)) {
+            const investimento = parseNumber(row[amountSpentIdx]);
+            const isCriticalMetrics = frequency >= 4.6 || leadsRepetidos >= 28 || costPerMessaging >= 55;
+            const isHighSpend = investimento >= 2000;
+            
+            if (notaGPT < 50 || (isCriticalMetrics && isHighSpend)) {
                 prioridade = 'P1';
-            } else if (notaGPT >= 50 && notaGPT < 65 || frequency >= 3.2 || leadsRepetidos >= 22) {
+            } else if (notaGPT >= 50 && notaGPT < 65 || isCriticalMetrics) {
                 prioridade = 'P2';
             } else {
                 prioridade = 'P3';
@@ -161,11 +165,11 @@ Deno.serve(async (req) => {
 
             // Calculate Main Issue
             let mainIssue;
-            if (frequency >= 3.2) {
+            if (frequency >= 4.6) {
                 mainIssue = 'Frequência alta (saturação / criativo cansado)';
-            } else if (leadsRepetidos >= 22) {
+            } else if (leadsRepetidos >= 28) {
                 mainIssue = 'Leads repetidos (público pequeno / repetição)';
-            } else if (costPerMessaging >= 30) {
+            } else if (costPerMessaging >= 55) {
                 mainIssue = 'Custo por conversa alto (criativo/oferta/qualificação)';
             } else {
                 mainIssue = 'Saudável (monitorar)';
