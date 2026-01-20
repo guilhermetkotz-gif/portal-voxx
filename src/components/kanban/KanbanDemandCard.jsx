@@ -2,11 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, User } from 'lucide-react';
 import moment from 'moment';
 
 const KanbanDemandCard = ({ demanda, onClick }) => {
-  const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente } = demanda;
+  const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by } = demanda;
 
   const priorityColors = {
     alta: 'bg-red-500',
@@ -52,7 +52,14 @@ const KanbanDemandCard = ({ demanda, onClick }) => {
         {previsao_entrega && (
           <div className="flex items-center gap-1 text-slate-600">
             <CalendarDays className="h-3 w-3" />
-            <span>{moment(previsao_entrega).format('DD/MM/YYYY')}</span>
+            <span>Prazo: {moment(previsao_entrega).format('DD/MM/YYYY')}</span>
+          </div>
+        )}
+        
+        {created_by && (
+          <div className="flex items-center gap-1 text-slate-600">
+            <User className="h-3 w-3" />
+            <span className="truncate">{created_by}</span>
           </div>
         )}
       </CardContent>
