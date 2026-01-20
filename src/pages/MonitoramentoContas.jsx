@@ -11,6 +11,7 @@ import { RefreshCw, Search, AlertTriangle, TrendingUp, DollarSign, Target } from
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function MonitoramentoContas({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
