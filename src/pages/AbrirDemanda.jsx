@@ -137,6 +137,45 @@ const setores = [
       'Outro'
     ],
     campos: ['descricao_pedido', 'periodo_referencia']
+  },
+  { 
+    value: 'ALTERACAO_CRIACAO', 
+    label: '✏️ Alteração Criação', 
+    icon: Palette,
+    subcategorias: [
+      'Ajuste de arte',
+      'Correção de texto',
+      'Mudança de cores',
+      'Alteração de layout',
+      'Outro'
+    ],
+    campos: ['o_que_alterar', 'link_arquivo_original']
+  },
+  { 
+    value: 'AUTOMACAO', 
+    label: '🤖 Automação', 
+    icon: Settings,
+    subcategorias: [
+      'Configuração de automação',
+      'Fluxo de mensagens',
+      'Integração',
+      'Chatbot',
+      'Outro'
+    ],
+    campos: ['tipo_automacao', 'plataforma']
+  },
+  { 
+    value: 'SALDOS', 
+    label: '💵 Saldos', 
+    icon: DollarSign,
+    subcategorias: [
+      'Consulta de saldo',
+      'Atualização de saldo',
+      'Histórico de investimento',
+      'Previsão de saldo',
+      'Outro'
+    ],
+    campos: ['periodo_consulta', 'plataforma']
   }
 ];
 

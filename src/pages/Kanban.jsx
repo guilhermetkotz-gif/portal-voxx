@@ -33,6 +33,9 @@ const Kanban = ({ user, selectedClienteId }) => {
     BI_RELATORIO: { name: "BI & Relatórios", items: [] },
     IMPLANTACAO: { name: "Implantação/Acessos", items: [] },
     FINANCEIRO: { name: "Financeiro/Administrativo", items: [] },
+    ALTERACAO_CRIACAO: { name: "Alteração Criação", items: [] },
+    AUTOMACAO: { name: "Automação", items: [] },
+    SALDOS: { name: "Saldos", items: [] },
   });
 
   const { data: demandas, isLoading, error } = useQuery({
@@ -68,6 +71,9 @@ const Kanban = ({ user, selectedClienteId }) => {
         BI_RELATORIO: { name: "BI & Relatórios", items: [] },
         IMPLANTACAO: { name: "Implantação/Acessos", items: [] },
         FINANCEIRO: { name: "Financeiro/Administrativo", items: [] },
+        ALTERACAO_CRIACAO: { name: "Alteração Criação", items: [] },
+        AUTOMACAO: { name: "Automação", items: [] },
+        SALDOS: { name: "Saldos", items: [] },
       };
 
       let filteredDemandas = demandas;
