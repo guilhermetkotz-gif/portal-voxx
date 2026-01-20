@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DragDropContext } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
 import KanbanFilters from '@/components/kanban/KanbanFilters';
 import DemandaDetailModal from '@/components/kanban/DemandaDetailModal';
@@ -12,6 +12,34 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 import moment from 'moment-timezone';
+
+const DEFAULT_COLUMN_ORDER = [
+  'TRAFEGO_META',
+  'TRAFEGO_GOOGLE',
+  'TRAFEGO_TIKTOK',
+  'ALTERACAO_CRIACAO',
+  'CRIACAO',
+  'EDICAO',
+  'BI_RELATORIO',
+  'IMPLANTACAO',
+  'FINANCEIRO',
+  'AUTOMACAO',
+  'SALDOS'
+];
+
+const COLUMN_DEFINITIONS = {
+  TRAFEGO_META: { name: "Tráfego Meta Ads" },
+  TRAFEGO_GOOGLE: { name: "Tráfego Google Ads" },
+  TRAFEGO_TIKTOK: { name: "Tráfego TikTok Ads" },
+  ALTERACAO_CRIACAO: { name: "Alteração Criação" },
+  CRIACAO: { name: "Criação Artes & Peças" },
+  EDICAO: { name: "Edição de Vídeo" },
+  BI_RELATORIO: { name: "BI & Relatórios" },
+  IMPLANTACAO: { name: "Implantação/Acessos" },
+  FINANCEIRO: { name: "Financeiro/Administrativo" },
+  AUTOMACAO: { name: "Automação" },
+  SALDOS: { name: "Saldos" },
+};
 
 const Kanban = ({ user, selectedClienteId }) => {
   const queryClient = useQueryClient();
@@ -24,18 +52,17 @@ const Kanban = ({ user, selectedClienteId }) => {
     prazo: 'all'
   });
 
-  const [columns, setColumns] = useState({
-    TRAFEGO_META: { name: "Tráfego Meta Ads", items: [] },
-    TRAFEGO_GOOGLE: { name: "Tráfego Google Ads", items: [] },
-    TRAFEGO_TIKTOK: { name: "Tráfego TikTok Ads", items: [] },
-    ALTERACAO_CRIACAO: { name: "Alteração Criação", items: [] },
-    CRIACAO: { name: "Criação Artes & Peças", items: [] },
-    EDICAO: { name: "Edição de Vídeo", items: [] },
-    BI_RELATORIO: { name: "BI & Relatórios", items: [] },
-    IMPLANTACAO: { name: "Implantação/Acessos", items: [] },
-    FINANCEIRO: { name: "Financeiro/Administrativo", items: [] },
-    AUTOMACAO: { name: "Automação", items: [] },
-    SALDOS: { name: "Saldos", items: [] },
+  const [columnOrder, setColumnOrder] = useState(() => {
+    const saved = localStorage.getItem('kanban_column_order');
+    return saved ? JSON.parse(saved) : DEFAULT_COLUMN_ORDER;
+  });
+
+  const [columns, setColumns] = useState(() => {
+    const cols = {};
+    DEFAULT_COLUMN_ORDER.forEach(key => {
+      cols[key] = { name: COLUMN_DEFINITIONS[key].name, items: [] };
+    });
+    return cols;
   });
 
   const { data: demandas, isLoading, error } = useQuery({
@@ -62,19 +89,10 @@ const Kanban = ({ user, selectedClienteId }) => {
 
   useEffect(() => {
     if (demandas) {
-      const newColumns = {
-        TRAFEGO_META: { name: "Tráfego Meta Ads", items: [] },
-        TRAFEGO_GOOGLE: { name: "Tráfego Google Ads", items: [] },
-        TRAFEGO_TIKTOK: { name: "Tráfego TikTok Ads", items: [] },
-        ALTERACAO_CRIACAO: { name: "Alteração Criação", items: [] },
-        CRIACAO: { name: "Criação Artes & Peças", items: [] },
-        EDICAO: { name: "Edição de Vídeo", items: [] },
-        BI_RELATORIO: { name: "BI & Relatórios", items: [] },
-        IMPLANTACAO: { name: "Implantação/Acessos", items: [] },
-        FINANCEIRO: { name: "Financeiro/Administrativo", items: [] },
-        AUTOMACAO: { name: "Automação", items: [] },
-        SALDOS: { name: "Saldos", items: [] },
-      };
+      const newColumns = {};
+      Object.keys(COLUMN_DEFINITIONS).forEach(key => {
+        newColumns[key] = { name: COLUMN_DEFINITIONS[key].name, items: [] };
+      });
 
       let filteredDemandas = demandas;
 
@@ -148,12 +166,24 @@ const Kanban = ({ user, selectedClienteId }) => {
   const onDragEnd = (result) => {
     if (!result.destination) return;
 
-    const { source, destination, draggableId } = result;
+    const { source, destination, draggableId, type } = result;
 
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
       return;
     }
 
+    // Arrastar coluna
+    if (type === 'COLUMN') {
+      const newColumnOrder = Array.from(columnOrder);
+      const [removed] = newColumnOrder.splice(source.index, 1);
+      newColumnOrder.splice(destination.index, 0, removed);
+      
+      setColumnOrder(newColumnOrder);
+      localStorage.setItem('kanban_column_order', JSON.stringify(newColumnOrder));
+      return;
+    }
+
+    // Arrastar card
     const sourceColumn = columns[source.droppableId];
     const destColumn = columns[destination.droppableId];
     
@@ -221,17 +251,40 @@ const Kanban = ({ user, selectedClienteId }) => {
       <KanbanFilters filters={filters} setFilters={setFilters} clientes={clientes} />
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {Object.entries(columns).map(([columnId, column]) => (
-            <KanbanColumn 
-              key={columnId} 
-              id={columnId} 
-              title={column.name} 
-              demands={column.items}
-              onCardClick={setSelectedDemanda}
-            />
-          ))}
-        </div>
+        <Droppable droppableId="all-columns" direction="horizontal" type="COLUMN">
+          {(provided) => (
+            <div 
+              className="flex gap-4 overflow-x-auto pb-4"
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+            >
+              {columnOrder.map((columnId, index) => {
+                const column = columns[columnId];
+                if (!column) return null;
+                
+                return (
+                  <Draggable key={columnId} draggableId={columnId} index={index}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                      >
+                        <KanbanColumn 
+                          id={columnId} 
+                          title={column.name} 
+                          demands={column.items}
+                          onCardClick={setSelectedDemanda}
+                          dragHandleProps={provided.dragHandleProps}
+                        />
+                      </div>
+                    )}
+                  </Draggable>
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
       </DragDropContext>
 
       <DemandaDetailModal 
