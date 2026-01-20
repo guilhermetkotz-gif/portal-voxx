@@ -78,12 +78,25 @@ Deno.serve(async (req) => {
         const amountSpentIdx = getColIndex('amount spent');
         const clicksAllIdx = getColIndex('clicks (all)');
         const cpcIdx = getColIndex('cpc (cost per link click)');
-        const messagingConversationsIdx = getColIndex('messaging conversations started');
+        
+        // Find the exact column M (index 12) for messaging conversations
+        // This avoids confusion with cost per messaging
+        const messagingConversationsIdx = headers.findIndex((h, idx) => 
+            h && h.toLowerCase().includes('messaging conversations started') && 
+            !h.toLowerCase().includes('cost')
+        );
+        
         const costPerNewMessagingIdx = getColIndex('cost per new messaging connection');
         const newMessagingConnectionsIdx = getColIndex('new messaging connections');
         const custoEngajamentoIdx = getColIndex('custo por engajamento');
         const leadsRepetidosIdx = getColIndex('leads repetidos');
         const notaGPTIdx = getColIndex('nota gpt');
+        
+        console.log('Column indices:', {
+            messagingConversationsIdx,
+            costPerMessagingIdx,
+            header_M: headers[12]
+        });
 
         const accounts = [];
 
