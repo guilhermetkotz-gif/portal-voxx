@@ -17,12 +17,14 @@ const Kanban = ({ user, selectedClienteId }) => {
   const [selectedDemanda, setSelectedDemanda] = useState(null);
 
   const [columns, setColumns] = useState({
-    recebida: { name: "Recebida", items: [] },
-    em_triagem: { name: "Em Triagem", items: [] },
-    em_execucao: { name: "Em Execução", items: [] },
-    aguardando_cliente: { name: "Aguardando Cliente", items: [] },
-    em_revisao: { name: "Em Revisão", items: [] },
-    concluida: { name: "Concluída", items: [] },
+    TRAFEGO_META: { name: "Tráfego Meta Ads", items: [] },
+    TRAFEGO_GOOGLE: { name: "Tráfego Google Ads", items: [] },
+    TRAFEGO_TIKTOK: { name: "Tráfego TikTok Ads", items: [] },
+    CRIACAO: { name: "Criação Artes & Peças", items: [] },
+    EDICAO: { name: "Edição de Vídeo", items: [] },
+    BI_RELATORIO: { name: "BI & Relatórios", items: [] },
+    IMPLANTACAO: { name: "Implantação/Acessos", items: [] },
+    FINANCEIRO: { name: "Financeiro/Administrativo", items: [] },
   });
 
   const { data: demandas, isLoading, error } = useQuery({
@@ -44,12 +46,14 @@ const Kanban = ({ user, selectedClienteId }) => {
   useEffect(() => {
     if (demandas) {
       const newColumns = {
-        recebida: { name: "Recebida", items: [] },
-        em_triagem: { name: "Em Triagem", items: [] },
-        em_execucao: { name: "Em Execução", items: [] },
-        aguardando_cliente: { name: "Aguardando Cliente", items: [] },
-        em_revisao: { name: "Em Revisão", items: [] },
-        concluida: { name: "Concluída", items: [] },
+        TRAFEGO_META: { name: "Tráfego Meta Ads", items: [] },
+        TRAFEGO_GOOGLE: { name: "Tráfego Google Ads", items: [] },
+        TRAFEGO_TIKTOK: { name: "Tráfego TikTok Ads", items: [] },
+        CRIACAO: { name: "Criação Artes & Peças", items: [] },
+        EDICAO: { name: "Edição de Vídeo", items: [] },
+        BI_RELATORIO: { name: "BI & Relatórios", items: [] },
+        IMPLANTACAO: { name: "Implantação/Acessos", items: [] },
+        FINANCEIRO: { name: "Financeiro/Administrativo", items: [] },
       };
 
       let filteredDemandas = demandas;
@@ -66,8 +70,8 @@ const Kanban = ({ user, selectedClienteId }) => {
       });
 
       filteredDemandas.forEach(demanda => {
-        if (newColumns[demanda.status]) {
-          newColumns[demanda.status].items.push(demanda);
+        if (newColumns[demanda.setor]) {
+          newColumns[demanda.setor].items.push(demanda);
         }
       });
       
@@ -76,13 +80,13 @@ const Kanban = ({ user, selectedClienteId }) => {
   }, [demandas, selectedClienteId, user]);
 
   const updateDemandaMutation = useMutation({
-    mutationFn: ({ id, status }) => base44.entities.Demanda.update(id, { status }),
+    mutationFn: ({ id, setor }) => base44.entities.Demanda.update(id, { setor }),
     onSuccess: () => {
       queryClient.invalidateQueries(['demandasKanban']);
-      toast.success('Status atualizado com sucesso!');
+      toast.success('Setor atualizado com sucesso!');
     },
     onError: (error) => {
-      toast.error('Erro ao atualizar status: ' + error.message);
+      toast.error('Erro ao atualizar setor: ' + error.message);
     },
   });
 
@@ -110,7 +114,7 @@ const Kanban = ({ user, selectedClienteId }) => {
         [destination.droppableId]: { ...destColumn, items: destItems },
       });
 
-      updateDemandaMutation.mutate({ id: draggableId, status: destination.droppableId });
+      updateDemandaMutation.mutate({ id: draggableId, setor: destination.droppableId });
     } else {
       const copiedItems = [...sourceColumn.items];
       const [removed] = copiedItems.splice(source.index, 1);
