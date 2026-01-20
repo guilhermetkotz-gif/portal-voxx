@@ -98,14 +98,14 @@ Deno.serve(async (req) => {
             // Parse numeric values
             const parseNumber = (val) => {
                 if (!val) return 0;
-                const str = typeof val === 'string' ? val.replace(/[^\d.-]/g, '') : val;
+                const str = typeof val === 'string' ? val.replace(/[^\d.,-]/g, '').replace(',', '.') : val;
                 const num = parseFloat(str);
                 return isNaN(num) ? 0 : num;
             };
 
             const parsePercentage = (val) => {
                 if (!val) return 0;
-                const str = typeof val === 'string' ? val.replace(/[^\d.-]/g, '') : val;
+                const str = typeof val === 'string' ? val.replace(/[^\d.,%]/g, '').replace(',', '.').replace('%', '') : val;
                 const num = parseFloat(str);
                 return isNaN(num) ? 0 : num;
             };
@@ -114,6 +114,19 @@ Deno.serve(async (req) => {
             const frequency = parseNumber(row[frequencyIdx]);
             const leadsRepetidos = parsePercentage(row[leadsRepetidosIdx]);
             const costPerMessaging = parseNumber(row[costPerMessagingIdx]);
+
+            // Debug log for São Sebastião
+            if (accountName.includes('SÃO SEBASTIÃO')) {
+                console.log('São Sebastião debug:', {
+                    accountName,
+                    frequency_raw: row[frequencyIdx],
+                    frequency_parsed: frequency,
+                    leadsRepetidos_raw: row[leadsRepetidosIdx],
+                    leadsRepetidos_parsed: leadsRepetidos,
+                    messagingConv_raw: row[messagingConversationsIdx],
+                    messagingConv_parsed: parseNumber(row[messagingConversationsIdx])
+                });
+            }
 
             // Calculate Classificação
             let classificacao;
