@@ -87,6 +87,15 @@ export default function MonitoramentoContas({ user }) {
         : 0;
     const totalGasto = accounts.reduce((sum, acc) => sum + acc.amount_spent, 0);
 
+    // Distribuição por classificação
+    const distribuicaoClassificacao = [
+        { name: 'CRÍTICO', count: accounts.filter(acc => acc.classificacao === 'CRÍTICO').length, color: '#DC2626' },
+        { name: 'ALERTA', count: accounts.filter(acc => acc.classificacao === 'ALERTA').length, color: '#F97316' },
+        { name: 'OPERACIONAL', count: accounts.filter(acc => acc.classificacao === 'OPERACIONAL').length, color: '#EAB308' },
+        { name: 'SAUDÁVEL', count: accounts.filter(acc => acc.classificacao === 'SAUDÁVEL').length, color: '#22C55E' },
+        { name: 'ELITE', count: accounts.filter(acc => acc.classificacao === 'ELITE').length, color: '#15803D' }
+    ].filter(item => item.count > 0);
+
     const getNotaColor = (nota) => {
         if (nota >= 90) return 'text-green-700 bg-green-50 border-green-200';
         if (nota >= 80) return 'text-green-600 bg-green-50 border-green-100';
