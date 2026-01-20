@@ -16,7 +16,8 @@ import {
   ChevronLeft,
   LogOut,
   Bell,
-  Shield
+  Shield,
+  KanbanSquare
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,6 +26,7 @@ const menuItems = [
   { name: "Performance", icon: BarChart3, page: "Performance" },
   { name: "Saldos & Investimentos", icon: Wallet, page: "Saldos" },
   { name: "Demandas", icon: TicketCheck, page: "Demandas", badge: true },
+  { name: "Kanban", icon: KanbanSquare, page: "Kanban", voxxOnly: true },
   { name: "Timeline", icon: Clock, page: "Timeline" },
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
   { name: "Abrir Demanda", icon: PlusCircle, page: "AbrirDemanda", highlight: true },
@@ -79,6 +81,11 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
 
           // Hide admin-only items for non-admin users
           if (item.adminOnly && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin' && user?.tipo_usuario !== 'voxx_manager') {
+            return null;
+          }
+
+          // Hide voxx-only items for non-voxx users
+          if (item.voxxOnly && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin' && user?.tipo_usuario !== 'voxx_operacao' && user?.tipo_usuario !== 'voxx_manager') {
             return null;
           }
 
