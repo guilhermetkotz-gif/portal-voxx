@@ -159,6 +159,19 @@ export default function AprovarSolicitacao({ solicitacao, onClose, currentUser }
     }
   };
 
+  const selecionarTodas = () => {
+    if (temContasSolicitadas) {
+      setContasSelecionadas(solicitacao.contas_solicitadas);
+    } else {
+      const todosIds = clientesFiltrados.map(c => c.id);
+      setContasSelecionadas(todosIds);
+    }
+  };
+
+  const desselecionarTodas = () => {
+    setContasSelecionadas([]);
+  };
+
   const clientesFiltrados = todosClientes.filter(c =>
     c.nome?.toLowerCase().includes(search.toLowerCase()) ||
     c.cidade?.toLowerCase().includes(search.toLowerCase()) ||
@@ -197,7 +210,25 @@ export default function AprovarSolicitacao({ solicitacao, onClose, currentUser }
 
       {/* Contas Solicitadas */}
       <Card className="p-6">
-        <h3 className="font-semibold text-slate-900 mb-4">Contas Solicitadas</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-slate-900">Contas Solicitadas</h3>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={selecionarTodas}
+            >
+              Selecionar Todas
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={desselecionarTodas}
+            >
+              Desmarcar Todas
+            </Button>
+          </div>
+        </div>
 
         {temContasSolicitadas ? (
           <>
