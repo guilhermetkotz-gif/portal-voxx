@@ -17,7 +17,8 @@ import {
   LogOut,
   Bell,
   Shield,
-  KanbanSquare
+  KanbanSquare,
+  Target
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -34,6 +35,7 @@ const menuItems = [
   { name: "Newsletter", icon: Newspaper, page: "Newsletter" },
   { name: "Central de Ajuda", icon: HelpCircle, page: "Ajuda" },
   { divider: true },
+  { name: "Monitoramento Meta Ads", icon: Target, page: "MonitoramentoContas", adminOnly: true },
   { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
 ];
 
