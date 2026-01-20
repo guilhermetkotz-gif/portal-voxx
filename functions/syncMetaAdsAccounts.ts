@@ -10,8 +10,7 @@ Deno.serve(async (req) => {
         }
 
         const spreadsheetId = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
-        const sheetName = 'Página 1';
-        const range = `'${sheetName}'!A:V`;
+        const range = 'Sheet1!A:V';
 
         // Get access token for Google Sheets
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
