@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext } from '@hello-pangea/dnd';
 import KanbanColumn from '@/components/kanban/KanbanColumn';
+import KanbanFilters from '@/components/kanban/KanbanFilters';
 import DemandaDetailModal from '@/components/kanban/DemandaDetailModal';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
@@ -10,11 +11,18 @@ import { Plus, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
+import moment from 'moment';
 
 const Kanban = ({ user, selectedClienteId }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [selectedDemanda, setSelectedDemanda] = useState(null);
+  const [filters, setFilters] = useState({
+    cliente_id: 'all',
+    status: 'all',
+    prioridade: 'all',
+    prazo: 'all'
+  });
 
   const [columns, setColumns] = useState({
     TRAFEGO_META: { name: "Tráfego Meta Ads", items: [] },
@@ -30,17 +38,23 @@ const Kanban = ({ user, selectedClienteId }) => {
   const { data: demandas, isLoading, error } = useQuery({
     queryKey: ['demandasKanban', selectedClienteId, user?.id],
     queryFn: async () => {
-      let filters = {};
+      let queryFilters = {};
       if (!isVoxxAdmin(user) && !isVoxxOperacao(user)) {
         if (selectedClienteId) {
-          filters.cliente_id = selectedClienteId;
+          queryFilters.cliente_id = selectedClienteId;
         } else {
           return [];
         }
       }
-      return base44.entities.Demanda.filter(filters, '-created_date', 500);
+      return base44.entities.Demanda.filter(queryFilters, '-created_date', 500);
     },
     enabled: !!user,
+  });
+
+  const { data: clientes = [] } = useQuery({
+    queryKey: ['clientesKanban'],
+    queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
+    enabled: !!user && (isVoxxAdmin(user) || isVoxxOperacao(user)),
   });
 
   useEffect(() => {
@@ -61,6 +75,41 @@ const Kanban = ({ user, selectedClienteId }) => {
       if (isVoxxOperacao(user) && user.clientes_atribuidos?.length > 0) {
         filteredDemandas = demandas.filter(d => user.clientes_atribuidos.includes(d.cliente_id));
       }
+
+      // Aplicar filtros
+      if (filters.cliente_id !== 'all') {
+        filteredDemandas = filteredDemandas.filter(d => d.cliente_id === filters.cliente_id);
+      }
+      
+      if (filters.status !== 'all') {
+        filteredDemandas = filteredDemandas.filter(d => d.status === filters.status);
+      }
+      
+      if (filters.prioridade !== 'all') {
+        filteredDemandas = filteredDemandas.filter(d => d.prioridade === filters.prioridade);
+      }
+      
+      if (filters.prazo !== 'all') {
+        const hoje = moment().startOf('day');
+        filteredDemandas = filteredDemandas.filter(d => {
+          if (filters.prazo === 'sem_prazo') {
+            return !d.previsao_entrega;
+          }
+          if (!d.previsao_entrega) return false;
+          
+          const prazo = moment(d.previsao_entrega);
+          if (filters.prazo === 'atrasado') {
+            return prazo.isBefore(hoje);
+          }
+          if (filters.prazo === 'hoje') {
+            return prazo.isSame(hoje, 'day');
+          }
+          if (filters.prazo === 'proximos_7_dias') {
+            return prazo.isBetween(hoje, moment().add(7, 'days'), 'day', '[]');
+          }
+          return true;
+        });
+      }
       
       filteredDemandas.sort((a, b) => {
         if (a.urgente && !b.urgente) return -1;
@@ -77,7 +126,7 @@ const Kanban = ({ user, selectedClienteId }) => {
       
       setColumns(newColumns);
     }
-  }, [demandas, selectedClienteId, user]);
+  }, [demandas, selectedClienteId, user, filters]);
 
   const updateDemandaMutation = useMutation({
     mutationFn: ({ id, setor }) => base44.entities.Demanda.update(id, { setor }),
@@ -162,6 +211,9 @@ const Kanban = ({ user, selectedClienteId }) => {
           <Plus className="mr-2 h-4 w-4" /> Nova Demanda
         </Button>
       </div>
+
+      <KanbanFilters filters={filters} setFilters={setFilters} clientes={clientes} />
+
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {Object.entries(columns).map(([columnId, column]) => (
