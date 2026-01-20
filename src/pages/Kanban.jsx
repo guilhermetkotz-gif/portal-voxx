@@ -17,13 +17,12 @@ const Kanban = ({ user, selectedClienteId }) => {
   const [selectedDemanda, setSelectedDemanda] = useState(null);
 
   const [columns, setColumns] = useState({
-    TRAFEGO_GOOGLE: { name: "Tráfego Google", items: [] },
-    TRAFEGO_TIKTOK: { name: "Tráfego TikTok", items: [] },
-    CRIACAO: { name: "Criação", items: [] },
-    EDICAO: { name: "Edição", items: [] },
-    BI_RELATORIO: { name: "BI & Relatório", items: [] },
-    IMPLANTACAO: { name: "Implantação", items: [] },
-    FINANCEIRO: { name: "Financeiro", items: [] },
+    recebida: { name: "Recebida", items: [] },
+    em_triagem: { name: "Em Triagem", items: [] },
+    em_execucao: { name: "Em Execução", items: [] },
+    aguardando_cliente: { name: "Aguardando Cliente", items: [] },
+    em_revisao: { name: "Em Revisão", items: [] },
+    concluida: { name: "Concluída", items: [] },
   });
 
   const { data: demandas, isLoading, error } = useQuery({
@@ -45,13 +44,12 @@ const Kanban = ({ user, selectedClienteId }) => {
   useEffect(() => {
     if (demandas) {
       const newColumns = {
-        TRAFEGO_GOOGLE: { name: "Tráfego Google", items: [] },
-        TRAFEGO_TIKTOK: { name: "Tráfego TikTok", items: [] },
-        CRIACAO: { name: "Criação", items: [] },
-        EDICAO: { name: "Edição", items: [] },
-        BI_RELATORIO: { name: "BI & Relatório", items: [] },
-        IMPLANTACAO: { name: "Implantação", items: [] },
-        FINANCEIRO: { name: "Financeiro", items: [] },
+        recebida: { name: "Recebida", items: [] },
+        em_triagem: { name: "Em Triagem", items: [] },
+        em_execucao: { name: "Em Execução", items: [] },
+        aguardando_cliente: { name: "Aguardando Cliente", items: [] },
+        em_revisao: { name: "Em Revisão", items: [] },
+        concluida: { name: "Concluída", items: [] },
       };
 
       let filteredDemandas = demandas;
@@ -68,8 +66,8 @@ const Kanban = ({ user, selectedClienteId }) => {
       });
 
       filteredDemandas.forEach(demanda => {
-        if (newColumns[demanda.setor]) {
-          newColumns[demanda.setor].items.push(demanda);
+        if (newColumns[demanda.status]) {
+          newColumns[demanda.status].items.push(demanda);
         }
       });
       
@@ -78,13 +76,13 @@ const Kanban = ({ user, selectedClienteId }) => {
   }, [demandas, selectedClienteId, user]);
 
   const updateDemandaMutation = useMutation({
-    mutationFn: ({ id, setor }) => base44.entities.Demanda.update(id, { setor }),
+    mutationFn: ({ id, status }) => base44.entities.Demanda.update(id, { status }),
     onSuccess: () => {
       queryClient.invalidateQueries(['demandasKanban']);
-      toast.success('Demanda movida com sucesso!');
+      toast.success('Status atualizado com sucesso!');
     },
     onError: (error) => {
-      toast.error('Erro ao mover demanda: ' + error.message);
+      toast.error('Erro ao atualizar status: ' + error.message);
     },
   });
 
@@ -112,7 +110,7 @@ const Kanban = ({ user, selectedClienteId }) => {
         [destination.droppableId]: { ...destColumn, items: destItems },
       });
 
-      updateDemandaMutation.mutate({ id: draggableId, setor: destination.droppableId });
+      updateDemandaMutation.mutate({ id: draggableId, status: destination.droppableId });
     } else {
       const copiedItems = [...sourceColumn.items];
       const [removed] = copiedItems.splice(source.index, 1);
