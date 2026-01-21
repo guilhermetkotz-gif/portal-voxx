@@ -93,10 +93,9 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
 
   // Cálculos automáticos
   const investimentoTotal = (formData.meta_faturamento * formData.percentual_investimento_marketing) / 100;
-  const valorImpostos = (formData.meta_faturamento * formData.percentual_impostos) / 100;
-  
   const investimentoLeads = investimentoTotal - formData.investimento_feed - formData.investimento_google - formData.investimento_tiktok;
   const totalMetaAds = formData.investimento_feed + investimentoLeads;
+  const valorImpostos = (totalMetaAds * formData.percentual_impostos) / 100;
   
   const alertaInvestimento = (formData.investimento_feed + formData.investimento_google + formData.investimento_tiktok) > investimentoTotal;
   
