@@ -113,15 +113,21 @@ export default function CadastroCliente() {
       
       return base44.entities.Cliente.create(clientData);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries(['clientes']);
       queryClient.invalidateQueries(['allClientes']);
       toast({
         title: 'Sucesso!',
         description: editingClienteId ? 'Cliente atualizado com sucesso.' : 'Cliente cadastrado com sucesso.',
       });
-      setViewMode('list');
-      resetForm();
+      
+      // Redirecionar para onboarding se novo cliente
+      if (!editingClienteId) {
+        navigate(createPageUrl('OnboardingCliente') + `?clienteId=${response.id}`);
+      } else {
+        setViewMode('list');
+        resetForm();
+      }
     },
     onError: (error) => {
       toast({
