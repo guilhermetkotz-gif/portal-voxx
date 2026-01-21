@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
+import ListaSaldoMetaAdsSimples from '@/components/metaads/ListaSaldoMetaAdsSimples';
 
 export default function GestaoSaldoMetaAds({ user }) {
   const { toast } = useToast();
@@ -521,6 +522,13 @@ export default function GestaoSaldoMetaAds({ user }) {
           )}
         </CardContent>
       </Card>
+
+      <ListaSaldoMetaAdsSimples 
+        balanceControls={balanceControls}
+        clientes={clientes}
+        selectedMonth={selectedMonth}
+        user={user}
+      />
     </div>
   );
 }
