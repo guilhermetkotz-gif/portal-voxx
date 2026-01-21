@@ -8,6 +8,7 @@ import Demandas from './pages/Demandas';
 import DetalheConta from './pages/DetalheConta';
 import GerenciarAcessos from './pages/GerenciarAcessos';
 import GerenciarContas from './pages/GerenciarContas';
+import HistoricoOtimizacoesCliente from './pages/HistoricoOtimizacoesCliente';
 import Home from './pages/Home';
 import Kanban from './pages/Kanban';
 import MonitoramentoContas from './pages/MonitoramentoContas';
@@ -16,7 +17,7 @@ import Performance from './pages/Performance';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import HistoricoOtimizacoesCliente from './pages/HistoricoOtimizacoesCliente';
+import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
 import __Layout from './Layout.jsx';
 
 
@@ -31,6 +32,7 @@ export const PAGES = {
     "DetalheConta": DetalheConta,
     "GerenciarAcessos": GerenciarAcessos,
     "GerenciarContas": GerenciarContas,
+    "HistoricoOtimizacoesCliente": HistoricoOtimizacoesCliente,
     "Home": Home,
     "Kanban": Kanban,
     "MonitoramentoContas": MonitoramentoContas,
@@ -39,7 +41,7 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "HistoricoOtimizacoesCliente": HistoricoOtimizacoesCliente,
+    "PlanejamentoEstrategico": PlanejamentoEstrategico,
 }
 
 export const pagesConfig = {
