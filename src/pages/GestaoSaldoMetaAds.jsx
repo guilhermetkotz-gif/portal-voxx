@@ -85,15 +85,14 @@ export default function GestaoSaldoMetaAds({ user }) {
   // Prepare data rows
   const dataRows = useMemo(() => {
     let filtered = clientes.filter(c => {
-      const mainAccount = getMainMetaAccount(c);
-      if (!mainAccount) return false;
-      
       if (statusFilter !== 'all' && c.status !== statusFilter) return false;
       
       if (searchTerm) {
         const search = searchTerm.toLowerCase();
+        const mainAccount = getMainMetaAccount(c);
         return c.nome?.toLowerCase().includes(search) ||
-               mainAccount.ad_account_id?.toLowerCase().includes(search);
+               c.cidade?.toLowerCase().includes(search) ||
+               mainAccount?.ad_account_id?.toLowerCase().includes(search);
       }
       
       return true;
@@ -267,6 +266,11 @@ export default function GestaoSaldoMetaAds({ user }) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1">
                           <h3 className="font-semibold text-slate-900 truncate">{row.cliente.nome}</h3>
+                          {!row.mainAccount && (
+                            <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300 text-xs">
+                              Sem conta Meta Ads
+                            </Badge>
+                          )}
                           {!row.planejamento && (
                             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs">
                               Sem planejamento
@@ -278,7 +282,9 @@ export default function GestaoSaldoMetaAds({ user }) {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 font-mono">ID: {row.mainAccount.ad_account_id}</p>
+                        <p className="text-xs text-slate-500 font-mono">
+                          {row.mainAccount ? `ID: ${row.mainAccount.ad_account_id}` : `${row.cliente.cidade}, ${row.cliente.estado}`}
+                        </p>
                       </div>
 
                       {/* Resumo Financeiro */}
