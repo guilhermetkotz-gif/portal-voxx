@@ -33,6 +33,8 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
   
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [viewingClienteId, setViewingClienteId] = useState(clienteIdFromUrl || null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterMonth, setFilterMonth] = useState('todos');
   const [formData, setFormData] = useState({
     meta_faturamento: 0,
     ticket_medio: 0,
@@ -70,6 +72,14 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
       return allClientes.filter(c => clienteIds.includes(c.id));
     },
     enabled: !!user,
+    staleTime: 2 * 60 * 1000
+  });
+
+  // Buscar todos os planejamentos para filtro
+  const { data: todosOsPlanejamentosGeral = [] } = useQuery({
+    queryKey: ['todosOsPlanejamentosGeral'],
+    queryFn: () => base44.entities.PlanejamentoEstrategico.list('-mes_referencia', 1000),
+    enabled: !viewingClienteId,
     staleTime: 2 * 60 * 1000
   });
 
@@ -212,6 +222,23 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
 
   // Se não estiver visualizando nenhum cliente específico, mostrar lista
   if (!viewingClienteId) {
+    // Filtrar clientes
+    const clientesFiltrados = todosOsClientes.filter((cliente) => {
+      const matchesSearch = cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           cliente.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           cliente.estado?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      if (filterMonth === 'todos') return matchesSearch;
+      
+      // Verificar se cliente tem planejamento no mês selecionado
+      const hasPlanejamentoNoMes = todosOsPlanejamentosGeral.some(p => 
+        p.cliente_id === cliente.id && 
+        p.mes_referencia?.startsWith(filterMonth)
+      );
+      
+      return matchesSearch && hasPlanejamentoNoMes;
+    });
+
     return (
       <div className="space-y-6">
         <div>
@@ -219,30 +246,70 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
           <p className="text-slate-500 mt-1">Selecione uma unidade para gerenciar o planejamento</p>
         </div>
 
+        {/* Filtros */}
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Buscar por nome, cidade ou estado..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+          <Select value={filterMonth} onValueChange={setFilterMonth}>
+            <SelectTrigger className="w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas as unidades</SelectItem>
+              {generateMonthOptions().map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  Com planejamento em {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <Card>
           <CardContent className="p-0">
-            <div className="divide-y">
-              {todosOsClientes.map((cliente) => (
-                <div
-                  key={cliente.id}
-                  className="flex items-center justify-between p-4 hover:bg-slate-50 cursor-pointer transition-colors"
-                  onClick={() => handleSelectCliente(cliente.id)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Target className="w-5 h-5 text-white" />
+            {clientesFiltrados.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                Nenhuma unidade encontrada com os filtros aplicados.
+              </div>
+            ) : (
+              <div className="divide-y">
+                {clientesFiltrados.map((cliente) => {
+                  const planejamentosCount = todosOsPlanejamentosGeral.filter(p => p.cliente_id === cliente.id).length;
+                  
+                  return (
+                    <div
+                      key={cliente.id}
+                      className="flex items-center justify-between p-4 hover:bg-slate-50 cursor-pointer transition-colors"
+                      onClick={() => handleSelectCliente(cliente.id)}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Target className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-slate-900">{cliente.nome}</h3>
+                          <p className="text-sm text-slate-500">
+                            {cliente.cidade} - {cliente.estado}
+                            {planejamentosCount > 0 && (
+                              <span className="ml-2 text-violet-600">• {planejamentosCount} planejamento{planejamentosCount !== 1 ? 's' : ''}</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        Ver Planejamentos →
+                      </Button>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900">{cliente.nome}</h3>
-                      <p className="text-sm text-slate-500">{cliente.cidade} - {cliente.estado}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    Ver Planejamentos →
-                  </Button>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
