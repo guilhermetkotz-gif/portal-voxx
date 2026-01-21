@@ -33,6 +33,7 @@ const menuItems = [
   { name: "Timeline", icon: Clock, page: "Timeline" },
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
   { name: "Planejamento Estratégico", icon: TrendingUp, page: "PlanejamentoEstrategico" },
+  { name: "Saldo Meta Ads", icon: Wallet, page: "GestaoSaldoMetaAds", voxxOnly: true },
   { name: "Abrir Demanda", icon: PlusCircle, page: "AbrirDemanda", highlight: true },
   { divider: true },
   { name: "Newsletter", icon: Newspaper, page: "Newsletter" },
