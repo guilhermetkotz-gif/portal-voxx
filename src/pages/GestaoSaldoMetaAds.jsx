@@ -194,6 +194,13 @@ export default function GestaoSaldoMetaAds({ user }) {
     }
   };
 
+  const isUpdatedToday = (dateString) => {
+    if (!dateString) return false;
+    const today = new Date().toDateString();
+    const date = new Date(dateString).toDateString();
+    return today === date;
+  };
+
   return (
     <div className="max-w-[1600px] mx-auto p-6">
       <Card>
@@ -262,12 +269,17 @@ export default function GestaoSaldoMetaAds({ user }) {
                 const isEditing = editingClients.has(row.cliente.id);
                 
                 return (
-                  <div key={row.cliente.id} className="border rounded-lg hover:bg-slate-50 transition-colors">
+                  <div key={row.cliente.id} className={`border rounded-lg transition-colors ${isUpdatedToday(row.balance?.updated_date) ? 'bg-green-50 border-green-300' : 'hover:bg-slate-50'}`}>
                     <div className="p-4 flex items-center gap-4">
                       {/* Cliente Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
+                        <div className="flex items-center gap-3 mb-1 flex-wrap">
                           <h3 className="font-semibold text-slate-900 truncate">{row.cliente.nome}</h3>
+                          {isUpdatedToday(row.balance?.updated_date) && (
+                            <Badge className="bg-green-600 text-white text-xs">
+                              ✓ Dados atualizados
+                            </Badge>
+                          )}
                           {!row.mainAccount && (
                             <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300 text-xs">
                               Sem conta Meta Ads
