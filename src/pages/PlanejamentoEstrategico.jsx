@@ -7,11 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, TrendingUp, DollarSign, Target, Users, Calendar, AlertTriangle, CheckCircle2, BarChart3, FileText } from 'lucide-react';
+import { Save, TrendingUp, DollarSign, Target, Users, Calendar, AlertTriangle, CheckCircle2, BarChart3, FileText, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import InfograficoExecutivo from '@/components/planejamento/InfograficoExecutivo';
+import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined || isNaN(value)) return 'R$ 0,00';
@@ -27,7 +28,11 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
   const queryClient = useQueryClient();
   const currentMonth = format(new Date(), 'yyyy-MM');
   
+  const urlParams = new URLSearchParams(window.location.search);
+  const clienteIdFromUrl = urlParams.get('cliente_id');
+  
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [viewingClienteId, setViewingClienteId] = useState(clienteIdFromUrl || null);
   const [formData, setFormData] = useState({
     meta_faturamento: 0,
     ticket_medio: 0,
@@ -43,24 +48,49 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
     conversao_comparecimento_fechamento: 0
   });
 
+  // Buscar todos os clientes disponíveis para o usuário
+  const { data: todosOsClientes = [] } = useQuery({
+    queryKey: ['todosClientesPlanejamento', user?.id],
+    queryFn: async () => {
+      if (user?.role === 'admin' || isVoxxAdmin(user)) {
+        return base44.entities.Cliente.list('-updated_date', 500);
+      }
+      
+      if (isVoxxOperacao(user)) {
+        const allClientes = await base44.entities.Cliente.list('-updated_date', 500);
+        return allClientes.filter(c => user?.clientes_atribuidos?.includes(c.id));
+      }
+      
+      const userAccess = await base44.entities.UserClientAccess.filter({
+        usuario_id: user.id,
+        status: 'ativo'
+      });
+      const clienteIds = userAccess.map(a => a.cliente_id);
+      const allClientes = await base44.entities.Cliente.list('-updated_date', 500);
+      return allClientes.filter(c => clienteIds.includes(c.id));
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000
+  });
+
   // Buscar todos os planejamentos do cliente
   const { data: todosOsPlanejamentos = [] } = useQuery({
-    queryKey: ['todosOsPlanejamentos', selectedClienteId],
+    queryKey: ['todosOsPlanejamentos', viewingClienteId],
     queryFn: () => base44.entities.PlanejamentoEstrategico.filter({
-      cliente_id: selectedClienteId
+      cliente_id: viewingClienteId
     }, '-mes_referencia'),
-    enabled: !!selectedClienteId,
+    enabled: !!viewingClienteId,
     staleTime: 30 * 1000
   });
 
   // Buscar planejamento existente para o mês selecionado
   const { data: planejamentos = [] } = useQuery({
-    queryKey: ['planejamentos', selectedClienteId, selectedMonth],
+    queryKey: ['planejamentos', viewingClienteId, selectedMonth],
     queryFn: () => base44.entities.PlanejamentoEstrategico.filter({
-      cliente_id: selectedClienteId,
+      cliente_id: viewingClienteId,
       mes_referencia: `${selectedMonth}-01`
     }),
-    enabled: !!selectedClienteId,
+    enabled: !!viewingClienteId,
     staleTime: 30 * 1000
   });
 
@@ -135,17 +165,29 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['planejamentos']);
+      queryClient.invalidateQueries(['todosOsPlanejamentos']);
     }
   });
 
   const handleSave = () => {
+    const clienteAtual = todosOsClientes.find(c => c.id === viewingClienteId);
     const dataToSave = {
-      cliente_id: selectedClienteId,
-      cliente_nome: currentCliente?.nome,
+      cliente_id: viewingClienteId,
+      cliente_nome: clienteAtual?.nome,
       mes_referencia: `${selectedMonth}-01`,
       ...formData
     };
     saveMutation.mutate(dataToSave);
+  };
+
+  const handleSelectCliente = (clienteId) => {
+    setViewingClienteId(clienteId);
+    window.history.pushState({}, '', `?cliente_id=${clienteId}`);
+  };
+
+  const handleBackToList = () => {
+    setViewingClienteId(null);
+    window.history.pushState({}, '', window.location.pathname);
   };
 
   const handleInputChange = (field, value) => {
@@ -168,10 +210,49 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
     return options;
   };
 
-  if (!currentCliente) {
+  // Se não estiver visualizando nenhum cliente específico, mostrar lista
+  if (!viewingClienteId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Planejamento Estratégico</h1>
+          <p className="text-slate-500 mt-1">Selecione uma unidade para gerenciar o planejamento</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {todosOsClientes.map((cliente) => (
+            <Card 
+              key={cliente.id} 
+              className="hover:shadow-lg transition-shadow cursor-pointer border-violet-200 hover:border-violet-400"
+              onClick={() => handleSelectCliente(cliente.id)}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
+                    <Target className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-slate-900">{cliente.nome}</h3>
+                    <p className="text-sm text-slate-500">{cliente.cidade} - {cliente.estado}</p>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full mt-2" size="sm">
+                  Ver Planejamentos
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const clienteAtual = todosOsClientes.find(c => c.id === viewingClienteId);
+
+  if (!clienteAtual) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-slate-500">Selecione um cliente para acessar o planejamento estratégico.</p>
+        <p className="text-slate-500">Cliente não encontrado.</p>
       </div>
     );
   }
@@ -181,8 +262,20 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Planejamento Estratégico</h1>
-          <p className="text-slate-500 mt-1">{currentCliente.nome}</p>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleBackToList}
+              className="hover:bg-slate-100"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Planejamento Estratégico</h1>
+              <p className="text-slate-500 mt-1">{clienteAtual.nome}</p>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -235,9 +328,11 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
                     const mesFormatado = format(mesRef, "MMMM 'de' yyyy", { locale: ptBR }).charAt(0).toUpperCase() + format(mesRef, "MMMM 'de' yyyy", { locale: ptBR }).slice(1);
                     
                     return (
-                      <Card key={plan.id} className="hover:shadow-lg transition-shadow cursor-pointer border-violet-200" onClick={() => {
-                        setSelectedMonth(format(mesRef, 'yyyy-MM'));
-                      }}>
+                      <Card 
+                        key={plan.id} 
+                        className="hover:shadow-lg transition-shadow cursor-pointer border-violet-200" 
+                        onClick={() => setSelectedMonth(format(mesRef, 'yyyy-MM'))}
+                      >
                         <CardContent className="pt-6">
                           <div className="flex items-center gap-2 mb-4">
                             <Calendar className="w-5 h-5 text-violet-600" />
@@ -595,7 +690,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
           {planejamentoAtual ? (
             <InfograficoExecutivo 
               planejamento={planejamentoAtual} 
-              clienteNome={currentCliente.nome}
+              clienteNome={clienteAtual.nome}
             />
           ) : (
             <Card className="p-12 text-center">
