@@ -322,7 +322,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
               <div className="space-y-4">
                 <div className="p-4 bg-gradient-to-br from-violet-600 to-violet-700 rounded-lg group cursor-help">
                   <p className="text-xs opacity-90 mb-1">Faturamento Digital Projetado</p>
-                  <p className="text-2xl font-bold">{formatCurrency(metaOnline)}</p>
+                  <p className="text-xl font-bold break-words">{formatCurrency(metaOnline)}</p>
                   <div className="mt-2 text-xs opacity-0 group-hover:opacity-75 transition-opacity">
                     {formatNumber(projecaoFechamentos)} fechamentos × {formatCurrency(planejamento.ticket_medio)}
                   </div>
