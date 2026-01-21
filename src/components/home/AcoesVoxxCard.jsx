@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
-import { Zap, TrendingUp, Target, Pause, BarChart3, Lightbulb } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Zap, TrendingUp, Target, Pause, BarChart3, Lightbulb, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -20,8 +21,18 @@ const plataformaBadge = {
   geral: "bg-slate-100 text-slate-700"
 };
 
-export default function AcoesVoxxCard({ acoes = [] }) {
-  if (acoes.length === 0) {
+export default function AcoesVoxxCard({ acoes = [], otimizacoes = [] }) {
+  // Combinar acoes e otimizacoes em uma lista unificada
+  const todasAcoes = [
+    ...acoes.map(a => ({ ...a, tipo_item: 'acao' })),
+    ...otimizacoes.map(o => ({ ...o, tipo_item: 'otimizacao' }))
+  ].sort((a, b) => {
+    const dateA = new Date(a.data_acao || a.created_date);
+    const dateB = new Date(b.data_acao || b.created_date);
+    return dateB - dateA;
+  }).slice(0, 5);
+
+  if (todasAcoes.length === 0) {
     return (
       <Card className="p-5">
         <div className="flex items-center gap-2 mb-4">
@@ -50,11 +61,34 @@ export default function AcoesVoxxCard({ acoes = [] }) {
       </div>
 
       <div className="space-y-3">
-        {acoes.slice(0, 5).map((acao) => {
-          const Icon = tipoIcons[acao.tipo] || Zap;
+        {todasAcoes.map((item) => {
+          if (item.tipo_item === 'otimizacao') {
+            return (
+              <div 
+                key={item.id}
+                className="flex gap-3 p-3 rounded-lg bg-violet-50 border border-violet-100"
+              >
+                <div className="p-2 bg-white rounded-lg border border-violet-200 h-fit">
+                  <Sparkles className="w-4 h-4 text-violet-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <p className="text-sm font-medium text-slate-900">Otimização Meta Ads</p>
+                    <Badge className="bg-violet-600 text-white text-[10px]">META</Badge>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5 line-clamp-2">{item.resumo_acao}</p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    {format(new Date(item.data_acao), "dd 'de' MMM", { locale: ptBR })}
+                  </p>
+                </div>
+              </div>
+            );
+          }
+          
+          const Icon = tipoIcons[item.tipo] || Zap;
           return (
             <div 
-              key={acao.id}
+              key={item.id}
               className="flex gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100"
             >
               <div className="p-2 bg-white rounded-lg border border-slate-200 h-fit">
@@ -62,17 +96,17 @@ export default function AcoesVoxxCard({ acoes = [] }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium text-slate-900">{acao.titulo}</p>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${plataformaBadge[acao.plataforma]}`}>
-                    {acao.plataforma?.toUpperCase()}
+                  <p className="text-sm font-medium text-slate-900">{item.titulo}</p>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${plataformaBadge[item.plataforma]}`}>
+                    {item.plataforma?.toUpperCase()}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{acao.descricao}</p>
-                {acao.impacto && (
-                  <p className="text-xs text-emerald-600 mt-1 font-medium">↑ {acao.impacto}</p>
+                <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{item.descricao}</p>
+                {item.impacto && (
+                  <p className="text-xs text-emerald-600 mt-1 font-medium">↑ {item.impacto}</p>
                 )}
                 <p className="text-[10px] text-slate-400 mt-1">
-                  {format(new Date(acao.data_acao || acao.created_date), "dd 'de' MMM", { locale: ptBR })}
+                  {format(new Date(item.data_acao || item.created_date), "dd 'de' MMM", { locale: ptBR })}
                 </p>
               </div>
             </div>

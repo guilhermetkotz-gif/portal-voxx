@@ -84,6 +84,21 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     staleTime: 60 * 1000
   });
 
+  const { data: otimizacoesMetaAds = [] } = useQuery({
+    queryKey: ['otimizacoesMetaAds', currentCliente?.nome],
+    queryFn: async () => {
+      if (!currentCliente?.nome) return [];
+      // Buscar otimizações pela conta Meta Ads do cliente
+      return base44.entities.MetaAdsOtimizacao.filter(
+        { account_name: currentCliente.nome },
+        '-data_acao',
+        5
+      );
+    },
+    enabled: !!currentCliente?.nome,
+    staleTime: 60 * 1000
+  });
+
   if (!user || !currentCliente) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -314,7 +329,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
           <AlertsSection cliente={cliente} />
         </div>
         <RecentDemandas demandas={demandasAbertas} />
-        <AcoesVoxxCard acoes={acoes} />
+        <AcoesVoxxCard acoes={acoes} otimizacoes={otimizacoesMetaAds} />
       </div>
     </div>
   );
