@@ -219,30 +219,32 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
           <p className="text-slate-500 mt-1">Selecione uma unidade para gerenciar o planejamento</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {todosOsClientes.map((cliente) => (
-            <Card 
-              key={cliente.id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer border-violet-200 hover:border-violet-400"
-              onClick={() => handleSelectCliente(cliente.id)}
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center">
-                    <Target className="w-6 h-6 text-white" />
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y">
+              {todosOsClientes.map((cliente) => (
+                <div
+                  key={cliente.id}
+                  className="flex items-center justify-between p-4 hover:bg-slate-50 cursor-pointer transition-colors"
+                  onClick={() => handleSelectCliente(cliente.id)}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Target className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-slate-900">{cliente.nome}</h3>
+                      <p className="text-sm text-slate-500">{cliente.cidade} - {cliente.estado}</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-900">{cliente.nome}</h3>
-                    <p className="text-sm text-slate-500">{cliente.cidade} - {cliente.estado}</p>
-                  </div>
+                  <Button variant="ghost" size="sm">
+                    Ver Planejamentos →
+                  </Button>
                 </div>
-                <Button variant="outline" className="w-full mt-2" size="sm">
-                  Ver Planejamentos
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
