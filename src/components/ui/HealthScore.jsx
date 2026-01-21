@@ -22,53 +22,20 @@ export default function HealthScore({ score = 0, percentil = null, size = "md", 
   const sizeConfig = sizes[size];
 
   return (
-    <div className="flex flex-col items-center w-full">
-      <div className="relative" style={{ width: sizeConfig.width, height: sizeConfig.width }}>
-        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-          <circle
-            cx="50"
-            cy="50"
-            r="45"
-            fill="none"
-            stroke="#e2e8f0"
-            strokeWidth="8"
-          />
-          <circle
-            cx="50"
-            cy="50"
-            r="45"
-            fill="none"
-            stroke={config.stroke}
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            className="transition-all duration-1000 ease-out"
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {percentil !== null && percentil >= 60 ? (
-            <>
-              <span className={cn("font-bold text-3xl", config.text)}>
-                {percentil}%
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">
-                PERCENTIL
-              </span>
-            </>
-          ) : (
-            <span className={cn("font-bold", sizeConfig.fontSize, config.text)}>
-              {score}
-            </span>
-          )}
+    <div className="flex flex-col items-center w-full text-center">
+      {percentil !== null && percentil >= 60 && (
+        <div className="mb-3">
+          <span className="text-5xl font-bold text-violet-600">
+            {percentil}%
+          </span>
         </div>
-      </div>
+      )}
       
       {percentil !== null && (
-        <div className="mt-4 text-center px-2">
+        <div className="px-2">
           {percentil >= 60 ? (
             <>
-              <p className="text-sm font-semibold text-slate-900 mb-1">
+              <p className="text-sm font-semibold text-slate-900 mb-1.5">
                 Esta unidade performa melhor do que {percentil}% das unidades ativas neste período.
               </p>
               <p className="text-xs text-slate-500">
@@ -77,7 +44,7 @@ export default function HealthScore({ score = 0, percentil = null, size = "md", 
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold text-slate-900 mb-1">
+              <p className="text-sm font-semibold text-slate-900 mb-1.5">
                 Estamos trabalhando neste momento para melhorar o desempenho da sua conta.
               </p>
               <p className="text-xs text-slate-500">
