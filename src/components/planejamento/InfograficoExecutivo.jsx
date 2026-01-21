@@ -213,7 +213,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
         </div>
 
         {/* Funil de Projeção */}
-        <div className="col-span-3 flex flex-col items-center justify-center">
+        <div className="col-span-4 flex flex-col items-center justify-center">
           <h3 className="text-xl font-bold mb-6 text-center">Funil de Projeção de Entrega</h3>
           
           <div className="w-full space-y-3">
