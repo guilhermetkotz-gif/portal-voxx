@@ -250,7 +250,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
               />
             </div>
             <div>
-              <Label>% de Impostos sobre Faturamento</Label>
+              <Label>% Impostos Meta Ads</Label>
               <Input
                 type="number"
                 value={formData.percentual_impostos}
