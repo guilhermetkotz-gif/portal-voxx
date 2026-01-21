@@ -218,9 +218,20 @@ export default function CadastroCliente() {
       newErrors.legacy_client_key = 'Já existe um cliente com esta chave legada.';
     }
 
-    // Validar confirmação da chave legada
-    if (!confirmLegacyKey) {
+    // Validar confirmação da chave legada (apenas para novo cliente ou se foi alterada)
+    if (!editingClienteId && !confirmLegacyKey) {
       newErrors.legacy_client_key = 'Você precisa confirmar a chave legada antes de salvar.';
+      toast({
+        title: 'Confirmação necessária',
+        description: 'Por favor, confirme que a chave legada está correta.',
+        variant: 'destructive',
+      });
+      setCurrentTab('identificacao');
+      return;
+    }
+
+    if (editingClienteId && legacyKeyManuallyEdited && !confirmLegacyKey) {
+      newErrors.legacy_client_key = 'Você precisa confirmar a alteração da chave legada antes de salvar.';
       toast({
         title: 'Confirmação necessária',
         description: 'Por favor, confirme que a chave legada está correta.',
@@ -315,8 +326,8 @@ export default function CadastroCliente() {
       maturidade_digital: cliente.maturidade_digital || 'basico',
     });
     setEditingClienteId(cliente.id);
-    setLegacyKeyManuallyEdited(true);
-    setConfirmLegacyKey(true);
+    setLegacyKeyManuallyEdited(false);
+    setConfirmLegacyKey(false);
     setViewMode('form');
   };
 
@@ -525,7 +536,7 @@ export default function CadastroCliente() {
                         </Alert>
                       )}
 
-                      {legacyKeyManuallyEdited && (
+                      {legacyKeyManuallyEdited && !editingClienteId && (
                         <Alert className="mt-2 bg-yellow-50 border-yellow-200">
                           <AlertTriangle className="w-4 h-4 text-yellow-600" />
                           <AlertDescription className="text-yellow-700 text-xs">
@@ -534,7 +545,16 @@ export default function CadastroCliente() {
                         </Alert>
                       )}
 
-                      {legacyKeyUnique && formData.legacy_client_key && (
+                      {editingClienteId && legacyKeyManuallyEdited && (
+                        <Alert className="mt-2 bg-yellow-50 border-yellow-200">
+                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                          <AlertDescription className="text-yellow-700 text-xs">
+                            <strong>Aviso:</strong> Você está alterando a chave legada. Confirme se esta mudança é necessária.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {legacyKeyUnique && formData.legacy_client_key && (!editingClienteId || legacyKeyManuallyEdited) && (
                         <div className="flex items-center space-x-2 mt-3 p-3 bg-violet-50 rounded-lg border border-violet-200">
                           <Checkbox
                             id="confirm-legacy-key"
@@ -545,7 +565,7 @@ export default function CadastroCliente() {
                             htmlFor="confirm-legacy-key"
                             className="text-xs font-medium text-slate-900 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                           >
-                            Confirmo que esta chave legada está correta e corresponde aos dados históricos
+                            Confirmo que esta chave legada está correta {editingClienteId && legacyKeyManuallyEdited ? 'e as alterações são necessárias' : 'e corresponde aos dados históricos'}
                           </label>
                         </div>
                       )}
