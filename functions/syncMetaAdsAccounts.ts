@@ -106,15 +106,18 @@ Deno.serve(async (req) => {
             const row = rows[i];
             if (!row || row.length === 0) continue;
 
-            const accountName = row[accountNameIdx] || '';
-            if (!accountName.trim()) continue;
+            const accountName = (row[accountNameIdx] || '').trim();
+            if (!accountName) continue;
+
+            // Normalize account name for comparison (remove extra spaces, lowercase)
+            const normalizedName = accountName.toLowerCase().replace(/\s+/g, ' ');
 
             // Skip if already processed this account name
-            if (processedNames.has(accountName)) {
+            if (processedNames.has(normalizedName)) {
                 console.log('Skipping duplicate account:', accountName);
                 continue;
             }
-            processedNames.add(accountName);
+            processedNames.add(normalizedName);
 
             // Parse numeric values
             const parseNumber = (val) => {
