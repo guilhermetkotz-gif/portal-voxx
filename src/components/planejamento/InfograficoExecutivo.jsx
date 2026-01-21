@@ -46,7 +46,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
     return 'Crítico';
   };
 
-  const mesReferencia = planejamento.mes_referencia ? new Date(planejamento.mes_referencia) : new Date();
+  const mesReferencia = planejamento.mes_referencia ? new Date(planejamento.mes_referencia + 'T00:00:00') : new Date();
 
   // Distribuição de investimento
   const canais = [

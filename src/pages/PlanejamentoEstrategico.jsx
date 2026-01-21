@@ -393,7 +393,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {todosOsPlanejamentos.map((plan) => {
-                    const mesRef = new Date(plan.mes_referencia);
+                    const mesRef = new Date(plan.mes_referencia + 'T00:00:00');
                     const mesFormatado = format(mesRef, "MMMM 'de' yyyy", { locale: ptBR }).charAt(0).toUpperCase() + format(mesRef, "MMMM 'de' yyyy", { locale: ptBR }).slice(1);
                     
                     return (
