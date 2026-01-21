@@ -99,6 +99,7 @@ Deno.serve(async (req) => {
         });
 
         const accounts = [];
+        const processedNames = new Set(); // Track processed account names to avoid duplicates
 
         // Process each row
         for (let i = 1; i < rows.length; i++) {
@@ -107,6 +108,13 @@ Deno.serve(async (req) => {
 
             const accountName = row[accountNameIdx] || '';
             if (!accountName.trim()) continue;
+
+            // Skip if already processed this account name
+            if (processedNames.has(accountName)) {
+                console.log('Skipping duplicate account:', accountName);
+                continue;
+            }
+            processedNames.add(accountName);
 
             // Parse numeric values
             const parseNumber = (val) => {
