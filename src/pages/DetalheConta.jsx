@@ -1,17 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, AlertTriangle, TrendingUp, DollarSign, MessageCircle, Users, MousePointer, Target, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, TrendingUp, DollarSign, MessageCircle, Users, MousePointer, Target, CheckCircle2, Plus } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoModal';
 
 export default function DetalheConta({ user }) {
     const [searchParams] = useSearchParams();
     const accountName = searchParams.get('account');
+    const [showOtimizacaoModal, setShowOtimizacaoModal] = useState(false);
 
     // Verificar se é admin
     const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_manager';
@@ -187,6 +189,13 @@ export default function DetalheConta({ user }) {
                         </div>
                         <p className="text-slate-600 mt-2 font-medium">{account.main_issue}</p>
                     </div>
+                    <Button
+                        onClick={() => setShowOtimizacaoModal(true)}
+                        className="bg-violet-600 hover:bg-violet-700"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Otimização
+                    </Button>
                 </div>
             </div>
 
@@ -362,6 +371,13 @@ export default function DetalheConta({ user }) {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Modal de Adicionar Otimização */}
+            <AdicionarOtimizacaoModal
+                open={showOtimizacaoModal}
+                onOpenChange={setShowOtimizacaoModal}
+                conta={account}
+            />
         </div>
     );
 }
