@@ -57,9 +57,10 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
     const edits = editingRows[cliente.id] || {};
     const balance = getBalanceControl(cliente.id) || {};
     const mainAccount = getMainMetaAccount(cliente);
+    const adAccountId = edits.ad_account_id || mainAccount?.ad_account_id || '';
 
-    if (!mainAccount) {
-      toast.error('Cliente sem conta Meta Ads principal');
+    if (!adAccountId) {
+      toast.error('Adicione um ID de conta Meta Ads');
       return;
     }
 
@@ -67,7 +68,7 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
       client_id: cliente.id,
       client_name: cliente.nome,
       month_year: selectedMonth,
-      ad_account_id: mainAccount.ad_account_id,
+      ad_account_id: adAccountId,
       saldo: edits.saldo !== undefined ? parseFloat(edits.saldo) : balance.saldo || 0,
       valor_planejado_meta: edits.valor_planejado_meta !== undefined ? parseFloat(edits.valor_planejado_meta) : balance.valor_planejado_meta || 0,
       valor_pago: edits.valor_pago !== undefined ? parseFloat(edits.valor_pago) : balance.valor_pago || 0,
@@ -90,8 +91,6 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
-  const clientesComMetaAds = clientes.filter(c => getMainMetaAccount(c));
-
   return (
     <Card className="mt-8">
       <CardHeader className="border-b">
@@ -102,9 +101,9 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
       </CardHeader>
 
       <CardContent className="pt-6">
-        {clientesComMetaAds.length === 0 ? (
+        {clientes.length === 0 ? (
           <div className="text-center py-8 text-slate-500">
-            Nenhum cliente com conta Meta Ads configurada.
+            Nenhum cliente encontrado.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -119,7 +118,7 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
                 </tr>
               </thead>
               <tbody>
-                {clientesComMetaAds.map((cliente) => {
+                {clientes.map((cliente) => {
                   const mainAccount = getMainMetaAccount(cliente);
                   const balance = getBalanceControl(cliente.id);
                   const isEditing = editingClients.has(cliente.id);
@@ -128,7 +127,19 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
                   return (
                     <tr key={cliente.id} className="border-b hover:bg-slate-50 transition-colors">
                       <td className="py-3 px-4 font-medium text-slate-900">{cliente.nome}</td>
-                      <td className="py-3 px-4 font-mono text-xs text-slate-600">{mainAccount.ad_account_id}</td>
+                      <td className="py-3 px-4 font-mono text-xs">
+                        {isEditing ? (
+                          <Input
+                            type="text"
+                            placeholder="ID da conta..."
+                            value={edits.ad_account_id !== undefined ? edits.ad_account_id : mainAccount?.ad_account_id || ''}
+                            onChange={(e) => handleFieldChange(cliente.id, 'ad_account_id', e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                        ) : (
+                          <span className="text-slate-600">{mainAccount?.ad_account_id || '—'}</span>
+                        )}
+                      </td>
                       <td className="py-3 px-4">
                         {isEditing ? (
                           <Input
