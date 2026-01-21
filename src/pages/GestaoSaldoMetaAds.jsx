@@ -28,6 +28,7 @@ export default function GestaoSaldoMetaAds({ user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingRows, setEditingRows] = useState({});
   const [editingClients, setEditingClients] = useState(new Set());
+  const [viewMode, setViewMode] = useState('detailed');
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -220,6 +221,24 @@ export default function GestaoSaldoMetaAds({ user }) {
         </CardHeader>
         
         <CardContent className="pt-6">
+          {/* Modo de Visualização */}
+          <div className="mb-6 flex gap-2">
+            <Button
+              variant={viewMode === 'detailed' ? 'default' : 'outline'}
+              onClick={() => setViewMode('detailed')}
+              className="gap-2"
+            >
+              Visualização Detalhada
+            </Button>
+            <Button
+              variant={viewMode === 'simple' ? 'default' : 'outline'}
+              onClick={() => setViewMode('simple')}
+              className="gap-2"
+            >
+              Visualização Simplificada
+            </Button>
+          </div>
+
           {/* Filtros */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div>
@@ -256,7 +275,17 @@ export default function GestaoSaldoMetaAds({ user }) {
             </div>
           </div>
 
-          {/* Lista */}
+          {/* Visualização */}
+          {viewMode === 'simple' ? (
+            <ListaSaldoMetaAdsSimples 
+              balanceControls={balanceControls}
+              clientes={clientes}
+              selectedMonth={selectedMonth}
+              user={user}
+            />
+          ) : (
+            <>
+          {/* Lista Detalhada */}
           {isLoading ? (
             <div className="text-center py-12">Carregando...</div>
           ) : dataRows.length === 0 ? (
@@ -520,15 +549,10 @@ export default function GestaoSaldoMetaAds({ user }) {
               })}
             </div>
           )}
+            </>
+          )}
         </CardContent>
       </Card>
-
-      <ListaSaldoMetaAdsSimples 
-        balanceControls={balanceControls}
-        clientes={clientes}
-        selectedMonth={selectedMonth}
-        user={user}
-      />
     </div>
   );
 }
