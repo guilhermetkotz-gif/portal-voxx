@@ -13,6 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import ContasAnuncioForm from '@/components/cliente/ContasAnuncioForm';
 import DocumentUpload from '@/components/cliente/DocumentUpload';
 import { format } from 'date-fns';
@@ -87,6 +91,14 @@ export default function CadastroCliente() {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'form'
   const [editingClienteId, setEditingClienteId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [legacyKeyOpen, setLegacyKeyOpen] = useState(false);
+  const [legacyKeySearchTerm, setLegacyKeySearchTerm] = useState('');
+
+  // Get unique legacy keys from existing clients
+  const existingLegacyKeys = Array.from(new Set(allClientes.map(c => c.legacy_client_key).filter(Boolean))).sort();
+  const filteredLegacyKeys = existingLegacyKeys.filter(key =>
+    key.toLowerCase().includes(legacyKeySearchTerm.toLowerCase())
+  );
 
   const saveClientMutation = useMutation({
     mutationFn: async (clientData) => {
