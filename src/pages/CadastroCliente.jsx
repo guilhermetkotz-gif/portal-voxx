@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { UserPlus, AlertTriangle, CheckCircle2, RefreshCw, Plus } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -508,28 +508,82 @@ export default function CadastroCliente() {
                     </div>
                     
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <Label htmlFor="legacy_client_key">Chave Legada do Cliente *</Label>
-                        {!legacyKeyManuallyEdited && formData.nome && formData.cidade && (
-                          <span className="text-xs text-green-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Auto-gerado
-                          </span>
-                        )}
-                      </div>
-                      <div className="relative">
-                        <Input
-                           id="legacy_client_key"
-                           value={formData.legacy_client_key}
-                           onChange={(e) => handleInputChange('legacy_client_key', e.target.value)}
-                           className={errors.legacy_client_key || !legacyKeyUnique ? 'border-red-500' : legacyKeyUnique && formData.legacy_client_key ? 'border-green-500' : ''}
-                           placeholder="Nome Fantasia - Cidade"
-                           autoComplete="off"
-                         />
-                        {checkingUniqueness && (
-                          <RefreshCw className="w-4 h-4 absolute right-3 top-3 text-slate-400 animate-spin" />
-                        )}
-                      </div>
+                       <div className="flex items-center justify-between mb-2">
+                         <Label htmlFor="legacy_client_key">Chave Legada do Cliente *</Label>
+                         {!legacyKeyManuallyEdited && formData.nome && formData.cidade && (
+                           <span className="text-xs text-green-600 flex items-center gap-1">
+                             <CheckCircle2 className="w-3 h-3" />
+                             Auto-gerado
+                           </span>
+                         )}
+                       </div>
+                       <Popover open={legacyKeyOpen} onOpenChange={setLegacyKeyOpen}>
+                         <PopoverTrigger asChild>
+                           <button
+                             className={cn(
+                               "w-full justify-between px-3 py-2 text-left border rounded-md transition-colors flex items-center",
+                               errors.legacy_client_key || !legacyKeyUnique ? 'border-red-500 bg-red-50' : legacyKeyUnique && formData.legacy_client_key ? 'border-green-500' : 'border-input hover:border-slate-400',
+                               legacyKeyOpen && 'ring-1 ring-violet-500'
+                             )}
+                             type="button"
+                           >
+                             <span className={formData.legacy_client_key ? 'text-slate-900' : 'text-slate-500'}>
+                               {formData.legacy_client_key || 'Selecione ou digite uma chave...'}
+                             </span>
+                             {checkingUniqueness ? (
+                               <RefreshCw className="w-4 h-4 text-slate-400 animate-spin ml-auto" />
+                             ) : (
+                               <ChevronsUpDown className="w-4 h-4 opacity-50 ml-auto" />
+                             )}
+                           </button>
+                         </PopoverTrigger>
+                         <PopoverContent className="w-[300px] p-0" align="start">
+                           <Command>
+                             <CommandInput
+                               placeholder="Buscar ou digitar chave..."
+                               value={legacyKeySearchTerm}
+                               onValueChange={setLegacyKeySearchTerm}
+                             />
+                             <CommandEmpty>Nenhuma chave encontrada. Digite para criar nova.</CommandEmpty>
+                             <CommandGroup>
+                               {filteredLegacyKeys.map((key) => (
+                                 <CommandItem
+                                   key={key}
+                                   value={key}
+                                   onSelect={(value) => {
+                                     handleInputChange('legacy_client_key', value);
+                                     setLegacyKeyOpen(false);
+                                     setLegacyKeySearchTerm('');
+                                   }}
+                                   className="cursor-pointer"
+                                 >
+                                   <Check
+                                     className={cn(
+                                       "mr-2 h-4 w-4",
+                                       formData.legacy_client_key === key ? "opacity-100" : "opacity-0"
+                                     )}
+                                   />
+                                   {key}
+                                 </CommandItem>
+                               ))}
+                               {legacyKeySearchTerm && !filteredLegacyKeys.includes(legacyKeySearchTerm) && (
+                                 <CommandItem
+                                   value={legacyKeySearchTerm}
+                                   onSelect={(value) => {
+                                     handleInputChange('legacy_client_key', value);
+                                     setLegacyKeyOpen(false);
+                                     setLegacyKeySearchTerm('');
+                                   }}
+                                   className="cursor-pointer bg-violet-50"
+                                 >
+                                   <Plus className="mr-2 h-4 w-4 text-violet-600" />
+                                   <span className="text-violet-600">Criar nova: {legacyKeySearchTerm}</span>
+                                 </CommandItem>
+                               )}
+                             </CommandGroup>
+                           </Command>
+                         </PopoverContent>
+                       </Popover>
                       
                       {!legacyKeyUnique && (
                         <Alert className="mt-2 bg-red-50 border-red-200">
