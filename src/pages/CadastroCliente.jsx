@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { UserPlus, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -103,7 +104,7 @@ export default function CadastroCliente() {
         title: 'Sucesso!',
         description: 'Cliente cadastrado com sucesso.',
       });
-      navigate('/planejamento-estrategico');
+      navigate(createPageUrl('PlanejamentoEstrategico'));
     },
     onError: (error) => {
       toast({
