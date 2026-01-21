@@ -27,6 +27,7 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
   const [selectedClientes, setSelectedClientes] = useState([]);
   const [nivelAcesso, setNivelAcesso] = useState('viewer');
   const [searchCliente, setSearchCliente] = useState('');
+  const [tipoUsuario, setTipoUsuario] = useState(usuario.tipo_usuario || 'cliente_usuario');
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientes'],
@@ -137,6 +138,18 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
     }
   });
 
+  const atualizarTipoUsuario = useMutation({
+    mutationFn: async (novoTipo) => {
+      await base44.entities.User.update(usuario.id, {
+        tipo_usuario: novoTipo
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todosUsuarios'] });
+      toast.success('Tipo de usuário atualizado');
+    }
+  });
+
   const clientesNaoAtribuidos = clientes.filter(c => !acessos.some(a => a.cliente_id === c.id));
   
   const clientesDisponiveis = clientesNaoAtribuidos.filter(c => 
@@ -160,15 +173,47 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
 
       {/* User Info */}
       <Card className="p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-semibold text-slate-900 mb-2">Informações do Usuário</h3>
-            <div className="space-y-1 text-sm">
-              <p><strong>Email:</strong> {usuario.email}</p>
-              <p><strong>Tipo:</strong> {usuario.tipo_usuario}</p>
-              <p><strong>Status:</strong> <Badge className={usuario.status === 'ativo' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>{usuario.status}</Badge></p>
-              {usuario.cargo && <p><strong>Cargo:</strong> {usuario.cargo}</p>}
+        <h3 className="font-semibold text-slate-900 mb-4">Informações do Usuário</h3>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-slate-500 mb-1">Email</p>
+              <p className="font-medium">{usuario.email}</p>
             </div>
+            <div>
+              <p className="text-slate-500 mb-1">Status</p>
+              <Badge className={usuario.status === 'ativo' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
+                {usuario.status}
+              </Badge>
+            </div>
+            {usuario.cargo && (
+              <div>
+                <p className="text-slate-500 mb-1">Cargo</p>
+                <p className="font-medium">{usuario.cargo}</p>
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-2 block">Tipo de Usuário no Sistema</label>
+            <Select 
+              value={tipoUsuario} 
+              onValueChange={(v) => {
+                setTipoUsuario(v);
+                atualizarTipoUsuario.mutate(v);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="voxx_admin">voxx_admin</SelectItem>
+                <SelectItem value="voxx_manager">voxx_manager</SelectItem>
+                <SelectItem value="voxx_operacao">voxx_operacao</SelectItem>
+                <SelectItem value="cliente_admin">cliente_admin</SelectItem>
+                <SelectItem value="cliente_usuario">cliente_usuario</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </Card>
