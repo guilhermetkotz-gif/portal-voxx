@@ -507,12 +507,13 @@ export default function CadastroCliente() {
                       </div>
                       <div className="relative">
                         <Input
-                          id="legacy_client_key"
-                          value={formData.legacy_client_key}
-                          onChange={(e) => handleInputChange('legacy_client_key', e.target.value)}
-                          className={errors.legacy_client_key || !legacyKeyUnique ? 'border-red-500' : legacyKeyUnique && formData.legacy_client_key ? 'border-green-500' : ''}
-                          placeholder="Nome Fantasia - Cidade"
-                        />
+                           id="legacy_client_key"
+                           value={formData.legacy_client_key}
+                           onChange={(e) => handleInputChange('legacy_client_key', e.target.value)}
+                           className={errors.legacy_client_key || !legacyKeyUnique ? 'border-red-500' : legacyKeyUnique && formData.legacy_client_key ? 'border-green-500' : ''}
+                           placeholder="Nome Fantasia - Cidade"
+                           autoComplete="off"
+                         />
                         {checkingUniqueness && (
                           <RefreshCw className="w-4 h-4 absolute right-3 top-3 text-slate-400 animate-spin" />
                         )}
