@@ -85,7 +85,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
               <Target className="w-8 h-8 text-violet-400" />
             </div>
             <p className="text-slate-400 text-xs mb-1">Meta de Faturamento</p>
-            <p className="text-3xl font-bold text-white">{formatCurrency(planejamento.meta_faturamento)}</p>
+            <p className="text-2xl font-bold text-white">{formatCurrency(planejamento.meta_faturamento)}</p>
             <div className="mt-2 text-xs text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
               Valor alvo de receita mensal
             </div>
@@ -98,7 +98,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
               <DollarSign className="w-8 h-8 text-blue-400" />
             </div>
             <p className="text-slate-400 text-xs mb-1">Investimento Total</p>
-            <p className="text-3xl font-bold text-white">{formatCurrency(investimentoTotal)}</p>
+            <p className="text-2xl font-bold text-white">{formatCurrency(investimentoTotal)}</p>
             <p className="text-xs text-slate-400 mt-1">{planejamento.percentual_investimento_marketing}% da meta</p>
             <div className="mt-2 text-xs text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
               Meta × {planejamento.percentual_investimento_marketing}%
@@ -112,7 +112,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
               <TrendingUp className="w-8 h-8 text-green-400" />
             </div>
             <p className="text-slate-400 text-xs mb-1">Ticket Médio (TKM)</p>
-            <p className="text-3xl font-bold text-white">{formatCurrency(planejamento.ticket_medio)}</p>
+            <p className="text-2xl font-bold text-white">{formatCurrency(planejamento.ticket_medio)}</p>
             <div className="mt-2 text-xs text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
               Valor médio por fechamento
             </div>
@@ -125,7 +125,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
               <Users className="w-8 h-8 text-amber-400" />
             </div>
             <p className="text-slate-400 text-xs mb-1">Meta Online</p>
-            <p className="text-3xl font-bold text-white">{formatCurrency(metaOnline)}</p>
+            <p className="text-2xl font-bold text-white">{formatCurrency(metaOnline)}</p>
             <p className="text-xs text-slate-400 mt-1">{participacaoDigital.toFixed(1)}% digital</p>
             <div className="mt-2 text-xs text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
               Fechamentos × TKM
@@ -224,7 +224,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
                   <p className="text-sm font-semibold opacity-90">LEADS</p>
                   <p className="text-xs opacity-75">CPL: {formatCurrency(planejamento.cpl_planejado)}</p>
                 </div>
-                <p className="text-4xl font-bold">{formatNumber(projecaoLeads)}</p>
+                <p className="text-3xl font-bold">{formatNumber(projecaoLeads)}</p>
               </div>
               <div className="mt-2 text-xs opacity-0 group-hover:opacity-75 transition-opacity">
                 {formatCurrency(investimentoLeads)} ÷ {formatCurrency(planejamento.cpl_planejado)}
@@ -244,7 +244,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
                   <p className="text-sm font-semibold opacity-90">CONTATOS ÚNICOS</p>
                   <p className="text-xs opacity-75">Conv. Leads → Contatos</p>
                 </div>
-                <p className="text-3xl font-bold">{formatNumber(projecaoContatos)}</p>
+                  <p className="text-2xl font-bold">{formatNumber(projecaoContatos)}</p>
               </div>
               <div className="mt-2 text-xs opacity-0 group-hover:opacity-75 transition-opacity">
                 {formatNumber(projecaoLeads)} × {planejamento.conversao_leads_contatos}%
@@ -264,7 +264,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
                   <p className="text-sm font-semibold opacity-90">AGENDAMENTOS</p>
                   <p className="text-xs opacity-75">Conv. Contatos → Agendamento</p>
                 </div>
-                <p className="text-3xl font-bold">{formatNumber(projecaoAgendamentos)}</p>
+                  <p className="text-2xl font-bold">{formatNumber(projecaoAgendamentos)}</p>
               </div>
               <div className="mt-2 text-xs opacity-0 group-hover:opacity-75 transition-opacity">
                 {formatNumber(projecaoContatos)} × {planejamento.conversao_contatos_agendamento}%
@@ -284,7 +284,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
                   <p className="text-sm font-semibold opacity-90">COMPARECIMENTOS</p>
                   <p className="text-xs opacity-75">Conv. Agendamento → Comparecimento</p>
                 </div>
-                <p className="text-3xl font-bold">{formatNumber(projecaoComparecimentos)}</p>
+                  <p className="text-2xl font-bold">{formatNumber(projecaoComparecimentos)}</p>
               </div>
               <div className="mt-2 text-xs opacity-0 group-hover:opacity-75 transition-opacity">
                 {formatNumber(projecaoAgendamentos)} × {planejamento.conversao_agendamento_comparecimento}%
@@ -304,7 +304,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
                   <p className="text-sm font-semibold opacity-90">FECHAMENTOS</p>
                   <p className="text-xs opacity-75">Conv. Comparecimento → Fechamento</p>
                 </div>
-                <p className="text-3xl font-bold">{formatNumber(projecaoFechamentos)}</p>
+                  <p className="text-2xl font-bold">{formatNumber(projecaoFechamentos)}</p>
               </div>
               <div className="mt-2 text-xs opacity-0 group-hover:opacity-75 transition-opacity">
                 {formatNumber(projecaoComparecimentos)} × {planejamento.conversao_comparecimento_fechamento}%
@@ -322,7 +322,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
               <div className="space-y-4">
                 <div className="p-4 bg-gradient-to-br from-violet-600 to-violet-700 rounded-lg group cursor-help">
                   <p className="text-xs opacity-90 mb-1">Faturamento Digital Projetado</p>
-                  <p className="text-3xl font-bold">{formatCurrency(metaOnline)}</p>
+                  <p className="text-2xl font-bold">{formatCurrency(metaOnline)}</p>
                   <div className="mt-2 text-xs opacity-0 group-hover:opacity-75 transition-opacity">
                     {formatNumber(projecaoFechamentos)} fechamentos × {formatCurrency(planejamento.ticket_medio)}
                   </div>
@@ -330,7 +330,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
 
                 <div className={`p-4 ${getParticipacaoColor(participacaoDigital)} rounded-lg group cursor-help`}>
                   <p className="text-xs opacity-90 mb-1">Participação Digital</p>
-                  <p className="text-4xl font-bold">{participacaoDigital.toFixed(1)}%</p>
+                  <p className="text-3xl font-bold">{participacaoDigital.toFixed(1)}%</p>
                   <p className="text-xs opacity-90 mt-2">{getParticipacaoStatus(participacaoDigital)}</p>
                   <div className="mt-2 text-xs opacity-0 group-hover:opacity-75 transition-opacity border-t border-white/20 pt-2">
                     {formatCurrency(metaOnline)} ÷ {formatCurrency(planejamento.meta_faturamento)}
