@@ -99,6 +99,17 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     staleTime: 60 * 1000
   });
 
+  const { data: demandasConcluidas = [] } = useQuery({
+    queryKey: ['demandasConcluidas', selectedClienteId],
+    queryFn: () => base44.entities.Demanda.filter(
+      { cliente_id: selectedClienteId, status: 'concluida' },
+      '-updated_date',
+      10
+    ),
+    enabled: !!selectedClienteId,
+    staleTime: 60 * 1000
+  });
+
   if (!user || !currentCliente) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -329,7 +340,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
           <AlertsSection cliente={cliente} />
         </div>
         <RecentDemandas demandas={demandasAbertas} />
-        <AcoesVoxxCard acoes={acoes} otimizacoes={otimizacoesMetaAds} />
+        <AcoesVoxxCard acoes={acoes} otimizacoes={otimizacoesMetaAds} demandasConcluidas={demandasConcluidas} />
       </div>
     </div>
   );
