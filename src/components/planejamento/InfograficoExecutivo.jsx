@@ -19,10 +19,9 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
 
   // Cálculos
   const investimentoTotal = (planejamento.meta_faturamento * planejamento.percentual_investimento_marketing) / 100;
-  const totalMetaAdsParaImpostos = planejamento.investimento_feed + (investimentoTotal - planejamento.investimento_feed - planejamento.investimento_google - planejamento.investimento_tiktok);
-  const valorImpostos = (totalMetaAdsParaImpostos * planejamento.percentual_impostos) / 100;
   const investimentoLeads = investimentoTotal - planejamento.investimento_feed - planejamento.investimento_google - planejamento.investimento_tiktok;
   const totalMetaAds = planejamento.investimento_feed + investimentoLeads;
+  const valorImpostos = (totalMetaAds * planejamento.percentual_impostos) / 100;
   
   const projecaoLeads = planejamento.cpl_planejado > 0 ? investimentoLeads / planejamento.cpl_planejado : 0;
   const projecaoContatos = projecaoLeads * (planejamento.conversao_leads_contatos / 100);
