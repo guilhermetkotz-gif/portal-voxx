@@ -18,7 +18,8 @@ import {
   Bell,
   Shield,
   KanbanSquare,
-  Target
+  Target,
+  TrendingUp
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +31,7 @@ const menuItems = [
   { name: "Kanban", icon: KanbanSquare, page: "Kanban", voxxOnly: true },
   { name: "Timeline", icon: Clock, page: "Timeline" },
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
+  { name: "Planejamento Estratégico", icon: TrendingUp, page: "PlanejamentoEstrategico" },
   { name: "Abrir Demanda", icon: PlusCircle, page: "AbrirDemanda", highlight: true },
   { divider: true },
   { name: "Newsletter", icon: Newspaper, page: "Newsletter" },

@@ -13,19 +13,20 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
 const pageTitles = {
-  Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
-  Performance: { title: "Performance", subtitle: "Meta & Google Ads" },
-  Saldos: { title: "Saldos & Investimentos", subtitle: "Controle financeiro" },
-  Demandas: { title: "Demandas", subtitle: "Acompanhe suas solicitações" },
-  Timeline: { title: "Timeline", subtitle: "Histórico de entregas" },
-  Cronograma: { title: "Cronograma", subtitle: "Cronograma Oral Sin" },
-  AbrirDemanda: { title: "Abrir Demanda", subtitle: "Nova solicitação" },
-  Newsletter: { title: "Newsletter & Insights", subtitle: "Atualizações da Voxx" },
-  Ajuda: { title: "Central de Ajuda", subtitle: "Playbook e FAQ" },
-  Conta: { title: "Minha Conta", subtitle: "Configurações do perfil" },
-  GerenciarAcessos: { title: "Gerenciar Acessos", subtitle: "Controle de usuários e permissões" },
-  Kanban: { title: "Kanban de Demandas", subtitle: "Gerencie demandas por setor" }
-  };
+        Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
+        Performance: { title: "Performance", subtitle: "Meta & Google Ads" },
+        Saldos: { title: "Saldos & Investimentos", subtitle: "Controle financeiro" },
+        Demandas: { title: "Demandas", subtitle: "Acompanhe suas solicitações" },
+        Timeline: { title: "Timeline", subtitle: "Histórico de entregas" },
+        Cronograma: { title: "Cronograma", subtitle: "Cronograma Oral Sin" },
+        PlanejamentoEstrategico: { title: "Planejamento Estratégico", subtitle: "Planejamento mensal por unidade" },
+        AbrirDemanda: { title: "Abrir Demanda", subtitle: "Nova solicitação" },
+        Newsletter: { title: "Newsletter & Insights", subtitle: "Atualizações da Voxx" },
+        Ajuda: { title: "Central de Ajuda", subtitle: "Playbook e FAQ" },
+        Conta: { title: "Minha Conta", subtitle: "Configurações do perfil" },
+        GerenciarAcessos: { title: "Gerenciar Acessos", subtitle: "Controle de usuários e permissões" },
+        Kanban: { title: "Kanban de Demandas", subtitle: "Gerencie demandas por setor" }
+        };
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
