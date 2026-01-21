@@ -57,17 +57,17 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
   ].filter(c => c.valor > 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-8">
       {/* Header */}
       <div className="mb-8 pb-6 border-b border-slate-700">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center">
                 <span className="text-lg font-bold">V</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold">
+                <h1 className="text-xl sm:text-2xl font-bold">
                   Planejamento Estratégico — {format(mesReferencia, "MMMM 'de' yyyy", { locale: ptBR }).charAt(0).toUpperCase() + format(mesReferencia, "MMMM 'de' yyyy", { locale: ptBR }).slice(1)}
                 </h1>
                 <p className="text-slate-400 text-sm">Unidade: {clienteNome}</p>
@@ -78,7 +78,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
       </div>
 
       {/* Metas Financeiras */}
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card className="bg-slate-800/50 border-slate-700 group cursor-help">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
@@ -135,9 +135,9 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
       </div>
 
       {/* Conteúdo Principal */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Distribuição de Investimento */}
-        <div className="col-span-4 space-y-4">
+        <div className="lg:col-span-4 space-y-4">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
@@ -213,7 +213,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
         </div>
 
         {/* Funil de Projeção */}
-        <div className="col-span-5 flex flex-col items-center justify-center">
+        <div className="lg:col-span-5 flex flex-col items-center justify-center">
           <h3 className="text-xl font-bold mb-6 text-center">Funil de Projeção de Entrega</h3>
           
           <div className="w-full space-y-3">
@@ -314,7 +314,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
         </div>
 
         {/* Resultado e Impacto Digital */}
-        <div className="col-span-3 space-y-4">
+        <div className="lg:col-span-3 space-y-4">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold mb-4 text-white">Resultado Projetado</h3>
