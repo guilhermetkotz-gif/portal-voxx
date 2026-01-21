@@ -319,11 +319,15 @@ export default function CadastroCliente() {
     setViewMode('form');
   };
 
-  const filteredClientes = allClientes.filter(c => 
-    c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.legacy_client_key?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredClientes = allClientes.filter(c => {
+    const search = searchTerm.trim().toLowerCase();
+    return (
+      c.nome?.toLowerCase().includes(search) ||
+      c.cidade?.toLowerCase().includes(search) ||
+      c.legacy_client_key?.toLowerCase().includes(search) ||
+      c.responsavel_cliente_nome?.toLowerCase().includes(search)
+    );
+  });
 
   if (viewMode === 'list') {
     return (
