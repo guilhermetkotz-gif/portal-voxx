@@ -2,6 +2,7 @@ import AbrirDemanda from './pages/AbrirDemanda';
 import AguardandoAprovacao from './pages/AguardandoAprovacao';
 import Ajuda from './pages/Ajuda';
 import BoasVindas from './pages/BoasVindas';
+import CadastroCliente from './pages/CadastroCliente';
 import Conta from './pages/Conta';
 import Cronograma from './pages/Cronograma';
 import Demandas from './pages/Demandas';
@@ -18,7 +19,7 @@ import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import CadastroCliente from './pages/CadastroCliente';
+import GestaoSaldoMetaAds from './pages/GestaoSaldoMetaAds';
 import __Layout from './Layout.jsx';
 
 
@@ -27,6 +28,7 @@ export const PAGES = {
     "AguardandoAprovacao": AguardandoAprovacao,
     "Ajuda": Ajuda,
     "BoasVindas": BoasVindas,
+    "CadastroCliente": CadastroCliente,
     "Conta": Conta,
     "Cronograma": Cronograma,
     "Demandas": Demandas,
@@ -43,7 +45,7 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "CadastroCliente": CadastroCliente,
+    "GestaoSaldoMetaAds": GestaoSaldoMetaAds,
 }
 
 export const pagesConfig = {
