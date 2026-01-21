@@ -213,7 +213,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
         </div>
 
         {/* Funil de Projeção */}
-        <div className="col-span-4 flex flex-col items-center justify-center">
+        <div className="col-span-5 flex flex-col items-center justify-center">
           <h3 className="text-xl font-bold mb-6 text-center">Funil de Projeção de Entrega</h3>
           
           <div className="w-full space-y-3">
@@ -314,7 +314,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
         </div>
 
         {/* Resultado e Impacto Digital */}
-        <div className="col-span-4 space-y-4">
+        <div className="col-span-3 space-y-4">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="pt-6">
               <h3 className="text-lg font-semibold mb-4 text-white">Resultado Projetado</h3>
