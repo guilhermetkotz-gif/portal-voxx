@@ -10,7 +10,7 @@ import { Edit2, Save, X, Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 
-export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, selectedMonth, user }) {
+export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, selectedMonth, user, onClienteClick }) {
   const queryClient = useQueryClient();
   const [editingRows, setEditingRows] = useState({});
   const [editingClients, setEditingClients] = useState(new Set());
@@ -125,8 +125,8 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
                   const edits = editingRows[cliente.id] || {};
 
                   return (
-                    <tr key={cliente.id} className="border-b hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-4 font-medium text-slate-900">{cliente.nome}</td>
+                    <tr key={cliente.id} className="border-b hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => onClienteClick?.(cliente)}>
+                      <td className="py-3 px-4 font-medium text-slate-900 text-violet-600">{cliente.nome}</td>
                       <td className="py-3 px-4 font-mono text-xs">
                         {isEditing ? (
                           <Input

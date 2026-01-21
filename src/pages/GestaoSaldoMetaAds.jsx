@@ -29,6 +29,7 @@ export default function GestaoSaldoMetaAds({ user }) {
   const [editingRows, setEditingRows] = useState({});
   const [editingClients, setEditingClients] = useState(new Set());
   const [viewMode, setViewMode] = useState('detailed');
+  const [selectedClienteDetail, setSelectedClienteDetail] = useState(null);
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -212,11 +213,25 @@ export default function GestaoSaldoMetaAds({ user }) {
               <CardTitle className="flex items-center gap-2 text-2xl">
                 <Wallet className="w-6 h-6 text-violet-600" />
                 Gestão de Saldo Meta Ads
+                {selectedClienteDetail && (
+                  <span className="text-lg font-normal text-slate-500">
+                    - {clientes.find(c => c.id === selectedClienteDetail)?.nome}
+                  </span>
+                )}
               </CardTitle>
               <p className="text-sm text-slate-500 mt-2">
                 Controle financeiro operacional por cliente
               </p>
             </div>
+            {selectedClienteDetail && (
+              <Button
+                variant="outline"
+                onClick={() => setSelectedClienteDetail(null)}
+                className="gap-2"
+              >
+                ← Voltar
+              </Button>
+            )}
           </div>
         </CardHeader>
         
@@ -282,6 +297,10 @@ export default function GestaoSaldoMetaAds({ user }) {
               clientes={clientes}
               selectedMonth={selectedMonth}
               user={user}
+              onClienteClick={(cliente) => {
+                setSelectedClienteDetail(cliente.id);
+                setViewMode('detailed');
+              }}
             />
           ) : (
             <>
@@ -294,7 +313,7 @@ export default function GestaoSaldoMetaAds({ user }) {
             </div>
           ) : (
             <div className="space-y-2">
-              {dataRows.map((row) => {
+              {dataRows.filter(row => !selectedClienteDetail || row.cliente.id === selectedClienteDetail).map((row) => {
                 const edits = editingRows[row.cliente.id] || {};
                 const isEditing = editingClients.has(row.cliente.id);
                 
