@@ -140,7 +140,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
         <div className="col-span-4 space-y-4">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
                 <DollarSign className="w-5 h-5 text-violet-400" />
                 Distribuição de Investimento
               </h3>
@@ -317,7 +317,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
         <div className="col-span-5 space-y-4">
           <Card className="bg-slate-800/50 border-slate-700">
             <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4">Resultado Projetado</h3>
+              <h3 className="text-lg font-semibold mb-4 text-white">Resultado Projetado</h3>
               
               <div className="space-y-4">
                 <div className="p-4 bg-gradient-to-br from-violet-600 to-violet-700 rounded-lg group cursor-help">
