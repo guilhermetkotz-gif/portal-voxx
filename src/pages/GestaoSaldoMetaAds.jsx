@@ -14,6 +14,7 @@ import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { createPageUrl } from '@/utils';
 import { useNavigate } from 'react-router-dom';
+import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 
 export default function GestaoSaldoMetaAds({ user }) {
   const { toast } = useToast();
@@ -318,22 +319,26 @@ export default function GestaoSaldoMetaAds({ user }) {
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
-                        {isEditing ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSave(row)}
-                            disabled={saveMutation.isPending}
-                          >
-                            <Save className="w-4 h-4" />
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingRows(prev => ({ ...prev, [row.cliente.id]: {} }))}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
+                        {(isVoxxAdmin(user) || isVoxxOperacao(user)) && (
+                          <>
+                            {isEditing ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleSave(row)}
+                                disabled={saveMutation.isPending}
+                              >
+                                <Save className="w-4 h-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setEditingRows(prev => ({ ...prev, [row.cliente.id]: {} }))}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
