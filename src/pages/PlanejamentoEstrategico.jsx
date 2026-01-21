@@ -7,9 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Save, TrendingUp, DollarSign, Target, Users, Calendar, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Save, TrendingUp, DollarSign, Target, Users, Calendar, AlertTriangle, CheckCircle2, BarChart3, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import InfograficoExecutivo from '@/components/planejamento/InfograficoExecutivo';
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined || isNaN(value)) return 'R$ 0,00';
@@ -190,6 +192,22 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
           </Button>
         </div>
       </div>
+
+      {/* Toggle Tabela / Infográfico */}
+      <Tabs defaultValue="tabela" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="tabela" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Tabela
+          </TabsTrigger>
+          <TabsTrigger value="infografico" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Infográfico
+          </TabsTrigger>
+        </TabsList>
+
+        {/* View Tabela */}
+        <TabsContent value="tabela" className="space-y-6 mt-6">
 
       {/* BLOCO 1 - Identificação e Metas Financeiras */}
       <Card>
@@ -508,6 +526,24 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
           Este planejamento é uma projeção estratégica. Os resultados reais podem variar conforme execução, mercado e engajamento operacional da unidade.
         </AlertDescription>
       </Alert>
+
+        </TabsContent>
+
+        {/* View Infográfico */}
+        <TabsContent value="infografico" className="mt-6">
+          {planejamentoAtual ? (
+            <InfograficoExecutivo 
+              planejamento={planejamentoAtual} 
+              clienteNome={currentCliente.nome}
+            />
+          ) : (
+            <Card className="p-12 text-center">
+              <p className="text-slate-500">Nenhum planejamento cadastrado para este mês.</p>
+              <p className="text-sm text-slate-400 mt-2">Preencha os dados na aba "Tabela" e salve para visualizar o infográfico.</p>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
