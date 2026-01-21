@@ -14,7 +14,9 @@ import {
   Building2,
   CheckCircle,
   XCircle,
-  Search
+  Search,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -243,44 +245,63 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
             </div>
 
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-2 block">Selecionar Clientes</label>
-              <Select 
-                value={selectedClientes.length > 0 ? selectedClientes[0] : ''}
-                onValueChange={(v) => {
-                  if (v && !selectedClientes.includes(v)) {
-                    setSelectedClientes([...selectedClientes, v]);
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientesDisponiveis.length === 0 ? (
-                    <div className="p-2 text-sm text-slate-500">Nenhum cliente encontrado</div>
-                  ) : (
-                    clientesDisponiveis.map(cliente => (
-                      <SelectItem key={cliente.id} value={cliente.id}>
-                        {cliente.nome} - {cliente.cidade}, {cliente.estado}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium text-slate-700 mb-2 flex items-center justify-between">
+                <span>Selecionar Clientes</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedClientes.length === clientesDisponiveis.length) {
+                      setSelectedClientes([]);
+                    } else {
+                      setSelectedClientes(clientesDisponiveis.map(c => c.id));
+                    }
+                  }}
+                  className="h-7 text-xs"
+                >
+                  {selectedClientes.length === clientesDisponiveis.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                </Button>
+              </label>
+              
+              <div className="border rounded-lg max-h-64 overflow-y-auto">
+                {clientesDisponiveis.length === 0 ? (
+                  <div className="p-4 text-sm text-slate-500 text-center">Nenhum cliente encontrado</div>
+                ) : (
+                  <div className="divide-y">
+                    {clientesDisponiveis.map(cliente => {
+                      const isSelected = selectedClientes.includes(cliente.id);
+                      return (
+                        <div
+                          key={cliente.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedClientes(selectedClientes.filter(id => id !== cliente.id));
+                            } else {
+                              setSelectedClientes([...selectedClientes, cliente.id]);
+                            }
+                          }}
+                          className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-5 h-5 text-violet-600 flex-shrink-0" />
+                          ) : (
+                            <Square className="w-5 h-5 text-slate-300 flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-900 truncate">{cliente.nome}</p>
+                            <p className="text-xs text-slate-500">{cliente.cidade}, {cliente.estado}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               {selectedClientes.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedClientes.map(cId => {
-                    const c = clientes.find(cl => cl.id === cId);
-                    return (
-                      <Badge key={cId} variant="outline" className="flex items-center gap-1">
-                        {c?.nome}
-                        <button onClick={() => setSelectedClientes(selectedClientes.filter(id => id !== cId))}>
-                          <XCircle className="w-3 h-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
+                <div className="mt-2 text-sm text-slate-600">
+                  {selectedClientes.length} cliente(s) selecionado(s)
                 </div>
               )}
             </div>
