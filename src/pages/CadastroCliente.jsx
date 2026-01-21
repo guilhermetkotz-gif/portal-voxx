@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import { UserPlus, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import ContasAnuncioForm from '@/components/cliente/ContasAnuncioForm';
 import DocumentUpload from '@/components/cliente/DocumentUpload';
 import { format } from 'date-fns';
+import { createPageUrl } from '@/utils';
 
 export default function CadastroCliente() {
   const queryClient = useQueryClient();
