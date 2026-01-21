@@ -28,6 +28,12 @@ export default function CadastroCliente() {
     queryFn: () => base44.auth.me(),
   });
 
+  const { data: allClientes = [], isLoading: loadingClientes } = useQuery({
+    queryKey: ['allClientes'],
+    queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
+    staleTime: 60 * 1000,
+  });
+
   const [formData, setFormData] = useState({
     // Seção A - Identificação
     nome: '',
@@ -78,37 +84,48 @@ export default function CadastroCliente() {
   const [legacyKeyUnique, setLegacyKeyUnique] = useState(true);
   const [checkingUniqueness, setCheckingUniqueness] = useState(false);
   const [confirmLegacyKey, setConfirmLegacyKey] = useState(false);
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'form'
+  const [editingClienteId, setEditingClienteId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const createClientMutation = useMutation({
-    mutationFn: async (newClient) => {
-      const existingClients = await base44.entities.Cliente.filter({ legacy_client_key: newClient.legacy_client_key });
+  const saveClientMutation = useMutation({
+    mutationFn: async (clientData) => {
+      // Se estiver editando
+      if (editingClienteId) {
+        return base44.entities.Cliente.update(editingClienteId, clientData);
+      }
+      
+      // Se estiver criando novo
+      const existingClients = await base44.entities.Cliente.filter({ legacy_client_key: clientData.legacy_client_key });
       if (existingClients.length > 0) {
         throw new Error('Já existe um cliente com esta chave legada.');
       }
       
       // Validar conta principal Meta Ads se status ativo
-      if (newClient.status === 'ativo') {
-        const hasMetaPrincipal = newClient.contas_anuncio?.some(
+      if (clientData.status === 'ativo') {
+        const hasMetaPrincipal = clientData.contas_anuncio?.some(
           c => c.plataforma === 'Meta' && c.conta_principal
         );
-        if (!hasMetaPrincipal && newClient.status !== 'implantacao') {
+        if (!hasMetaPrincipal && clientData.status !== 'implantacao') {
           throw new Error('Cliente ativo precisa de pelo menos uma conta Meta Ads principal.');
         }
       }
       
-      return base44.entities.Cliente.create(newClient);
+      return base44.entities.Cliente.create(clientData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['clientes']);
+      queryClient.invalidateQueries(['allClientes']);
       toast({
         title: 'Sucesso!',
-        description: 'Cliente cadastrado com sucesso.',
+        description: editingClienteId ? 'Cliente atualizado com sucesso.' : 'Cliente cadastrado com sucesso.',
       });
-      navigate(createPageUrl('PlanejamentoEstrategico'));
+      setViewMode('list');
+      resetForm();
     },
     onError: (error) => {
       toast({
-        title: 'Erro ao cadastrar cliente',
+        title: editingClienteId ? 'Erro ao atualizar cliente' : 'Erro ao cadastrar cliente',
         description: error.message || 'Ocorreu um erro inesperado.',
         variant: 'destructive',
       });
@@ -142,9 +159,9 @@ export default function CadastroCliente() {
     }
   }, [formData.nome, formData.cidade, legacyKeyManuallyEdited]);
 
-  // Validar unicidade da chave legada
+  // Validar unicidade da chave legada (apenas para novos clientes)
   useEffect(() => {
-    if (!formData.legacy_client_key) {
+    if (!formData.legacy_client_key || editingClienteId) {
       setLegacyKeyUnique(true);
       return;
     }
@@ -165,7 +182,7 @@ export default function CadastroCliente() {
 
     const timeoutId = setTimeout(checkUniqueness, 500);
     return () => clearTimeout(timeoutId);
-  }, [formData.legacy_client_key]);
+  }, [formData.legacy_client_key, editingClienteId]);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -219,20 +236,190 @@ export default function CadastroCliente() {
     }
     
     setErrors({});
-    createClientMutation.mutate(formData);
+    saveClientMutation.mutate(formData);
   };
+
+  const resetForm = () => {
+    setFormData({
+      nome: '',
+      razao_social: '',
+      cnpj: '',
+      legacy_client_key: '',
+      status: 'ativo',
+      tipo_cliente: 'outro',
+      cidade: '',
+      estado: '',
+      endereco_completo: '',
+      cep: '',
+      regiao: '',
+      estimativa_habitantes: 0,
+      abrangencia_atendimento: 'somente_cidade',
+      responsavel_cliente_nome: '',
+      responsavel_cliente_telefone: '',
+      responsavel_cliente_email: '',
+      responsavel_voxx_cs: '',
+      responsavel_voxx_trafego: '',
+      contas_anuncio: [],
+      briefing: '',
+      restrictions: '',
+      observacoes_operacionais: '',
+      procedimentos_foco: '',
+      publico_alvo: '',
+      contract_files: [],
+      tags: [],
+      fonte_entrada: 'outro',
+      maturidade_digital: 'basico',
+    });
+    setEditingClienteId(null);
+    setLegacyKeyManuallyEdited(false);
+    setConfirmLegacyKey(false);
+    setErrors({});
+    setCurrentTab('identificacao');
+  };
+
+  const handleEditCliente = (cliente) => {
+    setFormData({
+      nome: cliente.nome || '',
+      razao_social: cliente.razao_social || '',
+      cnpj: cliente.cnpj || '',
+      legacy_client_key: cliente.legacy_client_key || '',
+      status: cliente.status || 'ativo',
+      tipo_cliente: cliente.tipo_cliente || 'outro',
+      cidade: cliente.cidade || '',
+      estado: cliente.estado || '',
+      endereco_completo: cliente.endereco_completo || '',
+      cep: cliente.cep || '',
+      regiao: cliente.regiao || '',
+      estimativa_habitantes: cliente.estimativa_habitantes || 0,
+      abrangencia_atendimento: cliente.abrangencia_atendimento || 'somente_cidade',
+      responsavel_cliente_nome: cliente.responsavel_cliente_nome || '',
+      responsavel_cliente_telefone: cliente.responsavel_cliente_telefone || '',
+      responsavel_cliente_email: cliente.responsavel_cliente_email || '',
+      responsavel_voxx_cs: cliente.responsavel_voxx_cs || '',
+      responsavel_voxx_trafego: cliente.responsavel_voxx_trafego || '',
+      contas_anuncio: cliente.contas_anuncio || [],
+      briefing: cliente.briefing || '',
+      restrictions: cliente.restrictions || '',
+      observacoes_operacionais: cliente.observacoes_operacionais || '',
+      procedimentos_foco: cliente.procedimentos_foco || '',
+      publico_alvo: cliente.publico_alvo || '',
+      contract_files: cliente.contract_files || [],
+      tags: cliente.tags || [],
+      fonte_entrada: cliente.fonte_entrada || 'outro',
+      maturidade_digital: cliente.maturidade_digital || 'basico',
+    });
+    setEditingClienteId(cliente.id);
+    setLegacyKeyManuallyEdited(true);
+    setConfirmLegacyKey(true);
+    setViewMode('form');
+  };
+
+  const handleNewCliente = () => {
+    resetForm();
+    setViewMode('form');
+  };
+
+  const filteredClientes = allClientes.filter(c => 
+    c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.cidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.legacy_client_key?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (viewMode === 'list') {
+    return (
+      <div className="max-w-7xl mx-auto p-6 pb-12">
+        <Card>
+          <CardHeader className="border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-2xl">
+                  <UserPlus className="w-6 h-6 text-violet-600" />
+                  Gerenciar Clientes
+                </CardTitle>
+                <p className="text-sm text-slate-500 mt-2">
+                  Lista de todos os clientes cadastrados. Clique em editar para atualizar informações.
+                </p>
+              </div>
+              <Button onClick={handleNewCliente} className="bg-violet-600 hover:bg-violet-700">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Novo Cliente
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="mb-4">
+              <Input
+                placeholder="Buscar por nome, cidade ou chave legada..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="max-w-md"
+              />
+            </div>
+
+            {loadingClientes ? (
+              <div className="text-center py-12 text-slate-500">Carregando clientes...</div>
+            ) : filteredClientes.length === 0 ? (
+              <div className="text-center py-12 text-slate-500">
+                {searchTerm ? 'Nenhum cliente encontrado.' : 'Nenhum cliente cadastrado ainda.'}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredClientes.map((cliente) => (
+                  <div
+                    key={cliente.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h3 className="font-semibold text-slate-900">{cliente.nome}</h3>
+                        <span className="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                          {cliente.status}
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-500 mt-1">
+                        {cliente.cidade}, {cliente.estado} • {cliente.legacy_client_key}
+                      </div>
+                      {cliente.responsavel_cliente_nome && (
+                        <div className="text-xs text-slate-400 mt-1">
+                          Responsável: {cliente.responsavel_cliente_nome}
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditCliente(cliente)}
+                    >
+                      Editar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6 pb-12">
       <Card>
         <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <UserPlus className="w-6 h-6 text-violet-600" />
-            Cadastro de Novo Cliente
-          </CardTitle>
-          <p className="text-sm text-slate-500 mt-2">
-            Preencha as informações do cliente. Campos marcados com * são obrigatórios.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-2xl">
+                <UserPlus className="w-6 h-6 text-violet-600" />
+                {editingClienteId ? 'Editar Cliente' : 'Cadastro de Novo Cliente'}
+              </CardTitle>
+              <p className="text-sm text-slate-500 mt-2">
+                Preencha as informações do cliente. Campos marcados com * são obrigatórios.
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => setViewMode('list')}>
+              Voltar para Lista
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit}>
@@ -717,13 +904,22 @@ export default function CadastroCliente() {
               <p className="text-xs text-slate-500">
                 Todos os dados são salvos com segurança e podem ser editados posteriormente.
               </p>
-              <Button 
-                type="submit" 
-                className="bg-violet-600 hover:bg-violet-700 px-8" 
-                disabled={createClientMutation.isPending}
-              >
-                {createClientMutation.isPending ? 'Cadastrando...' : 'Cadastrar Cliente'}
-              </Button>
+              <div className="flex gap-3">
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => setViewMode('list')}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="bg-violet-600 hover:bg-violet-700 px-8" 
+                  disabled={saveClientMutation.isPending}
+                >
+                  {saveClientMutation.isPending ? 'Salvando...' : editingClienteId ? 'Atualizar Cliente' : 'Cadastrar Cliente'}
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>
