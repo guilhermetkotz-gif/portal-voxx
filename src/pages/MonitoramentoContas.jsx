@@ -7,11 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RefreshCw, Search, AlertTriangle, TrendingUp, DollarSign, Target } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import ListaHistoricoOtimizacoes from '@/components/metaads/ListaHistoricoOtimizacoes';
 
 export default function MonitoramentoContas({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -141,6 +143,16 @@ export default function MonitoramentoContas({ user }) {
                     Sincronizar Planilha
                 </Button>
             </div>
+
+            {/* Tabs */}
+            <Tabs defaultValue="monitoramento" className="w-full">
+                <TabsList className="grid w-full max-w-md grid-cols-2">
+                    <TabsTrigger value="monitoramento">Monitoramento de Contas</TabsTrigger>
+                    <TabsTrigger value="otimizacoes">Histórico de Otimizações</TabsTrigger>
+                </TabsList>
+
+                {/* Tab: Monitoramento de Contas */}
+                <TabsContent value="monitoramento" className="space-y-6 mt-6">
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
@@ -356,6 +368,13 @@ export default function MonitoramentoContas({ user }) {
                     </div>
                 </CardContent>
             </Card>
+                </TabsContent>
+
+                {/* Tab: Histórico de Otimizações */}
+                <TabsContent value="otimizacoes" className="mt-6">
+                    <ListaHistoricoOtimizacoes />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
