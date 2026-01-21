@@ -19,7 +19,8 @@ import {
   Shield,
   KanbanSquare,
   Target,
-  TrendingUp
+  TrendingUp,
+  UserPlus
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -38,6 +39,7 @@ const menuItems = [
   { name: "Central de Ajuda", icon: HelpCircle, page: "Ajuda" },
   { divider: true },
   { name: "Monitoramento Meta Ads", icon: Target, page: "MonitoramentoContas", adminOnly: true },
+  { name: "Cadastro de Cliente", icon: UserPlus, page: "CadastroCliente", adminOnly: true },
   { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
 ];
 
