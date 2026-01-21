@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, AlertTriangle } from 'lucide-react';
+import { UserPlus, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import ContasAnuncioForm from '@/components/cliente/ContasAnuncioForm';
 import DocumentUpload from '@/components/cliente/DocumentUpload';
 import { format } from 'date-fns';
@@ -72,6 +73,10 @@ export default function CadastroCliente() {
 
   const [errors, setErrors] = useState({});
   const [currentTab, setCurrentTab] = useState('identificacao');
+  const [legacyKeyManuallyEdited, setLegacyKeyManuallyEdited] = useState(false);
+  const [legacyKeyUnique, setLegacyKeyUnique] = useState(true);
+  const [checkingUniqueness, setCheckingUniqueness] = useState(false);
+  const [confirmLegacyKey, setConfirmLegacyKey] = useState(false);
 
   const createClientMutation = useMutation({
     mutationFn: async (newClient) => {
@@ -109,11 +114,69 @@ export default function CadastroCliente() {
     },
   });
 
+  // Normalizar chave legada
+  const normalizeLegacyKey = (text) => {
+    return text
+      .trim()
+      .replace(/\s+/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Gerar chave legada automaticamente
+  const generateLegacyKey = (nome, cidade) => {
+    if (!nome || !cidade) return '';
+    return `${normalizeLegacyKey(nome)} - ${normalizeLegacyKey(cidade)}`;
+  };
+
+  // Auto-gerar chave legada quando nome ou cidade mudam
+  useEffect(() => {
+    if (!legacyKeyManuallyEdited && formData.nome && formData.cidade) {
+      const generated = generateLegacyKey(formData.nome, formData.cidade);
+      setFormData((prev) => ({
+        ...prev,
+        legacy_client_key: generated,
+      }));
+    }
+  }, [formData.nome, formData.cidade, legacyKeyManuallyEdited]);
+
+  // Validar unicidade da chave legada
+  useEffect(() => {
+    if (!formData.legacy_client_key) {
+      setLegacyKeyUnique(true);
+      return;
+    }
+
+    const checkUniqueness = async () => {
+      setCheckingUniqueness(true);
+      try {
+        const existing = await base44.entities.Cliente.filter({ 
+          legacy_client_key: formData.legacy_client_key 
+        });
+        setLegacyKeyUnique(existing.length === 0);
+      } catch (error) {
+        console.error('Erro ao verificar unicidade:', error);
+      } finally {
+        setCheckingUniqueness(false);
+      }
+    };
+
+    const timeoutId = setTimeout(checkUniqueness, 500);
+    return () => clearTimeout(timeoutId);
+  }, [formData.legacy_client_key]);
+
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+
+    // Marcar se a chave legada foi editada manualmente
+    if (field === 'legacy_client_key') {
+      setLegacyKeyManuallyEdited(true);
+      setConfirmLegacyKey(false);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -125,6 +188,23 @@ export default function CadastroCliente() {
     if (!formData.legacy_client_key) newErrors.legacy_client_key = 'Chave legada é obrigatória.';
     if (!formData.cidade) newErrors.cidade = 'Cidade é obrigatória.';
     if (!formData.estado) newErrors.estado = 'Estado é obrigatório.';
+
+    // Validar unicidade da chave legada
+    if (!legacyKeyUnique) {
+      newErrors.legacy_client_key = 'Já existe um cliente com esta chave legada.';
+    }
+
+    // Validar confirmação da chave legada
+    if (!confirmLegacyKey) {
+      newErrors.legacy_client_key = 'Você precisa confirmar a chave legada antes de salvar.';
+      toast({
+        title: 'Confirmação necessária',
+        description: 'Por favor, confirme que a chave legada está correta.',
+        variant: 'destructive',
+      });
+      setCurrentTab('identificacao');
+      return;
+    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -207,15 +287,71 @@ export default function CadastroCliente() {
                     </div>
                     
                     <div>
-                      <Label htmlFor="legacy_client_key">Chave Legada do Cliente *</Label>
-                      <Input
-                        id="legacy_client_key"
-                        value={formData.legacy_client_key}
-                        onChange={(e) => handleInputChange('legacy_client_key', e.target.value)}
-                        className={errors.legacy_client_key ? 'border-red-500' : ''}
-                        placeholder="Identificador único para compatibilidade"
-                      />
-                      <p className="text-xs text-slate-500 mt-1">Deve ser único. Usado para integração com planilhas.</p>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="legacy_client_key">Chave Legada do Cliente *</Label>
+                        {!legacyKeyManuallyEdited && formData.nome && formData.cidade && (
+                          <span className="text-xs text-green-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Auto-gerado
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          id="legacy_client_key"
+                          value={formData.legacy_client_key}
+                          onChange={(e) => handleInputChange('legacy_client_key', e.target.value)}
+                          className={errors.legacy_client_key || !legacyKeyUnique ? 'border-red-500' : legacyKeyUnique && formData.legacy_client_key ? 'border-green-500' : ''}
+                          placeholder="Nome Fantasia - Cidade"
+                        />
+                        {checkingUniqueness && (
+                          <RefreshCw className="w-4 h-4 absolute right-3 top-3 text-slate-400 animate-spin" />
+                        )}
+                      </div>
+                      
+                      {!legacyKeyUnique && (
+                        <Alert className="mt-2 bg-red-50 border-red-200">
+                          <AlertTriangle className="w-4 h-4 text-red-600" />
+                          <AlertDescription className="text-red-700 text-xs">
+                            Já existe um cliente com esta chave legada. Por favor, escolha outra.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {legacyKeyUnique && formData.legacy_client_key && (
+                        <Alert className="mt-2 bg-amber-50 border-amber-200">
+                          <AlertTriangle className="w-4 h-4 text-amber-600" />
+                          <AlertDescription className="text-amber-700 text-xs">
+                            <strong>Atenção:</strong> Confirme se esta chave corresponde ao identificador já usado nas planilhas e dados históricos.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {legacyKeyManuallyEdited && (
+                        <Alert className="mt-2 bg-yellow-50 border-yellow-200">
+                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                          <AlertDescription className="text-yellow-700 text-xs">
+                            <strong>Aviso:</strong> Alterar esta chave pode causar perda de vínculo com dados antigos.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {legacyKeyUnique && formData.legacy_client_key && (
+                        <div className="flex items-center space-x-2 mt-3 p-3 bg-violet-50 rounded-lg border border-violet-200">
+                          <Checkbox
+                            id="confirm-legacy-key"
+                            checked={confirmLegacyKey}
+                            onCheckedChange={setConfirmLegacyKey}
+                          />
+                          <label
+                            htmlFor="confirm-legacy-key"
+                            className="text-xs font-medium text-slate-900 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            Confirmo que esta chave legada está correta e corresponde aos dados históricos
+                          </label>
+                        </div>
+                      )}
+
                       {errors.legacy_client_key && <p className="text-red-500 text-xs mt-1">{errors.legacy_client_key}</p>}
                     </div>
                   </div>
