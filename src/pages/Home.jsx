@@ -110,6 +110,30 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     staleTime: 60 * 1000
   });
 
+  // Buscar todas as contas Meta Ads para cálculo do percentil
+  const { data: todasContasMetaAds = [] } = useQuery({
+    queryKey: ['todasContasMetaAds'],
+    queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
+    staleTime: 2 * 60 * 1000
+  });
+
+  // Calcular percentil da unidade atual
+  const calcularPercentil = () => {
+    if (!currentCliente?.nome || todasContasMetaAds.length === 0) return null;
+    
+    const contaAtual = todasContasMetaAds.find(c => c.account_name === currentCliente.nome);
+    if (!contaAtual || !contaAtual.nota_gpt) return null;
+
+    const notaAtual = contaAtual.nota_gpt;
+    const contasComNotaMenor = todasContasMetaAds.filter(c => c.nota_gpt < notaAtual).length;
+    const totalContas = todasContasMetaAds.length;
+
+    const percentil = Math.round((contasComNotaMenor / totalContas) * 100);
+    return { percentil, nota: notaAtual };
+  };
+
+  const healthScoreData = calcularPercentil();
+
   if (!user || !currentCliente) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -169,8 +193,12 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
         </Card>
 
         <Card className="p-6 flex flex-col items-center justify-center">
-          <p className="text-xs font-medium text-slate-500 mb-2">Health Score</p>
-          <HealthScore score={cliente?.health_score || 75} size="md" />
+          <p className="text-xs font-medium text-slate-500 mb-3">Health Score</p>
+          <HealthScore 
+            score={healthScoreData?.nota || cliente?.health_score || 75} 
+            percentil={healthScoreData?.percentil}
+            size="md" 
+          />
         </Card>
       </div>
 
