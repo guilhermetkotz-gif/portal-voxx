@@ -14,10 +14,10 @@ import Kanban from './pages/Kanban';
 import MonitoramentoContas from './pages/MonitoramentoContas';
 import Newsletter from './pages/Newsletter';
 import Performance from './pages/Performance';
+import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
 import __Layout from './Layout.jsx';
 
 
@@ -38,10 +38,10 @@ export const PAGES = {
     "MonitoramentoContas": MonitoramentoContas,
     "Newsletter": Newsletter,
     "Performance": Performance,
+    "PlanejamentoEstrategico": PlanejamentoEstrategico,
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "PlanejamentoEstrategico": PlanejamentoEstrategico,
 }
 
 export const pagesConfig = {

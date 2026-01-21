@@ -43,6 +43,16 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
     conversao_comparecimento_fechamento: 0
   });
 
+  // Buscar todos os planejamentos do cliente
+  const { data: todosOsPlanejamentos = [] } = useQuery({
+    queryKey: ['todosOsPlanejamentos', selectedClienteId],
+    queryFn: () => base44.entities.PlanejamentoEstrategico.filter({
+      cliente_id: selectedClienteId
+    }, '-mes_referencia'),
+    enabled: !!selectedClienteId,
+    staleTime: 30 * 1000
+  });
+
   // Buscar planejamento existente para o mês selecionado
   const { data: planejamentos = [] } = useQuery({
     queryKey: ['planejamentos', selectedClienteId, selectedMonth],
@@ -192,9 +202,13 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
         </div>
       </div>
 
-      {/* Toggle Tabela / Infográfico */}
-      <Tabs defaultValue="tabela" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+      {/* Toggle Tabela / Infográfico / Lista */}
+      <Tabs defaultValue="lista" className="w-full">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
+          <TabsTrigger value="lista" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Todos os Planejamentos
+          </TabsTrigger>
           <TabsTrigger value="tabela" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
             Tabela
@@ -204,6 +218,54 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
             Infográfico
           </TabsTrigger>
         </TabsList>
+
+        {/* View Lista */}
+        <TabsContent value="lista" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Planejamentos Cadastrados</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {todosOsPlanejamentos.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">Nenhum planejamento cadastrado ainda.</p>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {todosOsPlanejamentos.map((plan) => {
+                    const mesRef = new Date(plan.mes_referencia);
+                    const mesFormatado = format(mesRef, "MMMM 'de' yyyy", { locale: ptBR }).charAt(0).toUpperCase() + format(mesRef, "MMMM 'de' yyyy", { locale: ptBR }).slice(1);
+                    
+                    return (
+                      <Card key={plan.id} className="hover:shadow-lg transition-shadow cursor-pointer border-violet-200" onClick={() => {
+                        setSelectedMonth(format(mesRef, 'yyyy-MM'));
+                      }}>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-4">
+                            <Calendar className="w-5 h-5 text-violet-600" />
+                            <h3 className="font-semibold text-slate-900">{mesFormatado}</h3>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">Meta:</span>
+                              <span className="font-semibold">{formatCurrency(plan.meta_faturamento)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">Investimento:</span>
+                              <span className="font-semibold">{formatCurrency((plan.meta_faturamento * plan.percentual_investimento_marketing) / 100)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-600">TKM:</span>
+                              <span className="font-semibold">{formatCurrency(plan.ticket_medio)}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* View Tabela */}
         <TabsContent value="tabela" className="space-y-6 mt-6">
