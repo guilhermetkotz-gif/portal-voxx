@@ -332,115 +332,157 @@ export default function GestaoSaldoMetaAds({ user }) {
                       </div>
                     </div>
 
-                    {/* Detalhes Expandidos (quando em edição) */}
-                    {isEditing && (
-                      <div className="px-4 pb-4 border-t bg-slate-50">
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-4">
-                          <div>
-                            <Label className="text-xs">Saldo (R$)</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={edits.saldo !== undefined ? edits.saldo : row.balance?.saldo || ''}
-                              onChange={(e) => handleFieldChange(row.cliente.id, 'saldo', e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
+                    {/* Detalhes Completos */}
+                    <div className="px-4 pb-4 border-t">
+                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-4">
+                        <div>
+                          <Label className="text-xs">Saldo (R$)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={edits.saldo !== undefined ? edits.saldo : row.balance?.saldo || ''}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'saldo', e.target.value)}
+                            className="mt-1"
+                            disabled={!isEditing}
+                          />
+                        </div>
 
-                          <div>
-                            <Label className="text-xs">Valor Pago (R$)</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={edits.valor_pago !== undefined ? edits.valor_pago : row.balance?.valor_pago || ''}
-                              onChange={(e) => handleFieldChange(row.cliente.id, 'valor_pago', e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="text-xs">Gasto Diário (R$)</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={edits.gasto_diario !== undefined ? edits.gasto_diario : row.balance?.gasto_diario || ''}
-                              onChange={(e) => handleFieldChange(row.cliente.id, 'gasto_diario', e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="text-xs">Qtd. Tomadas</Label>
-                            <Input
-                              type="number"
-                              value={edits.qtd_tomadas !== undefined ? edits.qtd_tomadas : row.balance?.qtd_tomadas || 4}
-                              onChange={(e) => handleFieldChange(row.cliente.id, 'qtd_tomadas', e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="text-xs">Tomadas Pagas</Label>
-                            <Input
-                              type="number"
-                              value={edits.tomadas_pagas !== undefined ? edits.tomadas_pagas : row.balance?.tomadas_pagas || 0}
-                              onChange={(e) => handleFieldChange(row.cliente.id, 'tomadas_pagas', e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="text-xs">Valor Enviado (R$)</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={edits.valor_enviado !== undefined ? edits.valor_enviado : row.balance?.valor_enviado || ''}
-                              onChange={(e) => handleFieldChange(row.cliente.id, 'valor_enviado', e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="text-xs">Data Última Tomada</Label>
-                            <Input
-                              type="date"
-                              value={edits.data_ultima_tomada || row.balance?.data_ultima_tomada || ''}
-                              onChange={(e) => handleFieldChange(row.cliente.id, 'data_ultima_tomada', e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-
-                          <div>
-                            <Label className="text-xs">Método de Pagamento</Label>
-                            <Select
-                              value={edits.metodo_pagamento || row.balance?.metodo_pagamento || 'Pix'}
-                              onValueChange={(value) => handleFieldChange(row.cliente.id, 'metodo_pagamento', value)}
-                            >
-                              <SelectTrigger className="mt-1">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="Pix">Pix</SelectItem>
-                                <SelectItem value="Boleto">Boleto</SelectItem>
-                                <SelectItem value="Cartão">Cartão</SelectItem>
-                                <SelectItem value="Outro">Outro</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="md:col-span-2">
-                            <Label className="text-xs">Observações</Label>
-                            <Textarea
-                              value={edits.observacoes !== undefined ? edits.observacoes : row.balance?.observacoes || ''}
-                              onChange={(e) => handleFieldChange(row.cliente.id, 'observacoes', e.target.value)}
-                              className="mt-1"
-                              rows={2}
-                              placeholder="Notas e observações..."
-                            />
+                        <div>
+                          <Label className="text-xs">Valor Planejado Meta</Label>
+                          <div className="mt-1 px-3 py-2 bg-slate-50 rounded-md text-sm font-semibold text-slate-700 h-9 flex items-center">
+                            {formatCurrency(row.valorPlanejado)}
                           </div>
                         </div>
+
+                        <div>
+                          <Label className="text-xs">Valor Pago (R$)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={edits.valor_pago !== undefined ? edits.valor_pago : row.balance?.valor_pago || ''}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'valor_pago', e.target.value)}
+                            className="mt-1"
+                            disabled={!isEditing}
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Falta Pagar</Label>
+                          <div className={`mt-1 px-3 py-2 rounded-md text-sm font-semibold h-9 flex items-center ${row.valorFaltaPagar > 0 ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+                            {formatCurrency(row.valorFaltaPagar)}
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Gasto Diário (R$)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={edits.gasto_diario !== undefined ? edits.gasto_diario : row.balance?.gasto_diario || ''}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'gasto_diario', e.target.value)}
+                            className="mt-1"
+                            disabled={!isEditing}
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Duração do Saldo</Label>
+                          <div className="mt-1 px-3 py-2 bg-slate-50 rounded-md text-sm font-mono text-slate-700 h-9 flex items-center">
+                            {row.gastoDiario > 0 ? `${row.duracaoSaldoDias.toFixed(1)} dias` : '—'}
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Qtd. Tomadas</Label>
+                          <Input
+                            type="number"
+                            value={edits.qtd_tomadas !== undefined ? edits.qtd_tomadas : row.balance?.qtd_tomadas || 4}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'qtd_tomadas', e.target.value)}
+                            className="mt-1"
+                            disabled={!isEditing}
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Valor de Tomada</Label>
+                          <div className="mt-1 px-3 py-2 bg-slate-50 rounded-md text-sm font-semibold text-slate-700 h-9 flex items-center">
+                            {formatCurrency(row.valorTomada)}
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Tomadas Pagas</Label>
+                          <Input
+                            type="number"
+                            value={edits.tomadas_pagas !== undefined ? edits.tomadas_pagas : row.balance?.tomadas_pagas || 0}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'tomadas_pagas', e.target.value)}
+                            className="mt-1"
+                            disabled={!isEditing}
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Faltam Pagar</Label>
+                          <div className="mt-1 px-3 py-2 bg-slate-50 rounded-md text-sm font-mono text-slate-700 h-9 flex items-center">
+                            {row.tomadasFaltaPagar}
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Valor Enviado (R$)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={edits.valor_enviado !== undefined ? edits.valor_enviado : row.balance?.valor_enviado || ''}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'valor_enviado', e.target.value)}
+                            className="mt-1"
+                            disabled={!isEditing}
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Data Última Tomada</Label>
+                          <Input
+                            type="date"
+                            value={edits.data_ultima_tomada || row.balance?.data_ultima_tomada || ''}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'data_ultima_tomada', e.target.value)}
+                            className="mt-1"
+                            disabled={!isEditing}
+                          />
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Método de Pagamento</Label>
+                          <Select
+                            value={edits.metodo_pagamento || row.balance?.metodo_pagamento || 'Pix'}
+                            onValueChange={(value) => handleFieldChange(row.cliente.id, 'metodo_pagamento', value)}
+                            disabled={!isEditing}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Pix">Pix</SelectItem>
+                              <SelectItem value="Boleto">Boleto</SelectItem>
+                              <SelectItem value="Cartão">Cartão</SelectItem>
+                              <SelectItem value="Outro">Outro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <Label className="text-xs">Observações</Label>
+                          <Textarea
+                            value={edits.observacoes !== undefined ? edits.observacoes : row.balance?.observacoes || ''}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'observacoes', e.target.value)}
+                            className="mt-1"
+                            rows={2}
+                            placeholder="Notas e observações..."
+                            disabled={!isEditing}
+                          />
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
