@@ -26,6 +26,7 @@ export default function GestaoSaldoMetaAds({ user }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [editingRows, setEditingRows] = useState({});
+  const [editingClients, setEditingClients] = useState(new Set());
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -258,7 +259,7 @@ export default function GestaoSaldoMetaAds({ user }) {
             <div className="space-y-2">
               {dataRows.map((row) => {
                 const edits = editingRows[row.cliente.id] || {};
-                const isEditing = Object.keys(edits).length > 0;
+                const isEditing = editingClients.has(row.cliente.id);
                 
                 return (
                   <div key={row.cliente.id} className="border rounded-lg hover:bg-slate-50 transition-colors">
@@ -324,7 +325,14 @@ export default function GestaoSaldoMetaAds({ user }) {
                             {isEditing ? (
                               <Button
                                 size="sm"
-                                onClick={() => handleSave(row)}
+                                onClick={() => {
+                                  handleSave(row);
+                                  setEditingClients(prev => {
+                                    const newSet = new Set(prev);
+                                    newSet.delete(row.cliente.id);
+                                    return newSet;
+                                  });
+                                }}
                                 disabled={saveMutation.isPending}
                               >
                                 <Save className="w-4 h-4" />
@@ -333,7 +341,7 @@ export default function GestaoSaldoMetaAds({ user }) {
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => setEditingRows(prev => ({ ...prev, [row.cliente.id]: {} }))}
+                                onClick={() => setEditingClients(prev => new Set(prev).add(row.cliente.id))}
                               >
                                 <Edit2 className="w-4 h-4" />
                               </Button>
