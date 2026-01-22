@@ -713,17 +713,16 @@ export default function MonitoramentoContas({ user }) {
                                             <TableHead className="w-[200px]">Unidade</TableHead>
                                             <TableHead className="text-center w-[100px]">Radar Score</TableHead>
                                             <TableHead className="text-center w-[120px]">Prioridade</TableHead>
-                                            <TableHead className="text-right">CPL Ontem</TableHead>
-                                            <TableHead className="text-right">CPL 7d</TableHead>
+                                            <TableHead className="text-right">Leads Ontem</TableHead>
+                                            <TableHead className="text-right">Leads/dia (7d)</TableHead>
+                                            <TableHead className="text-right">CPL Atual</TableHead>
                                             <TableHead className="text-right">Δ CPL</TableHead>
-                                            <TableHead className="text-right">Freq. Ontem</TableHead>
-                                            <TableHead className="text-right">CTR Ontem</TableHead>
-                                            <TableHead className="text-right">CTR 7d</TableHead>
+                                            <TableHead className="text-right">CTR Atual</TableHead>
                                             <TableHead className="text-right">Δ CTR</TableHead>
                                             <TableHead className="text-right">CPM</TableHead>
-                                            <TableHead className="text-right">Leads Ontem</TableHead>
-                                            <TableHead className="text-right">Investimento</TableHead>
-                                            <TableHead className="w-[250px]">Status</TableHead>
+                                            <TableHead className="text-right">Frequência</TableHead>
+                                            <TableHead className="text-right">Inv. Diário</TableHead>
+                                            <TableHead className="w-[280px]">Status</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
