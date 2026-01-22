@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Search, AlertTriangle, TrendingUp, DollarSign, Target, Activity, TrendingDown, CheckCircle, Clock } from 'lucide-react';
+import { RefreshCw, Search, AlertTriangle, TrendingUp, DollarSign, Target, Activity, TrendingDown, CheckCircle, Clock, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -57,6 +57,42 @@ export default function MonitoramentoContas({ user }) {
         queryFn: () => base44.entities.RadarMetaData.list('-created_date', 500),
         staleTime: 2 * 60 * 1000
     });
+
+    const [expandedRows, setExpandedRows] = useState(new Set());
+    const [recommendations, setRecommendations] = useState({});
+
+    const loadRecommendation = async (accountName, cliente) => {
+        if (recommendations[accountName]) return; // Já carregado
+
+        try {
+            const response = await base44.functions.invoke('getMetaAdsRecommendations', {
+                account_name: accountName,
+                investment_tier: cliente?.tipo_cliente || 'particular'
+            });
+            
+            setRecommendations(prev => ({
+                ...prev,
+                [accountName]: response.data
+            }));
+        } catch (error) {
+            console.error('Erro ao carregar recomendações:', error);
+            setRecommendations(prev => ({
+                ...prev,
+                [accountName]: { error: 'Erro ao carregar recomendações' }
+            }));
+        }
+    };
+
+    const toggleRow = (accountName, cliente) => {
+        const newExpanded = new Set(expandedRows);
+        if (newExpanded.has(accountName)) {
+            newExpanded.delete(accountName);
+        } else {
+            newExpanded.add(accountName);
+            loadRecommendation(accountName, cliente);
+        }
+        setExpandedRows(newExpanded);
+    };
 
     const clientesMap = React.useMemo(() => {
         return new Map(clientes.map(c => [c.nome, c]));
@@ -708,16 +744,29 @@ export default function MonitoramentoContas({ user }) {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {filteredRadarData.map((row, index) => (
-                                            <TableRow key={index} className="hover:bg-slate-50">
-                                                <TableCell className="font-medium">
-                                                    <div>
-                                                        <p className="font-semibold text-slate-900">{row.account_name}</p>
-                                                        {row.cliente && (
-                                                            <p className="text-xs text-slate-500">{row.cliente.cidade}</p>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
+                                       {filteredRadarData.map((row, index) => (
+                                           <React.Fragment key={index}>
+                                           <TableRow className="hover:bg-slate-50">
+                                               <TableCell className="font-medium">
+                                                   <div className="flex items-center gap-2">
+                                                       <button
+                                                           onClick={() => toggleRow(row.account_name, row.cliente)}
+                                                           className="text-slate-400 hover:text-slate-600"
+                                                       >
+                                                           {expandedRows.has(row.account_name) ? (
+                                                               <ChevronDown className="w-4 h-4" />
+                                                           ) : (
+                                                               <ChevronRight className="w-4 h-4" />
+                                                           )}
+                                                       </button>
+                                                       <div>
+                                                           <p className="font-semibold text-slate-900">{row.account_name}</p>
+                                                           {row.cliente && (
+                                                               <p className="text-xs text-slate-500">{row.cliente.cidade}</p>
+                                                           )}
+                                                       </div>
+                                                   </div>
+                                               </TableCell>
                                                 <TableCell className="text-center">
                                                     <div className="flex items-center justify-center">
                                                         <div className={cn(
@@ -809,6 +858,76 @@ export default function MonitoramentoContas({ user }) {
                                                     <p className="text-sm text-slate-600">{row.status}</p>
                                                 </TableCell>
                                             </TableRow>
+                                            
+                                            {expandedRows.has(row.account_name) && (
+                                                <TableRow>
+                                                    <TableCell colSpan={14} className="bg-slate-50 p-6">
+                                                        {recommendations[row.account_name] ? (
+                                                            recommendations[row.account_name].error ? (
+                                                                <div className="text-red-600">{recommendations[row.account_name].error}</div>
+                                                            ) : (
+                                                                <div className="space-y-4">
+                                                                    <div className="flex items-center gap-2 mb-4">
+                                                                        <Lightbulb className="w-5 h-5 text-amber-500" />
+                                                                        <h3 className="font-semibold text-lg">Plano de Ação Recomendado</h3>
+                                                                    </div>
+                                                                    
+                                                                    {recommendations[row.account_name].recommendations?.map((rec, idx) => (
+                                                                        <div key={idx} className="bg-white rounded-lg p-4 border border-slate-200">
+                                                                            <div className="flex items-start gap-3">
+                                                                                <div className={cn(
+                                                                                    "px-2 py-1 rounded text-xs font-semibold",
+                                                                                    rec.severity === 'critical' ? "bg-red-100 text-red-700" :
+                                                                                    rec.severity === 'high' ? "bg-orange-100 text-orange-700" :
+                                                                                    rec.severity === 'medium' ? "bg-yellow-100 text-yellow-700" :
+                                                                                    "bg-blue-100 text-blue-700"
+                                                                                )}>
+                                                                                    {rec.severity === 'critical' ? 'CRÍTICO' :
+                                                                                     rec.severity === 'high' ? 'ALTO' :
+                                                                                     rec.severity === 'medium' ? 'MÉDIO' : 'BAIXO'}
+                                                                                </div>
+                                                                                <div className="flex-1">
+                                                                                    <h4 className="font-semibold text-slate-900 mb-1">{rec.problem}</h4>
+                                                                                    <p className="text-sm text-slate-600 mb-3">{rec.diagnosis}</p>
+                                                                                    
+                                                                                    <div className="space-y-2">
+                                                                                        <p className="text-sm font-medium text-slate-700">Ações Sugeridas:</p>
+                                                                                        <ul className="list-disc list-inside space-y-1 text-sm text-slate-600">
+                                                                                            {rec.actions?.map((action, actionIdx) => (
+                                                                                                <li key={actionIdx}>{action}</li>
+                                                                                            ))}
+                                                                                        </ul>
+                                                                                    </div>
+                                                                                    
+                                                                                    {rec.expected_impact && (
+                                                                                        <div className="mt-3 p-3 bg-green-50 rounded border border-green-200">
+                                                                                            <p className="text-sm font-medium text-green-900">Impacto Esperado:</p>
+                                                                                            <p className="text-sm text-green-700">{rec.expected_impact}</p>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                    
+                                                                    {(!recommendations[row.account_name].recommendations || 
+                                                                      recommendations[row.account_name].recommendations.length === 0) && (
+                                                                        <div className="text-center py-8 text-slate-500">
+                                                                            ✅ Nenhuma ação crítica identificada. Conta operando dentro dos parâmetros esperados.
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            )
+                                                        ) : (
+                                                            <div className="flex items-center justify-center py-8">
+                                                                <RefreshCw className="w-5 h-5 animate-spin text-violet-600 mr-2" />
+                                                                <span className="text-slate-600">Carregando recomendações...</span>
+                                                            </div>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                            </React.Fragment>
                                         ))}
                                     </TableBody>
                                 </Table>
