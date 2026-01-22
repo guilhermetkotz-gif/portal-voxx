@@ -591,8 +591,8 @@ export default function MonitoramentoContas({ user }) {
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <span className={account.cost_per_messaging >= 30 ? 'text-red-600 font-semibold' : ''}>
-                                                R$ {account.cost_per_messaging.toFixed(2)}
+                                            <span className={(radarMetaDataMap.get(account.account_name)?.cpl_ontem || account.cost_per_messaging) >= 30 ? 'text-red-600 font-semibold' : ''}>
+                                                R$ {(radarMetaDataMap.get(account.account_name)?.cpl_ontem || account.cost_per_messaging).toFixed(2)}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right font-medium">
