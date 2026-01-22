@@ -218,19 +218,21 @@ export default function MonitoramentoContas({ user }) {
             const ctrAtual = radar.ctr_ontem || 0;
             const ctr7d = radar.ctr_7d || 0;
             
-            const frequencia = conta?.frequency || 0;
+            const frequenciaAtual = radar.frequencia_ontem || conta?.frequency || 0;
+            const frequencia7d = radar.frequencia_7d || 0;
             const cpmAtual = conta ? ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000 : 0;
             const investimentoDiario = conta?.amount_spent ? conta.amount_spent / 30 : 0;
             
             // Variações (Ontem vs 7d)
             const variacaoCPL = radar.variacao_cpl || 0;
             const variacaoCTR = radar.variacao_ctr || 0;
+            const variacaoFrequencia = radar.variacao_frequencia || 0;
 
             // EIXO A: Estado Atual
             // Definir limiares de "bom" vs "ruim"
             const cplRuim = cplAtual > 35; // CPL acima de 35
             const ctrRuim = ctrAtual < 1.0; // CTR abaixo de 1%
-            const frequenciaRuim = frequencia >= 2.5; // Frequência >= 2.5
+            const frequenciaRuim = frequenciaAtual >= 2.5; // Frequência >= 2.5
             
             const estadoAtual = (cplRuim || ctrRuim || frequenciaRuim) ? 'ruim' : 'bom';
             
@@ -246,9 +248,9 @@ export default function MonitoramentoContas({ user }) {
             if (variacaoCTR > 10) sinaisPositivos++;
             else if (variacaoCTR < -15) sinaisNegativos++;
             
-            // Sinal 3: Frequência (comparar com limiar)
-            if (frequencia < 2.0) sinaisPositivos++;
-            else if (frequencia >= 3.0) sinaisNegativos++;
+            // Sinal 3: Frequência - variação negativa é bom (frequência diminuindo)
+            if (variacaoFrequencia < -10) sinaisPositivos++;
+            else if (variacaoFrequencia > 15) sinaisNegativos++;
             
             const tendencia = sinaisPositivos >= 2 ? 'melhora' :
                              sinaisNegativos >= 2 ? 'piora' : 'estavel';
@@ -280,7 +282,7 @@ export default function MonitoramentoContas({ user }) {
             if (cplRuim) radarScore -= 20;
             if (ctrRuim) radarScore -= 15;
             if (frequenciaRuim) radarScore -= 15;
-            if (frequencia >= 3.5) radarScore -= 10; // Penalização extra
+            if (frequenciaAtual >= 3.5) radarScore -= 10; // Penalização extra
             
             // Penalização por volume baixo
             if (leadsOntem < 5) radarScore -= 10;
@@ -336,7 +338,9 @@ export default function MonitoramentoContas({ user }) {
                 ctr7d,
                 variacaoCTR,
                 cpmAtual,
-                frequencia,
+                frequenciaAtual,
+                frequencia7d,
+                variacaoFrequencia,
                 investimentoDiario,
                 status
             };
@@ -731,7 +735,8 @@ export default function MonitoramentoContas({ user }) {
                                             <TableHead className="text-right">CTR Atual</TableHead>
                                             <TableHead className="text-right">Δ CTR</TableHead>
                                             <TableHead className="text-right">CPM</TableHead>
-                                            <TableHead className="text-right">Frequência</TableHead>
+                                            <TableHead className="text-right">Freq. Atual</TableHead>
+                                            <TableHead className="text-right">Δ Freq.</TableHead>
                                             <TableHead className="text-right">Inv. Diário</TableHead>
                                             <TableHead className="w-[280px]">Status</TableHead>
                                         </TableRow>
@@ -834,12 +839,28 @@ export default function MonitoramentoContas({ user }) {
                                                 <TableCell className="text-right">
                                                     <span className={cn(
                                                         "font-semibold",
-                                                        row.frequencia >= 3.5 ? "text-red-600" :
-                                                        row.frequencia >= 2.5 ? "text-orange-600" :
+                                                        row.frequenciaAtual >= 3.5 ? "text-red-600" :
+                                                        row.frequenciaAtual >= 2.5 ? "text-orange-600" :
                                                         "text-slate-600"
                                                     )}>
-                                                        {row.frequencia.toFixed(2)}
+                                                        {row.frequenciaAtual.toFixed(2)}
                                                     </span>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className={cn(
+                                                        "flex items-center justify-end gap-1 font-semibold",
+                                                        row.variacaoFrequencia > 15 ? "text-red-600" :
+                                                        row.variacaoFrequencia > 5 ? "text-orange-600" :
+                                                        row.variacaoFrequencia < -10 ? "text-green-600" :
+                                                        "text-slate-600"
+                                                    )}>
+                                                        {row.variacaoFrequencia > 0 ? (
+                                                            <TrendingUp className="w-4 h-4" />
+                                                        ) : row.variacaoFrequencia < 0 ? (
+                                                            <TrendingDown className="w-4 h-4" />
+                                                        ) : null}
+                                                        {formatPercent(row.variacaoFrequencia)}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="text-right font-semibold">
                                                     {formatCurrency(row.investimentoDiario)}
@@ -851,7 +872,7 @@ export default function MonitoramentoContas({ user }) {
                                             
                                             {expandedRows.has(row.account_name) && (
                                                 <TableRow>
-                                                    <TableCell colSpan={13} className="bg-slate-50 p-6">
+                                                    <TableCell colSpan={14} className="bg-slate-50 p-6">
                                                         {recommendations[row.account_name] ? (
                                                             recommendations[row.account_name].error ? (
                                                                 <div className="text-red-600">{recommendations[row.account_name].error}</div>

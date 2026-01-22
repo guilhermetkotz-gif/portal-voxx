@@ -108,13 +108,15 @@ Deno.serve(async (req) => {
             
             const clicksIdx = getColIndex('clicks (all)');
             const impressionsIdx = getColIndex('impressions');
+            const frequencyIdx = getColIndex('frequency');
 
             console.log('Column indices:', {
                 accountName: accountNameIdx,
                 cpl: cplIdx,
                 leads: leadsIdx,
                 clicks: clicksIdx,
-                impressions: impressionsIdx
+                impressions: impressionsIdx,
+                frequency: frequencyIdx
             });
 
             const result = {};
@@ -130,6 +132,7 @@ Deno.serve(async (req) => {
                 const leads = parseNumber(row[leadsIdx]);
                 const clicks = parseNumber(row[clicksIdx]);
                 const impressions = parseNumber(row[impressionsIdx]);
+                const frequency = parseNumber(row[frequencyIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
                 // Log Votuporanga for debugging
@@ -148,7 +151,8 @@ Deno.serve(async (req) => {
                 result[accountName] = {
                     cpl,
                     leads,
-                    ctr
+                    ctr,
+                    frequency
                 };
             }
 
@@ -181,17 +185,25 @@ Deno.serve(async (req) => {
                 variacaoCTR = ((ontem.ctr - seteDias.ctr) / seteDias.ctr) * 100;
             }
 
+            let variacaoFrequencia = 0;
+            if (seteDias.frequency > 0) {
+                variacaoFrequencia = ((ontem.frequency - seteDias.frequency) / seteDias.frequency) * 100;
+            }
+
             radarData.push({
                 account_name: accountName,
                 cpl_ontem: ontem.cpl,
                 leads_ontem: ontem.leads,
                 ctr_ontem: ontem.ctr,
+                frequencia_ontem: ontem.frequency,
                 cpl_7d: seteDias.cpl,
                 leads_7d: seteDias.leads,
                 leads_7d_media_dia: leads7dMediaDia,
                 ctr_7d: seteDias.ctr,
+                frequencia_7d: seteDias.frequency,
                 variacao_cpl: variacaoCPL,
-                variacao_ctr: variacaoCTR
+                variacao_ctr: variacaoCTR,
+                variacao_frequencia: variacaoFrequencia
             });
         }
 
