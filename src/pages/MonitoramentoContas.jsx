@@ -833,10 +833,11 @@ export default function MonitoramentoContas({ user }) {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <span className={cn(
-                                                        "font-semibold",
-                                                        row.frequencia >= 3.0 ? "text-red-600" :
+                                                        "font-semibold px-2 py-1 rounded",
+                                                        row.frequencia > 3.0 ? "text-red-600" :
                                                         row.frequencia >= 2.5 ? "text-orange-600" :
-                                                        "text-slate-600"
+                                                        row.frequencia >= 1.8 ? "text-green-600" :
+                                                        "text-white bg-green-400"
                                                     )}>
                                                         {row.frequencia.toFixed(2)}
                                                     </span>
