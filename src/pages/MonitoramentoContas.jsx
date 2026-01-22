@@ -165,8 +165,10 @@ export default function MonitoramentoContas({ user }) {
             const cliente = clientesMap.get(conta.account_name);
             const radarData = radarMetaDataMap.get(conta.account_name);
             
-            const cplAtual = conta.cost_per_new_messaging || conta.cost_per_messaging || 0;
-            const ctrAtual = ((conta.clicks_all || 0) / (conta.impressions || 1)) * 100;
+            const cplAtual = radarData?.cpl_ontem || (conta.cost_per_new_messaging || conta.cost_per_messaging || 0);
+            const cpl7d = radarData?.cpl_7d || cplAtual;
+            const ctrAtual = radarData?.ctr_ontem || (((conta.clicks_all || 0) / (conta.impressions || 1)) * 100);
+            const ctr7d = radarData?.ctr_7d || ctrAtual;
             const cpmAtual = ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000;
             const investimento = conta.amount_spent || 0;
             const leadsOntem = radarData?.leads_ontem || (conta.new_messaging_connections || conta.messaging_conversations || 0);
@@ -175,8 +177,10 @@ export default function MonitoramentoContas({ user }) {
             // Variação CPL e CTR vindas das planilhas (Ontem vs 7 dias)
             const variacaoCPL = radarData?.variacao_cpl || 0;
             const variacaoCTR = radarData?.variacao_ctr || 0;
-            const cpl7d = radarData?.cpl_7d || cplAtual;
-            const ctr7d = radarData?.ctr_7d || ctrAtual;
+            
+            // Variação de Frequência e CPM (calculadas localmente se não tiver nos dados)
+            const variacaoFrequencia = 0; // Placeholder - não temos histórico de frequência
+            const variacaoCPM = 0; // Placeholder - não temos histórico de CPM
 
             // EIXO A: Estado Atual (métricas absolutas)
             const cplRuim = cplAtual > avgCPL * 1.2;
@@ -293,12 +297,16 @@ export default function MonitoramentoContas({ user }) {
                 prioridade,
                 prioridadeLabel,
                 cplAtual,
+                cpl7d,
                 variacaoCPL,
                 leadsOntem,
                 frequencia,
+                variacaoFrequencia,
                 ctrAtual,
+                ctr7d,
                 variacaoCTR,
                 cpmAtual,
+                variacaoCPM,
                 investimento,
                 status
             };
@@ -686,12 +694,15 @@ export default function MonitoramentoContas({ user }) {
                                             <TableHead className="w-[200px]">Unidade</TableHead>
                                             <TableHead className="text-center w-[100px]">Radar Score</TableHead>
                                             <TableHead className="text-center w-[120px]">Prioridade</TableHead>
-                                            <TableHead className="text-right">CPL Atual</TableHead>
+                                            <TableHead className="text-right">CPL Ontem</TableHead>
+                                            <TableHead className="text-right">CPL 7d</TableHead>
                                             <TableHead className="text-right">Δ CPL</TableHead>
-                                            <TableHead className="text-right">Leads Ontem</TableHead>
-                                            <TableHead className="text-right">Frequência</TableHead>
-                                            <TableHead className="text-right">CTR</TableHead>
+                                            <TableHead className="text-right">Freq. Ontem</TableHead>
+                                            <TableHead className="text-right">CTR Ontem</TableHead>
+                                            <TableHead className="text-right">CTR 7d</TableHead>
+                                            <TableHead className="text-right">Δ CTR</TableHead>
                                             <TableHead className="text-right">CPM</TableHead>
+                                            <TableHead className="text-right">Leads Ontem</TableHead>
                                             <TableHead className="text-right">Investimento</TableHead>
                                             <TableHead className="w-[250px]">Status</TableHead>
                                         </TableRow>
@@ -734,6 +745,9 @@ export default function MonitoramentoContas({ user }) {
                                                 <TableCell className="text-right font-medium">
                                                     {formatCurrency(row.cplAtual)}
                                                 </TableCell>
+                                                <TableCell className="text-right text-slate-500">
+                                                    {formatCurrency(row.cpl7d)}
+                                                </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className={cn(
                                                         "flex items-center justify-end gap-1 font-semibold",
@@ -750,9 +764,6 @@ export default function MonitoramentoContas({ user }) {
                                                         {formatPercent(row.variacaoCPL)}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-right font-medium">
-                                                    {Math.round(row.leadsOntem)}
-                                                </TableCell>
                                                 <TableCell className="text-right">
                                                     <span className={cn(
                                                         "font-semibold",
@@ -763,11 +774,33 @@ export default function MonitoramentoContas({ user }) {
                                                         {row.frequencia.toFixed(2)}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell className="text-right">
+                                                <TableCell className="text-right font-medium">
                                                     {row.ctrAtual.toFixed(2)}%
+                                                </TableCell>
+                                                <TableCell className="text-right text-slate-500">
+                                                    {row.ctr7d.toFixed(2)}%
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className={cn(
+                                                        "flex items-center justify-end gap-1 font-semibold",
+                                                        row.variacaoCTR < -15 ? "text-red-600" :
+                                                        row.variacaoCTR < -5 ? "text-orange-600" :
+                                                        row.variacaoCTR > 5 ? "text-green-600" :
+                                                        "text-slate-600"
+                                                    )}>
+                                                        {row.variacaoCTR > 0 ? (
+                                                            <TrendingUp className="w-4 h-4" />
+                                                        ) : row.variacaoCTR < 0 ? (
+                                                            <TrendingDown className="w-4 h-4" />
+                                                        ) : null}
+                                                        {formatPercent(row.variacaoCTR)}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     {formatCurrency(row.cpmAtual)}
+                                                </TableCell>
+                                                <TableCell className="text-right font-medium">
+                                                    {Math.round(row.leadsOntem)}
                                                 </TableCell>
                                                 <TableCell className="text-right font-semibold">
                                                     {formatCurrency(row.investimento)}
