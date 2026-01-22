@@ -666,25 +666,25 @@ export default function GestaoSaldoMetaAds({ user }) {
                             <div className="space-y-2">
                               {historico.map((tomada, index) => (
                                 <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
-                                  <div className="flex items-center gap-2 flex-1">
+                                  <div className="flex items-center gap-2">
                                     <Checkbox
                                       checked={tomada.pago}
                                       onCheckedChange={(checked) => {
+                                        if (!editingClients.has(row.cliente.id)) {
+                                          setEditingClients(prev => new Set(prev).add(row.cliente.id));
+                                        }
                                         handleTomadaChange(row.cliente.id, index, 'pago', checked);
-                                        if (checked) {
+                                        if (checked && !tomada.data_pagamento) {
                                           handleTomadaChange(row.cliente.id, index, 'data_pagamento', format(new Date(), 'yyyy-MM-dd'));
-                                        } else {
-                                          handleTomadaChange(row.cliente.id, index, 'data_pagamento', null);
                                         }
                                       }}
-                                      disabled={!isEditing}
                                     />
-                                    <span className={`text-sm font-medium ${tomada.pago ? 'text-green-700' : 'text-slate-700'}`}>
+                                    <span className={`text-sm font-medium ${tomada.pago ? 'text-green-700 line-through' : 'text-slate-700'}`}>
                                       Tomada #{tomada.numero}
                                     </span>
                                   </div>
                                   
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-1">
                                     <div className="w-32">
                                       <Input
                                         type="number"
@@ -707,9 +707,25 @@ export default function GestaoSaldoMetaAds({ user }) {
                                       />
                                     </div>
                                     
+                                    {tomada.pago && (
+                                      <div className="w-36">
+                                        <Input
+                                          type="date"
+                                          value={tomada.data_pagamento || ''}
+                                          onChange={(e) => {
+                                            if (!editingClients.has(row.cliente.id)) {
+                                              setEditingClients(prev => new Set(prev).add(row.cliente.id));
+                                            }
+                                            handleTomadaChange(row.cliente.id, index, 'data_pagamento', e.target.value);
+                                          }}
+                                          className="h-8 text-xs"
+                                        />
+                                      </div>
+                                    )}
+                                    
                                     {tomada.pago && tomada.data_pagamento && (
-                                      <Badge className="bg-green-100 text-green-800 text-xs">
-                                        Pago em {format(new Date(tomada.data_pagamento), 'dd/MM/yy')}
+                                      <Badge className="bg-green-100 text-green-800 text-xs whitespace-nowrap">
+                                        Pago: {format(new Date(tomada.data_pagamento), 'dd/MM/yy')}
                                       </Badge>
                                     )}
                                     
