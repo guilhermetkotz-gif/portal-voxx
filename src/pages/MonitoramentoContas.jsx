@@ -923,22 +923,26 @@ export default function MonitoramentoContas({ user }) {
                     {/* Legend */}
                     <Card>
                         <CardContent className="p-4">
-                            <div className="flex items-center gap-6 text-sm">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                                    <span>Crítica (0-39): Ação imediata</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-orange-500" />
-                                    <span>Alta (40-59): Ajuste prioritário</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                                    <span>Média (60-79): Monitorar</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-green-500" />
-                                    <span>Baixa (80-100): Manter</span>
+                            <div className="space-y-3">
+                                <h3 className="font-semibold text-slate-900">Metodologia do RADAR META:</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <p className="font-medium mb-1">Priorização:</p>
+                                        <ul className="space-y-1 text-slate-600">
+                                            <li>🔴 <strong>Crítica</strong>: Métricas ruins + Piora (Ação imediata)</li>
+                                            <li>🟠 <strong>Alta</strong>: Métricas ruins + Estável (Ajuste prioritário)</li>
+                                            <li>🟡 <strong>Média</strong>: Métricas boas + Piora (Monitorar tendência)</li>
+                                            <li>🟢 <strong>Baixa</strong>: Métricas ruins + Melhora (Manter recuperação)</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium mb-1">Critérios de Tendência:</p>
+                                        <ul className="space-y-1 text-slate-600">
+                                            <li>✅ <strong>Melhora</strong>: ≥2 sinais positivos (CPL caindo, CTR subindo, etc.)</li>
+                                            <li>⚠️ <strong>Piora</strong>: ≥2 sinais negativos (CPL subindo, CTR caindo, etc.)</li>
+                                            <li>➡️ <strong>Estável</strong>: Menos de 2 sinais em qualquer direção</li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>
