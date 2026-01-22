@@ -95,14 +95,15 @@ Deno.serve(async (req) => {
 
             const accountNameIdx = getColIndex('account name');
             
-            // Find the exact "Cost per new messaging connection" column (coluna M na planilha)
-            const newMessagingCostIdx = headers.findIndex(h => 
-                h && h.toLowerCase() === 'cost per new messaging connection'
+            // Find "Cost per Messaging Conversations Started" column
+            const cplIdx = headers.findIndex(h => 
+                h && h.toLowerCase().includes('cost per messaging conversations started')
             );
             
-            // Find the exact "Messaging conversations started" column
-            const messagingConversationsIdx = headers.findIndex(h => 
-                h && h.toLowerCase().includes('messaging conversations started')
+            // Find "Messaging Conversations Started" column
+            const leadsIdx = headers.findIndex(h => 
+                h && h.toLowerCase().includes('messaging conversations started') &&
+                !h.toLowerCase().includes('cost per')
             );
             
             const clicksIdx = getColIndex('clicks (all)');
@@ -110,8 +111,8 @@ Deno.serve(async (req) => {
 
             console.log('Column indices:', {
                 accountName: accountNameIdx,
-                newMessagingCost: newMessagingCostIdx,
-                messagingConversations: messagingConversationsIdx,
+                cpl: cplIdx,
+                leads: leadsIdx,
                 clicks: clicksIdx,
                 impressions: impressionsIdx
             });
@@ -125,8 +126,8 @@ Deno.serve(async (req) => {
                 const accountName = (row[accountNameIdx] || '').trim();
                 if (!accountName) continue;
 
-                const cpl = parseNumber(row[newMessagingCostIdx]);
-                const leads = parseNumber(row[messagingConversationsIdx]);
+                const cpl = parseNumber(row[cplIdx]);
+                const leads = parseNumber(row[leadsIdx]);
                 const clicks = parseNumber(row[clicksIdx]);
                 const impressions = parseNumber(row[impressionsIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
