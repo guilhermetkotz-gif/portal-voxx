@@ -39,6 +39,7 @@ const menuItems = [
   { divider: true },
   { name: "Newsletter", icon: Newspaper, page: "Newsletter" },
   { name: "Central de Ajuda", icon: HelpCircle, page: "Ajuda" },
+  { name: "Alertas", icon: Bell, page: "ConfiguracaoAlertas" },
   { divider: true },
   { name: "Monitoramento Meta Ads", icon: Target, page: "MonitoramentoContas", adminOnly: true },
   { name: "Cadastro de Cliente", icon: UserPlus, page: "CadastroCliente", adminOnly: true },
