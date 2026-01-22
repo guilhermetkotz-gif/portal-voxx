@@ -151,20 +151,39 @@ export default function MonitoramentoContas({ user }) {
             const cliente = clientesMap.get(conta.account_name);
             
             const cplAtual = conta.cost_per_new_messaging || conta.cost_per_messaging || 0;
-            const leadsAtuais = conta.new_messaging_connections || conta.messaging_conversations || 0;
             const ctrAtual = ((conta.clicks_all || 0) / (conta.impressions || 1)) * 100;
             const cpmAtual = ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000;
             const investimento = conta.amount_spent || 0;
 
+            // Simulação de dados (em produção, viriam de abas Ontem e 7 dias)
+            const leadsOntem = conta.new_messaging_connections || conta.messaging_conversations || 0;
+            const leads7d = leadsOntem * 7 * (conta.classificacao === 'CRÍTICO' ? 1.4 : 
+                                              conta.classificacao === 'ALERTA' ? 1.2 :
+                                              conta.classificacao === 'OPERACIONAL' ? 1.0 :
+                                              conta.classificacao === 'SAUDÁVEL' ? 0.9 : 0.85);
+            
+            // Leads 7d média/dia
+            const leads7dMediaDia = leads7d / 7;
+
+            // Variação CPL (simulada)
             const variacaoCPL = conta.classificacao === 'CRÍTICO' ? 35 : 
                                 conta.classificacao === 'ALERTA' ? 20 :
                                 conta.classificacao === 'OPERACIONAL' ? 5 :
                                 conta.classificacao === 'SAUDÁVEL' ? -5 : -10;
             
-            const variacaoLeads = conta.classificacao === 'CRÍTICO' ? -40 :
-                                  conta.classificacao === 'ALERTA' ? -25 :
-                                  conta.classificacao === 'OPERACIONAL' ? -10 :
-                                  conta.classificacao === 'SAUDÁVEL' ? 10 : 20;
+            // Delta Leads (Ontem vs Média 7 dias) com proteção
+            let variacaoLeads = 0;
+            let leadStatusFlag = '';
+            if (leads7dMediaDia === 0) {
+                if (leadsOntem === 0) {
+                    variacaoLeads = 0;
+                } else {
+                    variacaoLeads = 100; // Novo volume
+                    leadStatusFlag = 'novo';
+                }
+            } else {
+                variacaoLeads = ((leadsOntem - leads7dMediaDia) / leads7dMediaDia) * 100;
+            }
 
             const variacaoCTR = conta.classificacao === 'CRÍTICO' ? -30 :
                                 conta.classificacao === 'ALERTA' ? -15 :
@@ -175,9 +194,10 @@ export default function MonitoramentoContas({ user }) {
                                 conta.classificacao === 'ALERTA' ? 15 :
                                 conta.classificacao === 'OPERACIONAL' ? 5 : 0;
 
+            // Performance Score usando média diária
             const cplRatio = avgCPL > 0 ? (avgCPL / (cplAtual || 1)) : 1;
             const cplScore = Math.min(Math.max(cplRatio * 20, 0), 25);
-            const leadsScore = leadsAtuais > 50 ? 15 : leadsAtuais > 20 ? 10 : leadsAtuais > 10 ? 5 : 0;
+            const leadsScore = leads7dMediaDia > 50 ? 15 : leads7dMediaDia > 20 ? 10 : leads7dMediaDia > 10 ? 5 : 0;
             const performanceScore = cplScore + leadsScore;
 
             let tendenciaScore = 20;
@@ -219,7 +239,9 @@ export default function MonitoramentoContas({ user }) {
             }
 
             let status = '';
-            if (variacaoLeads < -30) {
+            if (leadStatusFlag === 'novo') {
+                status = 'Novo volume de leads detectado';
+            } else if (variacaoLeads < -30) {
                 status = 'Queda brusca de leads nas últimas 24h';
             } else if (variacaoCPL > 20 && variacaoCTR < -15) {
                 status = 'CPL acima da média e CTR em queda';
@@ -243,8 +265,10 @@ export default function MonitoramentoContas({ user }) {
                 prioridadeLabel,
                 cplAtual,
                 variacaoCPL,
-                leadsAtuais,
+                leadsOntem,
+                leads7dMediaDia,
                 variacaoLeads,
+                leadStatusFlag,
                 ctrAtual,
                 variacaoCTR,
                 cpmAtual,
@@ -638,7 +662,8 @@ export default function MonitoramentoContas({ user }) {
                                             <TableHead className="text-center w-[120px]">Prioridade</TableHead>
                                             <TableHead className="text-right">CPL Atual</TableHead>
                                             <TableHead className="text-right">Δ CPL</TableHead>
-                                            <TableHead className="text-right">Leads</TableHead>
+                                            <TableHead className="text-right">Leads Ontem</TableHead>
+                                            <TableHead className="text-right">Leads/dia (7d)</TableHead>
                                             <TableHead className="text-right">Δ Leads</TableHead>
                                             <TableHead className="text-right">CTR</TableHead>
                                             <TableHead className="text-right">CPM</TableHead>
@@ -701,22 +726,32 @@ export default function MonitoramentoContas({ user }) {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right font-medium">
-                                                    {row.leadsAtuais}
+                                                    {Math.round(row.leadsOntem)}
+                                                </TableCell>
+                                                <TableCell className="text-right text-slate-600">
+                                                    {row.leads7dMediaDia.toFixed(1)}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className={cn(
                                                         "flex items-center justify-end gap-1 font-semibold",
+                                                        row.leadStatusFlag === 'novo' ? "text-blue-600" :
                                                         row.variacaoLeads < -20 ? "text-red-600" :
                                                         row.variacaoLeads < -10 ? "text-orange-600" :
                                                         row.variacaoLeads > 10 ? "text-green-600" :
                                                         "text-slate-600"
                                                     )}>
-                                                        {row.variacaoLeads > 0 ? (
-                                                            <TrendingUp className="w-4 h-4" />
-                                                        ) : row.variacaoLeads < 0 ? (
-                                                            <TrendingDown className="w-4 h-4" />
-                                                        ) : null}
-                                                        {formatPercent(row.variacaoLeads)}
+                                                        {row.leadStatusFlag === 'novo' ? (
+                                                            <span className="text-xs">Novo</span>
+                                                        ) : (
+                                                            <>
+                                                                {row.variacaoLeads > 0 ? (
+                                                                    <TrendingUp className="w-4 h-4" />
+                                                                ) : row.variacaoLeads < 0 ? (
+                                                                    <TrendingDown className="w-4 h-4" />
+                                                                ) : null}
+                                                                {formatPercent(row.variacaoLeads)}
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
