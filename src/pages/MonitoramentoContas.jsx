@@ -188,166 +188,149 @@ export default function MonitoramentoContas({ user }) {
         return colors[prioridade] || 'bg-slate-500 text-white';
     };
 
-    // RADAR META Logic
+    // RADAR META Logic - Recriado do Zero
     const radarData = React.useMemo(() => {
-        if (!accounts.length) return [];
+        if (!accounts.length || !radarMetaData.length) return [];
 
-        const cpls = accounts
-            .map(c => c.cost_per_new_messaging || c.cost_per_messaging || 0)
-            .filter(cpl => cpl > 0);
-        const avgCPL = cpls.reduce((sum, cpl) => sum + cpl, 0) / cpls.length;
-
-        return accounts.map(conta => {
-            const cliente = clientesMap.get(conta.account_name);
-            const radarData = radarMetaDataMap.get(conta.account_name);
+        return radarMetaData.map(radar => {
+            const cliente = clientesMap.get(radar.account_name);
+            const conta = accounts.find(a => a.account_name === radar.account_name);
             
-            const cplAtual = radarData?.cpl_ontem || (conta.cost_per_new_messaging || conta.cost_per_messaging || 0);
-            const cpl7d = radarData?.cpl_7d || cplAtual;
-            const ctrAtual = radarData?.ctr_ontem || (((conta.clicks_all || 0) / (conta.impressions || 1)) * 100);
-            const ctr7d = radarData?.ctr_7d || ctrAtual;
-            const cpmAtual = ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000;
-            const investimento = conta.amount_spent || 0;
-            const leadsOntem = radarData?.leads_ontem || (conta.new_messaging_connections || conta.messaging_conversations || 0);
-            const frequencia = conta.frequency || 0;
-
-            // Variação CPL e CTR vindas das planilhas (Ontem vs 7 dias)
-            const variacaoCPL = radarData?.variacao_cpl || 0;
-            const variacaoCTR = radarData?.variacao_ctr || 0;
+            // Dados base das planilhas
+            const leadsOntem = radar.leads_ontem || 0;
+            const leads7d = radar.leads_7d || 0;
+            const leadsDia7d = leads7d > 0 ? leads7d / 7 : 0;
             
-            // Variação de Frequência e CPM (calculadas localmente se não tiver nos dados)
-            const variacaoFrequencia = 0; // Placeholder - não temos histórico de frequência
-            const variacaoCPM = 0; // Placeholder - não temos histórico de CPM
-
-            // EIXO A: Estado Atual (métricas absolutas)
-            const cplRuim = cplAtual > avgCPL * 1.2;
-            const ctrRuim = ctrAtual < 1.0;
-            const frequenciaRuim = frequencia >= 2.5;
-            const estadoProblematico = cplRuim || ctrRuim || frequenciaRuim;
-
-            // EIXO B: Tendência (Ontem vs 7 dias)
-            const cplMelhorando = variacaoCPL < -5;  // CPL caindo
-            const ctrMelhorando = variacaoCTR > 5;   // CTR subindo
-            const frequenciaMelhorando = frequencia < (radarData?.frequency || frequencia);
-            const emMelhora = cplMelhorando || ctrMelhorando;
-
-            const cplPiorando = variacaoCPL > 15;
-            const ctrPiorando = variacaoCTR < -15;
-            const frequenciaPiorando = frequencia > 2.8 && variacaoCTR < -10;
-            const emPiora = cplPiorando || ctrPiorando || frequenciaPiorando;
-
-            // Performance Base Score (0-60)
-            const cplRatio = avgCPL > 0 ? (avgCPL / (cplAtual || 1)) : 1;
-            const cplScore = Math.min(Math.max(cplRatio * 20, 0), 30);
-            const leadsScore = leadsOntem > 50 ? 20 : leadsOntem > 20 ? 15 : leadsOntem > 10 ? 10 : leadsOntem > 5 ? 5 : 0;
-            const ctrScore = ctrAtual >= 2.0 ? 10 : ctrAtual >= 1.5 ? 7 : ctrAtual >= 1.0 ? 5 : ctrAtual >= 0.5 ? 2 : 0;
+            const cplAtual = radar.cpl_ontem || 0;
+            const cpl7d = radar.cpl_7d || 0;
             
-            let baseScore = cplScore + leadsScore + ctrScore;
-
-            // Ajuste por Tendência (-30 a +30)
-            let ajusteTendencia = 0;
+            const ctrAtual = radar.ctr_ontem || 0;
+            const ctr7d = radar.ctr_7d || 0;
             
-            if (emMelhora && !emPiora) {
-                // Conta melhorando: bônus
-                ajusteTendencia = 20;
-            } else if (emPiora && !emMelhora) {
-                // Conta piorando: penalização
-                ajusteTendencia = -25;
-            } else if (emMelhora && emPiora) {
-                // Sinais mistos: leve penalização
-                ajusteTendencia = -5;
-            }
+            const frequencia = conta?.frequency || 0;
+            const cpmAtual = conta ? ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000 : 0;
+            const investimentoDiario = conta?.amount_spent ? conta.amount_spent / 30 : 0;
             
-            // Penalização extra por frequência crítica
-            if (frequencia >= 3.2) ajusteTendencia -= 10;
-            else if (frequencia >= 2.8) ajusteTendencia -= 5;
+            // Variações (Ontem vs 7d)
+            const variacaoCPL = radar.variacao_cpl || 0;
+            const variacaoCTR = radar.variacao_ctr || 0;
 
-            // Impacto Financeiro (0-20)
-            const impactoScore = investimento > 10000 ? 20 :
-                                investimento > 5000 ? 15 :
-                                investimento > 2000 ? 10 :
-                                investimento > 1000 ? 5 : 0;
-
-            const radarScore = Math.max(0, Math.min(100, Math.round(baseScore + ajusteTendencia + impactoScore)));
-
-            // PRIORIZAÇÃO BASEADA EM ESTADO + TENDÊNCIA
+            // EIXO A: Estado Atual
+            // Definir limiares de "bom" vs "ruim"
+            const cplRuim = cplAtual > 35; // CPL acima de 35
+            const ctrRuim = ctrAtual < 1.0; // CTR abaixo de 1%
+            const frequenciaRuim = frequencia >= 2.5; // Frequência >= 2.5
+            
+            const estadoAtual = (cplRuim || ctrRuim || frequenciaRuim) ? 'ruim' : 'bom';
+            
+            // EIXO B: Tendência (>= 2 sinais)
+            let sinaisPositivos = 0;
+            let sinaisNegativos = 0;
+            
+            // Sinal 1: CPL
+            if (variacaoCPL < -10) sinaisPositivos++;
+            else if (variacaoCPL > 15) sinaisNegativos++;
+            
+            // Sinal 2: CTR
+            if (variacaoCTR > 10) sinaisPositivos++;
+            else if (variacaoCTR < -15) sinaisNegativos++;
+            
+            // Sinal 3: Frequência (comparar com limiar)
+            if (frequencia < 2.0) sinaisPositivos++;
+            else if (frequencia >= 3.0) sinaisNegativos++;
+            
+            const tendencia = sinaisPositivos >= 2 ? 'melhora' :
+                             sinaisNegativos >= 2 ? 'piora' : 'estavel';
+            
+            // PRIORIZAÇÃO
             let prioridade, prioridadeLabel;
-
-            if (estadoProblematico && emPiora) {
-                // REGRA 1: PROBLEMA + PIORA = Crítica
+            
+            if (estadoAtual === 'ruim' && tendencia === 'piora') {
                 prioridade = 'critica';
                 prioridadeLabel = '🔴 Crítica';
-            } else if (estadoProblematico && !emMelhora && !emPiora) {
-                // REGRA 2: PROBLEMA + ESTÁVEL = Alta
+            } else if (estadoAtual === 'ruim' && tendencia === 'estavel') {
                 prioridade = 'alta';
                 prioridadeLabel = '🟠 Alta';
-            } else if (estadoProblematico && emMelhora) {
-                // REGRA 3: PROBLEMA + MELHORA = Baixa (reduzir prioridade)
+            } else if (estadoAtual === 'bom' && tendencia === 'piora') {
+                prioridade = 'media';
+                prioridadeLabel = '🟡 Média';
+            } else if (estadoAtual === 'ruim' && tendencia === 'melhora') {
                 prioridade = 'baixa';
                 prioridadeLabel = '🟢 Baixa';
-            } else if (!estadoProblematico && emPiora) {
-                // REGRA 4: MÉTRICA BOA + PIORA = Média
-                prioridade = 'media';
-                prioridadeLabel = '🟡 Média';
-            } else if (radarScore < 40) {
-                prioridade = 'alta';
-                prioridadeLabel = '🟠 Alta';
-            } else if (radarScore < 70) {
-                prioridade = 'media';
-                prioridadeLabel = '🟡 Média';
             } else {
                 prioridade = 'baixa';
                 prioridadeLabel = '🟢 Baixa';
             }
-
-            // STATUS AUTOMÁTICO COM TENDÊNCIA
+            
+            // RADAR SCORE (Base 100)
+            let radarScore = 100;
+            
+            // Penalizações por métricas ruins
+            if (cplRuim) radarScore -= 20;
+            if (ctrRuim) radarScore -= 15;
+            if (frequenciaRuim) radarScore -= 15;
+            if (frequencia >= 3.5) radarScore -= 10; // Penalização extra
+            
+            // Penalização por volume baixo
+            if (leadsOntem < 5) radarScore -= 10;
+            
+            // Ajuste por tendência
+            if (tendencia === 'melhora') radarScore += 15;
+            else if (tendencia === 'piora') radarScore -= 25;
+            
+            // Garantir limites
+            radarScore = Math.max(0, Math.min(100, radarScore));
+            
+            // STATUS AUTOMÁTICO (refletindo tendência)
             let status = '';
             
-            if (estadoProblematico && emMelhora) {
-                status = 'Indicadores ruins, porém em melhora';
-            } else if (!estadoProblematico && emMelhora) {
-                status = 'Conta em recuperação - métricas melhorando';
-            } else if (frequencia >= 3.2 && ctrPiorando) {
-                status = 'Saturação crítica - frequência alta e CTR em queda';
-            } else if (frequencia >= 2.8 && emPiora) {
-                status = 'Performance em piora - frequência elevada';
-            } else if (cplPiorando && ctrPiorando) {
-                status = 'Performance em piora - CPL e CTR deteriorando';
-            } else if (cplPiorando) {
-                status = 'Performance em piora - CPL em alta';
-            } else if (ctrPiorando) {
-                status = 'Performance em piora - CTR em queda';
-            } else if (emPiora) {
-                status = 'Performance em piora';
-            } else if (estadoProblematico) {
-                status = 'Indicadores ruins, estáveis';
-            } else if (Math.abs(variacaoCPL) < 10 && frequencia < 2.5) {
-                status = 'Estável, sem alertas críticos';
+            if (estadoAtual === 'ruim' && tendencia === 'piora') {
+                status = '🔴 Crítico: Métricas ruins piorando';
+            } else if (estadoAtual === 'ruim' && tendencia === 'estavel') {
+                status = '🟠 Atenção: Métricas ruins estáveis';
+            } else if (estadoAtual === 'ruim' && tendencia === 'melhora') {
+                status = '🟢 Recuperação: Métricas ruins melhorando';
+            } else if (estadoAtual === 'bom' && tendencia === 'piora') {
+                status = '🟡 Alerta: Métricas boas piorando';
+            } else if (estadoAtual === 'bom' && tendencia === 'melhora') {
+                status = '✅ Excelente: Métricas boas melhorando';
             } else {
-                status = 'Dentro dos parâmetros esperados';
+                status = '✓ Estável: Dentro dos parâmetros';
+            }
+            
+            // Detalhes adicionais no status
+            const problemas = [];
+            if (cplRuim) problemas.push('CPL alto');
+            if (ctrRuim) problemas.push('CTR baixo');
+            if (frequenciaRuim) problemas.push('Saturação');
+            
+            if (problemas.length > 0) {
+                status += ` (${problemas.join(', ')})`;
             }
 
             return {
-                account_name: conta.account_name,
+                account_name: radar.account_name,
                 cliente,
                 radarScore,
                 prioridade,
                 prioridadeLabel,
+                estadoAtual,
+                tendencia,
+                leadsOntem,
+                leadsDia7d: leadsDia7d.toFixed(1),
                 cplAtual,
                 cpl7d,
                 variacaoCPL,
-                leadsOntem,
-                frequencia,
-                variacaoFrequencia,
                 ctrAtual,
                 ctr7d,
                 variacaoCTR,
                 cpmAtual,
-                variacaoCPM,
-                investimento,
+                frequencia,
+                investimentoDiario,
                 status
             };
-        });
-    }, [accounts, clientesMap, radarMetaDataMap]);
+        }).filter(d => d.cliente); // Apenas contas com cliente cadastrado
+    }, [radarMetaData, accounts, clientesMap]);
 
     const filteredRadarData = React.useMemo(() => {
         let filtered = radarData;
