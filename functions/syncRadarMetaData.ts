@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
                 h && h.toLowerCase().includes('cost per messaging conversations started')
             );
             
-            // Find "Messaging Conversations Started" column
+            // Find "Messaging Conversations Started" column (not the cost per)
             const leadsIdx = headers.findIndex(h => 
                 h && h.toLowerCase().includes('messaging conversations started') &&
                 !h.toLowerCase().includes('cost per')
@@ -132,15 +132,16 @@ Deno.serve(async (req) => {
                 const impressions = parseNumber(row[impressionsIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
-                // Log first account for debugging
-                if (i === 1) {
-                    console.log('First account data:', {
+                // Log Votuporanga for debugging
+                if (accountName.toLowerCase().includes('votuporanga')) {
+                    console.log('Votuporanga data:', {
                         accountName,
                         cpl_raw: row[cplIdx],
                         cpl_parsed: cpl,
                         leads_raw: row[leadsIdx],
                         leads_parsed: leads,
-                        ctr_calculated: ctr
+                        ctr_calculated: ctr,
+                        row_length: row.length
                     });
                 }
 
