@@ -6,14 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Edit2, Save, X, Link as LinkIcon } from 'lucide-react';
+import { Link as LinkIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 
 export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, selectedMonth, user, onClienteClick }) {
   const queryClient = useQueryClient();
   const [editingRows, setEditingRows] = useState({});
-  const [editingClients, setEditingClients] = useState(new Set());
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
@@ -53,13 +52,13 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
     }));
   };
 
-  const handleSave = (cliente) => {
+  const handleSave = (cliente, field) => {
     const edits = editingRows[cliente.id] || {};
     const balance = getBalanceControl(cliente.id) || {};
     const mainAccount = getMainMetaAccount(cliente);
-    const adAccountId = edits.ad_account_id || mainAccount?.ad_account_id || '';
+    const adAccountId = edits.ad_account_id !== undefined ? edits.ad_account_id : mainAccount?.ad_account_id || '';
 
-    if (!adAccountId) {
+    if (!adAccountId && field === 'ad_account_id') {
       toast.error('Adicione um ID de conta Meta Ads');
       return;
     }
@@ -75,16 +74,11 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
       gasto_diario: edits.gasto_diario !== undefined ? parseFloat(edits.gasto_diario) : balance.gasto_diario || 0,
       qtd_tomadas: balance.qtd_tomadas || 4,
       tomadas_pagas: balance.tomadas_pagas || 0,
-      link_conta: edits.link_conta || balance.link_conta || '',
+      link_conta: edits.link_conta !== undefined ? edits.link_conta : balance.link_conta || '',
       metodo_pagamento: balance.metodo_pagamento || 'Pix',
     };
 
     saveMutation.mutate(data);
-    setEditingClients(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(cliente.id);
-      return newSet;
-    });
   };
 
   const formatCurrency = (value) => {
@@ -114,39 +108,42 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
                   <th className="text-left py-3 px-4 font-semibold text-slate-700">ID da Conta</th>
                   <th className="text-left py-3 px-4 font-semibold text-slate-700">Link da Conta</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-700">Saldo (R$)</th>
-                  <th className="text-center py-3 px-4 font-semibold text-slate-700">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {clientes.map((cliente) => {
                   const mainAccount = getMainMetaAccount(cliente);
                   const balance = getBalanceControl(cliente.id);
-                  const isEditing = editingClients.has(cliente.id);
                   const edits = editingRows[cliente.id] || {};
+                  const canEdit = isVoxxAdmin(user) || isVoxxOperacao(user);
 
                   return (
-                    <tr key={cliente.id} className="border-b hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => onClienteClick?.(cliente)}>
-                      <td className="py-3 px-4 font-medium text-slate-900 text-violet-600">{cliente.nome}</td>
-                      <td className="py-3 px-4 font-mono text-xs">
-                        {isEditing ? (
+                    <tr key={cliente.id} className="border-b hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-4 font-medium text-violet-600 cursor-pointer" onClick={() => onClienteClick?.(cliente)}>
+                        {cliente.nome}
+                      </td>
+                      <td className="py-3 px-4 font-mono text-xs" onClick={(e) => e.stopPropagation()}>
+                        {canEdit ? (
                           <Input
                             type="text"
                             placeholder="ID da conta..."
                             value={edits.ad_account_id !== undefined ? edits.ad_account_id : mainAccount?.ad_account_id || ''}
                             onChange={(e) => handleFieldChange(cliente.id, 'ad_account_id', e.target.value)}
+                            onBlur={() => handleSave(cliente, 'ad_account_id')}
                             className="h-8 text-xs"
                           />
                         ) : (
                           <span className="text-slate-600">{mainAccount?.ad_account_id || '—'}</span>
                         )}
                       </td>
-                      <td className="py-3 px-4">
-                        {isEditing ? (
+                      <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                        {canEdit ? (
                           <Input
                             type="url"
                             placeholder="https://..."
                             value={edits.link_conta !== undefined ? edits.link_conta : balance?.link_conta || ''}
                             onChange={(e) => handleFieldChange(cliente.id, 'link_conta', e.target.value)}
+                            onBlur={() => handleSave(cliente, 'link_conta')}
                             className="h-8 text-xs"
                           />
                         ) : balance?.link_conta ? (
@@ -162,65 +159,20 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
                           <span className="text-slate-400 text-xs">—</span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-right">
-                        {isEditing ? (
+                      <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        {canEdit ? (
                           <Input
                             type="number"
                             step="0.01"
                             value={edits.saldo !== undefined ? edits.saldo : balance?.saldo || ''}
                             onChange={(e) => handleFieldChange(cliente.id, 'saldo', e.target.value)}
+                            onBlur={() => handleSave(cliente, 'saldo')}
                             className="h-8 text-xs text-right"
                           />
                         ) : (
                           <span className="font-semibold text-slate-900">
                             {formatCurrency(balance?.saldo || 0)}
                           </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        {(isVoxxAdmin(user) || isVoxxOperacao(user)) && (
-                          <>
-                            {isEditing ? (
-                              <div className="flex gap-1 justify-center">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setEditingClients(prev => {
-                                      const newSet = new Set(prev);
-                                      newSet.delete(cliente.id);
-                                      return newSet;
-                                    });
-                                    setEditingRows(prev => {
-                                      const newState = { ...prev };
-                                      delete newState[cliente.id];
-                                      return newState;
-                                    });
-                                  }}
-                                  className="h-7 w-7 p-0"
-                                >
-                                  <X className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleSave(cliente)}
-                                  disabled={saveMutation.isPending}
-                                  className="h-7 px-2"
-                                >
-                                  <Save className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setEditingClients(prev => new Set(prev).add(cliente.id))}
-                                className="h-7 w-7 p-0"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </Button>
-                            )}
-                          </>
                         )}
                       </td>
                     </tr>
