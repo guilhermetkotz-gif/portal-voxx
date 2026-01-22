@@ -15,12 +15,12 @@ import Home from './pages/Home';
 import Kanban from './pages/Kanban';
 import MonitoramentoContas from './pages/MonitoramentoContas';
 import Newsletter from './pages/Newsletter';
+import OnboardingCliente from './pages/OnboardingCliente';
 import Performance from './pages/Performance';
 import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import OnboardingCliente from './pages/OnboardingCliente';
 import __Layout from './Layout.jsx';
 
 
@@ -42,12 +42,12 @@ export const PAGES = {
     "Kanban": Kanban,
     "MonitoramentoContas": MonitoramentoContas,
     "Newsletter": Newsletter,
+    "OnboardingCliente": OnboardingCliente,
     "Performance": Performance,
     "PlanejamentoEstrategico": PlanejamentoEstrategico,
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "OnboardingCliente": OnboardingCliente,
 }
 
 export const pagesConfig = {
