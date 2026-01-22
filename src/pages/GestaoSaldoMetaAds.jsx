@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 import ListaSaldoMetaAdsSimples from '@/components/metaads/ListaSaldoMetaAdsSimples';
 import { Checkbox } from '@/components/ui/checkbox';
+import ModalNovaTomada from '@/components/saldos/ModalNovaTomada';
 
 export default function GestaoSaldoMetaAds({ user }) {
   const { toast } = useToast();
@@ -32,6 +33,7 @@ export default function GestaoSaldoMetaAds({ user }) {
   const [viewMode, setViewMode] = useState('detailed');
   const [selectedClienteDetail, setSelectedClienteDetail] = useState(null);
   const [expandedCards, setExpandedCards] = useState(new Set());
+  const [modalNovaTomada, setModalNovaTomada] = useState({ open: false, clienteId: null, clienteNome: null });
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -158,17 +160,14 @@ export default function GestaoSaldoMetaAds({ user }) {
     }));
   };
 
-  const handleAddTomada = (clientId) => {
+  const handleAddTomada = (clientId, tomadaData) => {
     const edits = editingRows[clientId] || {};
     const balance = getBalanceControl(clientId);
     const historico = edits.historico_tomadas || balance?.historico_tomadas || [];
     
     const novaTomada = {
       numero: historico.length + 1,
-      valor: 0,
-      data_envio: format(new Date(), 'yyyy-MM-dd'),
-      pago: false,
-      data_pagamento: null
+      ...tomadaData
     };
 
     handleFieldChange(clientId, 'historico_tomadas', [...historico, novaTomada]);
@@ -411,13 +410,11 @@ export default function GestaoSaldoMetaAds({ user }) {
                             size="sm"
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!editingClients.has(row.cliente.id)) {
-                                setEditingClients(prev => new Set(prev).add(row.cliente.id));
-                              }
-                              if (!expandedCards.has(row.cliente.id)) {
-                                setExpandedCards(prev => new Set(prev).add(row.cliente.id));
-                              }
-                              handleAddTomada(row.cliente.id);
+                              setModalNovaTomada({ 
+                                open: true, 
+                                clienteId: row.cliente.id,
+                                clienteNome: row.cliente.nome 
+                              });
                             }}
                             className="gap-1 h-8 text-xs"
                           >
@@ -756,6 +753,21 @@ export default function GestaoSaldoMetaAds({ user }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Nova Tomada */}
+      <ModalNovaTomada
+        open={modalNovaTomada.open}
+        onOpenChange={(open) => setModalNovaTomada({ open, clienteId: null, clienteNome: null })}
+        onSave={(tomadaData) => {
+          if (modalNovaTomada.clienteId) {
+            // Ativa edição e expande card
+            setEditingClients(prev => new Set(prev).add(modalNovaTomada.clienteId));
+            setExpandedCards(prev => new Set(prev).add(modalNovaTomada.clienteId));
+            handleAddTomada(modalNovaTomada.clienteId, tomadaData);
+          }
+        }}
+        clienteNome={modalNovaTomada.clienteNome}
+      />
     </div>
   );
 }
