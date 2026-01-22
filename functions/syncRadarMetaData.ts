@@ -100,9 +100,9 @@ Deno.serve(async (req) => {
                 h && h.toLowerCase() === 'cost per new messaging connection'
             );
             
-            // Find the exact "New messaging connections" column (coluna N na planilha)
-            const newMessagingConnectionsIdx = headers.findIndex(h => 
-                h && h.toLowerCase() === 'new messaging connections'
+            // Find the exact "Messaging conversations started" column
+            const messagingConversationsIdx = headers.findIndex(h => 
+                h && h.toLowerCase().includes('messaging conversations started')
             );
             
             const clicksIdx = getColIndex('clicks (all)');
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
             console.log('Column indices:', {
                 accountName: accountNameIdx,
                 newMessagingCost: newMessagingCostIdx,
-                newMessagingConnections: newMessagingConnectionsIdx,
+                messagingConversations: messagingConversationsIdx,
                 clicks: clicksIdx,
                 impressions: impressionsIdx
             });
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
                 if (!accountName) continue;
 
                 const cpl = parseNumber(row[newMessagingCostIdx]);
-                const leads = parseNumber(row[newMessagingConnectionsIdx]);
+                const leads = parseNumber(row[messagingConversationsIdx]);
                 const clicks = parseNumber(row[clicksIdx]);
                 const impressions = parseNumber(row[impressionsIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
