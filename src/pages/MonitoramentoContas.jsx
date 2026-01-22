@@ -230,7 +230,7 @@ export default function MonitoramentoContas({ user }) {
             // Definir limiares de "bom" vs "ruim"
             const cplRuim = cplAtual > 35; // CPL acima de 35
             const ctrRuim = ctrAtual < 1.0; // CTR abaixo de 1%
-            const frequenciaRuim = frequencia >= 2.5; // Frequência >= 2.5
+            const frequenciaRuim = frequencia >= 2.5; // Frequência >= 2.5 (laranja/vermelho)
             
             const estadoAtual = (cplRuim || ctrRuim || frequenciaRuim) ? 'ruim' : 'bom';
             
@@ -246,9 +246,11 @@ export default function MonitoramentoContas({ user }) {
             if (variacaoCTR > 10) sinaisPositivos++;
             else if (variacaoCTR < -15) sinaisNegativos++;
             
-            // Sinal 3: Frequência - análise direta (não usa variação)
-            if (frequencia < 2.0) sinaisPositivos++;
-            else if (frequencia >= 3.0) sinaisNegativos++;
+            // Sinal 3: Frequência - análise direta (7 dias)
+            if (frequencia < 1.8) sinaisPositivos += 2; // Excelente: verde neon
+            else if (frequencia < 2.5) sinaisPositivos++; // Bom: verde
+            else if (frequencia >= 3.0) sinaisNegativos += 2; // Crítico: vermelho
+            else if (frequencia >= 2.5) sinaisNegativos++; // Atenção: laranja
             
             const tendencia = sinaisPositivos >= 2 ? 'melhora' :
                              sinaisNegativos >= 2 ? 'piora' : 'estavel';
@@ -279,8 +281,12 @@ export default function MonitoramentoContas({ user }) {
             // Penalizações por métricas ruins
             if (cplRuim) radarScore -= 20;
             if (ctrRuim) radarScore -= 15;
-            if (frequenciaRuim) radarScore -= 15;
-            if (frequencia >= 3.0) radarScore -= 15; // Crítico: Frequência >= 3
+            
+            // Penalizações/bonificações por frequência (7 dias)
+            if (frequencia >= 3.0) radarScore -= 30; // Crítico: vermelho
+            else if (frequencia >= 2.5) radarScore -= 15; // Atenção: laranja
+            else if (frequencia >= 1.8) radarScore += 10; // Bom: verde
+            else if (frequencia < 1.8) radarScore += 20; // Excelente: verde neon
             
             // Penalização por volume baixo
             if (leadsOntem < 5) radarScore -= 10;
