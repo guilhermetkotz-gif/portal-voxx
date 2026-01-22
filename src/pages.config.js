@@ -23,6 +23,7 @@ import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
 import ConfiguracaoAlertas from './pages/ConfiguracaoAlertas';
 import GerenciarChats from './pages/GerenciarChats';
+import RadarMeta from './pages/RadarMeta';
 import __Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "Timeline": Timeline,
     "ConfiguracaoAlertas": ConfiguracaoAlertas,
     "GerenciarChats": GerenciarChats,
+    "RadarMeta": RadarMeta,
 }
 
 export const pagesConfig = {

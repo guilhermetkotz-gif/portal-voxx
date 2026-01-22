@@ -22,7 +22,8 @@ import {
   TrendingUp,
   UserPlus,
   CreditCard,
-  MessageCircle
+  MessageCircle,
+  Activity
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -43,6 +44,7 @@ const menuItems = [
   { name: "Alertas", icon: Bell, page: "ConfiguracaoAlertas" },
   { divider: true },
   { name: "Monitoramento Meta Ads", icon: Target, page: "MonitoramentoContas", adminOnly: true },
+  { name: "RADAR META", icon: Activity, page: "RadarMeta", voxxOnly: true },
   { name: "Cadastro de Cliente", icon: UserPlus, page: "CadastroCliente", adminOnly: true },
   { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
   { name: "Gerenciar Chats", icon: MessageCircle, page: "GerenciarChats", voxxOnly: true },
