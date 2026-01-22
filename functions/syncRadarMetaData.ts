@@ -136,9 +136,9 @@ Deno.serve(async (req) => {
                 if (i === 1) {
                     console.log('First account data:', {
                         accountName,
-                        cpl_raw: row[newMessagingCostIdx],
+                        cpl_raw: row[cplIdx],
                         cpl_parsed: cpl,
-                        leads_raw: row[newMessagingConnectionsIdx],
+                        leads_raw: row[leadsIdx],
                         leads_parsed: leads,
                         ctr_calculated: ctr
                     });
