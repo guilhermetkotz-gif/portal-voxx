@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, AlertTriangle, TrendingUp, DollarSign, MessageCircle, Users, MousePointer, Target, CheckCircle2, Plus } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, TrendingUp, DollarSign, MessageCircle, Users, MousePointer, Target, CheckCircle2, Plus, Lightbulb, Loader2 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link, useSearchParams } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,8 @@ export default function DetalheConta({ user }) {
     const [searchParams] = useSearchParams();
     const accountName = searchParams.get('account');
     const [showOtimizacaoModal, setShowOtimizacaoModal] = useState(false);
+    const [recommendations, setRecommendations] = useState(null);
+    const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
     // Verificar se é admin
     const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_manager';
@@ -23,6 +25,35 @@ export default function DetalheConta({ user }) {
         queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
         staleTime: 2 * 60 * 1000
     });
+
+    const { data: clientes = [] } = useQuery({
+        queryKey: ['clientes'],
+        queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
+        staleTime: 5 * 60 * 1000
+    });
+
+    const account = accounts.find(acc => acc.account_name === accountName);
+    const cliente = clientes.find(c => c.nome === accountName);
+
+    // Load recommendations when account is available
+    React.useEffect(() => {
+        if (account && !recommendations && !loadingRecommendations) {
+            setLoadingRecommendations(true);
+            base44.functions.invoke('getMetaAdsRecommendations', {
+                account_name: account.account_name,
+                investment_tier: cliente?.tipo_cliente || 'particular'
+            })
+                .then(response => {
+                    setRecommendations(response.data);
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar recomendações:', error);
+                })
+                .finally(() => {
+                    setLoadingRecommendations(false);
+                });
+        }
+    }, [account, recommendations, loadingRecommendations, cliente]);
 
     if (!isAdmin) {
         return (
@@ -37,8 +68,6 @@ export default function DetalheConta({ user }) {
             </div>
         );
     }
-
-    const account = accounts.find(acc => acc.account_name === accountName);
 
     if (isLoading) {
         return <div className="text-center py-12">Carregando...</div>;
@@ -121,46 +150,7 @@ export default function DetalheConta({ user }) {
         };
     };
 
-    const getPlanoAcao = () => {
-        const acoes = [];
-
-        if (account.frequency >= 3.2) {
-            acoes.push(
-                { texto: "Trocar eixo criativo (não apenas variação)", urgente: true },
-                { texto: "Reduzir anúncios redundantes no mesmo público", urgente: true },
-                { texto: "Expandir raio geográfico ou público se possível", urgente: false }
-            );
-        }
-
-        if (account.leads_repetidos_percent >= 22) {
-            acoes.push(
-                { texto: "Criar criativos novos para topo de funil", urgente: true },
-                { texto: "Ampliar alcance geográfico", urgente: true },
-                { texto: "Evitar remarketing involuntário (excluir base)", urgente: false }
-            );
-        }
-
-        if (account.cost_per_messaging >= 30) {
-            acoes.push(
-                { texto: "Revisar CTA e promessa no criativo", urgente: true },
-                { texto: "Ajustar qualificação no WhatsApp", urgente: false },
-                { texto: "Trocar formato criativo (vídeo ↔ imagem)", urgente: false }
-            );
-        }
-
-        // Checklist técnico padrão
-        acoes.push(
-            { texto: "Advantage+ Placements ON", urgente: false, tecnico: true },
-            { texto: "Advantage+ Creative ON (quando disponível)", urgente: false, tecnico: true },
-            { texto: "Estrutura simples (1 campanha / 1 conjunto)", urgente: false, tecnico: true },
-            { texto: "Revisão a cada 48-72h", urgente: false, tecnico: true }
-        );
-
-        return acoes;
-    };
-
     const diagnostico = getDiagnostico();
-    const planoAcao = getPlanoAcao();
     const prioridadeInfo = getPrioridadeBadge(account.prioridade);
 
     return (
@@ -334,41 +324,80 @@ export default function DetalheConta({ user }) {
             <Card>
                 <CardHeader>
                     <CardTitle className="text-xl flex items-center gap-2">
-                        <Target className="w-5 h-5 text-violet-600" />
+                        <Lightbulb className="w-5 h-5 text-violet-600" />
                         Plano de Ação Recomendado
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-3">
-                        {planoAcao.filter(a => !a.tecnico).length > 0 && (
-                            <div>
-                                <h4 className="font-semibold text-slate-700 mb-3">Ações Prioritárias:</h4>
-                                <div className="space-y-2">
-                                    {planoAcao.filter(a => !a.tecnico).map((acao, idx) => (
-                                        <div key={idx} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
-                                            <CheckCircle2 className={cn("w-5 h-5 flex-shrink-0 mt-0.5", acao.urgente ? "text-red-600" : "text-violet-600")} />
-                                            <span className={cn("text-slate-700", acao.urgente && "font-semibold")}>
-                                                {acao.texto}
-                                                {acao.urgente && <span className="ml-2 text-xs text-red-600 font-normal">(URGENTE)</span>}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        
-                        <div className="pt-4 border-t">
-                            <h4 className="font-semibold text-slate-700 mb-3">Checklist Técnico Padrão:</h4>
-                            <div className="space-y-2">
-                                {planoAcao.filter(a => a.tecnico).map((acao, idx) => (
-                                    <div key={idx} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                                        <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" />
-                                        <span className="text-slate-700">{acao.texto}</span>
-                                    </div>
-                                ))}
-                            </div>
+                    {loadingRecommendations ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="w-6 h-6 animate-spin text-violet-600 mr-2" />
+                            <span className="text-slate-600">Gerando recomendações personalizadas...</span>
                         </div>
-                    </div>
+                    ) : recommendations ? (
+                        <div className="space-y-4">
+                            {recommendations.recommendations?.length > 0 ? (
+                                recommendations.recommendations.map((rec, idx) => (
+                                    <div key={idx} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                                        <div className="flex items-start gap-3 mb-3">
+                                            <div className={cn(
+                                                "px-3 py-1 rounded text-xs font-semibold uppercase",
+                                                rec.severity === 'critical' ? "bg-red-100 text-red-700" :
+                                                rec.severity === 'high' ? "bg-orange-100 text-orange-700" :
+                                                rec.severity === 'medium' ? "bg-yellow-100 text-yellow-700" :
+                                                "bg-blue-100 text-blue-700"
+                                            )}>
+                                                {rec.severity === 'critical' ? 'Crítico' :
+                                                 rec.severity === 'high' ? 'Alto' :
+                                                 rec.severity === 'medium' ? 'Médio' : 'Baixo'}
+                                            </div>
+                                        </div>
+                                        
+                                        <h4 className="font-semibold text-slate-900 mb-2">{rec.problem}</h4>
+                                        <p className="text-sm text-slate-600 mb-3">{rec.diagnosis}</p>
+                                        
+                                        <div className="space-y-3">
+                                            <div>
+                                                <p className="text-sm font-semibold text-slate-700 mb-2">Ações Prioritárias:</p>
+                                                <ul className="space-y-2">
+                                                    {rec.actions?.map((action, actionIdx) => (
+                                                        <li key={actionIdx} className="flex items-start gap-2">
+                                                            <CheckCircle2 className={cn(
+                                                                "w-5 h-5 flex-shrink-0 mt-0.5",
+                                                                rec.severity === 'critical' || rec.severity === 'high' ? "text-red-600" : "text-violet-600"
+                                                            )} />
+                                                            <span className="text-sm text-slate-700">
+                                                                {action}
+                                                                {(rec.severity === 'critical' || rec.severity === 'high') && (
+                                                                    <span className="ml-2 text-xs text-red-600 font-semibold">(URGENTE)</span>
+                                                                )}
+                                                            </span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                            
+                                            {rec.expected_impact && (
+                                                <div className="p-3 bg-green-50 rounded border border-green-200">
+                                                    <p className="text-sm font-semibold text-green-900 mb-1">Impacto Esperado:</p>
+                                                    <p className="text-sm text-green-700">{rec.expected_impact}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8">
+                                    <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                                    <p className="text-slate-600">✅ Nenhuma ação crítica identificada. Conta operando dentro dos parâmetros esperados.</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-slate-500">
+                            Carregando recomendações...
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
