@@ -773,18 +773,21 @@ export default function MonitoramentoContas({ user }) {
                                                         {row.prioridadeLabel}
                                                     </Badge>
                                                 </TableCell>
+                                                <TableCell className="text-right font-bold text-lg">
+                                                    {Math.round(row.leadsOntem)}
+                                                </TableCell>
+                                                <TableCell className="text-right text-slate-600">
+                                                    {row.leadsDia7d}
+                                                </TableCell>
                                                 <TableCell className="text-right font-medium">
                                                     {formatCurrency(row.cplAtual)}
-                                                </TableCell>
-                                                <TableCell className="text-right text-slate-500">
-                                                    {formatCurrency(row.cpl7d)}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className={cn(
                                                         "flex items-center justify-end gap-1 font-semibold",
                                                         row.variacaoCPL > 15 ? "text-red-600" :
                                                         row.variacaoCPL > 5 ? "text-orange-600" :
-                                                        row.variacaoCPL < -5 ? "text-green-600" :
+                                                        row.variacaoCPL < -10 ? "text-green-600" :
                                                         "text-slate-600"
                                                     )}>
                                                         {row.variacaoCPL > 0 ? (
@@ -795,28 +798,15 @@ export default function MonitoramentoContas({ user }) {
                                                         {formatPercent(row.variacaoCPL)}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-right">
-                                                    <span className={cn(
-                                                        "font-semibold",
-                                                        row.frequencia >= 3.2 ? "text-red-600" :
-                                                        row.frequencia >= 2.5 ? "text-orange-600" :
-                                                        "text-slate-600"
-                                                    )}>
-                                                        {row.frequencia.toFixed(2)}
-                                                    </span>
-                                                </TableCell>
                                                 <TableCell className="text-right font-medium">
                                                     {row.ctrAtual.toFixed(2)}%
-                                                </TableCell>
-                                                <TableCell className="text-right text-slate-500">
-                                                    {row.ctr7d.toFixed(2)}%
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className={cn(
                                                         "flex items-center justify-end gap-1 font-semibold",
                                                         row.variacaoCTR < -15 ? "text-red-600" :
                                                         row.variacaoCTR < -5 ? "text-orange-600" :
-                                                        row.variacaoCTR > 5 ? "text-green-600" :
+                                                        row.variacaoCTR > 10 ? "text-green-600" :
                                                         "text-slate-600"
                                                     )}>
                                                         {row.variacaoCTR > 0 ? (
@@ -830,11 +820,18 @@ export default function MonitoramentoContas({ user }) {
                                                 <TableCell className="text-right">
                                                     {formatCurrency(row.cpmAtual)}
                                                 </TableCell>
-                                                <TableCell className="text-right font-medium">
-                                                    {Math.round(row.leadsOntem)}
+                                                <TableCell className="text-right">
+                                                    <span className={cn(
+                                                        "font-semibold",
+                                                        row.frequencia >= 3.5 ? "text-red-600" :
+                                                        row.frequencia >= 2.5 ? "text-orange-600" :
+                                                        "text-slate-600"
+                                                    )}>
+                                                        {row.frequencia.toFixed(2)}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="text-right font-semibold">
-                                                    {formatCurrency(row.investimento)}
+                                                    {formatCurrency(row.investimentoDiario)}
                                                 </TableCell>
                                                 <TableCell>
                                                     <p className="text-sm text-slate-600">{row.status}</p>
