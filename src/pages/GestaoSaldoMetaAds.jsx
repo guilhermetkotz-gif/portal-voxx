@@ -420,6 +420,25 @@ export default function GestaoSaldoMetaAds({ user }) {
 
                       {/* Actions */}
                       <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        {(isVoxxAdmin(user) || isVoxxOperacao(user)) && (
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!editingClients.has(row.cliente.id)) {
+                                setEditingClients(prev => new Set(prev).add(row.cliente.id));
+                              }
+                              if (!expandedCards.has(row.cliente.id)) {
+                                setExpandedCards(prev => new Set(prev).add(row.cliente.id));
+                              }
+                              handleAddTomada(row.cliente.id);
+                            }}
+                            className="gap-1"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Cadastrar Nova Tomada
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
