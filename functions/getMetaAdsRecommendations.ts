@@ -19,262 +19,70 @@ const CONFIG = {
     "FREQ_SATURATION": {
       "label": "Saturação por Frequência",
       "check": (data) => data.frequency_current >= 2.5,
-      "severity": (data) => data.frequency_current >= 3.0 ? "CRITICAL" : "HIGH"
+      "severity": (data) => data.frequency_current >= 3.0 ? "critical" : "high"
     },
     "CPL_SPIKE": {
       "label": "CPL em alta (piora relevante)",
       "check": (data) => data.delta_cpl_pct >= 0.25,
-      "severity": (data) => data.delta_cpl_pct >= 0.35 ? "CRITICAL" : "HIGH"
+      "severity": (data) => data.delta_cpl_pct >= 0.35 ? "critical" : "high"
     },
     "CTR_DROP": {
       "label": "Queda de CTR (criativo/mensagem)",
       "check": (data) => data.ctr_vs_avg_pct <= -0.20,
-      "severity": (data) => data.ctr_vs_avg_pct <= -0.30 ? "CRITICAL" : "HIGH"
+      "severity": (data) => data.ctr_vs_avg_pct <= -0.30 ? "critical" : "high"
     },
     "CPM_RISE": {
       "label": "Aumento de CPM (leilão/posicionamento)",
       "check": (data) => data.cpm_vs_avg_pct >= 0.20,
-      "severity": (data) => data.cpm_vs_avg_pct >= 0.35 ? "HIGH" : "MEDIUM"
+      "severity": (data) => data.cpm_vs_avg_pct >= 0.35 ? "high" : "medium"
     },
     "PACING_MISMATCH": {
       "label": "Pacing fora do planejado",
       "check": (data) => data.spend_pacing_ratio < 0.7 || data.spend_pacing_ratio > 1.3,
-      "severity": (data) => (data.spend_pacing_ratio < 0.6 || data.spend_pacing_ratio > 1.5) ? "HIGH" : "MEDIUM"
+      "severity": (data) => (data.spend_pacing_ratio < 0.6 || data.spend_pacing_ratio > 1.5) ? "high" : "medium"
     },
     "LOW_VOLUME_CONTEXT": {
       "label": "Baixo volume operacional",
       "check": (data) => data.leads_yesterday < 5,
-      "severity": (data) => data.leads_yesterday < 2 ? "MEDIUM" : "LOW"
+      "severity": (data) => data.leads_yesterday < 2 ? "medium" : "low"
     }
   },
   "actions_library": {
     "FREQ_SATURATION": {
-      "A": [
-        {
-          "action_id": "A_FREQ_01",
-          "title": "Trocar criativos imediatamente",
-          "steps": ["Substituir 1–2 criativos principais (novo hook + nova primeira cena/imagem).", "Manter 1 público principal (evitar fragmentação).", "Revisar CTA para foco em WhatsApp/Lead."],
-          "impact": "FAST",
-          "complexity": "LOW"
-        }
-      ],
-      "B": [
-        {
-          "action_id": "B_FREQ_01",
-          "title": "Rotação criativa com substituição parcial",
-          "steps": ["Inserir 2 novos criativos e pausar os 2 com pior CTR.", "Revisar sobreposição de público (exclusões simples)."],
-          "impact": "FAST",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "C": [
-        {
-          "action_id": "C_FREQ_01",
-          "title": "Reset criativo + expansão de público",
-          "steps": ["Criar 1 novo conjunto com criativos vencedores e variações.", "Testar público mais amplo (broad) e/ou lookalike.", "Ajustar posicionamentos para reduzir saturação."],
-          "impact": "MEDIUM",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "D": [
-        {
-          "action_id": "D_FREQ_01",
-          "title": "Estrutura contínua de criativos e split de públicos",
-          "steps": ["Organizar criativos por clusters (dor/benefício/prova social/oferta).", "Dividir públicos (broad vs LAL vs retarget) com controle de sobreposição.", "Criar calendário semanal de renovação criativa."],
-          "impact": "STRUCTURAL",
-          "complexity": "HIGH"
-        }
-      ]
+      "A": ["Substituir 1–2 criativos principais (novo hook + nova primeira cena/imagem)", "Manter 1 público principal (evitar fragmentação)", "Revisar CTA para foco em WhatsApp/Lead"],
+      "B": ["Inserir 2 novos criativos e pausar os 2 com pior CTR", "Revisar sobreposição de público (exclusões simples)"],
+      "C": ["Criar 1 novo conjunto com criativos vencedores e variações", "Testar público mais amplo (broad) e/ou lookalike", "Ajustar posicionamentos para reduzir saturação"],
+      "D": ["Organizar criativos por clusters (dor/benefício/prova social/oferta)", "Dividir públicos (broad vs LAL vs retarget) com controle de sobreposição", "Criar calendário semanal de renovação criativa"]
     },
     "CPL_SPIKE": {
-      "A": [
-        {
-          "action_id": "A_CPL_01",
-          "title": "Consolidar e simplificar",
-          "steps": ["Reduzir para 1 campanha + 1 conjunto principal.", "Pausar anúncios com CTR abaixo da média e pouco volume.", "Atualizar copy e criativo principal."],
-          "impact": "FAST",
-          "complexity": "LOW"
-        }
-      ],
-      "B": [
-        {
-          "action_id": "B_CPL_01",
-          "title": "Troca de criativos + ajuste de otimização",
-          "steps": ["Criar 2 novos criativos com novos hooks.", "Confirmar objetivo/otimização correta (Lead/Mensagem).", "Revisar públicos e excluir segmentos de pior desempenho."],
-          "impact": "FAST",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "C": [
-        {
-          "action_id": "C_CPL_01",
-          "title": "Teste A/B e reestruturação leve",
-          "steps": ["Testar 2 ângulos criativos (dor vs transformação) com orçamento dedicado.", "Separar campanhas por objetivo e controlar orçamento por bloco.", "Ajustar posicionamentos e criativos por placement."],
-          "impact": "MEDIUM",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "D": [
-        {
-          "action_id": "D_CPL_01",
-          "title": "Diagnóstico de leilão + arquitetura de campanhas",
-          "steps": ["Analisar CPM/CTR/Frequência para identificar componente do aumento do CPL.", "Reestruturar campanha (ABO/CBO conforme cenário) e reduzir desperdício.", "Criar pipeline de criativos (mín. 4 variações/semana)."],
-          "impact": "STRUCTURAL",
-          "complexity": "HIGH"
-        }
-      ]
+      "A": ["Reduzir para 1 campanha + 1 conjunto principal", "Pausar anúncios com CTR abaixo da média e pouco volume", "Atualizar copy e criativo principal"],
+      "B": ["Criar 2 novos criativos com novos hooks", "Confirmar objetivo/otimização correta (Lead/Mensagem)", "Revisar públicos e excluir segmentos de pior desempenho"],
+      "C": ["Testar 2 ângulos criativos (dor vs transformação) com orçamento dedicado", "Separar campanhas por objetivo e controlar orçamento por bloco", "Ajustar posicionamentos e criativos por placement"],
+      "D": ["Analisar CPM/CTR/Frequência para identificar componente do aumento do CPL", "Reestruturar campanha (ABO/CBO conforme cenário) e reduzir desperdício", "Criar pipeline de criativos (mín. 4 variações/semana)"]
     },
     "CTR_DROP": {
-      "A": [
-        {
-          "action_id": "A_CTR_01",
-          "title": "Trocar criativo principal e simplificar promessa",
-          "steps": ["Substituir criativo com pior CTR.", "Reduzir texto e reforçar benefício central.", "Garantir CTA direto (WhatsApp/Avaliação)."],
-          "impact": "FAST",
-          "complexity": "LOW"
-        }
-      ],
-      "B": [
-        {
-          "action_id": "B_CTR_01",
-          "title": "Novo hook + formato vídeo curto",
-          "steps": ["Criar 1 vídeo curto (5–10s) com hook forte nos 2 primeiros segundos.", "Testar headline alternativa e CTA.", "Revisar criativos por placement."],
-          "impact": "FAST",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "C": [
-        {
-          "action_id": "C_CTR_01",
-          "title": "Novos conceitos criativos e prova social",
-          "steps": ["Criar 2 novos conceitos (prova social / autoridade / transformação).", "Avaliar performance por placement e pausar os piores.", "Ajustar público para reduzir dispersão."],
-          "impact": "MEDIUM",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "D": [
-        {
-          "action_id": "D_CTR_01",
-          "title": "Clusters criativos + testing sistemático",
-          "steps": ["Organizar criativos por cluster e rodar testes controlados.", "Atualizar narrativa e ângulos de oferta.", "Implementar rotina de produção criativa semanal."],
-          "impact": "STRUCTURAL",
-          "complexity": "HIGH"
-        }
-      ]
+      "A": ["Substituir criativo com pior CTR", "Reduzir texto e reforçar benefício central", "Garantir CTA direto (WhatsApp/Avaliação)"],
+      "B": ["Criar 1 vídeo curto (5–10s) com hook forte nos 2 primeiros segundos", "Testar headline alternativa e CTA", "Revisar criativos por placement"],
+      "C": ["Criar 2 novos conceitos (prova social / autoridade / transformação)", "Avaliar performance por placement e pausar os piores", "Ajustar público para reduzir dispersão"],
+      "D": ["Organizar criativos por cluster e rodar testes controlados", "Atualizar narrativa e ângulos de oferta", "Implementar rotina de produção criativa semanal"]
     },
     "CPM_RISE": {
-      "A": [
-        {
-          "action_id": "A_CPM_01",
-          "title": "Ajustar posicionamentos e evitar dispersão",
-          "steps": ["Revisar posicionamentos e remover os mais caros se necessário.", "Manter público enxuto e criativo de melhor CTR."],
-          "impact": "FAST",
-          "complexity": "LOW"
-        }
-      ],
-      "B": [
-        {
-          "action_id": "B_CPM_01",
-          "title": "Refinar público + revisar horários/placements",
-          "steps": ["Ajustar público (exclusões básicas).", "Revisar placements e cortar os que elevaram CPM sem retorno."],
-          "impact": "MEDIUM",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "C": [
-        {
-          "action_id": "C_CPM_01",
-          "title": "Mitigação de leilão",
-          "steps": ["Testar público mais amplo (broad) para reduzir custo de leilão.", "Melhorar CTR com novo criativo para compensar CPM."],
-          "impact": "MEDIUM",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "D": [
-        {
-          "action_id": "D_CPM_01",
-          "title": "Arquitetura de campanhas para cenário competitivo",
-          "steps": ["Criar campanhas paralelas com estratégia de entrega diferente.", "Trabalhar criativos para elevar CTR e reduzir custo efetivo por resultado."],
-          "impact": "STRUCTURAL",
-          "complexity": "HIGH"
-        }
-      ]
+      "A": ["Revisar posicionamentos e remover os mais caros se necessário", "Manter público enxuto e criativo de melhor CTR"],
+      "B": ["Ajustar público (exclusões básicas)", "Revisar placements e cortar os que elevaram CPM sem retorno"],
+      "C": ["Testar público mais amplo (broad) para reduzir custo de leilão", "Melhorar CTR com novo criativo para compensar CPM"],
+      "D": ["Criar campanhas paralelas com estratégia de entrega diferente", "Trabalhar criativos para elevar CTR e reduzir custo efetivo por resultado"]
     },
     "PACING_MISMATCH": {
-      "A": [
-        {
-          "action_id": "A_PACE_01",
-          "title": "Ajustar orçamento diário para o planejado",
-          "steps": ["Se underspend: simplificar estrutura e revisar limitações de entrega.", "Se overspend: reduzir orçamento diário e evitar picos."],
-          "impact": "FAST",
-          "complexity": "LOW"
-        }
-      ],
-      "B": [
-        {
-          "action_id": "B_PACE_01",
-          "title": "Revisar pacing e estabilidade do aprendizado",
-          "steps": ["Evitar mudanças frequentes de orçamento.", "Ajustar gradualmente (+/- 10–20%)."],
-          "impact": "FAST",
-          "complexity": "LOW"
-        }
-      ],
-      "C": [
-        {
-          "action_id": "C_PACE_01",
-          "title": "Controle de pacing por bloco de campanha",
-          "steps": ["Separar campanhas por objetivo e controlar orçamento.", "Validar se há limitação por público/creative fatigue."],
-          "impact": "MEDIUM",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "D": [
-        {
-          "action_id": "D_PACE_01",
-          "title": "Gestão de budget dinâmica",
-          "steps": ["Criar regras internas de redistribuição para campanhas vencedoras.", "Avaliar spend cap e restrições de conta."],
-          "impact": "STRUCTURAL",
-          "complexity": "HIGH"
-        }
-      ]
+      "A": ["Se underspend: simplificar estrutura e revisar limitações de entrega", "Se overspend: reduzir orçamento diário e evitar picos"],
+      "B": ["Evitar mudanças frequentes de orçamento", "Ajustar gradualmente (+/- 10–20%)"],
+      "C": ["Separar campanhas por objetivo e controlar orçamento", "Validar se há limitação por público/creative fatigue"],
+      "D": ["Criar regras internas de redistribuição para campanhas vencedoras", "Avaliar spend cap e restrições de conta"]
     },
     "LOW_VOLUME_CONTEXT": {
-      "A": [
-        {
-          "action_id": "A_VOL_01",
-          "title": "Sinalizar baixa amostra e evitar decisões abruptas",
-          "steps": ["Manter estabilidade por 48–72h antes de mudanças agressivas.", "Focar em 1 ajuste por vez (criativo OU público)."],
-          "impact": "MEDIUM",
-          "complexity": "LOW"
-        }
-      ],
-      "B": [
-        {
-          "action_id": "B_VOL_01",
-          "title": "Validar leitura com janela maior",
-          "steps": ["Conferir consistência com 7d antes de mudanças grandes.", "Priorizar ajustes de criativo."],
-          "impact": "MEDIUM",
-          "complexity": "LOW"
-        }
-      ],
-      "C": [
-        {
-          "action_id": "C_VOL_01",
-          "title": "Ajustes graduais com confirmação",
-          "steps": ["Aplicar mudanças em etapas e monitorar impacto.", "Evitar reestruturação completa por variação pontual."],
-          "impact": "MEDIUM",
-          "complexity": "MEDIUM"
-        }
-      ],
-      "D": [
-        {
-          "action_id": "D_VOL_01",
-          "title": "Diagnóstico por segmentação",
-          "steps": ["Quebrar análise por campanha/adset para localizar origem da queda.", "Aplicar correções localizadas."],
-          "impact": "MEDIUM",
-          "complexity": "MEDIUM"
-        }
-      ]
+      "A": ["Manter estabilidade por 48–72h antes de mudanças agressivas", "Focar em 1 ajuste por vez (criativo OU público)"],
+      "B": ["Conferir consistência com 7d antes de mudanças grandes", "Priorizar ajustes de criativo"],
+      "C": ["Aplicar mudanças em etapas e monitorar impacto", "Evitar reestruturação completa por variação pontual"],
+      "D": ["Quebrar análise por campanha/adset para localizar origem da queda", "Aplicar correções localizadas"]
     }
   }
 };
@@ -302,39 +110,66 @@ function detectProblems(data) {
   }
   
   // Sort by severity
-  const severityOrder = { "CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3 };
+  const severityOrder = { "critical": 0, "high": 1, "medium": 2, "low": 3 };
   problems.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
   
   return problems;
 }
 
-function getRecommendedActions(problemId, investmentBucket, maxActions = 3) {
-  const actions = CONFIG.actions_library[problemId]?.[investmentBucket] || [];
-  return actions.slice(0, maxActions);
+function generateDiagnosisText(problemId, data) {
+  const diagnoses = {
+    "FREQ_SATURATION": `Frequência atual de ${data.frequency_current.toFixed(2)} indica que o mesmo público está vendo os anúncios repetidamente, causando fadiga criativa e redução de efetividade.`,
+    "CPL_SPIKE": `Variação de CPL de ${(data.delta_cpl_pct * 100).toFixed(1)}% indica aumento significativo no custo de aquisição, comprometendo a eficiência da campanha.`,
+    "CTR_DROP": `Queda de CTR de ${(data.ctr_vs_avg_pct * 100).toFixed(1)}% sugere que os criativos perderam relevância ou apelo para o público-alvo.`,
+    "CPM_RISE": `Aumento de CPM indica maior competição no leilão ou piora no ranking dos anúncios.`,
+    "PACING_MISMATCH": `O ritmo de gasto está ${data.spend_pacing_ratio < 0.7 ? 'abaixo' : 'acima'} do planejado, podendo comprometer objetivos do período.`,
+    "LOW_VOLUME_CONTEXT": `Volume de apenas ${data.leads_yesterday} leads ontem - amostra insuficiente para conclusões definitivas.`
+  };
+  
+  return diagnoses[problemId] || "Análise detalhada necessária.";
 }
 
-function generateStatusMessage(data) {
-  // Frequência alta + CTR em queda
-  if (data.frequency_current >= 2.5 && data.ctr_vs_avg_pct <= -0.2) {
-    return "Frequência elevada e CTR em queda — provável saturação de criativos";
-  }
+function generateExpectedImpact(problemId, investmentBucket) {
+  const impacts = {
+    "FREQ_SATURATION": {
+      "A": "Redução imediata da frequência e recuperação do CTR em 24-48h",
+      "B": "Renovação do interesse do público e estabilização das métricas",
+      "C": "Expansão sustentável do alcance com controle de saturação",
+      "D": "Sistema escalável de criação contínua com performance consistente"
+    },
+    "CPL_SPIKE": {
+      "A": "Simplificação da estrutura e redução de desperdício",
+      "B": "Retorno ao CPL anterior com otimização focada",
+      "C": "Identificação do melhor ângulo criativo com teste controlado",
+      "D": "Diagnóstico profundo e correção estrutural do CPL"
+    },
+    "CTR_DROP": {
+      "A": "Recuperação rápida do CTR com criativo mais relevante",
+      "B": "Aumento significativo de engajamento com novo formato",
+      "C": "Criação de múltiplos criativos vencedores",
+      "D": "Sistema de produção criativa consistente"
+    },
+    "CPM_RISE": {
+      "A": "Contenção de custos com ajustes táticos",
+      "B": "Otimização do custo por impressão",
+      "C": "Compensação do CPM com melhor performance",
+      "D": "Mitigação estrutural da competitividade do leilão"
+    },
+    "PACING_MISMATCH": {
+      "A": "Alinhamento imediato com o budget planejado",
+      "B": "Estabilização do ritmo de gasto",
+      "C": "Controle granular por objetivo de campanha",
+      "D": "Redistribuição inteligente e automática de budget"
+    },
+    "LOW_VOLUME_CONTEXT": {
+      "A": "Evitar decisões precipitadas baseadas em pouca amostra",
+      "B": "Validação consistente antes de mudanças estruturais",
+      "C": "Ajustes calibrados com monitoramento preciso",
+      "D": "Análise segmentada para ação cirúrgica"
+    }
+  };
   
-  // CPL piorou
-  if (data.delta_cpl_pct >= 0.25) {
-    return "CPL piorou de forma relevante vs média recente";
-  }
-  
-  // Pacing fora
-  if (data.spend_pacing_ratio < 0.7 || data.spend_pacing_ratio > 1.3) {
-    return "Pacing do gasto diário fora do planejado";
-  }
-  
-  // Baixo volume
-  if (data.leads_yesterday < 5) {
-    return "Baixo volume de amostra — validar tendência";
-  }
-  
-  return "Performance sem alertas críticos no momento";
+  return impacts[problemId]?.[investmentBucket] || "Melhoria esperada nas métricas principais";
 }
 
 Deno.serve(async (req) => {
@@ -346,35 +181,60 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { accounts } = await req.json();
+    const { account_name, investment_tier } = await req.json();
 
-    if (!accounts || !Array.isArray(accounts)) {
-      return Response.json({ error: 'Invalid input: accounts array required' }, { status: 400 });
+    if (!account_name) {
+      return Response.json({ error: 'Invalid input: account_name required' }, { status: 400 });
     }
 
-    const recommendations = accounts.map(account => {
-      const investmentBucket = getInvestmentBucket(account.monthly_investment || 0);
-      const problems = detectProblems(account);
-      
-      const primaryProblem = problems[0];
-      const actions = primaryProblem 
-        ? getRecommendedActions(primaryProblem.problem_id, investmentBucket)
-        : [];
+    // Buscar dados da conta e radar
+    const accounts = await base44.asServiceRole.entities.ContaMetaAds.filter({ 
+      account_name 
+    });
+    
+    const radarData = await base44.asServiceRole.entities.RadarMetaData.filter({ 
+      account_name 
+    });
 
+    if (!accounts || accounts.length === 0) {
+      return Response.json({ error: 'Account not found' }, { status: 404 });
+    }
+
+    const account = accounts[0];
+    const radar = radarData.length > 0 ? radarData[0] : null;
+
+    // Construir objeto de dados para análise
+    const analysisData = {
+      frequency_current: account.frequency || 0,
+      delta_cpl_pct: radar ? (radar.variacao_cpl / 100) : 0,
+      ctr_vs_avg_pct: radar ? (radar.variacao_ctr / 100) : 0,
+      cpm_vs_avg_pct: 0,
+      spend_pacing_ratio: 1.0,
+      leads_yesterday: radar?.leads_ontem || 0,
+      monthly_investment: account.amount_spent || 0
+    };
+
+    const investmentBucket = getInvestmentBucket(analysisData.monthly_investment);
+    const problems = detectProblems(analysisData);
+    
+    // Gerar recomendações para cada problema encontrado
+    const recommendations = problems.map(problem => {
+      const actions = CONFIG.actions_library[problem.problem_id]?.[investmentBucket] || [];
+      
       return {
-        unit_name: account.unit_name,
-        account_name: account.account_name,
-        investment_bucket: investmentBucket,
-        investment_bucket_label: CONFIG.investment_buckets.find(b => b.id === investmentBucket)?.label,
-        problems: problems,
-        primary_problem: primaryProblem || null,
+        problem: problem.label,
+        diagnosis: generateDiagnosisText(problem.problem_id, analysisData),
+        severity: problem.severity,
         actions: actions,
-        status_message: generateStatusMessage(account)
+        expected_impact: generateExpectedImpact(problem.problem_id, investmentBucket)
       };
     });
 
     return Response.json({ 
       success: true,
+      account_name,
+      investment_bucket: investmentBucket,
+      investment_bucket_label: CONFIG.investment_buckets.find(b => b.id === investmentBucket)?.label,
       recommendations
     });
 
