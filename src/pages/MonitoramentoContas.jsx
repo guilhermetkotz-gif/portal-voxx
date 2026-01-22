@@ -52,14 +52,28 @@ export default function MonitoramentoContas({ user }) {
         staleTime: 5 * 60 * 1000
     });
 
+    const { data: radarMetaData = [] } = useQuery({
+        queryKey: ['radarMetaData'],
+        queryFn: () => base44.entities.RadarMetaData.list('-created_date', 500),
+        staleTime: 2 * 60 * 1000
+    });
+
     const clientesMap = React.useMemo(() => {
         return new Map(clientes.map(c => [c.nome, c]));
     }, [clientes]);
 
+    const radarMetaDataMap = React.useMemo(() => {
+        return new Map(radarMetaData.map(r => [r.account_name, r]));
+    }, [radarMetaData]);
+
     const syncMutation = useMutation({
-        mutationFn: () => base44.functions.invoke('syncMetaAdsAccounts', {}),
+        mutationFn: async () => {
+            await base44.functions.invoke('syncMetaAdsAccounts', {});
+            await base44.functions.invoke('syncRadarMetaData', {});
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] });
+            queryClient.invalidateQueries({ queryKey: ['radarMetaData'] });
         }
     });
 
@@ -149,24 +163,18 @@ export default function MonitoramentoContas({ user }) {
 
         return accounts.map(conta => {
             const cliente = clientesMap.get(conta.account_name);
+            const radarData = radarMetaDataMap.get(conta.account_name);
             
             const cplAtual = conta.cost_per_new_messaging || conta.cost_per_messaging || 0;
             const ctrAtual = ((conta.clicks_all || 0) / (conta.impressions || 1)) * 100;
             const cpmAtual = ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000;
             const investimento = conta.amount_spent || 0;
-            const leadsOntem = conta.new_messaging_connections || conta.messaging_conversations || 0;
+            const leadsOntem = radarData?.leads_ontem || (conta.new_messaging_connections || conta.messaging_conversations || 0);
             const frequencia = conta.frequency || 0;
 
-            // Variação CPL (simulada - em produção viria da comparação Ontem vs 7 dias)
-            const variacaoCPL = conta.classificacao === 'CRÍTICO' ? 35 : 
-                                conta.classificacao === 'ALERTA' ? 20 :
-                                conta.classificacao === 'OPERACIONAL' ? 5 :
-                                conta.classificacao === 'SAUDÁVEL' ? -5 : -10;
-
-            const variacaoCTR = conta.classificacao === 'CRÍTICO' ? -30 :
-                                conta.classificacao === 'ALERTA' ? -15 :
-                                conta.classificacao === 'OPERACIONAL' ? 0 :
-                                conta.classificacao === 'SAUDÁVEL' ? 5 : 10;
+            // Variação CPL e CTR vindas das planilhas (Ontem vs 7 dias)
+            const variacaoCPL = radarData?.variacao_cpl || 0;
+            const variacaoCTR = radarData?.variacao_ctr || 0;
 
             // 1. Performance Absoluta (0-40 points)
             const cplRatio = avgCPL > 0 ? (avgCPL / (cplAtual || 1)) : 1;
@@ -256,7 +264,7 @@ export default function MonitoramentoContas({ user }) {
                 status
             };
         });
-    }, [accounts, clientesMap]);
+    }, [accounts, clientesMap, radarMetaDataMap]);
 
     const filteredRadarData = React.useMemo(() => {
         let filtered = radarData;
