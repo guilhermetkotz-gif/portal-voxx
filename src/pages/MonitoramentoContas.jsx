@@ -840,7 +840,7 @@ export default function MonitoramentoContas({ user }) {
                                             
                                             {expandedRows.has(row.account_name) && (
                                                 <TableRow>
-                                                    <TableCell colSpan={14} className="bg-slate-50 p-6">
+                                                    <TableCell colSpan={13} className="bg-slate-50 p-6">
                                                         {recommendations[row.account_name] ? (
                                                             recommendations[row.account_name].error ? (
                                                                 <div className="text-red-600">{recommendations[row.account_name].error}</div>
