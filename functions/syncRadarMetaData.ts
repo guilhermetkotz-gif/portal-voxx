@@ -94,10 +94,27 @@ Deno.serve(async (req) => {
             const getColIndex = (name) => headers.findIndex(h => h && h.toLowerCase().includes(name.toLowerCase()));
 
             const accountNameIdx = getColIndex('account name');
-            const cplIdx = getColIndex('cost per new messaging') || getColIndex('cost per messaging');
-            const leadsIdx = getColIndex('new messaging connections') || getColIndex('messaging conversations');
+            
+            // Find the exact "Cost per new messaging connection" column (coluna M na planilha)
+            const newMessagingCostIdx = headers.findIndex(h => 
+                h && h.toLowerCase() === 'cost per new messaging connection'
+            );
+            
+            // Find the exact "New messaging connections" column (coluna N na planilha)
+            const newMessagingConnectionsIdx = headers.findIndex(h => 
+                h && h.toLowerCase() === 'new messaging connections'
+            );
+            
             const clicksIdx = getColIndex('clicks (all)');
             const impressionsIdx = getColIndex('impressions');
+
+            console.log('Column indices:', {
+                accountName: accountNameIdx,
+                newMessagingCost: newMessagingCostIdx,
+                newMessagingConnections: newMessagingConnectionsIdx,
+                clicks: clicksIdx,
+                impressions: impressionsIdx
+            });
 
             const result = {};
 
@@ -108,11 +125,23 @@ Deno.serve(async (req) => {
                 const accountName = (row[accountNameIdx] || '').trim();
                 if (!accountName) continue;
 
-                const cpl = parseNumber(row[cplIdx]);
-                const leads = parseNumber(row[leadsIdx]);
+                const cpl = parseNumber(row[newMessagingCostIdx]);
+                const leads = parseNumber(row[newMessagingConnectionsIdx]);
                 const clicks = parseNumber(row[clicksIdx]);
                 const impressions = parseNumber(row[impressionsIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+
+                // Log first account for debugging
+                if (i === 1) {
+                    console.log('First account data:', {
+                        accountName,
+                        cpl_raw: row[newMessagingCostIdx],
+                        cpl_parsed: cpl,
+                        leads_raw: row[newMessagingConnectionsIdx],
+                        leads_parsed: leads,
+                        ctr_calculated: ctr
+                    });
+                }
 
                 result[accountName] = {
                     cpl,
