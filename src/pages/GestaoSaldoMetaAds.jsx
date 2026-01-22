@@ -355,71 +355,57 @@ export default function GestaoSaldoMetaAds({ user }) {
                 
                 return (
                   <div key={row.cliente.id} className={`border rounded-lg transition-colors ${isUpdatedToday(row.balance?.updated_date) ? 'bg-green-50 border-green-300' : 'hover:bg-slate-50'}`}>
-                    <div className="p-4 flex items-center gap-4 cursor-pointer" onClick={() => {
-                      setExpandedCards(prev => {
-                        const newSet = new Set(prev);
-                        if (newSet.has(row.cliente.id)) {
-                          newSet.delete(row.cliente.id);
-                        } else {
-                          newSet.add(row.cliente.id);
-                        }
-                        return newSet;
-                      });
-                    }}>
-                      {/* Cliente Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1 flex-wrap">
-                          <h3 className="font-semibold text-slate-900 truncate">{row.cliente.nome}</h3>
+                    <div className="p-3 flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => {
+                        setExpandedCards(prev => {
+                          const newSet = new Set(prev);
+                          if (newSet.has(row.cliente.id)) {
+                            newSet.delete(row.cliente.id);
+                          } else {
+                            newSet.add(row.cliente.id);
+                          }
+                          return newSet;
+                        });
+                      }}>
+                        {/* Cliente Info e Badges */}
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <h3 className="font-semibold text-slate-900">{row.cliente.nome}</h3>
                           {isUpdatedToday(row.balance?.updated_date) && (
-                            <Badge className="bg-green-600 text-white text-xs">
-                              ✓ Dados atualizados
-                            </Badge>
-                          )}
-                          {!row.mainAccount && (
-                            <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300 text-xs">
-                              Sem conta Meta Ads
-                            </Badge>
+                            <Badge className="bg-green-600 text-white text-xs h-5">✓ Dados atualizados</Badge>
                           )}
                           {!row.planejamento && (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs">
-                              Sem planejamento
-                            </Badge>
-                          )}
-                          {row.saldoAlert !== 'ok' && row.duracaoSaldoDias > 0 && (
-                            <Badge className={`text-xs ${getSaldoAlertColor(row.saldoAlert)}`}>
-                              Saldo: {row.duracaoSaldoDias.toFixed(1)} dias
-                            </Badge>
+                            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs h-5">Sem planejamento</Badge>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 font-mono">
+                        <p className="text-xs text-slate-500 font-mono mb-2">
                           {row.mainAccount ? `ID: ${row.mainAccount.ad_account_id}` : `${row.cliente.cidade}, ${row.cliente.estado}`}
                         </p>
-                      </div>
 
-                      {/* Resumo Financeiro */}
-                      <div className="flex gap-6 text-sm">
-                        <div>
-                          <span className="text-slate-500 text-xs">Saldo:</span>
-                          <div className="font-semibold text-slate-900">{formatCurrency(row.saldo)}</div>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 text-xs">Planejado:</span>
-                          <div className="font-semibold text-slate-900">{formatCurrency(row.valorPlanejado)}</div>
-                        </div>
-                        <div>
-                          <span className="text-slate-500 text-xs">Falta Pagar:</span>
-                          <div className={`font-semibold ${row.valorFaltaPagar > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            {formatCurrency(row.valorFaltaPagar)}
+                        {/* Resumo Financeiro Compacto */}
+                        <div className="flex gap-4 text-xs">
+                          <div>
+                            <span className="text-slate-500">Saldo:</span>
+                            <span className="ml-1 font-semibold text-slate-900">{formatCurrency(row.saldo)}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Planejado:</span>
+                            <span className="ml-1 font-semibold text-slate-900">{formatCurrency(row.valorPlanejado)}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Falta Pagar:</span>
+                            <span className={`ml-1 font-semibold ${row.valorFaltaPagar > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                              {formatCurrency(row.valorFaltaPagar)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Gasto/Dia:</span>
+                            <span className="ml-1 font-semibold text-slate-900">{formatCurrency(row.gastoDiario)}</span>
                           </div>
                         </div>
-                        <div>
-                          <span className="text-slate-500 text-xs">Gasto/Dia:</span>
-                          <div className="font-semibold text-slate-900">{formatCurrency(row.gastoDiario)}</div>
-                        </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                      {/* Actions no canto superior direito */}
+                      <div className="flex gap-1.5 items-start flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                         {(isVoxxAdmin(user) || isVoxxOperacao(user)) && (
                           <Button
                             size="sm"
@@ -433,16 +419,17 @@ export default function GestaoSaldoMetaAds({ user }) {
                               }
                               handleAddTomada(row.cliente.id);
                             }}
-                            className="gap-1"
+                            className="gap-1 h-8 text-xs"
                           >
-                            <Plus className="w-4 h-4" />
-                            Cadastrar Nova Tomada
+                            <Plus className="w-3 h-3" />
+                            Nova Tomada
                           </Button>
                         )}
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => navigate(createPageUrl('PlanejamentoEstrategico') + `?cliente=${row.cliente.id}`)}
+                          className="h-8 w-8 p-0"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Button>
@@ -460,6 +447,7 @@ export default function GestaoSaldoMetaAds({ user }) {
                                   });
                                 }}
                                 disabled={saveMutation.isPending}
+                                className="h-8 w-8 p-0"
                               >
                                 <Save className="w-4 h-4" />
                               </Button>
@@ -468,6 +456,7 @@ export default function GestaoSaldoMetaAds({ user }) {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => setEditingClients(prev => new Set(prev).add(row.cliente.id))}
+                                className="h-8 w-8 p-0"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </Button>
@@ -489,6 +478,7 @@ export default function GestaoSaldoMetaAds({ user }) {
                               return newSet;
                             });
                           }}
+                          className="h-8 w-8 p-0"
                         >
                           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </Button>
