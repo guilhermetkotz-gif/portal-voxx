@@ -114,10 +114,17 @@ export default function GestaoSaldoMetaAds({ user }) {
       
       const valorPlanejado = planejamento?.investimento_meta_mes || 0;
       const saldo = balance?.saldo || 0;
-      const valorPago = balance?.valor_pago || 0;
+      
+      // Calcular valor pago baseado no histórico de tomadas pagas
+      const edits = editingRows[cliente.id] || {};
+      const historico = edits.historico_tomadas || balance?.historico_tomadas || [];
+      const valorPago = historico
+        .filter(t => t.pago)
+        .reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
+      
       const gastoDiario = balance?.gasto_diario || 0;
       const qtdTomadas = balance?.qtd_tomadas || 4;
-      const tomadasPagas = balance?.tomadas_pagas || 0;
+      const tomadasPagas = historico.filter(t => t.pago).length;
       
       // Cálculos
       const valorFaltaPagar = valorPlanejado - valorPago;
@@ -193,6 +200,13 @@ export default function GestaoSaldoMetaAds({ user }) {
     const edits = editingRows[row.cliente.id] || {};
     const balance = row.balance || {};
     
+    // Calcular valor_pago e tomadas_pagas baseado no histórico
+    const historico = edits.historico_tomadas || balance.historico_tomadas || [];
+    const valorPagoCalculado = historico
+      .filter(t => t.pago)
+      .reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
+    const tomadasPagasCalculado = historico.filter(t => t.pago).length;
+    
     const data = {
       client_id: row.cliente.id,
       client_name: row.cliente.nome,
@@ -200,15 +214,15 @@ export default function GestaoSaldoMetaAds({ user }) {
       ad_account_id: row.mainAccount.ad_account_id,
       saldo: edits.saldo !== undefined ? parseFloat(edits.saldo) : balance.saldo || 0,
       valor_planejado_meta: row.valorPlanejado,
-      valor_pago: edits.valor_pago !== undefined ? parseFloat(edits.valor_pago) : balance.valor_pago || 0,
+      valor_pago: valorPagoCalculado,
       gasto_diario: edits.gasto_diario !== undefined ? parseFloat(edits.gasto_diario) : balance.gasto_diario || 0,
       qtd_tomadas: edits.qtd_tomadas !== undefined ? parseInt(edits.qtd_tomadas) : balance.qtd_tomadas || 4,
-      tomadas_pagas: edits.tomadas_pagas !== undefined ? parseInt(edits.tomadas_pagas) : balance.tomadas_pagas || 0,
+      tomadas_pagas: tomadasPagasCalculado,
       valor_enviado: edits.valor_enviado !== undefined ? parseFloat(edits.valor_enviado) : balance.valor_enviado || 0,
       data_ultima_tomada: edits.data_ultima_tomada || balance.data_ultima_tomada,
       metodo_pagamento: edits.metodo_pagamento || balance.metodo_pagamento,
       observacoes: edits.observacoes || balance.observacoes,
-      historico_tomadas: edits.historico_tomadas || balance.historico_tomadas || [],
+      historico_tomadas: historico,
     };
     
     saveMutation.mutate(data);
@@ -507,14 +521,10 @@ export default function GestaoSaldoMetaAds({ user }) {
 
                         <div>
                           <Label className="text-xs">Valor Pago (R$)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={edits.valor_pago !== undefined ? edits.valor_pago : row.balance?.valor_pago || ''}
-                            onChange={(e) => handleFieldChange(row.cliente.id, 'valor_pago', e.target.value)}
-                            className="mt-1"
-                            disabled={!isEditing}
-                          />
+                          <div className="mt-1 px-3 py-2 bg-green-50 rounded-md text-sm font-semibold text-green-700 h-9 flex items-center">
+                            {formatCurrency(row.valorPago)}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">Calculado do histórico</p>
                         </div>
 
                         <div>
@@ -563,13 +573,10 @@ export default function GestaoSaldoMetaAds({ user }) {
 
                         <div>
                           <Label className="text-xs">Tomadas Pagas</Label>
-                          <Input
-                            type="number"
-                            value={edits.tomadas_pagas !== undefined ? edits.tomadas_pagas : row.balance?.tomadas_pagas || 0}
-                            onChange={(e) => handleFieldChange(row.cliente.id, 'tomadas_pagas', e.target.value)}
-                            className="mt-1"
-                            disabled={!isEditing}
-                          />
+                          <div className="mt-1 px-3 py-2 bg-slate-50 rounded-md text-sm font-semibold text-slate-700 h-9 flex items-center">
+                            {row.tomadasPagas}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">Calculado do histórico</p>
                         </div>
 
                         <div>
