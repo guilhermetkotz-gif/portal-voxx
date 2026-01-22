@@ -175,49 +175,83 @@ export default function MonitoramentoContas({ user }) {
             // Variação CPL e CTR vindas das planilhas (Ontem vs 7 dias)
             const variacaoCPL = radarData?.variacao_cpl || 0;
             const variacaoCTR = radarData?.variacao_ctr || 0;
+            const cpl7d = radarData?.cpl_7d || cplAtual;
+            const ctr7d = radarData?.ctr_7d || ctrAtual;
 
-            // 1. Performance Absoluta (0-40 points)
+            // EIXO A: Estado Atual (métricas absolutas)
+            const cplRuim = cplAtual > avgCPL * 1.2;
+            const ctrRuim = ctrAtual < 1.0;
+            const frequenciaRuim = frequencia >= 2.5;
+            const estadoProblematico = cplRuim || ctrRuim || frequenciaRuim;
+
+            // EIXO B: Tendência (Ontem vs 7 dias)
+            const cplMelhorando = variacaoCPL < -5;  // CPL caindo
+            const ctrMelhorando = variacaoCTR > 5;   // CTR subindo
+            const frequenciaMelhorando = frequencia < (radarData?.frequency || frequencia);
+            const emMelhora = cplMelhorando || ctrMelhorando;
+
+            const cplPiorando = variacaoCPL > 15;
+            const ctrPiorando = variacaoCTR < -15;
+            const frequenciaPiorando = frequencia > 2.8 && variacaoCTR < -10;
+            const emPiora = cplPiorando || ctrPiorando || frequenciaPiorando;
+
+            // Performance Base Score (0-60)
             const cplRatio = avgCPL > 0 ? (avgCPL / (cplAtual || 1)) : 1;
-            const cplScore = Math.min(Math.max(cplRatio * 20, 0), 25);
-            const leadsScore = leadsOntem > 50 ? 15 : leadsOntem > 20 ? 10 : leadsOntem > 10 ? 5 : 0;
-            const performanceScore = cplScore + leadsScore;
-
-            // 2. Tendência (0-40 points)
-            let tendenciaScore = 20;
+            const cplScore = Math.min(Math.max(cplRatio * 20, 0), 30);
+            const leadsScore = leadsOntem > 50 ? 20 : leadsOntem > 20 ? 15 : leadsOntem > 10 ? 10 : leadsOntem > 5 ? 5 : 0;
+            const ctrScore = ctrAtual >= 2.0 ? 10 : ctrAtual >= 1.5 ? 7 : ctrAtual >= 1.0 ? 5 : ctrAtual >= 0.5 ? 2 : 0;
             
-            // Penalização por CPL
-            if (variacaoCPL > 20) tendenciaScore -= 15;
-            else if (variacaoCPL > 10) tendenciaScore -= 10;
-            else if (variacaoCPL > 5) tendenciaScore -= 5;
-            else if (variacaoCPL < -5) tendenciaScore += 5;
-            
-            // Penalização por CTR
-            if (variacaoCTR < -20) tendenciaScore -= 10;
-            else if (variacaoCTR > 5) tendenciaScore += 5;
-            
-            // Penalização por Frequência (saturação)
-            if (frequencia >= 3.0) tendenciaScore -= 15;
-            else if (frequencia >= 2.5) tendenciaScore -= 10;
+            let baseScore = cplScore + leadsScore + ctrScore;
 
-            tendenciaScore = Math.min(Math.max(tendenciaScore, 0), 40);
+            // Ajuste por Tendência (-30 a +30)
+            let ajusteTendencia = 0;
+            
+            if (emMelhora && !emPiora) {
+                // Conta melhorando: bônus
+                ajusteTendencia = 20;
+            } else if (emPiora && !emMelhora) {
+                // Conta piorando: penalização
+                ajusteTendencia = -25;
+            } else if (emMelhora && emPiora) {
+                // Sinais mistos: leve penalização
+                ajusteTendencia = -5;
+            }
+            
+            // Penalização extra por frequência crítica
+            if (frequencia >= 3.2) ajusteTendencia -= 10;
+            else if (frequencia >= 2.8) ajusteTendencia -= 5;
 
-            // 3. Impacto Financeiro (0-20 points)
+            // Impacto Financeiro (0-20)
             const impactoScore = investimento > 10000 ? 20 :
                                 investimento > 5000 ? 15 :
                                 investimento > 2000 ? 10 :
                                 investimento > 1000 ? 5 : 0;
 
-            const radarScore = Math.round(performanceScore + tendenciaScore + impactoScore);
+            const radarScore = Math.max(0, Math.min(100, Math.round(baseScore + ajusteTendencia + impactoScore)));
 
-            // Prioridade
+            // PRIORIZAÇÃO BASEADA EM ESTADO + TENDÊNCIA
             let prioridade, prioridadeLabel;
-            if (radarScore < 40) {
+
+            if (estadoProblematico && emPiora) {
+                // REGRA 1: PROBLEMA + PIORA = Crítica
                 prioridade = 'critica';
                 prioridadeLabel = '🔴 Crítica';
-            } else if (radarScore < 60) {
+            } else if (estadoProblematico && !emMelhora && !emPiora) {
+                // REGRA 2: PROBLEMA + ESTÁVEL = Alta
                 prioridade = 'alta';
                 prioridadeLabel = '🟠 Alta';
-            } else if (radarScore < 80) {
+            } else if (estadoProblematico && emMelhora) {
+                // REGRA 3: PROBLEMA + MELHORA = Baixa (reduzir prioridade)
+                prioridade = 'baixa';
+                prioridadeLabel = '🟢 Baixa';
+            } else if (!estadoProblematico && emPiora) {
+                // REGRA 4: MÉTRICA BOA + PIORA = Média
+                prioridade = 'media';
+                prioridadeLabel = '🟡 Média';
+            } else if (radarScore < 40) {
+                prioridade = 'alta';
+                prioridadeLabel = '🟠 Alta';
+            } else if (radarScore < 70) {
                 prioridade = 'media';
                 prioridadeLabel = '🟡 Média';
             } else {
@@ -225,24 +259,29 @@ export default function MonitoramentoContas({ user }) {
                 prioridadeLabel = '🟢 Baixa';
             }
 
-            // Status Automático
+            // STATUS AUTOMÁTICO COM TENDÊNCIA
             let status = '';
-            if (frequencia >= 3.2 && variacaoCTR < -15) {
-                status = 'Saturação de criativos - frequência crítica';
-            } else if (frequencia >= 2.8) {
-                status = 'Frequência alta e CTR em queda';
-            } else if (variacaoCPL > 20 && variacaoCTR < -15) {
-                status = 'CPL acima da média e CTR em queda';
-            } else if (variacaoCPL > 15) {
-                status = 'CPL em alta - requer atenção';
-            } else if (frequencia >= 2.5 && ctrAtual < 1.0) {
-                status = 'Saturação de criativos';
-            } else if (variacaoCPL < -5 && variacaoCTR > 5) {
-                status = 'Performance estável';
+            
+            if (estadoProblematico && emMelhora) {
+                status = 'Indicadores ruins, porém em melhora';
+            } else if (!estadoProblematico && emMelhora) {
+                status = 'Conta em recuperação - métricas melhorando';
+            } else if (frequencia >= 3.2 && ctrPiorando) {
+                status = 'Saturação crítica - frequência alta e CTR em queda';
+            } else if (frequencia >= 2.8 && emPiora) {
+                status = 'Performance em piora - frequência elevada';
+            } else if (cplPiorando && ctrPiorando) {
+                status = 'Performance em piora - CPL e CTR deteriorando';
+            } else if (cplPiorando) {
+                status = 'Performance em piora - CPL em alta';
+            } else if (ctrPiorando) {
+                status = 'Performance em piora - CTR em queda';
+            } else if (emPiora) {
+                status = 'Performance em piora';
+            } else if (estadoProblematico) {
+                status = 'Indicadores ruins, estáveis';
             } else if (Math.abs(variacaoCPL) < 10 && frequencia < 2.5) {
-                status = 'Performance estável';
-            } else if (cplAtual > avgCPL * 1.3) {
-                status = 'CPL acima da média';
+                status = 'Estável, sem alertas críticos';
             } else {
                 status = 'Dentro dos parâmetros esperados';
             }
