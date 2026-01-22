@@ -40,6 +40,12 @@ export default function MonitoramentoContas({ user }) {
         );
     }
 
+    const { data: radarMetaData = [] } = useQuery({
+        queryKey: ['radarMetaData'],
+        queryFn: () => base44.entities.RadarMetaData.list('-created_date', 500),
+        staleTime: 2 * 60 * 1000
+    });
+
     const { data: accounts = [], isLoading } = useQuery({
         queryKey: ['metaAdsAccounts'],
         queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
@@ -50,12 +56,6 @@ export default function MonitoramentoContas({ user }) {
         queryKey: ['clientes'],
         queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
         staleTime: 5 * 60 * 1000
-    });
-
-    const { data: radarMetaData = [] } = useQuery({
-        queryKey: ['radarMetaData'],
-        queryFn: () => base44.entities.RadarMetaData.list('-created_date', 500),
-        staleTime: 2 * 60 * 1000
     });
 
     const [expandedRows, setExpandedRows] = useState(new Set());
@@ -102,6 +102,17 @@ export default function MonitoramentoContas({ user }) {
         return new Map(radarMetaData.map(r => [r.account_name, r]));
     }, [radarMetaData]);
 
+    // Enriquecer accounts com CPL de ontem
+    const enrichedAccounts = React.useMemo(() => {
+        return accounts.map(acc => {
+            const radarData = radarMetaDataMap.get(acc.account_name);
+            return {
+                ...acc,
+                cost_per_messaging: radarData?.cpl_ontem || acc.cost_per_messaging || acc.cost_per_new_messaging || 0
+            };
+        });
+    }, [accounts, radarMetaDataMap]);
+
     const syncMutation = useMutation({
         mutationFn: async () => {
             await base44.functions.invoke('syncMetaAdsAccounts', {});
@@ -121,7 +132,7 @@ export default function MonitoramentoContas({ user }) {
     }, [isLoading, accounts.length]);
 
     // Filter and sort accounts
-    const filteredAccounts = accounts
+    const filteredAccounts = enrichedAccounts
         .filter(acc => {
             const matchesSearch = acc.account_name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesPrioridade = prioridadeFilter === 'all' || acc.prioridade === prioridadeFilter;
@@ -143,21 +154,21 @@ export default function MonitoramentoContas({ user }) {
         });
 
     // Calculate KPIs
-    const totalContas = accounts.length;
-    const contasP1 = accounts.filter(acc => acc.prioridade === 'P1').length;
-    const contasCritico = accounts.filter(acc => acc.classificacao === 'CRÍTICO').length;
-    const mediaNotaGPT = accounts.length > 0 
-        ? (accounts.reduce((sum, acc) => sum + acc.nota_gpt, 0) / accounts.length).toFixed(1)
+    const totalContas = enrichedAccounts.length;
+    const contasP1 = enrichedAccounts.filter(acc => acc.prioridade === 'P1').length;
+    const contasCritico = enrichedAccounts.filter(acc => acc.classificacao === 'CRÍTICO').length;
+    const mediaNotaGPT = enrichedAccounts.length > 0 
+        ? (enrichedAccounts.reduce((sum, acc) => sum + acc.nota_gpt, 0) / enrichedAccounts.length).toFixed(1)
         : 0;
-    const totalGasto = accounts.reduce((sum, acc) => sum + acc.amount_spent, 0);
+    const totalGasto = enrichedAccounts.reduce((sum, acc) => sum + acc.amount_spent, 0);
 
     // Distribuição por classificação
     const distribuicaoClassificacao = [
-        { name: 'CRÍTICO', count: accounts.filter(acc => acc.classificacao === 'CRÍTICO').length, color: '#DC2626' },
-        { name: 'ALERTA', count: accounts.filter(acc => acc.classificacao === 'ALERTA').length, color: '#F97316' },
-        { name: 'OPERACIONAL', count: accounts.filter(acc => acc.classificacao === 'OPERACIONAL').length, color: '#EAB308' },
-        { name: 'SAUDÁVEL', count: accounts.filter(acc => acc.classificacao === 'SAUDÁVEL').length, color: '#22C55E' },
-        { name: 'ELITE', count: accounts.filter(acc => acc.classificacao === 'ELITE').length, color: '#15803D' }
+        { name: 'CRÍTICO', count: enrichedAccounts.filter(acc => acc.classificacao === 'CRÍTICO').length, color: '#DC2626' },
+        { name: 'ALERTA', count: enrichedAccounts.filter(acc => acc.classificacao === 'ALERTA').length, color: '#F97316' },
+        { name: 'OPERACIONAL', count: enrichedAccounts.filter(acc => acc.classificacao === 'OPERACIONAL').length, color: '#EAB308' },
+        { name: 'SAUDÁVEL', count: enrichedAccounts.filter(acc => acc.classificacao === 'SAUDÁVEL').length, color: '#22C55E' },
+        { name: 'ELITE', count: enrichedAccounts.filter(acc => acc.classificacao === 'ELITE').length, color: '#15803D' }
     ].filter(item => item.count > 0);
 
     const getNotaColor = (nota) => {
@@ -591,8 +602,8 @@ export default function MonitoramentoContas({ user }) {
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <span className={(radarMetaDataMap.get(account.account_name)?.cpl_ontem || account.cost_per_messaging) >= 30 ? 'text-red-600 font-semibold' : ''}>
-                                                R$ {(radarMetaDataMap.get(account.account_name)?.cpl_ontem || account.cost_per_messaging).toFixed(2)}
+                                            <span className={account.cost_per_messaging >= 30 ? 'text-red-600 font-semibold' : ''}>
+                                                R$ {account.cost_per_messaging.toFixed(2)}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right font-medium">
