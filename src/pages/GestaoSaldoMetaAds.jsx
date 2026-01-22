@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { Wallet, AlertTriangle, CheckCircle2, TrendingUp, Calendar, ExternalLink, Edit2, Save, Plus, Trash2 } from 'lucide-react';
+import { Wallet, AlertTriangle, CheckCircle2, TrendingUp, Calendar, ExternalLink, Edit2, Save, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { createPageUrl } from '@/utils';
@@ -31,6 +31,7 @@ export default function GestaoSaldoMetaAds({ user }) {
   const [editingClients, setEditingClients] = useState(new Set());
   const [viewMode, setViewMode] = useState('detailed');
   const [selectedClienteDetail, setSelectedClienteDetail] = useState(null);
+  const [expandedCards, setExpandedCards] = useState(new Set());
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -350,10 +351,21 @@ export default function GestaoSaldoMetaAds({ user }) {
               {dataRows.filter(row => !selectedClienteDetail || row.cliente.id === selectedClienteDetail).map((row) => {
                 const edits = editingRows[row.cliente.id] || {};
                 const isEditing = editingClients.has(row.cliente.id);
+                const isExpanded = expandedCards.has(row.cliente.id);
                 
                 return (
                   <div key={row.cliente.id} className={`border rounded-lg transition-colors ${isUpdatedToday(row.balance?.updated_date) ? 'bg-green-50 border-green-300' : 'hover:bg-slate-50'}`}>
-                    <div className="p-4 flex items-center gap-4">
+                    <div className="p-4 flex items-center gap-4 cursor-pointer" onClick={() => {
+                      setExpandedCards(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(row.cliente.id)) {
+                          newSet.delete(row.cliente.id);
+                        } else {
+                          newSet.add(row.cliente.id);
+                        }
+                        return newSet;
+                      });
+                    }}>
                       {/* Cliente Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1 flex-wrap">
@@ -407,7 +419,7 @@ export default function GestaoSaldoMetaAds({ user }) {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -443,10 +455,29 @@ export default function GestaoSaldoMetaAds({ user }) {
                             )}
                           </>
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedCards(prev => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(row.cliente.id)) {
+                                newSet.delete(row.cliente.id);
+                              } else {
+                                newSet.add(row.cliente.id);
+                              }
+                              return newSet;
+                            });
+                          }}
+                        >
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </Button>
                       </div>
                     </div>
 
                     {/* Detalhes Completos */}
+                    {isExpanded && (
                     <div className="px-4 pb-4 border-t">
                       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-4">
                         <div>
@@ -706,6 +737,7 @@ export default function GestaoSaldoMetaAds({ user }) {
                         })()}
                       </div>
                     </div>
+                    )}
                   </div>
                 );
               })}
