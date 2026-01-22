@@ -22,6 +22,7 @@ import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
 import ConfiguracaoAlertas from './pages/ConfiguracaoAlertas';
+import GerenciarChats from './pages/GerenciarChats';
 import __Layout from './Layout.jsx';
 
 
@@ -50,6 +51,7 @@ export const PAGES = {
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
     "ConfiguracaoAlertas": ConfiguracaoAlertas,
+    "GerenciarChats": GerenciarChats,
 }
 
 export const pagesConfig = {

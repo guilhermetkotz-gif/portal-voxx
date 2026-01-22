@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from '@/components/utils/auth';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import ChatWidget from '@/components/chat/ChatWidget';
 
 const pageTitles = {
         Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
@@ -303,7 +304,12 @@ export default function Layout({ children, currentPageName }) {
             user
           }) : children}
         </div>
-      </main>
-    </div>
-  );
-}
+        </main>
+
+        {/* Chat Widget for non-Voxx users */}
+        {user && currentCliente && (
+        <ChatWidget user={user} currentCliente={currentCliente} />
+        )}
+        </div>
+        );
+        }

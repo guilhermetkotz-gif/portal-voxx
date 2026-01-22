@@ -21,7 +21,8 @@ import {
   Target,
   TrendingUp,
   UserPlus,
-  CreditCard
+  CreditCard,
+  MessageCircle
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -44,6 +45,7 @@ const menuItems = [
   { name: "Monitoramento Meta Ads", icon: Target, page: "MonitoramentoContas", adminOnly: true },
   { name: "Cadastro de Cliente", icon: UserPlus, page: "CadastroCliente", adminOnly: true },
   { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
+  { name: "Gerenciar Chats", icon: MessageCircle, page: "GerenciarChats", voxxOnly: true },
 ];
 
 export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingDemandas = 0, onLogout, user }) {
