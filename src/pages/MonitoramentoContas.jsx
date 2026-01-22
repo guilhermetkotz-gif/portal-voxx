@@ -154,68 +154,46 @@ export default function MonitoramentoContas({ user }) {
             const ctrAtual = ((conta.clicks_all || 0) / (conta.impressions || 1)) * 100;
             const cpmAtual = ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000;
             const investimento = conta.amount_spent || 0;
-
-            // Simulação de dados (em produção, viriam de abas Ontem e 7 dias)
             const leadsOntem = conta.new_messaging_connections || conta.messaging_conversations || 0;
-            const leads7d = leadsOntem * 7 * (conta.classificacao === 'CRÍTICO' ? 1.4 : 
-                                              conta.classificacao === 'ALERTA' ? 1.2 :
-                                              conta.classificacao === 'OPERACIONAL' ? 1.0 :
-                                              conta.classificacao === 'SAUDÁVEL' ? 0.9 : 0.85);
-            
-            // Leads 7d média/dia
-            const leads7dMediaDia = leads7d / 7;
+            const frequencia = conta.frequency || 0;
 
-            // Variação CPL (simulada)
+            // Variação CPL (simulada - em produção viria da comparação Ontem vs 7 dias)
             const variacaoCPL = conta.classificacao === 'CRÍTICO' ? 35 : 
                                 conta.classificacao === 'ALERTA' ? 20 :
                                 conta.classificacao === 'OPERACIONAL' ? 5 :
                                 conta.classificacao === 'SAUDÁVEL' ? -5 : -10;
-            
-            // Delta Leads (Ontem vs Média 7 dias) com proteção
-            let variacaoLeads = 0;
-            let leadStatusFlag = '';
-            if (leads7dMediaDia === 0) {
-                if (leadsOntem === 0) {
-                    variacaoLeads = 0;
-                } else {
-                    variacaoLeads = 100; // Novo volume
-                    leadStatusFlag = 'novo';
-                }
-            } else {
-                variacaoLeads = ((leadsOntem - leads7dMediaDia) / leads7dMediaDia) * 100;
-            }
 
             const variacaoCTR = conta.classificacao === 'CRÍTICO' ? -30 :
                                 conta.classificacao === 'ALERTA' ? -15 :
                                 conta.classificacao === 'OPERACIONAL' ? 0 :
                                 conta.classificacao === 'SAUDÁVEL' ? 5 : 10;
 
-            const variacaoCPM = conta.classificacao === 'CRÍTICO' ? 25 :
-                                conta.classificacao === 'ALERTA' ? 15 :
-                                conta.classificacao === 'OPERACIONAL' ? 5 : 0;
-
-            // Performance Score usando média diária
+            // 1. Performance Absoluta (0-40 points)
             const cplRatio = avgCPL > 0 ? (avgCPL / (cplAtual || 1)) : 1;
             const cplScore = Math.min(Math.max(cplRatio * 20, 0), 25);
-            const leadsScore = leads7dMediaDia > 50 ? 15 : leads7dMediaDia > 20 ? 10 : leads7dMediaDia > 10 ? 5 : 0;
+            const leadsScore = leadsOntem > 50 ? 15 : leadsOntem > 20 ? 10 : leadsOntem > 10 ? 5 : 0;
             const performanceScore = cplScore + leadsScore;
 
+            // 2. Tendência (0-40 points)
             let tendenciaScore = 20;
+            
+            // Penalização por CPL
             if (variacaoCPL > 20) tendenciaScore -= 15;
             else if (variacaoCPL > 10) tendenciaScore -= 10;
             else if (variacaoCPL > 5) tendenciaScore -= 5;
             else if (variacaoCPL < -5) tendenciaScore += 5;
             
-            if (variacaoLeads < -30) tendenciaScore -= 15;
-            else if (variacaoLeads < -15) tendenciaScore -= 10;
-            else if (variacaoLeads < -5) tendenciaScore -= 5;
-            else if (variacaoLeads > 10) tendenciaScore += 10;
-            
+            // Penalização por CTR
             if (variacaoCTR < -20) tendenciaScore -= 10;
             else if (variacaoCTR > 5) tendenciaScore += 5;
+            
+            // Penalização por Frequência (saturação)
+            if (frequencia >= 3.0) tendenciaScore -= 15;
+            else if (frequencia >= 2.5) tendenciaScore -= 10;
 
             tendenciaScore = Math.min(Math.max(tendenciaScore, 0), 40);
 
+            // 3. Impacto Financeiro (0-20 points)
             const impactoScore = investimento > 10000 ? 20 :
                                 investimento > 5000 ? 15 :
                                 investimento > 2000 ? 10 :
@@ -223,6 +201,7 @@ export default function MonitoramentoContas({ user }) {
 
             const radarScore = Math.round(performanceScore + tendenciaScore + impactoScore);
 
+            // Prioridade
             let prioridade, prioridadeLabel;
             if (radarScore < 40) {
                 prioridade = 'critica';
@@ -238,21 +217,24 @@ export default function MonitoramentoContas({ user }) {
                 prioridadeLabel = '🟢 Baixa';
             }
 
+            // Status Automático
             let status = '';
-            if (leadStatusFlag === 'novo') {
-                status = 'Novo volume de leads detectado';
-            } else if (variacaoLeads < -30) {
-                status = 'Queda brusca de leads nas últimas 24h';
+            if (frequencia >= 3.2 && variacaoCTR < -15) {
+                status = 'Saturação de criativos - frequência crítica';
+            } else if (frequencia >= 2.8) {
+                status = 'Frequência alta e CTR em queda';
             } else if (variacaoCPL > 20 && variacaoCTR < -15) {
                 status = 'CPL acima da média e CTR em queda';
-            } else if (variacaoCPL < -5 && variacaoLeads > 10) {
-                status = 'Evolução positiva nos últimos 7 dias';
-            } else if (Math.abs(variacaoCPL) < 10 && Math.abs(variacaoLeads) < 15) {
-                status = 'Performance estável, sem alertas';
             } else if (variacaoCPL > 15) {
                 status = 'CPL em alta - requer atenção';
-            } else if (variacaoLeads < -20) {
-                status = 'Redução de volume de leads';
+            } else if (frequencia >= 2.5 && ctrAtual < 1.0) {
+                status = 'Saturação de criativos';
+            } else if (variacaoCPL < -5 && variacaoCTR > 5) {
+                status = 'Performance estável';
+            } else if (Math.abs(variacaoCPL) < 10 && frequencia < 2.5) {
+                status = 'Performance estável';
+            } else if (cplAtual > avgCPL * 1.3) {
+                status = 'CPL acima da média';
             } else {
                 status = 'Dentro dos parâmetros esperados';
             }
@@ -266,13 +248,10 @@ export default function MonitoramentoContas({ user }) {
                 cplAtual,
                 variacaoCPL,
                 leadsOntem,
-                leads7dMediaDia,
-                variacaoLeads,
-                leadStatusFlag,
+                frequencia,
                 ctrAtual,
                 variacaoCTR,
                 cpmAtual,
-                variacaoCPM,
                 investimento,
                 status
             };
@@ -663,8 +642,7 @@ export default function MonitoramentoContas({ user }) {
                                             <TableHead className="text-right">CPL Atual</TableHead>
                                             <TableHead className="text-right">Δ CPL</TableHead>
                                             <TableHead className="text-right">Leads Ontem</TableHead>
-                                            <TableHead className="text-right">Leads/dia (7d)</TableHead>
-                                            <TableHead className="text-right">Δ Leads</TableHead>
+                                            <TableHead className="text-right">Frequência</TableHead>
                                             <TableHead className="text-right">CTR</TableHead>
                                             <TableHead className="text-right">CPM</TableHead>
                                             <TableHead className="text-right">Investimento</TableHead>
@@ -728,31 +706,15 @@ export default function MonitoramentoContas({ user }) {
                                                 <TableCell className="text-right font-medium">
                                                     {Math.round(row.leadsOntem)}
                                                 </TableCell>
-                                                <TableCell className="text-right text-slate-600">
-                                                    {row.leads7dMediaDia.toFixed(1)}
-                                                </TableCell>
                                                 <TableCell className="text-right">
-                                                    <div className={cn(
-                                                        "flex items-center justify-end gap-1 font-semibold",
-                                                        row.leadStatusFlag === 'novo' ? "text-blue-600" :
-                                                        row.variacaoLeads < -20 ? "text-red-600" :
-                                                        row.variacaoLeads < -10 ? "text-orange-600" :
-                                                        row.variacaoLeads > 10 ? "text-green-600" :
+                                                    <span className={cn(
+                                                        "font-semibold",
+                                                        row.frequencia >= 3.2 ? "text-red-600" :
+                                                        row.frequencia >= 2.5 ? "text-orange-600" :
                                                         "text-slate-600"
                                                     )}>
-                                                        {row.leadStatusFlag === 'novo' ? (
-                                                            <span className="text-xs">Novo</span>
-                                                        ) : (
-                                                            <>
-                                                                {row.variacaoLeads > 0 ? (
-                                                                    <TrendingUp className="w-4 h-4" />
-                                                                ) : row.variacaoLeads < 0 ? (
-                                                                    <TrendingDown className="w-4 h-4" />
-                                                                ) : null}
-                                                                {formatPercent(row.variacaoLeads)}
-                                                            </>
-                                                        )}
-                                                    </div>
+                                                        {row.frequencia.toFixed(2)}
+                                                    </span>
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     {row.ctrAtual.toFixed(2)}%

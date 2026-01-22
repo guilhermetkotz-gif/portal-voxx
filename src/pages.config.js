@@ -3,11 +3,13 @@ import AguardandoAprovacao from './pages/AguardandoAprovacao';
 import Ajuda from './pages/Ajuda';
 import BoasVindas from './pages/BoasVindas';
 import CadastroCliente from './pages/CadastroCliente';
+import ConfiguracaoAlertas from './pages/ConfiguracaoAlertas';
 import Conta from './pages/Conta';
 import Cronograma from './pages/Cronograma';
 import Demandas from './pages/Demandas';
 import DetalheConta from './pages/DetalheConta';
 import GerenciarAcessos from './pages/GerenciarAcessos';
+import GerenciarChats from './pages/GerenciarChats';
 import GerenciarContas from './pages/GerenciarContas';
 import GestaoSaldoMetaAds from './pages/GestaoSaldoMetaAds';
 import HistoricoOtimizacoesCliente from './pages/HistoricoOtimizacoesCliente';
@@ -21,8 +23,6 @@ import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import ConfiguracaoAlertas from './pages/ConfiguracaoAlertas';
-import GerenciarChats from './pages/GerenciarChats';
 import __Layout from './Layout.jsx';
 
 
@@ -32,11 +32,13 @@ export const PAGES = {
     "Ajuda": Ajuda,
     "BoasVindas": BoasVindas,
     "CadastroCliente": CadastroCliente,
+    "ConfiguracaoAlertas": ConfiguracaoAlertas,
     "Conta": Conta,
     "Cronograma": Cronograma,
     "Demandas": Demandas,
     "DetalheConta": DetalheConta,
     "GerenciarAcessos": GerenciarAcessos,
+    "GerenciarChats": GerenciarChats,
     "GerenciarContas": GerenciarContas,
     "GestaoSaldoMetaAds": GestaoSaldoMetaAds,
     "HistoricoOtimizacoesCliente": HistoricoOtimizacoesCliente,
@@ -50,8 +52,6 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "ConfiguracaoAlertas": ConfiguracaoAlertas,
-    "GerenciarChats": GerenciarChats,
 }
 
 export const pagesConfig = {
