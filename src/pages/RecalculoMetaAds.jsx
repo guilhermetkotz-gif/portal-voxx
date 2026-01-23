@@ -107,7 +107,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       const mesReferencia = new Date(`${currentMonth}-01`);
       const ultimoDiaMes = endOfMonth(mesReferencia);
       const dataFinal = config.endDate || format(ultimoDiaMes, 'yyyy-MM-dd');
-      const diasRestantes = Math.max(0, differenceInDays(new Date(dataFinal), hoje) + 1);
+      const diasRestantes = Math.max(0, differenceInDays(new Date(dataFinal), hoje));
       const totalDiasMes = getDaysInMonth(mesReferencia);
 
       // Investimento diário

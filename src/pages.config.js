@@ -21,10 +21,10 @@ import Newsletter from './pages/Newsletter';
 import OnboardingCliente from './pages/OnboardingCliente';
 import Performance from './pages/Performance';
 import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
+import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import __Layout from './Layout.jsx';
 
 
@@ -52,10 +52,10 @@ export const PAGES = {
     "OnboardingCliente": OnboardingCliente,
     "Performance": Performance,
     "PlanejamentoEstrategico": PlanejamentoEstrategico,
+    "RecalculoMetaAds": RecalculoMetaAds,
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "RecalculoMetaAds": RecalculoMetaAds,
 }
 
 export const pagesConfig = {
