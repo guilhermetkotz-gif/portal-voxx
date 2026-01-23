@@ -27,6 +27,7 @@ const formatNumber = (value) => {
 export default function PlanejamentoEstrategico({ currentCliente, selectedClienteId, user }) {
   const queryClient = useQueryClient();
   const currentMonth = format(new Date(), 'yyyy-MM');
+  const currentMonthLabel = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
   
   const urlParams = new URLSearchParams(window.location.search);
   const clienteIdFromUrl = urlParams.get('cliente_id');
@@ -354,10 +355,19 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
             </SelectTrigger>
             <SelectContent>
               {generateMonthOptions().map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                  {opt.value === currentMonth && ' (Mês Atual)'}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {selectedMonth === currentMonth && (
+            <Badge className="bg-green-600 text-white">
+              <Calendar className="w-3 h-3 mr-1" />
+              Mês Atual
+            </Badge>
+          )}
           <Button onClick={handleSave} disabled={saveMutation.isPending} className="bg-violet-600 hover:bg-violet-700">
             <Save className="w-4 h-4 mr-2" />
             {saveMutation.isPending ? 'Salvando...' : 'Salvar Planejamento'}
