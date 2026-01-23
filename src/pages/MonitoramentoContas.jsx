@@ -61,6 +61,8 @@ export default function MonitoramentoContas({ user }) {
 
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [recommendations, setRecommendations] = useState({});
+    const [previsoes, setPrevisoes] = useState({});
+    const [loadingPrevisoes, setLoadingPrevisoes] = useState({});
     const [otimizacaoModalOpen, setOtimizacaoModalOpen] = useState(false);
     const [selectedAccountForOtimizacao, setSelectedAccountForOtimizacao] = useState(null);
 
@@ -86,6 +88,32 @@ export default function MonitoramentoContas({ user }) {
         }
     };
 
+    const loadPrevisao = async (accountName) => {
+        if (previsoes[accountName] || loadingPrevisoes[accountName]) return;
+
+        setLoadingPrevisoes(prev => ({ ...prev, [accountName]: true }));
+
+        try {
+            const response = await base44.functions.invoke('gerarPrevisaoPerformance', {
+                account_name: accountName,
+                horizon: 7
+            });
+            
+            setPrevisoes(prev => ({
+                ...prev,
+                [accountName]: response.data
+            }));
+        } catch (error) {
+            console.error('Erro ao carregar previsão:', error);
+            setPrevisoes(prev => ({
+                ...prev,
+                [accountName]: { error: 'Erro ao gerar previsão' }
+            }));
+        } finally {
+            setLoadingPrevisoes(prev => ({ ...prev, [accountName]: false }));
+        }
+    };
+
     const toggleRow = (accountName, cliente) => {
         const newExpanded = new Set(expandedRows);
         if (newExpanded.has(accountName)) {
@@ -93,6 +121,7 @@ export default function MonitoramentoContas({ user }) {
         } else {
             newExpanded.add(accountName);
             loadRecommendation(accountName, cliente);
+            loadPrevisao(accountName);
         }
         setExpandedRows(newExpanded);
     };

@@ -51,6 +51,55 @@ export default function DashboardPortfolio({ user }) {
         }
     });
 
+    // Previsão do Portfólio
+    const { data: previsaoPortfolio, isLoading: loadingPrevisao } = useQuery({
+        queryKey: ['previsaoPortfolio'],
+        queryFn: async () => {
+            if (!portfolioMetrics || radarMetaData.length === 0) return null;
+
+            // Pegar amostra de contas para previsão agregada
+            const contasRepresentativas = radarMetaData
+                .sort((a, b) => (b.leads_7d || 0) - (a.leads_7d || 0))
+                .slice(0, 5); // Top 5 contas
+
+            const previsoes = await Promise.all(
+                contasRepresentativas.map(async (conta) => {
+                    try {
+                        const res = await base44.functions.invoke('gerarPrevisaoPerformance', {
+                            account_name: conta.account_name,
+                            horizon: 7
+                        });
+                        return res.data;
+                    } catch (error) {
+                        console.error(`Erro ao prever ${conta.account_name}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            const previsoesValidas = previsoes.filter(p => p && p.success);
+            if (previsoesValidas.length === 0) return null;
+
+            // Agregar previsões
+            const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+
+            return {
+                cpl_previsto: mean(previsoesValidas.map(p => p.previsoes.cpl.valor_previsto)),
+                ctr_previsto: mean(previsoesValidas.map(p => p.previsoes.ctr.valor_previsto)),
+                conversoes_previstas: previsoesValidas.reduce((sum, p) => sum + p.previsoes.conversoes.total_previsto, 0),
+                frequencia_prevista: mean(previsoesValidas.map(p => p.previsoes.frequencia.valor_previsto)),
+                gasto_estimado: previsoesValidas.reduce((sum, p) => sum + p.previsoes.gasto_estimado.total, 0),
+                riscos_criticos: previsoesValidas.flatMap(p => 
+                    p.analise.riscos.filter(r => r.severidade === 'critica' || r.severidade === 'alta')
+                ).length,
+                confianca: 'media'
+            };
+        },
+        enabled: !!portfolioMetrics && radarMetaData.length > 0,
+        staleTime: 30 * 60 * 1000, // 30 minutos
+        retry: false
+    });
+
     // Calcular métricas agregadas do portfólio
     const portfolioMetrics = useMemo(() => {
         if (!radarMetaData.length || !accounts.length) return null;
@@ -503,6 +552,94 @@ export default function DashboardPortfolio({ user }) {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Previsão para Próximos 7 Dias */}
+            {previsaoPortfolio && (
+                <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-blue-600" />
+                            Previsão: Próximos 7 Dias (IA)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <div className="bg-white rounded-lg p-4">
+                                <p className="text-xs text-slate-500 mb-1">CPL Previsto</p>
+                                <p className="text-xl font-bold text-slate-900">{formatCurrency(previsaoPortfolio.cpl_previsto)}</p>
+                                <p className={cn(
+                                    "text-xs font-semibold mt-1",
+                                    previsaoPortfolio.cpl_previsto > portfolioMetrics.avgCPL ? "text-red-600" : "text-green-600"
+                                )}>
+                                    {previsaoPortfolio.cpl_previsto > portfolioMetrics.avgCPL ? '↑' : '↓'} 
+                                    {Math.abs(((previsaoPortfolio.cpl_previsto - portfolioMetrics.avgCPL) / portfolioMetrics.avgCPL) * 100).toFixed(1)}%
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-lg p-4">
+                                <p className="text-xs text-slate-500 mb-1">CTR Previsto</p>
+                                <p className="text-xl font-bold text-slate-900">{previsaoPortfolio.ctr_previsto.toFixed(2)}%</p>
+                                <p className={cn(
+                                    "text-xs font-semibold mt-1",
+                                    previsaoPortfolio.ctr_previsto < portfolioMetrics.avgCTR ? "text-red-600" : "text-green-600"
+                                )}>
+                                    {previsaoPortfolio.ctr_previsto > portfolioMetrics.avgCTR ? '↑' : '↓'} 
+                                    {Math.abs(((previsaoPortfolio.ctr_previsto - portfolioMetrics.avgCTR) / portfolioMetrics.avgCTR) * 100).toFixed(1)}%
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-lg p-4">
+                                <p className="text-xs text-slate-500 mb-1">Conversões (7d)</p>
+                                <p className="text-xl font-bold text-slate-900">{Math.round(previsaoPortfolio.conversoes_previstas)}</p>
+                                <p className="text-xs text-slate-500 mt-1">~{Math.round(previsaoPortfolio.conversoes_previstas / 7)}/dia</p>
+                            </div>
+
+                            <div className="bg-white rounded-lg p-4">
+                                <p className="text-xs text-slate-500 mb-1">Frequência (7d)</p>
+                                <p className={cn(
+                                    "text-xl font-bold",
+                                    previsaoPortfolio.frequencia_prevista > 2.8 ? "text-red-600" :
+                                    previsaoPortfolio.frequencia_prevista >= 1.8 ? "text-green-600" :
+                                    "text-orange-600"
+                                )}>
+                                    {previsaoPortfolio.frequencia_prevista.toFixed(2)}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    {previsaoPortfolio.frequencia_prevista >= 1.8 && previsaoPortfolio.frequencia_prevista <= 2.8 ? '✓ Saudável' : '⚠ Atenção'}
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-lg p-4">
+                                <p className="text-xs text-slate-500 mb-1">Gasto Estimado</p>
+                                <p className="text-xl font-bold text-slate-900">{formatCurrency(previsaoPortfolio.gasto_estimado)}</p>
+                                {previsaoPortfolio.riscos_criticos > 0 && (
+                                    <p className="text-xs text-red-600 font-semibold mt-1">
+                                        ⚠ {previsaoPortfolio.riscos_criticos} riscos
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="mt-4 flex items-center justify-between">
+                            <Badge variant="outline" className="text-xs">
+                                Confiança: {previsaoPortfolio.confianca === 'alta' ? 'Alta' : previsaoPortfolio.confianca === 'media' ? 'Média' : 'Baixa'}
+                            </Badge>
+                            <p className="text-xs text-slate-500">
+                                Baseado em análise preditiva das top 5 contas
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+            {loadingPrevisao && (
+                <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="pt-6">
+                        <div className="flex items-center justify-center gap-3">
+                            <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
+                            <p className="text-sm text-slate-600">Gerando previsão com IA...</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Resumo Executivo */}
             <Card>
