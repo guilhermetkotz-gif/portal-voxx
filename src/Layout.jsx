@@ -23,6 +23,7 @@ const pageTitles = {
         Cronograma: { title: "Cronograma", subtitle: "Cronograma Oral Sin" },
         PlanejamentoEstrategico: { title: "Planejamento Estratégico", subtitle: "Planejamento mensal por unidade" },
         GestaoSaldoMetaAds: { title: "Gestão de Saldo Meta Ads", subtitle: "Controle financeiro operacional" },
+        RecalculoMetaAds: { title: "Recálculo Meta Ads", subtitle: "Investimento diário ideal por unidade" },
         AbrirDemanda: { title: "Abrir Demanda", subtitle: "Nova solicitação" },
         Newsletter: { title: "Newsletter & Insights", subtitle: "Atualizações da Voxx" },
         Ajuda: { title: "Central de Ajuda", subtitle: "Playbook e FAQ" },
