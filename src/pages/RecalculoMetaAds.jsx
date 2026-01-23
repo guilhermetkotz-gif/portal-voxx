@@ -79,7 +79,18 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       // Buscar valor investido da planilha
       let valorInvestido = 0;
       if (contaPrincipal?.meta_ad_account_name) {
-        valorInvestido = amountSpentByAccount[contaPrincipal.meta_ad_account_name] || 0;
+        const accountName = contaPrincipal.meta_ad_account_name.trim();
+        valorInvestido = amountSpentByAccount[accountName] || 0;
+        
+        // Log para debug
+        if (cliente.nome.toLowerCase().includes('castanhal')) {
+          console.log('DEBUG Castanhal:', {
+            clienteNome: cliente.nome,
+            accountName: accountName,
+            valorInvestido: valorInvestido,
+            availableKeys: Object.keys(amountSpentByAccount).filter(k => k.toLowerCase().includes('castanhal'))
+          });
+        }
       }
 
       // Cálculos base
