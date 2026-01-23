@@ -47,6 +47,8 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
   };
 
   const mesReferencia = planejamento.mes_referencia ? new Date(planejamento.mes_referencia + 'T00:00:00') : new Date();
+  const ultimoDiaMes = new Date(mesReferencia.getFullYear(), mesReferencia.getMonth() + 1, 0);
+  const dataFinalFormatada = format(ultimoDiaMes, 'dd/MM/yyyy');
 
   // Distribuição de investimento
   const canais = [
