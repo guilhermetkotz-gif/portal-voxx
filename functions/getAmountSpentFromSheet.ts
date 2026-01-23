@@ -86,7 +86,18 @@ Deno.serve(async (req) => {
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const accountName = row[accountNameIndex];
-      const amountSpent = parseFloat(row[amountSpentIndex]) || 0;
+      const amountSpentRaw = row[amountSpentIndex];
+      
+      // Limpar o valor e converter (remover R$, pontos e vírgulas)
+      let amountSpent = 0;
+      if (amountSpentRaw) {
+        const cleanValue = String(amountSpentRaw)
+          .replace(/R\$/g, '')
+          .replace(/\./g, '') // Remove separador de milhares
+          .replace(/,/g, '.') // Troca vírgula por ponto
+          .trim();
+        amountSpent = parseFloat(cleanValue) || 0;
+      }
       
       if (accountName) {
         amountSpentByAccount[accountName] = amountSpent;
