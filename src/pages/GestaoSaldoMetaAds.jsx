@@ -583,9 +583,13 @@ export default function GestaoSaldoMetaAds({ user }) {
                           <Input
                             type="number"
                             value={edits.qtd_tomadas !== undefined ? edits.qtd_tomadas : row.balance?.qtd_tomadas || 4}
-                            onChange={(e) => handleFieldChange(row.cliente.id, 'qtd_tomadas', e.target.value)}
+                            onChange={(e) => {
+                              handleFieldChange(row.cliente.id, 'qtd_tomadas', e.target.value);
+                              if (!isEditing) {
+                                setEditingClients(prev => new Set(prev).add(row.cliente.id));
+                              }
+                            }}
                             className="mt-1"
-                            disabled={!isEditing}
                           />
                         </div>
 
