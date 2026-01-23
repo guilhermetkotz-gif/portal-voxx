@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calculator, Calendar, TrendingUp, AlertTriangle, DollarSign, Target, ChevronDown, ChevronUp } from 'lucide-react';
-import { format, differenceInDays, getDaysInMonth, startOfMonth, endOfMonth } from 'date-fns';
+import { format, differenceInDays, getDaysInMonth, startOfMonth, endOfMonth, startOfDay } from 'date-fns';
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined || isNaN(value)) return 'R$ 0,00';
