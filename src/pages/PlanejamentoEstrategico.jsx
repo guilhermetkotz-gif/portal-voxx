@@ -185,7 +185,8 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
       cliente_id: viewingClienteId,
       cliente_nome: clienteAtual?.nome,
       mes_referencia: `${selectedMonth}-01`,
-      ...formData
+      ...formData,
+      investimento_meta_mes: totalMetaAds
     };
     saveMutation.mutate(dataToSave);
   };
