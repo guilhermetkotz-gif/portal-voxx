@@ -160,6 +160,14 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
 
       const investimentoDiarioMedio = totalDiasMes > 0 ? budgetMensal / totalDiasMes : 0;
 
+      // Calcular ajuste de feed baseado em dias passados
+      const diaAtualDoMes = hoje.getDate();
+      const valorDiarioFeed = totalDiasMes > 0 ? investimentoFeed / totalDiasMes : 0;
+      const ajusteFeed = valorDiarioFeed * diaAtualDoMes;
+
+      // Aplicar ajuste ao investimento diário recalculado
+      const investimentoDiarioFinal = Math.max(0, investimentoDiarioRecalculado - ajusteFeed);
+
       return {
         cliente,
         planejamento,
