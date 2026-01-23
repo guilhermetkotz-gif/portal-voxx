@@ -1728,16 +1728,16 @@ export default function MonitoramentoContas({ user }) {
                                                                             ✅ Nenhuma ação crítica identificada. Conta operando dentro dos parâmetros esperados.
                                                                         </div>
                                                                     )}
-                                                                </div>
-                                                            )
-                                                        ) : (
-                                                            <div className="flex items-center justify-center py-8">
-                                                                <RefreshCw className="w-5 h-5 animate-spin text-violet-600 mr-2" />
-                                                                <span className="text-slate-600">Carregando recomendações...</span>
-                                                            </div>
-                                                        )}
-                                                        </div>
-                                                    </TableCell>
+                                                                    </div>
+                                                                    )
+                                                                    ) : (
+                                                                    <div className="flex items-center justify-center py-8">
+                                                                    <RefreshCw className="w-5 h-5 animate-spin text-violet-600 mr-2" />
+                                                                    <span className="text-slate-600">Carregando recomendações...</span>
+                                                                    </div>
+                                                                    )}
+                                                                    </div>
+                                                                    </TableCell>
                                                 </TableRow>
                                             )}
                                             </React.Fragment>
