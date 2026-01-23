@@ -12,7 +12,7 @@ import { RefreshCw, Search, AlertTriangle, TrendingUp, DollarSign, Target, Activ
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, Legend, ScatterChart, Scatter, ZAxis } from 'recharts';
 import ListaHistoricoOtimizacoes from '@/components/metaads/ListaHistoricoOtimizacoes';
 import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoModal';
 
@@ -798,6 +798,213 @@ export default function MonitoramentoContas({ user }) {
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Gráficos de Tendência do Portfólio */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium">Tendência CPL (Ontem vs 7d)</CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-48">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={radarData.slice(0, 20).map(d => ({ 
+                                        name: d.account_name.substring(0, 15) + '...', 
+                                        atual: d.cplAtual, 
+                                        media7d: d.cpl7d 
+                                    }))}>
+                                        <XAxis dataKey="name" tick={{ fontSize: 8 }} angle={-45} textAnchor="end" height={60} />
+                                        <YAxis tick={{ fontSize: 10 }} />
+                                        <Tooltip formatter={(value) => formatCurrency(value)} />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="atual" stroke="#EF4444" strokeWidth={2} name="CPL Ontem" dot={{ r: 3 }} />
+                                        <Line type="monotone" dataKey="media7d" stroke="#10B981" strokeWidth={2} name="CPL 7d" dot={{ r: 3 }} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium">Tendência CTR (Ontem vs 7d)</CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-48">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={radarData.slice(0, 20).map(d => ({ 
+                                        name: d.account_name.substring(0, 15) + '...', 
+                                        atual: d.ctrAtual, 
+                                        media7d: d.ctr7d 
+                                    }))}>
+                                        <XAxis dataKey="name" tick={{ fontSize: 8 }} angle={-45} textAnchor="end" height={60} />
+                                        <YAxis tick={{ fontSize: 10 }} />
+                                        <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="atual" stroke="#3B82F6" strokeWidth={2} name="CTR Ontem" dot={{ r: 3 }} />
+                                        <Line type="monotone" dataKey="media7d" stroke="#8B5CF6" strokeWidth={2} name="CTR 7d" dot={{ r: 3 }} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium">Distribuição de Frequência (7d)</CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-48">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={[
+                                        { range: '< 1.8', count: radarData.filter(d => d.frequencia7d < 1.8).length, color: '#10B981' },
+                                        { range: '1.8-2.5', count: radarData.filter(d => d.frequencia7d >= 1.8 && d.frequencia7d < 2.5).length, color: '#22C55E' },
+                                        { range: '2.5-3.0', count: radarData.filter(d => d.frequencia7d >= 2.5 && d.frequencia7d < 3.0).length, color: '#F97316' },
+                                        { range: '≥ 3.0', count: radarData.filter(d => d.frequencia7d >= 3.0).length, color: '#DC2626' }
+                                    ]}>
+                                        <XAxis dataKey="range" tick={{ fontSize: 10 }} />
+                                        <YAxis tick={{ fontSize: 10 }} />
+                                        <Tooltip />
+                                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                            {[
+                                                { range: '< 1.8', count: radarData.filter(d => d.frequencia7d < 1.8).length, color: '#10B981' },
+                                                { range: '1.8-2.5', count: radarData.filter(d => d.frequencia7d >= 1.8 && d.frequencia7d < 2.5).length, color: '#22C55E' },
+                                                { range: '2.5-3.0', count: radarData.filter(d => d.frequencia7d >= 2.5 && d.frequencia7d < 3.0).length, color: '#F97316' },
+                                                { range: '≥ 3.0', count: radarData.filter(d => d.frequencia7d >= 3.0).length, color: '#DC2626' }
+                                            ].map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Mapa de Calor: Radar Score vs Impacto */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Target className="w-5 h-5 text-violet-600" />
+                                Mapa de Risco: Radar Score vs Impacto
+                            </CardTitle>
+                            <p className="text-sm text-slate-600">Quanto menor o Radar Score e maior o Impacto, maior a prioridade de intervenção</p>
+                        </CardHeader>
+                        <CardContent className="h-96">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ScatterChart margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
+                                    <XAxis 
+                                        type="number" 
+                                        dataKey="radarScore" 
+                                        name="Radar Score" 
+                                        label={{ value: 'Radar Score', position: 'bottom', offset: 40 }}
+                                        domain={[0, 100]}
+                                    />
+                                    <YAxis 
+                                        type="number" 
+                                        dataKey="impactoScore" 
+                                        name="Impacto" 
+                                        label={{ value: 'Score de Impacto', angle: -90, position: 'left' }}
+                                        domain={[0, 100]}
+                                    />
+                                    <ZAxis 
+                                        type="number" 
+                                        dataKey="investimentoDiario" 
+                                        range={[50, 400]} 
+                                        name="Investimento"
+                                    />
+                                    <Tooltip 
+                                        cursor={{ strokeDasharray: '3 3' }}
+                                        content={({ active, payload }) => {
+                                            if (active && payload && payload.length) {
+                                                const data = payload[0].payload;
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-lg">
+                                                        <p className="font-semibold text-slate-900">{data.account_name}</p>
+                                                        <p className="text-sm text-slate-600">{data.cliente?.cidade}</p>
+                                                        <div className="mt-2 space-y-1 text-xs">
+                                                            <p><strong>Radar Score:</strong> {data.radarScore}</p>
+                                                            <p><strong>Impacto:</strong> {data.impactoScore}</p>
+                                                            <p><strong>Investimento:</strong> {formatCurrency(data.investimentoDiario)}/dia</p>
+                                                            <p><strong>Prioridade:</strong> {data.prioridadeLabel}</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    <Legend />
+                                    <Scatter 
+                                        name="Contas" 
+                                        data={radarData} 
+                                        fill="#8B5CF6"
+                                    >
+                                        {radarData.map((entry, index) => (
+                                            <Cell 
+                                                key={`cell-${index}`} 
+                                                fill={
+                                                    entry.prioridade === 'critica' ? '#DC2626' :
+                                                    entry.prioridade === 'alta' ? '#F97316' :
+                                                    entry.prioridade === 'media' ? '#EAB308' :
+                                                    '#22C55E'
+                                                }
+                                            />
+                                        ))}
+                                    </Scatter>
+                                </ScatterChart>
+                            </ResponsiveContainer>
+                            <div className="mt-4 flex gap-4 justify-center text-xs">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-red-600"></div>
+                                    <span>Crítica</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                                    <span>Alta</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <span>Média</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                    <span>Baixa</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Distribuição de Radar Scores */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="w-5 h-5 text-violet-600" />
+                                Distribuição de Radar Scores
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={[
+                                    { range: '0-20 (Crítico)', count: radarData.filter(d => d.radarScore <= 20).length, color: '#7F1D1D' },
+                                    { range: '21-40 (Alto Risco)', count: radarData.filter(d => d.radarScore > 20 && d.radarScore <= 40).length, color: '#DC2626' },
+                                    { range: '41-60 (Moderado)', count: radarData.filter(d => d.radarScore > 40 && d.radarScore <= 60).length, color: '#F97316' },
+                                    { range: '61-80 (Bom)', count: radarData.filter(d => d.radarScore > 60 && d.radarScore <= 80).length, color: '#EAB308' },
+                                    { range: '81-100 (Excelente)', count: radarData.filter(d => d.radarScore > 80).length, color: '#22C55E' }
+                                ]}>
+                                    <XAxis dataKey="range" tick={{ fontSize: 10 }} angle={-15} textAnchor="end" height={80} />
+                                    <YAxis tick={{ fontSize: 10 }} />
+                                    <Tooltip />
+                                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                        {[
+                                            { range: '0-20 (Crítico)', count: radarData.filter(d => d.radarScore <= 20).length, color: '#7F1D1D' },
+                                            { range: '21-40 (Alto Risco)', count: radarData.filter(d => d.radarScore > 20 && d.radarScore <= 40).length, color: '#DC2626' },
+                                            { range: '41-60 (Moderado)', count: radarData.filter(d => d.radarScore > 40 && d.radarScore <= 60).length, color: '#F97316' },
+                                            { range: '61-80 (Bom)', count: radarData.filter(d => d.radarScore > 60 && d.radarScore <= 80).length, color: '#EAB308' },
+                                            { range: '81-100 (Excelente)', count: radarData.filter(d => d.radarScore > 80).length, color: '#22C55E' }
+                                        ].map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
 
                     {/* Distribuição de Prioridades */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
