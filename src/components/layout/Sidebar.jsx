@@ -23,7 +23,8 @@ import {
   UserPlus,
   CreditCard,
   MessageCircle,
-  Activity
+  Activity,
+  Calculator
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -37,6 +38,7 @@ const menuItems = [
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
   { name: "Planejamento Estratégico", icon: TrendingUp, page: "PlanejamentoEstrategico" },
   { name: "Saldo Meta Ads", icon: CreditCard, page: "GestaoSaldoMetaAds", adminOnly: true },
+  { name: "Recálculo Meta Ads", icon: Calculator, page: "RecalculoMetaAds", adminOnly: true },
   { name: "Abrir Demanda", icon: PlusCircle, page: "AbrirDemanda", highlight: true },
   { divider: true },
   { name: "Newsletter", icon: Newspaper, page: "Newsletter" },
