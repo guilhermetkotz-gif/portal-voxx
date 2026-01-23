@@ -353,6 +353,39 @@ export default function MonitoramentoContas({ user }) {
                 status += ` (${problemas.join(', ')})`;
             }
 
+            // ========== PREVISÃO 7 DIAS ==========
+            // Projeções lineares baseadas na tendência atual
+            const taxaCPL = cpl7d > 0 ? (cplAtual - cpl7d) / cpl7d : 0;
+            const taxaCTR = ctr7d > 0 ? (ctrAtual - ctr7d) / ctr7d : 0;
+            const taxaLeads = leadsDia7d > 0 ? (leadsOntem - leadsDia7d) / leadsDia7d : 0;
+            const taxaFreq = frequencia7d > 0 ? (frequenciaOntem - frequencia7d) / frequencia7d : 0;
+
+            const cplPrevisao = cplAtual * (1 + taxaCPL * 0.5); // Amortizado
+            const ctrPrevisao = ctrAtual * (1 + taxaCTR * 0.5);
+            const leadsPrevisao = leadsOntem * (1 + taxaLeads * 0.5);
+            const freqPrevisao = frequencia7d * (1 + taxaFreq * 0.5);
+
+            // Projetar novo Radar Score
+            let riscoPrevisao = 100;
+            if (cplPrevisao > 50) riscoPrevisao -= 40;
+            else if (cplPrevisao > 35) riscoPrevisao -= 25;
+            else if (cplPrevisao > 25) riscoPrevisao -= 15;
+
+            if (ctrPrevisao < 0.5) riscoPrevisao -= 30;
+            else if (ctrPrevisao < 1.0) riscoPrevisao -= 20;
+            else if (ctrPrevisao < 1.5) riscoPrevisao -= 10;
+
+            if (freqPrevisao >= 3.0) riscoPrevisao -= 35;
+            else if (freqPrevisao >= 2.5) riscoPrevisao -= 20;
+            else if (freqPrevisao >= 1.8) riscoPrevisao -= 5;
+            else riscoPrevisao += 10;
+
+            riscoPrevisao = Math.max(0, Math.min(100, riscoPrevisao));
+
+            const radarScorePrevisao = Math.round(
+                (riscoPrevisao * 0.4) + (tendenciaScore * 0.3) + (impactoScore * 0.3)
+            );
+
             return {
                 account_name: radar.account_name,
                 cliente,
@@ -373,7 +406,16 @@ export default function MonitoramentoContas({ user }) {
                 cpmAtual,
                 frequencia7d,
                 investimentoDiario,
-                status
+                status,
+                // Previsões
+                forecast: {
+                    radarScore: radarScorePrevisao,
+                    cpl: cplPrevisao,
+                    ctr: ctrPrevisao,
+                    leads: leadsPrevisao,
+                    frequencia: freqPrevisao,
+                    delta: radarScorePrevisao - radarScore
+                }
             };
         }).filter(d => d.cliente); // Apenas contas com cliente cadastrado
     }, [radarMetaData, accounts, clientesMap]);
@@ -926,8 +968,9 @@ export default function MonitoramentoContas({ user }) {
                                             <TableHead className="text-right">Frequência (7d)</TableHead>
                                             <TableHead className="text-right">Inv. Diário</TableHead>
                                             <TableHead className="w-[280px]">Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
+                                            <TableHead className="text-center w-[120px]">Previsão 7d</TableHead>
+                                            </TableRow>
+                                            </TableHeader>
                                     <TableBody>
                                        {filteredRadarData.map((row, index) => (
                                            <React.Fragment key={index}>
@@ -1040,16 +1083,124 @@ export default function MonitoramentoContas({ user }) {
                                                 <TableCell>
                                                     <p className="text-sm text-slate-600">{row.status}</p>
                                                 </TableCell>
-                                            </TableRow>
+                                                <TableCell className="text-center">
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className={cn(
+                                                            "text-lg font-bold",
+                                                            row.forecast.delta > 10 ? "text-green-600" :
+                                                            row.forecast.delta < -10 ? "text-red-600" :
+                                                            "text-slate-600"
+                                                        )}>
+                                                            {row.forecast.radarScore}
+                                                        </span>
+                                                        <div className={cn(
+                                                            "flex items-center gap-1 text-xs font-semibold",
+                                                            row.forecast.delta > 0 ? "text-green-600" :
+                                                            row.forecast.delta < 0 ? "text-red-600" :
+                                                            "text-slate-400"
+                                                        )}>
+                                                            {row.forecast.delta > 0 ? (
+                                                                <TrendingUp className="w-3 h-3" />
+                                                            ) : row.forecast.delta < 0 ? (
+                                                                <TrendingDown className="w-3 h-3" />
+                                                            ) : null}
+                                                            {row.forecast.delta > 0 ? '+' : ''}{row.forecast.delta}
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                </TableRow>
                                             
                                             {expandedRows.has(row.account_name) && (
                                                 <TableRow>
-                                                    <TableCell colSpan={13} className="bg-slate-50 p-6">
+                                                    <TableCell colSpan={14} className="bg-slate-50 p-6">
                                                         {recommendations[row.account_name] ? (
                                                             recommendations[row.account_name].error ? (
                                                                 <div className="text-red-600">{recommendations[row.account_name].error}</div>
                                                             ) : (
-                                                                <div className="space-y-4">
+                                                                <div className="space-y-6">
+                                                                    {/* Forecast Section */}
+                                                                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                                                        <div className="flex items-center gap-2 mb-3">
+                                                                            <Activity className="w-5 h-5 text-blue-600" />
+                                                                            <h3 className="font-semibold text-lg text-blue-900">Previsão para os Próximos 7 Dias</h3>
+                                                                        </div>
+                                                                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                                                                            <div className="bg-white rounded p-3">
+                                                                                <p className="text-xs text-slate-500 mb-1">Radar Score</p>
+                                                                                <p className={cn(
+                                                                                    "text-2xl font-bold",
+                                                                                    row.forecast.delta > 10 ? "text-green-600" :
+                                                                                    row.forecast.delta < -10 ? "text-red-600" :
+                                                                                    "text-slate-900"
+                                                                                )}>
+                                                                                    {row.forecast.radarScore}
+                                                                                </p>
+                                                                                <p className="text-xs text-slate-600">
+                                                                                    {row.forecast.delta > 0 ? '+' : ''}{row.forecast.delta} pts
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="bg-white rounded p-3">
+                                                                                <p className="text-xs text-slate-500 mb-1">CPL Projetado</p>
+                                                                                <p className="text-lg font-bold text-slate-900">
+                                                                                    {formatCurrency(row.forecast.cpl)}
+                                                                                </p>
+                                                                                <p className={cn(
+                                                                                    "text-xs",
+                                                                                    row.forecast.cpl < row.cplAtual ? "text-green-600" : "text-red-600"
+                                                                                )}>
+                                                                                    {row.forecast.cpl < row.cplAtual ? '↓' : '↑'} 
+                                                                                    {Math.abs(((row.forecast.cpl - row.cplAtual) / row.cplAtual) * 100).toFixed(1)}%
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="bg-white rounded p-3">
+                                                                                <p className="text-xs text-slate-500 mb-1">CTR Projetado</p>
+                                                                                <p className="text-lg font-bold text-slate-900">
+                                                                                    {row.forecast.ctr.toFixed(2)}%
+                                                                                </p>
+                                                                                <p className={cn(
+                                                                                    "text-xs",
+                                                                                    row.forecast.ctr > row.ctrAtual ? "text-green-600" : "text-red-600"
+                                                                                )}>
+                                                                                    {row.forecast.ctr > row.ctrAtual ? '↑' : '↓'} 
+                                                                                    {Math.abs(((row.forecast.ctr - row.ctrAtual) / row.ctrAtual) * 100).toFixed(1)}%
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="bg-white rounded p-3">
+                                                                                <p className="text-xs text-slate-500 mb-1">Leads/dia</p>
+                                                                                <p className="text-lg font-bold text-slate-900">
+                                                                                    {Math.round(row.forecast.leads)}
+                                                                                </p>
+                                                                                <p className={cn(
+                                                                                    "text-xs",
+                                                                                    row.forecast.leads > row.leadsOntem ? "text-green-600" : "text-red-600"
+                                                                                )}>
+                                                                                    {row.forecast.leads > row.leadsOntem ? '↑' : '↓'} 
+                                                                                    {Math.abs(((row.forecast.leads - row.leadsOntem) / row.leadsOntem) * 100).toFixed(1)}%
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="bg-white rounded p-3">
+                                                                                <p className="text-xs text-slate-500 mb-1">Frequência</p>
+                                                                                <p className={cn(
+                                                                                    "text-lg font-bold",
+                                                                                    row.forecast.frequencia > 3.0 ? "text-red-600" :
+                                                                                    row.forecast.frequencia >= 2.5 ? "text-orange-600" :
+                                                                                    row.forecast.frequencia >= 1.8 ? "text-green-600" :
+                                                                                    "text-green-700"
+                                                                                )}>
+                                                                                    {row.forecast.frequencia.toFixed(2)}
+                                                                                </p>
+                                                                                <p className={cn(
+                                                                                    "text-xs",
+                                                                                    row.forecast.frequencia < row.frequencia7d ? "text-green-600" : "text-red-600"
+                                                                                )}>
+                                                                                    {row.forecast.frequencia < row.frequencia7d ? '↓' : '↑'} 
+                                                                                    {Math.abs(((row.forecast.frequencia - row.frequencia7d) / row.frequencia7d) * 100).toFixed(1)}%
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="space-y-4">
                                                                     <div className="flex items-center gap-2 mb-4">
                                                                         <Lightbulb className="w-5 h-5 text-amber-500" />
                                                                         <h3 className="font-semibold text-lg">Plano de Ação Recomendado</h3>
