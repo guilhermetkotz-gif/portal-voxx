@@ -1615,9 +1615,9 @@ export default function MonitoramentoContas({ user }) {
             {selectedAccountForOtimizacao && (
                 <AdicionarOtimizacaoModal
                     open={otimizacaoModalOpen}
-                    onClose={() => {
-                        setOtimizacaoModalOpen(false);
-                        setSelectedAccountForOtimizacao(null);
+                    onOpenChange={(isOpen) => {
+                        setOtimizacaoModalOpen(isOpen);
+                        if (!isOpen) setSelectedAccountForOtimizacao(null);
                     }}
                     conta={selectedAccountForOtimizacao}
                 />

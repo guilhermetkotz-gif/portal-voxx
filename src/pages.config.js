@@ -6,6 +6,7 @@ import CadastroCliente from './pages/CadastroCliente';
 import ConfiguracaoAlertas from './pages/ConfiguracaoAlertas';
 import Conta from './pages/Conta';
 import Cronograma from './pages/Cronograma';
+import DashboardPortfolio from './pages/DashboardPortfolio';
 import Demandas from './pages/Demandas';
 import DetalheConta from './pages/DetalheConta';
 import GerenciarAcessos from './pages/GerenciarAcessos';
@@ -23,7 +24,6 @@ import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import DashboardPortfolio from './pages/DashboardPortfolio';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +36,7 @@ export const PAGES = {
     "ConfiguracaoAlertas": ConfiguracaoAlertas,
     "Conta": Conta,
     "Cronograma": Cronograma,
+    "DashboardPortfolio": DashboardPortfolio,
     "Demandas": Demandas,
     "DetalheConta": DetalheConta,
     "GerenciarAcessos": GerenciarAcessos,
@@ -53,7 +54,6 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "DashboardPortfolio": DashboardPortfolio,
 }
 
 export const pagesConfig = {
