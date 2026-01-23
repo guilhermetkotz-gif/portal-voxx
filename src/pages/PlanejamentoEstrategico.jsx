@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Save, TrendingUp, DollarSign, Target, Users, Calendar, AlertTriangle, CheckCircle2, BarChart3, FileText, ArrowLeft } from 'lucide-react';
+import { Save, TrendingUp, DollarSign, Target, Users, Calendar, AlertTriangle, CheckCircle2, BarChart3, FileText, ArrowLeft, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -219,6 +219,14 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
     }));
   };
 
+  // Calcular próximo mês
+  const nextMonth = (() => {
+    const date = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+    const ano = date.getFullYear();
+    const mes = date.getMonth() + 1;
+    return `${ano}-${String(mes).padStart(2, '0')}`;
+  })();
+
   // Gerar opções de mês (últimos 6 meses + próximos 6 meses)
   const generateMonthOptions = () => {
     const options = [];
@@ -292,34 +300,86 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
             ) : (
               <div className="divide-y">
                 {clientesFiltrados.map((cliente) => {
-                  const planejamentosCount = todosOsPlanejamentosGeral.filter(p => p.cliente_id === cliente.id).length;
-                  
-                  return (
-                    <div
-                      key={cliente.id}
-                      className="flex items-center justify-between p-4 hover:bg-slate-50 cursor-pointer transition-colors"
-                      onClick={() => handleSelectCliente(cliente.id)}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Target className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-900">{cliente.nome}</h3>
-                          <p className="text-sm text-slate-500">
-                            {cliente.cidade} - {cliente.estado}
-                            {planejamentosCount > 0 && (
-                              <span className="ml-2 text-violet-600">• {planejamentosCount} planejamento{planejamentosCount !== 1 ? 's' : ''}</span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        Ver Planejamentos →
-                      </Button>
-                    </div>
-                  );
-                })}
+                   const planejamentoMesAtual = todosOsPlanejamentosGeral.find(p => 
+                     p.cliente_id === cliente.id && p.mes_referencia === `${currentMonth}-01`
+                   );
+                   const planejamentoProximoMes = todosOsPlanejamentosGeral.find(p => 
+                     p.cliente_id === cliente.id && p.mes_referencia === `${nextMonth}-01`
+                   );
+
+                   const StatusBadge = ({ planejamento, mes, mesLabel, onStatusClick }) => (
+                     <div 
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         onStatusClick(mes);
+                       }}
+                       className="flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:scale-105"
+                       style={{
+                         backgroundColor: planejamento ? '#dcfce7' : '#fef2f2',
+                         border: planejamento ? '1px solid #86efac' : '1px solid #fecaca'
+                       }}
+                     >
+                       {planejamento ? (
+                         <>
+                           <CheckCircle2 className="w-4 h-4" style={{ color: '#15803d' }} />
+                           <span className="text-xs font-medium" style={{ color: '#15803d' }}>OK</span>
+                         </>
+                       ) : (
+                         <>
+                           <Clock className="w-4 h-4" style={{ color: '#dc2626' }} />
+                           <span className="text-xs font-medium" style={{ color: '#dc2626' }}>Aguardando</span>
+                         </>
+                       )}
+                       <span className="text-xs text-slate-600 ml-1">{mesLabel}</span>
+                     </div>
+                   );
+
+                   return (
+                     <div
+                       key={cliente.id}
+                       className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                     >
+                       <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => handleSelectCliente(cliente.id)}>
+                         <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                           <Target className="w-5 h-5 text-white" />
+                         </div>
+                         <div>
+                           <h3 className="font-semibold text-slate-900">{cliente.nome}</h3>
+                           <p className="text-sm text-slate-500">
+                             {cliente.cidade} - {cliente.estado}
+                           </p>
+                         </div>
+                       </div>
+                       <div className="flex items-center gap-3">
+                         <StatusBadge 
+                           planejamento={planejamentoMesAtual}
+                           mes={currentMonth}
+                           mesLabel="Este mês"
+                           onStatusClick={(mes) => {
+                             setViewingClienteId(cliente.id);
+                             setSelectedMonth(mes);
+                             window.history.pushState({}, '', `?cliente_id=${cliente.id}`);
+                             setTimeout(() => setActiveTab('tabela'), 0);
+                           }}
+                         />
+                         <StatusBadge 
+                           planejamento={planejamentoProximoMes}
+                           mes={nextMonth}
+                           mesLabel="Próx. mês"
+                           onStatusClick={(mes) => {
+                             setViewingClienteId(cliente.id);
+                             setSelectedMonth(mes);
+                             window.history.pushState({}, '', `?cliente_id=${cliente.id}`);
+                             setTimeout(() => setActiveTab('tabela'), 0);
+                           }}
+                         />
+                         <Button variant="ghost" size="sm" onClick={() => handleSelectCliente(cliente.id)}>
+                           Ver Planejamentos →
+                         </Button>
+                       </div>
+                     </div>
+                   );
+                 })}
               </div>
             )}
           </CardContent>
