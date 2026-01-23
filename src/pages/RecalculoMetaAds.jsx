@@ -55,12 +55,12 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
 
   const amountSpentByAccount = sheetData?.amountSpentByAccount || {};
 
-  // Buscar contas de anúncio (ClientAdAccount)
-  const { data: clientAdAccounts = [] } = useQuery({
-    queryKey: ['clientAdAccountsRecalculo'],
-    queryFn: () => base44.entities.ClientAdAccount.filter({ platform: 'Meta' }),
-    staleTime: 2 * 60 * 1000
-  });
+  // ClientAdAccount não está sendo usada, buscaremos direto do Cliente
+  // const { data: clientAdAccounts = [] } = useQuery({
+  //   queryKey: ['clientAdAccountsRecalculo'],
+  //   queryFn: () => base44.entities.ClientAdAccount.filter({ platform: 'Meta' }),
+  //   staleTime: 2 * 60 * 1000
+  // });
 
   // Processar dados
   const dadosRecalculo = useMemo(() => {
