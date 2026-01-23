@@ -404,12 +404,37 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
         {/* View Lista */}
         <TabsContent value="lista" className="space-y-6 mt-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Planejamentos Cadastrados</CardTitle>
+              <Button 
+                onClick={() => {
+                  setSelectedMonth(currentMonth);
+                  // Switch to tabela tab automatically
+                  const tabelaTab = document.querySelector('[value="tabela"]');
+                  if (tabelaTab) tabelaTab.click();
+                }}
+                className="bg-violet-600 hover:bg-violet-700"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Novo Planejamento
+              </Button>
             </CardHeader>
             <CardContent>
               {todosOsPlanejamentos.length === 0 ? (
-                <p className="text-slate-500 text-center py-8">Nenhum planejamento cadastrado ainda.</p>
+                <div className="text-center py-12">
+                  <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 mb-4">Nenhum planejamento cadastrado ainda.</p>
+                  <Button 
+                    onClick={() => {
+                      setSelectedMonth(currentMonth);
+                      const tabelaTab = document.querySelector('[value="tabela"]');
+                      if (tabelaTab) tabelaTab.click();
+                    }}
+                    className="bg-violet-600 hover:bg-violet-700"
+                  >
+                    Criar Primeiro Planejamento
+                  </Button>
+                </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {todosOsPlanejamentos.map((plan) => {
