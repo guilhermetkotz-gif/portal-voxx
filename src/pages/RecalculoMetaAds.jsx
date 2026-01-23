@@ -40,12 +40,17 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     staleTime: 30 * 1000
   });
 
-  // Buscar dados de Meta Ads (valor gasto)
-  const { data: contasMetaAds = [] } = useQuery({
-    queryKey: ['contasMetaAdsRecalculo'],
-    queryFn: () => base44.entities.ContaMetaAds.list('-updated_date', 1000),
+  // Buscar valores investidos da planilha
+  const { data: sheetData } = useQuery({
+    queryKey: ['amountSpentFromSheet'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
+      return response.data;
+    },
     staleTime: 2 * 60 * 1000
   });
+
+  const amountSpentByAccount = sheetData?.amountSpentByAccount || {};
 
   // Buscar contas de anúncio (ClientAdAccount)
   const { data: clientAdAccounts = [] } = useQuery({
@@ -68,12 +73,10 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         acc => acc.client_id === cliente.id && acc.is_primary
       );
 
+      // Buscar valor investido da planilha
       let valorInvestido = 0;
       if (contaPrincipal?.meta_ad_account_name) {
-        const contaMeta = contasMetaAds.find(
-          c => c.account_name === contaPrincipal.meta_ad_account_name
-        );
-        valorInvestido = contaMeta?.amount_spent || 0;
+        valorInvestido = amountSpentByAccount[contaPrincipal.meta_ad_account_name] || 0;
       }
 
       // Cálculos base
