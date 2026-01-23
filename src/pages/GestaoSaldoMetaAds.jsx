@@ -135,7 +135,7 @@ export default function GestaoSaldoMetaAds({ user }) {
         .reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
       
       const gastoDiario = balance?.gasto_diario || 0;
-      const qtdTomadas = balance?.qtd_tomadas || 4;
+      const qtdTomadas = edits.qtd_tomadas !== undefined ? parseInt(edits.qtd_tomadas) : (balance?.qtd_tomadas || 4);
       const tomadasPagas = historico.filter(t => t.pago).length;
       
       // Cálculos
