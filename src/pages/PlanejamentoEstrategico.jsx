@@ -161,7 +161,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
   const alertaInvestimento = (formData.investimento_feed + formData.investimento_google + formData.investimento_tiktok) > investimentoTotal;
   
   // Funil
-  const projecaoLeads = formData.cpl_planejado > 0 ? (investimentoLeads + formData.investimento_google) / formData.cpl_planejado : 0;
+  const projecaoLeads = formData.cpl_planejado > 0 ? (investimentoLeads + formData.investimento_google + formData.investimento_tiktok) / formData.cpl_planejado : 0;
   const projecaoContatos = projecaoLeads * (formData.conversao_leads_contatos / 100);
   const projecaoAgendamentos = projecaoContatos * (formData.conversao_contatos_agendamento / 100);
   const projecaoComparecimentos = projecaoAgendamentos * (formData.conversao_agendamento_comparecimento / 100);
