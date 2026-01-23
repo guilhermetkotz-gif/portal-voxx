@@ -177,7 +177,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         budgetRestante,
         dataFinal,
         diasRestantes,
-        investimentoDiarioRecalculado,
+        investimentoDiarioRecalculado: investimentoDiarioFinal,
         investimentoDiarioMedio,
         config,
         investimentoDiarioFase1,
