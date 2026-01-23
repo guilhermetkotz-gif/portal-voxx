@@ -43,6 +43,7 @@ const menuItems = [
   { name: "Central de Ajuda", icon: HelpCircle, page: "Ajuda" },
   { name: "Alertas", icon: Bell, page: "ConfiguracaoAlertas" },
   { divider: true },
+  { name: "Dashboard Portfólio", icon: Activity, page: "DashboardPortfolio", adminOnly: true },
   { name: "Monitoramento Meta Ads", icon: Target, page: "MonitoramentoContas", adminOnly: true },
   { name: "Cadastro de Cliente", icon: UserPlus, page: "CadastroCliente", adminOnly: true },
   { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
