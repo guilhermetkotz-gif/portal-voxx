@@ -802,10 +802,10 @@ export default function MonitoramentoContas({ user }) {
                     {/* Gráficos de Tendência do Portfólio */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-medium">Tendência CPL (Ontem vs 7d)</CardTitle>
+                            <CardHeader className="pb-2 pt-4">
+                                <CardTitle className="text-xs font-medium">Tendência CPL (Ontem vs 7d)</CardTitle>
                             </CardHeader>
-                            <CardContent className="h-48">
+                            <CardContent className="h-32 pt-2">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={radarData.slice(0, 20).map(d => ({ 
                                         name: d.account_name.substring(0, 15) + '...', 
@@ -824,10 +824,10 @@ export default function MonitoramentoContas({ user }) {
                         </Card>
 
                         <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-medium">Tendência CTR (Ontem vs 7d)</CardTitle>
+                            <CardHeader className="pb-2 pt-4">
+                                <CardTitle className="text-xs font-medium">Tendência CTR (Ontem vs 7d)</CardTitle>
                             </CardHeader>
-                            <CardContent className="h-48">
+                            <CardContent className="h-32 pt-2">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={radarData.slice(0, 20).map(d => ({ 
                                         name: d.account_name.substring(0, 15) + '...', 
@@ -846,10 +846,10 @@ export default function MonitoramentoContas({ user }) {
                         </Card>
 
                         <Card>
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-medium">Distribuição de Frequência (7d)</CardTitle>
+                            <CardHeader className="pb-2 pt-4">
+                                <CardTitle className="text-xs font-medium">Distribuição de Frequência (7d)</CardTitle>
                             </CardHeader>
-                            <CardContent className="h-48">
+                            <CardContent className="h-32 pt-2">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={[
                                         { range: '< 1.8', count: radarData.filter(d => d.frequencia7d < 1.8).length, color: '#10B981' },
@@ -876,16 +876,17 @@ export default function MonitoramentoContas({ user }) {
                         </Card>
                     </div>
 
-                    {/* Mapa de Calor: Radar Score vs Impacto */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Target className="w-5 h-5 text-violet-600" />
-                                Mapa de Risco: Radar Score vs Impacto
-                            </CardTitle>
-                            <p className="text-sm text-slate-600">Quanto menor o Radar Score e maior o Impacto, maior a prioridade de intervenção</p>
-                        </CardHeader>
-                        <CardContent className="h-96">
+                    {/* Mapa de Calor e Distribuição */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader className="pb-2 pt-4">
+                                <CardTitle className="flex items-center gap-2 text-sm">
+                                    <Target className="w-4 h-4 text-violet-600" />
+                                    Mapa de Risco: Score vs Impacto
+                                </CardTitle>
+                                <p className="text-xs text-slate-600">Menor score + maior impacto = maior prioridade</p>
+                            </CardHeader>
+                            <CardContent className="h-64 pt-2">
                             <ResponsiveContainer width="100%" height="100%">
                                 <ScatterChart margin={{ top: 20, right: 20, bottom: 60, left: 20 }}>
                                     <XAxis 
@@ -949,36 +950,35 @@ export default function MonitoramentoContas({ user }) {
                                     </Scatter>
                                 </ScatterChart>
                             </ResponsiveContainer>
-                            <div className="mt-4 flex gap-4 justify-center text-xs">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-red-600"></div>
+                            <div className="mt-2 flex gap-3 justify-center text-xs">
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-red-600"></div>
                                     <span>Crítica</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-orange-500"></div>
                                     <span>Alta</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
                                     <span>Média</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
                                     <span>Baixa</span>
                                 </div>
                             </div>
                         </CardContent>
-                    </Card>
+                        </Card>
 
-                    {/* Distribuição de Radar Scores */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Activity className="w-5 h-5 text-violet-600" />
-                                Distribuição de Radar Scores
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="h-64">
+                        <Card>
+                            <CardHeader className="pb-2 pt-4">
+                                <CardTitle className="flex items-center gap-2 text-sm">
+                                    <Activity className="w-4 h-4 text-violet-600" />
+                                    Distribuição de Radar Scores
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="h-64 pt-2">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={[
                                     { range: '0-20 (Crítico)', count: radarData.filter(d => d.radarScore <= 20).length, color: '#7F1D1D' },
@@ -1004,7 +1004,8 @@ export default function MonitoramentoContas({ user }) {
                                 </BarChart>
                             </ResponsiveContainer>
                         </CardContent>
-                    </Card>
+                        </Card>
+                    </div>
 
                     {/* Distribuição de Prioridades */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
