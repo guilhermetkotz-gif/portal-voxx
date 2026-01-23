@@ -12,6 +12,7 @@ import { Save, TrendingUp, DollarSign, Target, Users, Calendar, AlertTriangle, C
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import InfograficoExecutivo from '@/components/planejamento/InfograficoExecutivo';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 
@@ -41,6 +42,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMonth, setFilterMonth] = useState('todos');
   const [activeTab, setActiveTab] = useState('lista');
+  const [showReplicateModal, setShowReplicateModal] = useState(false);
 
   // Garantir que o mês corrente está selecionado ao carregar
   useEffect(() => {
@@ -217,6 +219,24 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
       ...prev,
       [field]: parseFloat(value) || 0
     }));
+  };
+
+  const handleReplicatePlanejamento = (planejamentoSource) => {
+    setFormData({
+      meta_faturamento: planejamentoSource.meta_faturamento || 0,
+      ticket_medio: planejamentoSource.ticket_medio || 0,
+      percentual_investimento_marketing: planejamentoSource.percentual_investimento_marketing || 0,
+      percentual_impostos: planejamentoSource.percentual_impostos || 0,
+      investimento_feed: planejamentoSource.investimento_feed || 0,
+      investimento_google: planejamentoSource.investimento_google || 0,
+      investimento_tiktok: planejamentoSource.investimento_tiktok || 0,
+      cpl_planejado: planejamentoSource.cpl_planejado || 0,
+      conversao_leads_contatos: planejamentoSource.conversao_leads_contatos || 0,
+      conversao_contatos_agendamento: planejamentoSource.conversao_contatos_agendamento || 0,
+      conversao_agendamento_comparecimento: planejamentoSource.conversao_agendamento_comparecimento || 0,
+      conversao_comparecimento_fechamento: planejamentoSource.conversao_comparecimento_fechamento || 0
+    });
+    setShowReplicateModal(false);
   };
 
   // Calcular próximo mês
@@ -535,7 +555,79 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
         </TabsContent>
 
         {/* View Tabela */}
-        <TabsContent value="tabela" className="space-y-6 mt-6">
+         <TabsContent value="tabela" className="space-y-6 mt-6">
+
+         {!planejamentoAtual && (
+           <Card className="bg-blue-50 border-blue-200">
+             <CardContent className="pt-6">
+               <div className="flex items-center justify-between">
+                 <div>
+                   <p className="font-semibold text-slate-900 mb-1">Novo planejamento para {format(new Date(selectedMonth + '-01'), "MMMM 'de' yyyy", { locale: ptBR })}</p>
+                   <p className="text-sm text-slate-600">Preencher manualmente ou replicar de um planejamento existente</p>
+                 </div>
+                 <Dialog open={showReplicateModal} onOpenChange={setShowReplicateModal}>
+                   <DialogTrigger asChild>
+                     <Button className="bg-blue-600 hover:bg-blue-700">
+                       <Calendar className="w-4 h-4 mr-2" />
+                       Replicar Planejamento
+                     </Button>
+                   </DialogTrigger>
+                   <DialogContent className="max-w-2xl">
+                     <DialogHeader>
+                       <DialogTitle>Selecionar Planejamento para Replicar</DialogTitle>
+                       <DialogDescription>
+                         Escolha um planejamento existente para copiar os dados para {format(new Date(selectedMonth + '-01'), "MMMM 'de' yyyy", { locale: ptBR })}
+                       </DialogDescription>
+                     </DialogHeader>
+                     <div className="space-y-2 max-h-96 overflow-y-auto">
+                       {todosOsPlanejamentos.length === 0 ? (
+                         <p className="text-center text-slate-500 py-6">Nenhum planejamento disponível para replicar</p>
+                       ) : (
+                         todosOsPlanejamentos.map((plan) => {
+                           const mesRef = new Date(plan.mes_referencia + 'T00:00:00');
+                           const mesFormatado = format(mesRef, "MMMM 'de' yyyy", { locale: ptBR }).charAt(0).toUpperCase() + format(mesRef, "MMMM 'de' yyyy", { locale: ptBR }).slice(1);
+
+                           return (
+                             <Card 
+                               key={plan.id}
+                               className="cursor-pointer hover:bg-slate-50 transition-colors border-slate-200"
+                               onClick={() => handleReplicatePlanejamento(plan)}
+                             >
+                               <CardContent className="pt-4 pb-4">
+                                 <div className="flex items-center justify-between">
+                                   <div>
+                                     <p className="font-semibold text-slate-900">{mesFormatado}</p>
+                                     <div className="grid grid-cols-3 gap-4 mt-2 text-sm">
+                                       <div>
+                                         <span className="text-slate-600">Meta:</span>
+                                         <p className="font-semibold">{formatCurrency(plan.meta_faturamento)}</p>
+                                       </div>
+                                       <div>
+                                         <span className="text-slate-600">Investimento:</span>
+                                         <p className="font-semibold">{formatCurrency((plan.meta_faturamento * plan.percentual_investimento_marketing) / 100)}</p>
+                                       </div>
+                                       <div>
+                                         <span className="text-slate-600">TKM:</span>
+                                         <p className="font-semibold">{formatCurrency(plan.ticket_medio)}</p>
+                                       </div>
+                                     </div>
+                                   </div>
+                                   <Button variant="outline" size="sm">
+                                     Replicar
+                                   </Button>
+                                 </div>
+                               </CardContent>
+                             </Card>
+                           );
+                         })
+                       )}
+                     </div>
+                   </DialogContent>
+                 </Dialog>
+               </div>
+             </CardContent>
+           </Card>
+         )}
 
       {/* BLOCO 1 - Identificação e Metas Financeiras */}
       <Card>
