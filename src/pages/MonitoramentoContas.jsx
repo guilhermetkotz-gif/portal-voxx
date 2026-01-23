@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import ListaHistoricoOtimizacoes from '@/components/metaads/ListaHistoricoOtimizacoes';
+import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoModal';
 
 export default function MonitoramentoContas({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -60,6 +61,8 @@ export default function MonitoramentoContas({ user }) {
 
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [recommendations, setRecommendations] = useState({});
+    const [otimizacaoModalOpen, setOtimizacaoModalOpen] = useState(false);
+    const [selectedAccountForOtimizacao, setSelectedAccountForOtimizacao] = useState(null);
 
     const loadRecommendation = async (accountName, cliente) => {
         if (recommendations[accountName]) return; // Já carregado
@@ -1201,9 +1204,22 @@ export default function MonitoramentoContas({ user }) {
                                                                     </div>
 
                                                                     <div className="space-y-4">
-                                                                    <div className="flex items-center gap-2 mb-4">
-                                                                        <Lightbulb className="w-5 h-5 text-amber-500" />
-                                                                        <h3 className="font-semibold text-lg">Plano de Ação Recomendado</h3>
+                                                                    <div className="flex items-center justify-between mb-4">
+                                                                       <div className="flex items-center gap-2">
+                                                                           <Lightbulb className="w-5 h-5 text-amber-500" />
+                                                                           <h3 className="font-semibold text-lg">Plano de Ação Recomendado</h3>
+                                                                       </div>
+                                                                       <Button
+                                                                           onClick={() => {
+                                                                               const conta = accounts.find(a => a.account_name === row.account_name);
+                                                                               setSelectedAccountForOtimizacao(conta);
+                                                                               setOtimizacaoModalOpen(true);
+                                                                           }}
+                                                                           className="bg-violet-600 hover:bg-violet-700"
+                                                                           size="sm"
+                                                                       >
+                                                                           Adicionar Otimização
+                                                                       </Button>
                                                                     </div>
                                                                     
                                                                     {recommendations[row.account_name].recommendations?.map((rec, idx) => (
@@ -1310,6 +1326,18 @@ export default function MonitoramentoContas({ user }) {
                     <ListaHistoricoOtimizacoes />
                 </TabsContent>
             </Tabs>
+
+            {/* Modal de Otimização */}
+            {selectedAccountForOtimizacao && (
+                <AdicionarOtimizacaoModal
+                    open={otimizacaoModalOpen}
+                    onClose={() => {
+                        setOtimizacaoModalOpen(false);
+                        setSelectedAccountForOtimizacao(null);
+                    }}
+                    conta={selectedAccountForOtimizacao}
+                />
+            )}
         </div>
     );
 }
