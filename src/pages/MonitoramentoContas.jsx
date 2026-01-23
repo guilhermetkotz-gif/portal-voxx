@@ -1429,9 +1429,8 @@ export default function MonitoramentoContas({ user }) {
                                             {expandedRows.has(row.account_name) && (
                                                 <TableRow>
                                                     <TableCell colSpan={14} className="bg-slate-50 p-6">
-                                                        <div className="space-y-6">
-                                                            {/* Previsão IA */}
-                                                            {previsoes[row.account_name] && !previsoes[row.account_name].error ? (
+                                                        {/* Previsão IA */}
+                                                        {previsoes[row.account_name] && !previsoes[row.account_name].error ? (
                                                                 <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-200">
                                                                     <div className="flex items-center gap-2 mb-3">
                                                                         <Activity className="w-5 h-5 text-indigo-600" />
