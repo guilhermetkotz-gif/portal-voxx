@@ -13,9 +13,9 @@ Deno.serve(async (req) => {
     // Obter token de acesso do Google Sheets
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
     
-    // ID da planilha (assumindo que é a mesma usada em outros lugares)
-    const SPREADSHEET_ID = '1lG5M3z1UkujKBMqR5VZkRaYYEJTEBx0-g1gZHNPcvvU';
-    const RANGE = 'Página1!A:Z'; // Ler todas as colunas da Página1
+    // ID da planilha correta
+    const SPREADSHEET_ID = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
+    const RANGE = 'Página1!A1:Z1000';
     
     const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}`;
     
