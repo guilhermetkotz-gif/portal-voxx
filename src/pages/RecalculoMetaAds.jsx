@@ -104,7 +104,8 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       // Data final e dias restantes
       const config = customConfigs[cliente.id] || {};
       // Usar o último dia do mês CORRENTE
-      const ultimoDiaMes = endOfMonth(new Date(ano, mes - 1, 1));
+      const mesReferencia = new Date(ano, mes - 1, 1);
+      const ultimoDiaMes = endOfMonth(mesReferencia);
       const dataFinal = config.endDate || format(ultimoDiaMes, 'yyyy-MM-dd');
       const diasRestantes = Math.max(0, differenceInDays(startOfDay(new Date(dataFinal + 'T23:59:59')), startOfDay(hoje)));
       const totalDiasMes = getDaysInMonth(mesReferencia);
