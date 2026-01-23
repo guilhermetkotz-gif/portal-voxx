@@ -63,11 +63,15 @@ Deno.serve(async (req) => {
     
     // Encontrar índices das colunas
     const accountNameIndex = headers.findIndex(h => 
-      h?.toLowerCase().includes('account') && h?.toLowerCase().includes('name')
+      h && (h.toLowerCase().includes('account') && h.toLowerCase().includes('name'))
     );
     const amountSpentIndex = headers.findIndex(h => 
-      h?.toLowerCase().includes('amount') && h?.toLowerCase().includes('spent')
+      h && (h.toLowerCase().includes('amount') && h.toLowerCase().includes('spent'))
     );
+    
+    console.log('Headers:', headers);
+    console.log('Account Name Index:', accountNameIndex);
+    console.log('Amount Spent Index:', amountSpentIndex);
 
     if (accountNameIndex === -1 || amountSpentIndex === -1) {
       return Response.json({ 
