@@ -1251,6 +1251,7 @@ export default function MonitoramentoContas({ user }) {
                                                                         </div>
                                                                     )}
                                                                 </div>
+                                                                </div>
                                                             )
                                                         ) : (
                                                             <div className="flex items-center justify-center py-8">
