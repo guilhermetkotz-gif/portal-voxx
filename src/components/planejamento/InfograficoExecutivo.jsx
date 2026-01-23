@@ -73,6 +73,7 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
                   Planejamento Estratégico — {format(mesReferencia, "MMMM 'de' yyyy", { locale: ptBR }).charAt(0).toUpperCase() + format(mesReferencia, "MMMM 'de' yyyy", { locale: ptBR }).slice(1)}
                 </h1>
                 <p className="text-slate-400 text-sm">Unidade: {clienteNome}</p>
+                <p className="text-slate-500 text-xs mt-1">Data Final do Planejamento: {dataFinalFormatada}</p>
               </div>
             </div>
           </div>
