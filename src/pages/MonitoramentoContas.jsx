@@ -1729,7 +1729,6 @@ export default function MonitoramentoContas({ user }) {
                                                                         </div>
                                                                     )}
                                                                 </div>
-                                                                </div>
                                                             )
                                                         ) : (
                                                             <div className="flex items-center justify-center py-8">
@@ -1737,6 +1736,7 @@ export default function MonitoramentoContas({ user }) {
                                                                 <span className="text-slate-600">Carregando recomendações...</span>
                                                             </div>
                                                         )}
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             )}
