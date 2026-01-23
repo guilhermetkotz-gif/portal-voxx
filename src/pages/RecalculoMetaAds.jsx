@@ -19,7 +19,9 @@ const formatCurrency = (value) => {
 export default function RecalculoMetaAds({ selectedClienteId, user }) {
   const queryClient = useQueryClient();
   const hoje = new Date();
-  const currentMonth = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth() + 1; // getMonth() retorna 0-11
+  const currentMonth = `${ano}-${String(mes).padStart(2, '0')}`;
   
   const [expandedCards, setExpandedCards] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
@@ -228,7 +230,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         />
         <Badge variant="outline" className="px-3 py-2">
           <Calendar className="w-4 h-4 mr-2" />
-          Mês: {format(new Date(currentMonth + '-01'), 'MM/yyyy')}
+          Mês: {mes}/{ano}
         </Badge>
       </div>
 

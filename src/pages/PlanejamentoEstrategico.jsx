@@ -27,7 +27,9 @@ const formatNumber = (value) => {
 export default function PlanejamentoEstrategico({ currentCliente, selectedClienteId, user }) {
   const queryClient = useQueryClient();
   const hoje = new Date();
-  const currentMonth = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth() + 1; // getMonth() retorna 0-11
+  const currentMonth = `${ano}-${String(mes).padStart(2, '0')}`;
   const currentMonthLabel = format(hoje, "MMMM 'de' yyyy", { locale: ptBR });
   
   const urlParams = new URLSearchParams(window.location.search);
