@@ -803,69 +803,145 @@ export default function MonitoramentoContas({ user }) {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         <Card>
                             <CardHeader className="pb-2 pt-4">
-                                <CardTitle className="text-xs font-medium">Tendência CPL (Ontem vs 7d)</CardTitle>
+                                <CardTitle className="text-xs font-medium">Top 10 Contas: CPL Maior Variação</CardTitle>
                             </CardHeader>
-                            <CardContent className="h-32 pt-2">
+                            <CardContent className="h-40 pt-2">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={radarData.slice(0, 20).map(d => ({ 
-                                        name: d.account_name.substring(0, 15) + '...', 
-                                        atual: d.cplAtual, 
-                                        media7d: d.cpl7d 
-                                    }))}>
-                                        <XAxis dataKey="name" tick={{ fontSize: 8 }} angle={-45} textAnchor="end" height={60} />
-                                        <YAxis tick={{ fontSize: 10 }} />
-                                        <Tooltip formatter={(value) => formatCurrency(value)} />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="atual" stroke="#EF4444" strokeWidth={2} name="CPL Ontem" dot={{ r: 3 }} />
-                                        <Line type="monotone" dataKey="media7d" stroke="#10B981" strokeWidth={2} name="CPL 7d" dot={{ r: 3 }} />
-                                    </LineChart>
+                                    <BarChart 
+                                        data={[...radarData]
+                                            .sort((a, b) => Math.abs(b.variacaoCPL) - Math.abs(a.variacaoCPL))
+                                            .slice(0, 10)
+                                            .map(d => ({ 
+                                                name: d.account_name.substring(0, 12), 
+                                                variacao: d.variacaoCPL,
+                                                cplAtual: d.cplAtual
+                                            }))}
+                                        layout="vertical"
+                                        margin={{ left: 60, right: 10, top: 5, bottom: 5 }}
+                                    >
+                                        <XAxis type="number" tick={{ fontSize: 9 }} />
+                                        <YAxis dataKey="name" type="category" tick={{ fontSize: 8 }} width={60} />
+                                        <Tooltip 
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    const data = payload[0].payload;
+                                                    return (
+                                                        <div className="bg-white p-2 border border-slate-200 rounded shadow-lg text-xs">
+                                                            <p className="font-semibold">{data.name}</p>
+                                                            <p className={data.variacao > 0 ? "text-red-600" : "text-green-600"}>
+                                                                Variação: {formatPercent(data.variacao)}
+                                                            </p>
+                                                            <p>CPL Atual: {formatCurrency(data.cplAtual)}</p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                        <Bar dataKey="variacao" radius={[0, 4, 4, 0]}>
+                                            {[...radarData]
+                                                .sort((a, b) => Math.abs(b.variacaoCPL) - Math.abs(a.variacaoCPL))
+                                                .slice(0, 10)
+                                                .map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.variacaoCPL > 0 ? '#DC2626' : '#10B981'} />
+                                                ))}
+                                        </Bar>
+                                    </BarChart>
                                 </ResponsiveContainer>
                             </CardContent>
                         </Card>
 
                         <Card>
                             <CardHeader className="pb-2 pt-4">
-                                <CardTitle className="text-xs font-medium">Tendência CTR (Ontem vs 7d)</CardTitle>
+                                <CardTitle className="text-xs font-medium">Top 10 Contas: CTR Maior Variação</CardTitle>
                             </CardHeader>
-                            <CardContent className="h-32 pt-2">
+                            <CardContent className="h-40 pt-2">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={radarData.slice(0, 20).map(d => ({ 
-                                        name: d.account_name.substring(0, 15) + '...', 
-                                        atual: d.ctrAtual, 
-                                        media7d: d.ctr7d 
-                                    }))}>
-                                        <XAxis dataKey="name" tick={{ fontSize: 8 }} angle={-45} textAnchor="end" height={60} />
-                                        <YAxis tick={{ fontSize: 10 }} />
-                                        <Tooltip formatter={(value) => `${value.toFixed(2)}%`} />
-                                        <Legend />
-                                        <Line type="monotone" dataKey="atual" stroke="#3B82F6" strokeWidth={2} name="CTR Ontem" dot={{ r: 3 }} />
-                                        <Line type="monotone" dataKey="media7d" stroke="#8B5CF6" strokeWidth={2} name="CTR 7d" dot={{ r: 3 }} />
-                                    </LineChart>
+                                    <BarChart 
+                                        data={[...radarData]
+                                            .sort((a, b) => Math.abs(b.variacaoCTR) - Math.abs(a.variacaoCTR))
+                                            .slice(0, 10)
+                                            .map(d => ({ 
+                                                name: d.account_name.substring(0, 12), 
+                                                variacao: d.variacaoCTR,
+                                                ctrAtual: d.ctrAtual
+                                            }))}
+                                        layout="vertical"
+                                        margin={{ left: 60, right: 10, top: 5, bottom: 5 }}
+                                    >
+                                        <XAxis type="number" tick={{ fontSize: 9 }} />
+                                        <YAxis dataKey="name" type="category" tick={{ fontSize: 8 }} width={60} />
+                                        <Tooltip 
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    const data = payload[0].payload;
+                                                    return (
+                                                        <div className="bg-white p-2 border border-slate-200 rounded shadow-lg text-xs">
+                                                            <p className="font-semibold">{data.name}</p>
+                                                            <p className={data.variacao < 0 ? "text-red-600" : "text-green-600"}>
+                                                                Variação: {formatPercent(data.variacao)}
+                                                            </p>
+                                                            <p>CTR Atual: {data.ctrAtual.toFixed(2)}%</p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                        <Bar dataKey="variacao" radius={[0, 4, 4, 0]}>
+                                            {[...radarData]
+                                                .sort((a, b) => Math.abs(b.variacaoCTR) - Math.abs(a.variacaoCTR))
+                                                .slice(0, 10)
+                                                .map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.variacaoCTR < 0 ? '#DC2626' : '#10B981'} />
+                                                ))}
+                                        </Bar>
+                                    </BarChart>
                                 </ResponsiveContainer>
                             </CardContent>
                         </Card>
 
                         <Card>
                             <CardHeader className="pb-2 pt-4">
-                                <CardTitle className="text-xs font-medium">Distribuição de Frequência (7d)</CardTitle>
+                                <CardTitle className="text-xs font-medium">Contas por Faixa de Frequência</CardTitle>
                             </CardHeader>
-                            <CardContent className="h-32 pt-2">
+                            <CardContent className="h-40 pt-2">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={[
-                                        { range: '< 1.8', count: radarData.filter(d => d.frequencia7d < 1.8).length, color: '#10B981' },
-                                        { range: '1.8-2.5', count: radarData.filter(d => d.frequencia7d >= 1.8 && d.frequencia7d < 2.5).length, color: '#22C55E' },
-                                        { range: '2.5-3.0', count: radarData.filter(d => d.frequencia7d >= 2.5 && d.frequencia7d < 3.0).length, color: '#F97316' },
-                                        { range: '≥ 3.0', count: radarData.filter(d => d.frequencia7d >= 3.0).length, color: '#DC2626' }
-                                    ]}>
-                                        <XAxis dataKey="range" tick={{ fontSize: 10 }} />
-                                        <YAxis tick={{ fontSize: 10 }} />
-                                        <Tooltip />
-                                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                    <BarChart 
+                                        data={[
+                                            { range: 'Ótima\n< 1.8', count: radarData.filter(d => d.frequencia7d < 1.8).length, color: '#059669', label: 'Ótima' },
+                                            { range: 'Boa\n1.8-2.5', count: radarData.filter(d => d.frequencia7d >= 1.8 && d.frequencia7d < 2.5).length, color: '#22C55E', label: 'Boa' },
+                                            { range: 'Alerta\n2.5-3.0', count: radarData.filter(d => d.frequencia7d >= 2.5 && d.frequencia7d < 3.0).length, color: '#F97316', label: 'Alerta' },
+                                            { range: 'Crítica\n≥ 3.0', count: radarData.filter(d => d.frequencia7d >= 3.0).length, color: '#DC2626', label: 'Crítica' }
+                                        ]}
+                                        margin={{ top: 5, right: 5, left: 5, bottom: 25 }}
+                                    >
+                                        <XAxis 
+                                            dataKey="range" 
+                                            tick={{ fontSize: 9 }}
+                                            interval={0}
+                                        />
+                                        <YAxis tick={{ fontSize: 9 }} />
+                                        <Tooltip 
+                                            content={({ active, payload }) => {
+                                                if (active && payload && payload.length) {
+                                                    const data = payload[0].payload;
+                                                    return (
+                                                        <div className="bg-white p-2 border border-slate-200 rounded shadow-lg text-xs">
+                                                            <p className="font-semibold">{data.label}</p>
+                                                            <p>{data.count} contas</p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                        <Bar dataKey="count" radius={[4, 4, 0, 0]} label={{ position: 'top', fontSize: 10, fontWeight: 'bold' }}>
                                             {[
-                                                { range: '< 1.8', count: radarData.filter(d => d.frequencia7d < 1.8).length, color: '#10B981' },
-                                                { range: '1.8-2.5', count: radarData.filter(d => d.frequencia7d >= 1.8 && d.frequencia7d < 2.5).length, color: '#22C55E' },
-                                                { range: '2.5-3.0', count: radarData.filter(d => d.frequencia7d >= 2.5 && d.frequencia7d < 3.0).length, color: '#F97316' },
-                                                { range: '≥ 3.0', count: radarData.filter(d => d.frequencia7d >= 3.0).length, color: '#DC2626' }
+                                                { range: 'Ótima\n< 1.8', count: radarData.filter(d => d.frequencia7d < 1.8).length, color: '#059669' },
+                                                { range: 'Boa\n1.8-2.5', count: radarData.filter(d => d.frequencia7d >= 1.8 && d.frequencia7d < 2.5).length, color: '#22C55E' },
+                                                { range: 'Alerta\n2.5-3.0', count: radarData.filter(d => d.frequencia7d >= 2.5 && d.frequencia7d < 3.0).length, color: '#F97316' },
+                                                { range: 'Crítica\n≥ 3.0', count: radarData.filter(d => d.frequencia7d >= 3.0).length, color: '#DC2626' }
                                             ].map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={entry.color} />
                                             ))}
