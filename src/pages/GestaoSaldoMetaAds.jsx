@@ -167,7 +167,7 @@ export default function GestaoSaldoMetaAds({ user }) {
         saldoAlert,
       };
     });
-  }, [clientes, balanceControls, planejamentos, statusFilter, searchTerm]);
+  }, [clientes, balanceControls, planejamentos, statusFilter, searchTerm, editingRows]);
 
   const handleFieldChange = (clientId, field, value) => {
     setEditingRows(prev => ({
