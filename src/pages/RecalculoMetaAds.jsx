@@ -175,7 +175,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         diasFase2
       };
     }).filter(Boolean);
-  }, [clientes, planejamentos, amountSpentByAccount, clientAdAccounts, customConfigs, currentMonth]);
+  }, [clientes, planejamentos, amountSpentByAccount, customConfigs, currentMonth]);
 
   // Filtrar por busca
   const dadosFiltrados = dadosRecalculo.filter(d => 
