@@ -1429,12 +1429,161 @@ export default function MonitoramentoContas({ user }) {
                                             {expandedRows.has(row.account_name) && (
                                                 <TableRow>
                                                     <TableCell colSpan={14} className="bg-slate-50 p-6">
+                                                        <div className="space-y-6">
+                                                            {/* Previsão IA */}
+                                                            {previsoes[row.account_name] && !previsoes[row.account_name].error ? (
+                                                                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-200">
+                                                                    <div className="flex items-center gap-2 mb-3">
+                                                                        <Activity className="w-5 h-5 text-indigo-600" />
+                                                                        <h3 className="font-semibold text-lg text-indigo-900">Previsão IA - Próximos 7 Dias</h3>
+                                                                        <Badge className={cn(
+                                                                            "ml-auto",
+                                                                            previsoes[row.account_name].confianca_geral === 'alta' ? "bg-green-100 text-green-800" :
+                                                                            previsoes[row.account_name].confianca_geral === 'media' ? "bg-yellow-100 text-yellow-800" :
+                                                                            "bg-red-100 text-red-800"
+                                                                        )}>
+                                                                            Confiança: {previsoes[row.account_name].confianca_geral}
+                                                                        </Badge>
+                                                                    </div>
+                                                                    
+                                                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+                                                                        <div className="bg-white rounded p-3">
+                                                                            <p className="text-xs text-slate-500 mb-1">CPL Previsto</p>
+                                                                            <p className="text-lg font-bold text-slate-900">
+                                                                                {formatCurrency(previsoes[row.account_name].previsoes.cpl.valor_previsto)}
+                                                                            </p>
+                                                                            <div className="flex items-center gap-1 text-xs mt-1">
+                                                                                {previsoes[row.account_name].previsoes.cpl.tendencia === 'alta' ? (
+                                                                                    <TrendingUp className="w-3 h-3 text-red-600" />
+                                                                                ) : previsoes[row.account_name].previsoes.cpl.tendencia === 'baixa' ? (
+                                                                                    <TrendingDown className="w-3 h-3 text-green-600" />
+                                                                                ) : null}
+                                                                                <span className={
+                                                                                    previsoes[row.account_name].previsoes.cpl.tendencia === 'alta' ? "text-red-600" :
+                                                                                    previsoes[row.account_name].previsoes.cpl.tendencia === 'baixa' ? "text-green-600" :
+                                                                                    "text-slate-600"
+                                                                                }>
+                                                                                    {previsoes[row.account_name].previsoes.cpl.tendencia}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="bg-white rounded p-3">
+                                                                            <p className="text-xs text-slate-500 mb-1">CTR Previsto</p>
+                                                                            <p className="text-lg font-bold text-slate-900">
+                                                                                {previsoes[row.account_name].previsoes.ctr.valor_previsto.toFixed(2)}%
+                                                                            </p>
+                                                                            <div className="flex items-center gap-1 text-xs mt-1">
+                                                                                {previsoes[row.account_name].previsoes.ctr.tendencia === 'alta' ? (
+                                                                                    <TrendingUp className="w-3 h-3 text-green-600" />
+                                                                                ) : previsoes[row.account_name].previsoes.ctr.tendencia === 'baixa' ? (
+                                                                                    <TrendingDown className="w-3 h-3 text-red-600" />
+                                                                                ) : null}
+                                                                                <span className={
+                                                                                    previsoes[row.account_name].previsoes.ctr.tendencia === 'alta' ? "text-green-600" :
+                                                                                    previsoes[row.account_name].previsoes.ctr.tendencia === 'baixa' ? "text-red-600" :
+                                                                                    "text-slate-600"
+                                                                                }>
+                                                                                    {previsoes[row.account_name].previsoes.ctr.tendencia}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        <div className="bg-white rounded p-3">
+                                                                            <p className="text-xs text-slate-500 mb-1">Conversões (7d)</p>
+                                                                            <p className="text-lg font-bold text-slate-900">
+                                                                                {Math.round(previsoes[row.account_name].previsoes.conversoes.total_previsto)}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-500 mt-1">
+                                                                                ~{previsoes[row.account_name].previsoes.conversoes.media_dia.toFixed(1)}/dia
+                                                                            </p>
+                                                                        </div>
+
+                                                                        <div className="bg-white rounded p-3">
+                                                                            <p className="text-xs text-slate-500 mb-1">Frequência (7d)</p>
+                                                                            <p className={cn(
+                                                                                "text-lg font-bold",
+                                                                                previsoes[row.account_name].previsoes.frequencia.status === 'saudavel' ? "text-green-600" :
+                                                                                previsoes[row.account_name].previsoes.frequencia.status === 'alerta' ? "text-orange-600" :
+                                                                                "text-red-600"
+                                                                            )}>
+                                                                                {previsoes[row.account_name].previsoes.frequencia.valor_previsto.toFixed(2)}
+                                                                            </p>
+                                                                            <Badge className={cn(
+                                                                                "text-xs mt-1",
+                                                                                previsoes[row.account_name].previsoes.frequencia.risco_saturacao === 'baixo' ? "bg-green-100 text-green-800" :
+                                                                                previsoes[row.account_name].previsoes.frequencia.risco_saturacao === 'moderado' ? "bg-yellow-100 text-yellow-800" :
+                                                                                "bg-red-100 text-red-800"
+                                                                            )}>
+                                                                                {previsoes[row.account_name].previsoes.frequencia.risco_saturacao}
+                                                                            </Badge>
+                                                                        </div>
+
+                                                                        <div className="bg-white rounded p-3">
+                                                                            <p className="text-xs text-slate-500 mb-1">Gasto Estimado</p>
+                                                                            <p className="text-lg font-bold text-slate-900">
+                                                                                {formatCurrency(previsoes[row.account_name].previsoes.gasto_estimado.total)}
+                                                                            </p>
+                                                                            <p className="text-xs text-slate-500 mt-1">
+                                                                                {formatCurrency(previsoes[row.account_name].previsoes.gasto_estimado.diario)}/dia
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Riscos e Oportunidades */}
+                                                                    {previsoes[row.account_name].analise.riscos.length > 0 && (
+                                                                        <div className="bg-red-50 rounded p-3 border border-red-200 mb-3">
+                                                                            <h4 className="font-semibold text-sm text-red-900 mb-2">⚠ Riscos Identificados</h4>
+                                                                            <div className="space-y-2">
+                                                                                {previsoes[row.account_name].analise.riscos.map((risco, idx) => (
+                                                                                    <div key={idx} className="flex items-start gap-2">
+                                                                                        <Badge className={cn(
+                                                                                            "text-xs",
+                                                                                            risco.severidade === 'critica' ? "bg-red-600 text-white" :
+                                                                                            risco.severidade === 'alta' ? "bg-red-500 text-white" :
+                                                                                            risco.severidade === 'media' ? "bg-orange-500 text-white" :
+                                                                                            "bg-yellow-500 text-white"
+                                                                                        )}>
+                                                                                            {risco.severidade}
+                                                                                        </Badge>
+                                                                                        <p className="text-xs text-slate-700 flex-1">
+                                                                                            <strong>{risco.tipo}:</strong> {risco.descricao}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {previsoes[row.account_name].analise.oportunidades.length > 0 && (
+                                                                        <div className="bg-green-50 rounded p-3 border border-green-200 mb-3">
+                                                                            <h4 className="font-semibold text-sm text-green-900 mb-2">✨ Oportunidades</h4>
+                                                                            <div className="space-y-2">
+                                                                                {previsoes[row.account_name].analise.oportunidades.map((op, idx) => (
+                                                                                    <div key={idx} className="text-xs text-slate-700">
+                                                                                        <strong>{op.tipo}:</strong> {op.descricao} 
+                                                                                        <span className="text-green-600 ml-1">({op.impacto_potencial})</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : loadingPrevisoes[row.account_name] ? (
+                                                                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
+                                                                        <span className="text-sm text-slate-600">Gerando previsão com IA...</span>
+                                                                    </div>
+                                                                </div>
+                                                            ) : null}
+
                                                         {recommendations[row.account_name] ? (
                                                             recommendations[row.account_name].error ? (
                                                                 <div className="text-red-600">{recommendations[row.account_name].error}</div>
                                                             ) : (
-                                                                <div className="space-y-6">
-                                                                    {/* Forecast Section */}
+                                                                <div className="space-y-4">
+                                                                    {/* Forecast Section Simplificado */}
                                                                     <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                                                                         <div className="flex items-center gap-2 mb-3">
                                                                             <Activity className="w-5 h-5 text-blue-600" />
