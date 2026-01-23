@@ -110,6 +110,14 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       const diasRestantes = Math.max(0, differenceInDays(startOfDay(new Date(dataFinal + 'T23:59:59')), startOfDay(hoje)));
       const totalDiasMes = getDaysInMonth(mesReferencia);
 
+      // Calcular feed proporcional restante
+      const feedProporcionalRestante = totalDiasMes > 0 && diasRestantes > 0 
+        ? (investimentoFeed / totalDiasMes) * diasRestantes 
+        : 0;
+
+      // Budget restante ajustado (subtraindo o feed proporcional)
+      const budgetRestanteAjustado = budgetRestante - feedProporcionalRestante;
+
       // Investimento diário
       let investimentoDiarioRecalculado = 0;
       let investimentoDiarioFase1 = 0;
@@ -131,7 +139,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           diasFase2 = Math.max(0, differenceInDays(new Date(dataFinal), dataCorte));
           
           if (diasFase1 > 0) {
-            const budgetRestanteFase1 = Math.max(0, budgetFase1 - valorInvestido);
+            const budgetRestanteFase1 = Math.max(0, budgetFase1 - valorInvestido - feedProporcionalRestante);
             investimentoDiarioFase1 = budgetRestanteFase1 / diasFase1;
           }
           
@@ -145,7 +153,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           diasFase2 = Math.max(0, differenceInDays(new Date(dataFinal), hoje));
           
           if (diasFase2 > 0) {
-            const budgetRestanteFase2 = Math.max(0, budgetMensal - valorInvestido);
+            const budgetRestanteFase2 = Math.max(0, budgetMensal - valorInvestido - feedProporcionalRestante);
             investimentoDiarioFase2 = budgetRestanteFase2 / diasFase2;
           }
           
@@ -153,8 +161,8 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         }
       } else {
         // Cálculo padrão
-        if (diasRestantes > 0 && budgetRestante > 0) {
-          investimentoDiarioRecalculado = budgetRestante / diasRestantes;
+        if (diasRestantes > 0 && budgetRestanteAjustado > 0) {
+          investimentoDiarioRecalculado = budgetRestanteAjustado / diasRestantes;
         }
       }
 
