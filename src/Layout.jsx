@@ -16,6 +16,7 @@ import ChatWidget from '@/components/chat/ChatWidget';
 const pageTitles = {
         Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
         Performance: { title: "Performance", subtitle: "Meta & Google Ads" },
+        DashboardPortfolio: { title: "Dashboard do Portfólio", subtitle: "Performance agregada de contas" },
         Saldos: { title: "Saldos & Investimentos", subtitle: "Controle financeiro" },
         Demandas: { title: "Demandas", subtitle: "Acompanhe suas solicitações" },
         Timeline: { title: "Timeline", subtitle: "Histórico de entregas" },

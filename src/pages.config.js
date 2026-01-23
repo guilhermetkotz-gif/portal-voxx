@@ -23,6 +23,7 @@ import PlanejamentoEstrategico from './pages/PlanejamentoEstrategico';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
+import DashboardPortfolio from './pages/DashboardPortfolio';
 import __Layout from './Layout.jsx';
 
 
@@ -52,6 +53,7 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
+    "DashboardPortfolio": DashboardPortfolio,
 }
 
 export const pagesConfig = {
