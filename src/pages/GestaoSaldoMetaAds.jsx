@@ -516,10 +516,20 @@ export default function GestaoSaldoMetaAds({ user }) {
                         </div>
 
                         <div>
-                          <Label className="text-xs">Valor Planejado Meta</Label>
-                          <div className="mt-1 px-3 py-2 bg-slate-50 rounded-md text-sm font-semibold text-slate-700 h-9 flex items-center">
+                          <Label className="text-xs flex items-center gap-1">
+                            Valor Planejado Meta
+                            {row.planejamento ? (
+                              <Badge className="bg-blue-100 text-blue-700 text-[10px] h-4">Auto</Badge>
+                            ) : (
+                              <Badge className="bg-amber-100 text-amber-700 text-[10px] h-4">Sem planj.</Badge>
+                            )}
+                          </Label>
+                          <div className={`mt-1 px-3 py-2 rounded-md text-sm font-semibold h-9 flex items-center ${row.planejamento ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-700'}`}>
                             {formatCurrency(row.valorPlanejado)}
                           </div>
+                          {row.planejamento && (
+                            <p className="text-xs text-blue-600 mt-1">Do planejamento estratégico</p>
+                          )}
                         </div>
 
                         <div>
