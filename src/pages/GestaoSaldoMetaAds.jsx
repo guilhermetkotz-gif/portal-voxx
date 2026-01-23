@@ -112,7 +112,19 @@ export default function GestaoSaldoMetaAds({ user }) {
       const balance = getBalanceControl(cliente.id);
       const planejamento = getPlanejamento(cliente.id);
       
-      const valorPlanejado = planejamento?.investimento_meta_mes || 0;
+      // Calcular valor planejado Meta Ads
+      let valorPlanejado = 0;
+      if (planejamento) {
+        // Usar campo direto se existir, senão calcular
+        if (planejamento.investimento_meta_mes) {
+          valorPlanejado = planejamento.investimento_meta_mes;
+        } else {
+          // Calcular: Feed + (Investimento Total - Feed - Google - TikTok)
+          const investimentoTotal = (planejamento.meta_faturamento * planejamento.percentual_investimento_marketing) / 100;
+          const investimentoLeads = investimentoTotal - (planejamento.investimento_feed || 0) - (planejamento.investimento_google || 0) - (planejamento.investimento_tiktok || 0);
+          valorPlanejado = (planejamento.investimento_feed || 0) + investimentoLeads;
+        }
+      }
       const saldo = balance?.saldo || 0;
       
       // Calcular valor pago baseado no histórico de tomadas pagas
