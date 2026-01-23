@@ -411,11 +411,32 @@ export default function MonitoramentoContas({ user }) {
     }, [radarData, radarSearchTerm, radarPrioridadeFilter]);
 
     const radarStats = React.useMemo(() => {
+        const totalContas = radarData.length;
+        const avgCPL = totalContas > 0 ? radarData.reduce((sum, d) => sum + d.cplAtual, 0) / totalContas : 0;
+        const avgCTR = totalContas > 0 ? radarData.reduce((sum, d) => sum + d.ctrAtual, 0) / totalContas : 0;
+        const avgFreq = totalContas > 0 ? radarData.reduce((sum, d) => sum + d.frequencia7d, 0) / totalContas : 0;
+        const avgRadarScore = totalContas > 0 ? radarData.reduce((sum, d) => sum + d.radarScore, 0) / totalContas : 0;
+        const totalInvestimento = radarData.reduce((sum, d) => sum + d.investimentoDiario, 0);
+        const totalLeads = radarData.reduce((sum, d) => sum + parseFloat(d.leadsDia7d), 0);
+
+        // Top melhorias e pioras (baseado em tendenciaScore)
+        const sorted = [...radarData].sort((a, b) => b.tendenciaScore - a.tendenciaScore);
+        const topMelhorias = sorted.slice(0, 5);
+        const topPioras = sorted.slice(-5).reverse();
+
         return {
             critica: radarData.filter(d => d.prioridade === 'critica').length,
             alta: radarData.filter(d => d.prioridade === 'alta').length,
             media: radarData.filter(d => d.prioridade === 'media').length,
-            baixa: radarData.filter(d => d.prioridade === 'baixa').length
+            baixa: radarData.filter(d => d.prioridade === 'baixa').length,
+            avgCPL,
+            avgCTR,
+            avgFreq,
+            avgRadarScore,
+            totalInvestimento,
+            totalLeads,
+            topMelhorias,
+            topPioras
         };
     }, [radarData]);
 
@@ -675,7 +696,65 @@ export default function MonitoramentoContas({ user }) {
 
                 {/* Tab: RADAR META */}
                 <TabsContent value="radar" className="space-y-6 mt-6">
-                    {/* Stats Cards */}
+                    {/* Dashboard Executivo */}
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium text-slate-500">Radar Score Médio</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-2">
+                                    <Activity className="w-5 h-5 text-violet-600" />
+                                    <span className="text-2xl font-bold text-slate-900">{radarStats.avgRadarScore.toFixed(0)}</span>
+                                    <span className="text-sm text-slate-500">/100</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium text-slate-500">CPL Médio</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-2">
+                                    <DollarSign className="w-5 h-5 text-green-600" />
+                                    <span className="text-2xl font-bold text-slate-900">{formatCurrency(radarStats.avgCPL)}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium text-slate-500">CTR Médio</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-2">
+                                    <Target className="w-5 h-5 text-blue-600" />
+                                    <span className="text-2xl font-bold text-slate-900">{radarStats.avgCTR.toFixed(2)}%</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium text-slate-500">Frequência Média</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-2">
+                                    <Activity className="w-5 h-5 text-orange-600" />
+                                    <span className={cn(
+                                        "text-2xl font-bold",
+                                        radarStats.avgFreq > 3.0 ? "text-red-600" :
+                                        radarStats.avgFreq >= 2.5 ? "text-orange-600" :
+                                        radarStats.avgFreq >= 1.8 ? "text-green-600" :
+                                        "text-green-700"
+                                    )}>{radarStats.avgFreq.toFixed(2)}</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Distribuição de Prioridades */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <Card>
                             <CardContent className="p-4">
@@ -721,6 +800,75 @@ export default function MonitoramentoContas({ user }) {
                                         <p className="text-2xl font-bold">{radarStats.baixa}</p>
                                         <p className="text-sm text-slate-600">Prioridade Baixa</p>
                                     </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Top Melhorias e Pioras */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-green-600" />
+                                    Top 5 Melhorias (Tendência)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {radarStats.topMelhorias.map((conta, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                                            <div className="flex-1">
+                                                <Link 
+                                                    to={`${createPageUrl('DetalheConta')}?account=${encodeURIComponent(conta.account_name)}`}
+                                                    className="font-medium text-green-900 hover:text-green-700 hover:underline"
+                                                >
+                                                    {conta.account_name}
+                                                </Link>
+                                                <p className="text-xs text-green-700 mt-1">{conta.cliente?.cidade}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-lg font-bold text-green-700">{conta.tendenciaScore}</p>
+                                                <p className="text-xs text-green-600">Tendência</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {radarStats.topMelhorias.length === 0 && (
+                                        <p className="text-center text-slate-500 py-4">Nenhuma conta disponível</p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <TrendingDown className="w-5 h-5 text-red-600" />
+                                    Top 5 Pioras (Tendência)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {radarStats.topPioras.map((conta, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                                            <div className="flex-1">
+                                                <Link 
+                                                    to={`${createPageUrl('DetalheConta')}?account=${encodeURIComponent(conta.account_name)}`}
+                                                    className="font-medium text-red-900 hover:text-red-700 hover:underline"
+                                                >
+                                                    {conta.account_name}
+                                                </Link>
+                                                <p className="text-xs text-red-700 mt-1">{conta.cliente?.cidade}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-lg font-bold text-red-700">{conta.tendenciaScore}</p>
+                                                <p className="text-xs text-red-600">Tendência</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {radarStats.topPioras.length === 0 && (
+                                        <p className="text-center text-slate-500 py-4">Nenhuma conta disponível</p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
