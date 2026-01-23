@@ -71,25 +71,23 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         return null;
       }
 
-      // Buscar conta Meta principal do cliente
-      const contaPrincipal = clientAdAccounts.find(
-        acc => acc.client_id === cliente.id && acc.is_primary
-      );
-
-      // Buscar valor investido da planilha
+      // Buscar valor investido diretamente do nome do cliente
+      // A planilha usa nomes como "Oral Sin - Castanhal (nova)"
       let valorInvestido = 0;
-      if (contaPrincipal?.meta_ad_account_name) {
-        const accountName = contaPrincipal.meta_ad_account_name.trim();
-        valorInvestido = amountSpentByAccount[accountName] || 0;
+      
+      // Tentar encontrar o nome exato primeiro
+      const nomeCliente = cliente.nome?.trim();
+      if (nomeCliente && amountSpentByAccount[nomeCliente] !== undefined) {
+        valorInvestido = amountSpentByAccount[nomeCliente];
+      } else {
+        // Buscar por correspondência parcial (case-insensitive)
+        const clienteNormalized = nomeCliente?.toLowerCase();
+        const matchingKey = Object.keys(amountSpentByAccount).find(key => 
+          key.toLowerCase() === clienteNormalized
+        );
         
-        // Log para debug
-        if (cliente.nome.toLowerCase().includes('castanhal')) {
-          console.log('DEBUG Castanhal:', {
-            clienteNome: cliente.nome,
-            accountName: accountName,
-            valorInvestido: valorInvestido,
-            availableKeys: Object.keys(amountSpentByAccount).filter(k => k.toLowerCase().includes('castanhal'))
-          });
+        if (matchingKey) {
+          valorInvestido = amountSpentByAccount[matchingKey];
         }
       }
 
