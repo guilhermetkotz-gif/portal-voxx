@@ -40,6 +40,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
   const [viewingClienteId, setViewingClienteId] = useState(clienteIdFromUrl || null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMonth, setFilterMonth] = useState('todos');
+  const [activeTab, setActiveTab] = useState('lista');
 
   // Garantir que o mês corrente está selecionado ao carregar
   useEffect(() => {
@@ -385,7 +386,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
       </div>
 
       {/* Toggle Tabela / Infográfico / Lista */}
-      <Tabs defaultValue="lista" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="lista" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
@@ -409,9 +410,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
               <Button 
                 onClick={() => {
                   setSelectedMonth(currentMonth);
-                  // Switch to tabela tab automatically
-                  const tabelaTab = document.querySelector('[value="tabela"]');
-                  if (tabelaTab) tabelaTab.click();
+                  setActiveTab('tabela');
                 }}
                 className="bg-violet-600 hover:bg-violet-700"
               >
@@ -427,8 +426,7 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
                   <Button 
                     onClick={() => {
                       setSelectedMonth(currentMonth);
-                      const tabelaTab = document.querySelector('[value="tabela"]');
-                      if (tabelaTab) tabelaTab.click();
+                      setActiveTab('tabela');
                     }}
                     className="bg-violet-600 hover:bg-violet-700"
                   >
