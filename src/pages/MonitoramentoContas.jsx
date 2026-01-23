@@ -1735,7 +1735,6 @@ export default function MonitoramentoContas({ user }) {
                                                                     <span className="text-slate-600">Carregando recomendações...</span>
                                                                     </div>
                                                                     )}
-                                                                    </div>
                                                                     </TableCell>
                                                 </TableRow>
                                             )}
