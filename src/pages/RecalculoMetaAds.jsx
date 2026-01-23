@@ -18,7 +18,8 @@ const formatCurrency = (value) => {
 
 export default function RecalculoMetaAds({ selectedClienteId, user }) {
   const queryClient = useQueryClient();
-  const currentMonth = format(new Date(), 'yyyy-MM');
+  const hoje = new Date();
+  const currentMonth = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
   
   const [expandedCards, setExpandedCards] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
