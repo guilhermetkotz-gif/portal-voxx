@@ -207,13 +207,16 @@ export default function GestaoSaldoMetaAds({ user }) {
       .reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
     const tomadasPagasCalculado = historico.filter(t => t.pago).length;
     
+    // Puxar valor planejado do planejamento estratégico automaticamente
+    const valorPlanejadoMeta = row.planejamento?.investimento_meta_mes || row.valorPlanejado;
+    
     const data = {
       client_id: row.cliente.id,
       client_name: row.cliente.nome,
       month_year: selectedMonth,
       ad_account_id: row.mainAccount.ad_account_id,
       saldo: edits.saldo !== undefined ? parseFloat(edits.saldo) : balance.saldo || 0,
-      valor_planejado_meta: row.valorPlanejado,
+      valor_planejado_meta: valorPlanejadoMeta,
       valor_pago: valorPagoCalculado,
       gasto_diario: edits.gasto_diario !== undefined ? parseFloat(edits.gasto_diario) : balance.gasto_diario || 0,
       qtd_tomadas: edits.qtd_tomadas !== undefined ? parseInt(edits.qtd_tomadas) : balance.qtd_tomadas || 4,
