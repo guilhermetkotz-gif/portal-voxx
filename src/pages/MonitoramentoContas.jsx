@@ -1569,15 +1569,15 @@ export default function MonitoramentoContas({ user }) {
                                                                     )}
                                                                 </div>
                                                             ) : loadingPrevisoes[row.account_name] ? (
-                                                                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
-                                                                    <div className="flex items-center gap-3">
-                                                                        <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
-                                                                        <span className="text-sm text-slate-600">Gerando previsão com IA...</span>
-                                                                    </div>
+                                                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                                                                <div className="flex items-center gap-3">
+                                                                    <RefreshCw className="w-5 h-5 animate-spin text-blue-600" />
+                                                                    <span className="text-sm text-slate-600">Gerando previsão com IA...</span>
                                                                 </div>
+                                                            </div>
                                                             ) : null}
 
-                                                        {recommendations[row.account_name] ? (
+                                                            {recommendations[row.account_name] ? (
                                                             recommendations[row.account_name].error ? (
                                                                 <div className="text-red-600">{recommendations[row.account_name].error}</div>
                                                             ) : (
