@@ -17,7 +17,8 @@ Deno.serve(async (req) => {
     const SPREADSHEET_ID = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
     const RANGE = 'Página1!A1:Z1000';
     
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}`;
+    const encodedRange = encodeURIComponent(RANGE);
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodedRange}`;
     
     const response = await fetch(sheetsUrl, {
       headers: {
