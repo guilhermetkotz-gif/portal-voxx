@@ -36,6 +36,11 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
   const [viewingClienteId, setViewingClienteId] = useState(clienteIdFromUrl || null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMonth, setFilterMonth] = useState('todos');
+
+  // Garantir que o mês corrente está selecionado ao carregar
+  useEffect(() => {
+    setSelectedMonth(currentMonth);
+  }, [currentMonth]);
   const [formData, setFormData] = useState({
     meta_faturamento: 0,
     ticket_medio: 0,
