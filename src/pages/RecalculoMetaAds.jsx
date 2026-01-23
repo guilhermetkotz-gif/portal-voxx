@@ -142,7 +142,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           investimentoDiarioRecalculado = investimentoDiarioFase1;
         } else {
           // Estamos na fase 2
-          diasFase2 = Math.max(0, differenceInDays(new Date(dataFinal), hoje) + 1);
+          diasFase2 = Math.max(0, differenceInDays(new Date(dataFinal), hoje));
           
           if (diasFase2 > 0) {
             const budgetRestanteFase2 = Math.max(0, budgetMensal - valorInvestido);
