@@ -15,9 +15,26 @@ Deno.serve(async (req) => {
     
     // ID da planilha correta
     const SPREADSHEET_ID = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
-    const RANGE = 'Página1';
     
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}`;
+    // Primeiro buscar metadata para obter o nome correto da sheet
+    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`;
+    const metadataResponse = await fetch(metadataUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+    
+    if (!metadataResponse.ok) {
+      return Response.json({ 
+        error: 'Failed to fetch sheet metadata', 
+        details: await metadataResponse.text() 
+      }, { status: metadataResponse.status });
+    }
+    
+    const metadata = await metadataResponse.json();
+    const firstSheetName = metadata.sheets[0]?.properties?.title;
+    
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(firstSheetName)}`;
     
     const response = await fetch(sheetsUrl, {
       headers: {
