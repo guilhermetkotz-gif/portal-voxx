@@ -33,7 +33,7 @@ export default function GestaoSaldoMetaAds({ user }) {
   const [viewMode, setViewMode] = useState('detailed');
   const [selectedClienteDetail, setSelectedClienteDetail] = useState(null);
   const [expandedCards, setExpandedCards] = useState(new Set());
-  const [modalNovaTomada, setModalNovaTomada] = useState({ open: false, clienteId: null, clienteNome: null });
+  const [modalNovaTomada, setModalNovaTomada] = useState({ open: false, clienteId: null, clienteNome: null, valorSugerido: 0 });
 
   // Fetch clientes
   const { data: clientes = [] } = useQuery({
@@ -442,7 +442,8 @@ export default function GestaoSaldoMetaAds({ user }) {
                               setModalNovaTomada({ 
                                 open: true, 
                                 clienteId: row.cliente.id,
-                                clienteNome: row.cliente.nome 
+                                clienteNome: row.cliente.nome,
+                                valorSugerido: row.valorTomada
                               });
                             }}
                             className="gap-1 h-8 text-xs"
@@ -809,7 +810,7 @@ export default function GestaoSaldoMetaAds({ user }) {
       {/* Modal Nova Tomada */}
       <ModalNovaTomada
         open={modalNovaTomada.open}
-        onOpenChange={(open) => setModalNovaTomada({ open, clienteId: null, clienteNome: null })}
+        onOpenChange={(open) => setModalNovaTomada({ open, clienteId: null, clienteNome: null, valorSugerido: 0 })}
         onSave={(tomadaData) => {
           if (modalNovaTomada.clienteId) {
             // Ativa edição e expande card
@@ -819,6 +820,7 @@ export default function GestaoSaldoMetaAds({ user }) {
           }
         }}
         clienteNome={modalNovaTomada.clienteNome}
+        valorSugerido={modalNovaTomada.valorSugerido}
       />
     </div>
   );

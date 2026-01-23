@@ -7,12 +7,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
-export default function ModalNovaTomada({ open, onOpenChange, onSave, clienteNome }) {
+export default function ModalNovaTomada({ open, onOpenChange, onSave, clienteNome, valorSugerido }) {
   const [formData, setFormData] = useState({
     valor: '',
     data_envio: format(new Date(), 'yyyy-MM-dd'),
     metodo_pagamento: 'Pix'
   });
+
+  // Atualizar valor quando o modal abrir com valor sugerido
+  React.useEffect(() => {
+    if (open && valorSugerido) {
+      setFormData(prev => ({ ...prev, valor: valorSugerido.toFixed(2) }));
+    }
+  }, [open, valorSugerido]);
 
   const handleSave = () => {
     if (!formData.valor || parseFloat(formData.valor) <= 0) {
