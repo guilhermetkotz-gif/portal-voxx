@@ -103,10 +103,12 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
 
       // Data final e dias restantes
       const config = customConfigs[cliente.id] || {};
-      const ultimoDiaMes = endOfMonth(new Date(`${currentMonth}-01`));
+      // Usar o último dia do mês CORRENTE, não dezembro
+      const mesReferencia = new Date(`${currentMonth}-01`);
+      const ultimoDiaMes = endOfMonth(mesReferencia);
       const dataFinal = config.endDate || format(ultimoDiaMes, 'yyyy-MM-dd');
       const diasRestantes = Math.max(0, differenceInDays(new Date(dataFinal), hoje) + 1);
-      const totalDiasMes = getDaysInMonth(new Date(currentMonth + '-01'));
+      const totalDiasMes = getDaysInMonth(mesReferencia);
 
       // Investimento diário
       let investimentoDiarioRecalculado = 0;
