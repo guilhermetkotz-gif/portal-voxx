@@ -10,6 +10,7 @@ import AguardandoAprovacao from '@/pages/AguardandoAprovacao';
 import BoasVindas from '@/pages/BoasVindas';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { 
@@ -25,7 +26,9 @@ import {
   Radio,
   Target,
   RefreshCw,
-  MessageCircle
+  MessageCircle,
+  CheckCircle,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -147,7 +150,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const demandasAbertas = demandas;
 
   // Fetch Google leads from sheet if configured
-  const { data: googleLeadsData } = useQuery({
+  const { data: googleLeadsData, dataUpdatedAt } = useQuery({
     queryKey: ['googleLeadsSheet', selectedClienteId],
     queryFn: async () => {
       if (!cliente?.google_leads_sheet_url) {
@@ -164,8 +167,31 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       }
     },
     enabled: !!selectedClienteId && !!cliente?.google_leads_sheet_url,
-    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchInterval: 2 * 60 * 1000 // Refetch every 2 minutes
   });
+
+  // Detect new Google leads
+  const [previousLeadsCount, setPreviousLeadsCount] = useState(null);
+  const [showNewLeadAlert, setShowNewLeadAlert] = useState(false);
+  const [newLeadsCount, setNewLeadsCount] = useState(0);
+
+  React.useEffect(() => {
+    if (!googleLeadsData?.leads) return;
+    
+    const currentCount = googleLeadsData.leads;
+    
+    if (previousLeadsCount !== null && currentCount > previousLeadsCount) {
+      const diff = currentCount - previousLeadsCount;
+      setNewLeadsCount(diff);
+      setShowNewLeadAlert(true);
+      
+      // Auto-hide alert after 10 seconds
+      setTimeout(() => setShowNewLeadAlert(false), 10000);
+    }
+    
+    setPreviousLeadsCount(currentCount);
+  }, [googleLeadsData?.leads, dataUpdatedAt]);
 
   const totalLeadsGoogle = googleLeadsData?.leads || (cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0);
   const diasRestantesMeta = cliente?.investimento_dia_meta > 0 
@@ -177,6 +203,26 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   return (
     <div className="space-y-6">
+      {/* New Leads Alert */}
+      {showNewLeadAlert && (
+        <Alert className="bg-green-50 border-green-200 animate-in fade-in slide-in-from-top-4">
+          <CheckCircle className="w-5 h-5 text-green-600" />
+          <AlertDescription className="flex items-center justify-between">
+            <span className="text-green-800 font-medium">
+              🎉 {newLeadsCount} {newLeadsCount === 1 ? 'novo lead cadastrado' : 'novos leads cadastrados'} na planilha Google!
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowNewLeadAlert(false)}
+              className="hover:bg-green-100"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Welcome & Health Score */}
       <div className="grid lg:grid-cols-4 gap-6">
         <Card className="lg:col-span-3 p-6 bg-gradient-to-br from-violet-600 to-violet-700 text-white">

@@ -3,6 +3,7 @@ import AguardandoAprovacao from './pages/AguardandoAprovacao';
 import Ajuda from './pages/Ajuda';
 import BoasVindas from './pages/BoasVindas';
 import CadastroCliente from './pages/CadastroCliente';
+import Chat from './pages/Chat';
 import ConfiguracaoAlertas from './pages/ConfiguracaoAlertas';
 import Conta from './pages/Conta';
 import Cronograma from './pages/Cronograma';
@@ -26,7 +27,6 @@ import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import Chat from './pages/Chat';
 import __Layout from './Layout.jsx';
 
 
@@ -36,6 +36,7 @@ export const PAGES = {
     "Ajuda": Ajuda,
     "BoasVindas": BoasVindas,
     "CadastroCliente": CadastroCliente,
+    "Chat": Chat,
     "ConfiguracaoAlertas": ConfiguracaoAlertas,
     "Conta": Conta,
     "Cronograma": Cronograma,
@@ -59,7 +60,6 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "Chat": Chat,
 }
 
 export const pagesConfig = {
