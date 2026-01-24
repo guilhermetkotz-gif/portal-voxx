@@ -51,7 +51,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
   const [selectedLead, setSelectedLead] = useState(null);
 
   const [showTentativaModal, setShowTentativaModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('novos');
+  const [activeTab, setActiveTab] = useState('todos');
   const [editingCell, setEditingCell] = useState(null);
 
   const { data: leads = [], isLoading, refetch } = useQuery({
@@ -80,6 +80,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
       lead.telefone?.includes(searchTerm);
     
     const matchTab = {
+      todos: true,
       novos: lead.status === 'sem_contato' && !lead.sla_atrasado,
       tratativa: lead.status === 'em_tratativa',
       agendados: lead.status === 'agendou',
@@ -124,6 +125,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
   };
 
   const counts = {
+    todos: leads.length,
     novos: leads.filter(l => l.status === 'sem_contato' && !l.sla_atrasado).length,
     tratativa: leads.filter(l => l.status === 'em_tratativa').length,
     agendados: leads.filter(l => l.status === 'agendou').length,
@@ -176,7 +178,10 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-7 w-full">
+          <TabsList className="grid grid-cols-8 w-full">
+            <TabsTrigger value="todos">
+              Todos {counts.todos > 0 && `(${counts.todos})`}
+            </TabsTrigger>
             <TabsTrigger value="novos">
               Novos {counts.novos > 0 && `(${counts.novos})`}
             </TabsTrigger>
