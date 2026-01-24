@@ -107,44 +107,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
             />
           </div>
 
-          {/* Meta Table */}
-          {isVoxx && clientes.length > 1 && (
-            <Card className="overflow-hidden">
-              <div className="p-4 border-b border-slate-100">
-                <h3 className="font-semibold">Visão Geral - Meta Ads</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-slate-50">
-                      <TableHead>Cliente</TableHead>
-                      <TableHead className="text-right"><MetricTooltip term="Leads">Leads</MetricTooltip></TableHead>
-                      <TableHead className="text-right"><MetricTooltip term="CPL">CPL</MetricTooltip></TableHead>
-                      <TableHead className="text-right"><MetricTooltip term="Investimento">Investido</MetricTooltip></TableHead>
-                      <TableHead className="text-right"><MetricTooltip term="Saldo">Saldo</MetricTooltip></TableHead>
-                      <TableHead className="text-right">Inv./Dia</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {clientes.map((c) => (
-                      <TableRow key={c.id} className="hover:bg-slate-50">
-                        <TableCell className="font-medium">{c.nome}</TableCell>
-                        <TableCell className="text-right">{c.leads_meta_mes || '-'}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(c.custo_por_lead_meta)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(c.investimento_meta_mes)}</TableCell>
-                        <TableCell className="text-right">
-                          <span className={c.saldo_meta < (c.investimento_dia_meta * 3) ? 'text-red-600 font-semibold' : ''}>
-                            {formatCurrency(c.saldo_meta)}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">{formatCurrency(c.investimento_dia_meta)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          )}
+
 
           {/* Métricas Detalhadas Meta */}
           <Card className="p-5">
