@@ -7,7 +7,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield, Save, CheckCircle, Lock, Eye, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Shield, Save, CheckCircle, Lock, Eye, Users, Search, AlertTriangle, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TIPOS_USUARIO = [
@@ -50,7 +52,12 @@ const CATEGORIAS = [...new Set(PAGINAS_DISPONIVEIS.map(p => p.categoria))];
 export default function GerenciarPermissoes({ user }) {
   const queryClient = useQueryClient();
   const [permissoesPorTipo, setPermissoesPorTipo] = useState({});
+  const [permissoesOriginais, setPermissoesOriginais] = useState({});
   const [tipoAtivo, setTipoAtivo] = useState('voxx_admin');
+  const [busca, setBusca] = useState('');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [temAlteracoes, setTemAlteracoes] = useState(false);
 
   // Verificar se usuário tem permissão
   if (!user || (user.role !== 'admin' && user.tipo_usuario !== 'voxx_admin')) {
@@ -81,6 +88,7 @@ export default function GerenciarPermissoes({ user }) {
         };
       });
       setPermissoesPorTipo(permissoesMap);
+      setPermissoesOriginais(JSON.parse(JSON.stringify(permissoesMap)));
     } else {
       // Inicializar com permissões padrão
       const permissoesDefault = {};
@@ -92,8 +100,15 @@ export default function GerenciarPermissoes({ user }) {
         };
       });
       setPermissoesPorTipo(permissoesDefault);
+      setPermissoesOriginais(JSON.parse(JSON.stringify(permissoesDefault)));
     }
   }, [permissoesExistentes]);
+
+  // Detectar alterações
+  useEffect(() => {
+    const alterado = JSON.stringify(permissoesPorTipo) !== JSON.stringify(permissoesOriginais);
+    setTemAlteracoes(alterado);
+  }, [permissoesPorTipo, permissoesOriginais]);
 
   const salvarMutation = useMutation({
     mutationFn: async () => {
@@ -131,6 +146,8 @@ export default function GerenciarPermissoes({ user }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userTypePermissions'] });
+      setPermissoesOriginais(JSON.parse(JSON.stringify(permissoesPorTipo)));
+      setTemAlteracoes(false);
       toast.success('Permissões atualizadas com sucesso!');
     },
     onError: (error) => {
@@ -157,16 +174,37 @@ export default function GerenciarPermissoes({ user }) {
   };
 
   const toggleTodasPaginas = (tipoUsuario, marcar) => {
-    setPermissoesPorTipo(prev => {
-      const permissao = prev[tipoUsuario] || { id: null, paginas: [], descricao: '' };
-      return {
-        ...prev,
-        [tipoUsuario]: {
-          ...permissao,
-          paginas: marcar ? PAGINAS_DISPONIVEIS.map(p => p.nome) : []
-        }
-      };
-    });
+    if (!marcar) {
+      setConfirmAction(() => () => {
+        setPermissoesPorTipo(prev => {
+          const permissao = prev[tipoUsuario] || { id: null, paginas: [], descricao: '' };
+          return {
+            ...prev,
+            [tipoUsuario]: {
+              ...permissao,
+              paginas: []
+            }
+          };
+        });
+      });
+      setShowConfirmDialog(true);
+    } else {
+      setPermissoesPorTipo(prev => {
+        const permissao = prev[tipoUsuario] || { id: null, paginas: [], descricao: '' };
+        return {
+          ...prev,
+          [tipoUsuario]: {
+            ...permissao,
+            paginas: PAGINAS_DISPONIVEIS.map(p => p.nome)
+          }
+        };
+      });
+    }
+  };
+
+  const descartarAlteracoes = () => {
+    setPermissoesPorTipo(JSON.parse(JSON.stringify(permissoesOriginais)));
+    toast.info('Alterações descartadas');
   };
 
   const toggleCategoria = (tipoUsuario, categoria, marcar) => {
@@ -193,6 +231,16 @@ export default function GerenciarPermissoes({ user }) {
   const permissaoAtual = permissoesPorTipo[tipoAtivo] || { paginas: [], descricao: '' };
   const paginasSelecionadas = permissaoAtual.paginas || [];
 
+  const paginasFiltradas = PAGINAS_DISPONIVEIS.filter(p =>
+    p.nome.toLowerCase().includes(busca.toLowerCase()) ||
+    p.descricao.toLowerCase().includes(busca.toLowerCase()) ||
+    p.categoria.toLowerCase().includes(busca.toLowerCase())
+  );
+
+  const categoriasFiltradas = busca 
+    ? [...new Set(paginasFiltradas.map(p => p.categoria))]
+    : CATEGORIAS;
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -206,26 +254,54 @@ export default function GerenciarPermissoes({ user }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gerenciar Permissões</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">Gerenciar Permissões</h1>
+            {temAlteracoes && (
+              <Badge className="bg-amber-100 text-amber-700 animate-pulse">
+                <AlertTriangle className="w-3 h-3 mr-1" />
+                Não salvo
+              </Badge>
+            )}
+          </div>
           <p className="text-slate-500 mt-1">Configure quais páginas cada tipo de usuário pode acessar</p>
         </div>
-        <Button 
-          onClick={() => salvarMutation.mutate()}
-          disabled={salvarMutation.isPending}
-          className="bg-violet-600 hover:bg-violet-700"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {salvarMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
-        </Button>
+        <div className="flex gap-2">
+          {temAlteracoes && (
+            <Button 
+              onClick={descartarAlteracoes}
+              variant="outline"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Descartar
+            </Button>
+          )}
+          <Button 
+            onClick={() => salvarMutation.mutate()}
+            disabled={salvarMutation.isPending || !temAlteracoes}
+            className="bg-violet-600 hover:bg-violet-700"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {salvarMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+          </Button>
+        </div>
       </div>
 
       {/* Alert Info */}
-      <Alert className="bg-blue-50 border-blue-200">
-        <Shield className="w-4 h-4 text-blue-600" />
-        <AlertDescription className="text-blue-900">
-          Defina quais páginas cada perfil de usuário pode visualizar. As alterações serão aplicadas imediatamente após salvar.
-        </AlertDescription>
-      </Alert>
+      {temAlteracoes ? (
+        <Alert className="bg-amber-50 border-amber-200">
+          <AlertTriangle className="w-4 h-4 text-amber-600" />
+          <AlertDescription className="text-amber-900">
+            Você tem alterações não salvas. Clique em "Salvar Alterações" para aplicar ou "Descartar" para cancelar.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert className="bg-blue-50 border-blue-200">
+          <Shield className="w-4 h-4 text-blue-600" />
+          <AlertDescription className="text-blue-900">
+            Defina quais páginas cada perfil de usuário pode visualizar. As alterações serão aplicadas imediatamente após salvar.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Tabs por Tipo de Usuário */}
       <Tabs value={tipoAtivo} onValueChange={setTipoAtivo}>
@@ -247,40 +323,70 @@ export default function GerenciarPermissoes({ user }) {
               {/* Info do Tipo */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-3">
-                        <Badge className={tipo.color}>{tipo.label}</Badge>
-                        <span className="text-slate-600 text-sm font-normal">
-                          {paginas.length} de {PAGINAS_DISPONIVEIS.length} páginas permitidas
-                        </span>
-                      </CardTitle>
-                      <p className="text-sm text-slate-500 mt-2">{tipo.description}</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-3">
+                          <Badge className={tipo.color}>{tipo.label}</Badge>
+                          <span className="text-slate-600 text-sm font-normal">
+                            {paginas.length} de {PAGINAS_DISPONIVEIS.length} páginas permitidas
+                          </span>
+                        </CardTitle>
+                        <p className="text-sm text-slate-500 mt-2">{tipo.description}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleTodasPaginas(tipo.value, true)}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Marcar Todas
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleTodasPaginas(tipo.value, false)}
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          Desmarcar Todas
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleTodasPaginas(tipo.value, true)}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Marcar Todas
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleTodasPaginas(tipo.value, false)}
-                      >
-                        Desmarcar Todas
-                      </Button>
+                    
+                    {/* Busca */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Input
+                        placeholder="Buscar páginas..."
+                        value={busca}
+                        onChange={(e) => setBusca(e.target.value)}
+                        className="pl-10"
+                      />
+                      {busca && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                          onClick={() => setBusca('')}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
+
+                    {busca && (
+                      <div className="text-sm text-slate-600">
+                        {paginasFiltradas.length} página(s) encontrada(s)
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
               </Card>
 
               {/* Páginas por Categoria */}
-              {CATEGORIAS.map(categoria => {
-                const paginasCategoria = PAGINAS_DISPONIVEIS.filter(p => p.categoria === categoria);
+              {categoriasFiltradas.map(categoria => {
+                const paginasCategoria = paginasFiltradas.filter(p => p.categoria === categoria);
                 const todasMarcadas = paginasCategoria.every(p => paginas.includes(p.nome));
                 const algumasMarcadas = paginasCategoria.some(p => paginas.includes(p.nome));
 
@@ -306,8 +412,10 @@ export default function GerenciarPermissoes({ user }) {
                           return (
                             <label
                               key={pagina.nome}
-                              className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all hover:bg-slate-50 ${
-                                isPermitida ? 'border-violet-300 bg-violet-50' : 'border-slate-200'
+                              className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md group ${
+                                isPermitida 
+                                  ? 'border-violet-300 bg-violet-50 hover:bg-violet-100' 
+                                  : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                               }`}
                             >
                               <Checkbox
@@ -320,9 +428,11 @@ export default function GerenciarPermissoes({ user }) {
                                   {isPermitida ? (
                                     <Eye className="w-4 h-4 text-violet-600 flex-shrink-0" />
                                   ) : (
-                                    <Lock className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                    <Lock className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:text-slate-600" />
                                   )}
-                                  <p className="font-medium text-slate-900 truncate">{pagina.nome}</p>
+                                  <p className={`font-medium truncate ${isPermitida ? 'text-violet-900' : 'text-slate-900'}`}>
+                                    {pagina.nome}
+                                  </p>
                                 </div>
                                 <p className="text-xs text-slate-500">{pagina.descricao}</p>
                               </div>
@@ -371,6 +481,31 @@ export default function GerenciarPermissoes({ user }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog de Confirmação */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desmarcar todas as páginas?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a remover o acesso a todas as páginas para este tipo de usuário. 
+              Isso pode impedir que usuários deste perfil acessem o sistema. Tem certeza?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmAction) confirmAction();
+                setShowConfirmDialog(false);
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Sim, desmarcar todas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
