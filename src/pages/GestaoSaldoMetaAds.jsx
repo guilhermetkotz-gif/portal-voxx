@@ -145,7 +145,11 @@ export default function GestaoSaldoMetaAds({ user }) {
         .reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
       
       // Pegar gasto diário automático da planilha se disponível
-      const gastoDiarioAuto = (mainAccount?.account_name && gastoDiarioData?.gastoDiarioPorConta?.[mainAccount.account_name]) || 0;
+      let gastoDiarioAuto = 0;
+      if (mainAccount?.account_name && gastoDiarioData?.gastoDiarioPorConta) {
+        gastoDiarioAuto = gastoDiarioData.gastoDiarioPorConta[mainAccount.account_name] || 0;
+      }
+      
       const gastoDiario = edits.gasto_diario !== undefined ? parseFloat(edits.gasto_diario) : (balance?.gasto_diario || gastoDiarioAuto);
       const qtdTomadas = edits.qtd_tomadas !== undefined ? parseInt(edits.qtd_tomadas) : (balance?.qtd_tomadas || 4);
       const tomadasPagas = historico.filter(t => t.pago).length;
@@ -177,9 +181,10 @@ export default function GestaoSaldoMetaAds({ user }) {
         valorTomada,
         tomadasFaltaPagar,
         saldoAlert,
+        gastoDiarioAuto,
       };
     });
-  }, [clientes, balanceControls, planejamentos, statusFilter, searchTerm, editingRows]);
+  }, [clientes, balanceControls, planejamentos, statusFilter, searchTerm, editingRows, gastoDiarioData]);
 
   const handleFieldChange = (clientId, field, value) => {
     setEditingRows(prev => ({
