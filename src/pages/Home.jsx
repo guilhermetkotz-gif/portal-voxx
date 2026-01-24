@@ -146,7 +146,28 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const cliente = currentCliente;
   const demandasAbertas = demandas;
 
-  const totalLeadsGoogle = (cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0);
+  // Fetch Google leads from sheet if configured
+  const { data: googleLeadsData } = useQuery({
+    queryKey: ['googleLeadsSheet', selectedClienteId],
+    queryFn: async () => {
+      if (!cliente?.google_leads_sheet_url) {
+        return { leads: 0 };
+      }
+      try {
+        const response = await base44.functions.invoke('getGoogleLeadsFromSheet', { 
+          clienteId: selectedClienteId 
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching Google leads:', error);
+        return { leads: 0 };
+      }
+    },
+    enabled: !!selectedClienteId && !!cliente?.google_leads_sheet_url,
+    staleTime: 5 * 60 * 1000 // Cache for 5 minutes
+  });
+
+  const totalLeadsGoogle = googleLeadsData?.leads || (cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0);
   const diasRestantesMeta = cliente?.investimento_dia_meta > 0 
     ? Math.floor((cliente?.saldo_meta || 0) / cliente.investimento_dia_meta) 
     : null;
@@ -231,7 +252,11 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
         <KPICard
           title="Leads Google"
           value={totalLeadsGoogle.toLocaleString('pt-BR') || '-'}
-          subtitle={`${cliente?.leads_google_cadastro || 0} cadastros + ${cliente?.leads_google_ligacao || 0} ligações`}
+          subtitle={
+            googleLeadsData?.leads 
+              ? `Da planilha do mês de ${googleLeadsData.month}` 
+              : `${cliente?.leads_google_cadastro || 0} cadastros + ${cliente?.leads_google_ligacao || 0} ligações`
+          }
           icon={Users}
           variant="success"
         />

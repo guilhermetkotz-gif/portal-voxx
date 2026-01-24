@@ -80,6 +80,9 @@ export default function CadastroCliente() {
     tags: [],
     fonte_entrada: 'outro',
     maturidade_digital: 'basico',
+    
+    // Seção H - Integrações
+    google_leads_sheet_url: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -298,6 +301,7 @@ export default function CadastroCliente() {
       tags: [],
       fonte_entrada: 'outro',
       maturidade_digital: 'basico',
+      google_leads_sheet_url: '',
     });
     setEditingClienteId(null);
     setLegacyKeyManuallyEdited(false);
@@ -336,6 +340,7 @@ export default function CadastroCliente() {
       tags: cliente.tags || [],
       fonte_entrada: cliente.fonte_entrada || 'outro',
       maturidade_digital: cliente.maturidade_digital || 'basico',
+      google_leads_sheet_url: cliente.google_leads_sheet_url || '',
     });
     setEditingClienteId(cliente.id);
     setLegacyKeyManuallyEdited(false);
@@ -457,13 +462,14 @@ export default function CadastroCliente() {
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit}>
             <Tabs value={currentTab} onValueChange={setCurrentTab}>
-              <TabsList className="grid grid-cols-4 lg:grid-cols-7 mb-6">
+              <TabsList className="grid grid-cols-4 lg:grid-cols-8 mb-6">
                 <TabsTrigger value="identificacao">Identificação</TabsTrigger>
                 <TabsTrigger value="localizacao">Localização</TabsTrigger>
                 <TabsTrigger value="contatos">Contatos</TabsTrigger>
                 <TabsTrigger value="contas">Contas</TabsTrigger>
                 <TabsTrigger value="briefing">Briefing</TabsTrigger>
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
+                <TabsTrigger value="integracoes">Integrações</TabsTrigger>
                 <TabsTrigger value="metadados">Interno</TabsTrigger>
               </TabsList>
 
@@ -946,7 +952,33 @@ export default function CadastroCliente() {
                 </div>
               </TabsContent>
 
-              {/* SEÇÃO G - Metadados */}
+              {/* SEÇÃO G - Integrações */}
+              <TabsContent value="integracoes" className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">Integrações de Dados</h3>
+                  <p className="text-sm text-slate-500 mb-4">
+                    Configure integrações com planilhas e outras fontes de dados externas.
+                  </p>
+                  
+                  <div>
+                    <Label htmlFor="google_leads_sheet_url">URL da Planilha Google Sheets (Leads Google)</Label>
+                    <Input
+                      id="google_leads_sheet_url"
+                      value={formData.google_leads_sheet_url}
+                      onChange={(e) => handleInputChange('google_leads_sheet_url', e.target.value)}
+                      placeholder="https://docs.google.com/spreadsheets/d/..."
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-slate-500 mt-2">
+                      Cole aqui a URL completa da planilha Google Sheets contendo os leads do Google Ads. 
+                      A planilha deve ter uma aba com o nome do mês atual (ex: "Janeiro", "Fevereiro") 
+                      para que o sistema conte automaticamente os leads cadastrados.
+                    </p>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* SEÇÃO H - Metadados */}
               <TabsContent value="metadados" className="space-y-6">
                 <div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-4">Metadados e Controle Interno</h3>
