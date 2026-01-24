@@ -25,6 +25,7 @@ import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
+import GerenciarPermissoes from './pages/GerenciarPermissoes';
 import __Layout from './Layout.jsx';
 
 
@@ -56,6 +57,7 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
+    "GerenciarPermissoes": GerenciarPermissoes,
 }
 
 export const pagesConfig = {
