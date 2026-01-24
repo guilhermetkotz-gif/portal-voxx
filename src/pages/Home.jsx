@@ -175,6 +175,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const [previousLeadsCount, setPreviousLeadsCount] = useState(null);
   const [showNewLeadAlert, setShowNewLeadAlert] = useState(false);
   const [newLeadsCount, setNewLeadsCount] = useState(0);
+  const [newLeadsData, setNewLeadsData] = useState([]);
 
   React.useEffect(() => {
     if (!googleLeadsData?.leads) return;
@@ -184,6 +185,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     if (previousLeadsCount !== null && currentCount > previousLeadsCount) {
       const diff = currentCount - previousLeadsCount;
       setNewLeadsCount(diff);
+      setNewLeadsData(googleLeadsData.lastLeads || []);
       setShowNewLeadAlert(true);
     }
     
@@ -203,23 +205,44 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       {/* New Leads Alert */}
       {showNewLeadAlert && (
         <Alert className="bg-green-50 border-green-200 animate-in fade-in slide-in-from-top-4">
-          <img 
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695d14d862b9c933054dfba4/9c0850cc4_image.png" 
-            alt="Google" 
-            className="w-5 h-5"
-          />
-          <AlertDescription className="flex items-center justify-between">
-            <span className="text-green-800 font-medium">
-              🎉 {newLeadsCount} {newLeadsCount === 1 ? 'novo lead cadastrado' : 'novos leads cadastrados'} na planilha Google!
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowNewLeadAlert(false)}
-              className="hover:bg-green-100"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+          <AlertDescription className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img 
+                  src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695d14d862b9c933054dfba4/9c0850cc4_image.png" 
+                  alt="Google" 
+                  className="w-5 h-5"
+                />
+                <span className="text-green-800 font-semibold">
+                  🎉 {newLeadsCount} {newLeadsCount === 1 ? 'novo lead cadastrado' : 'novos leads cadastrados'} na planilha Google!
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNewLeadAlert(false)}
+                className="hover:bg-green-100"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            {newLeadsData.length > 0 && (
+              <div className="space-y-2 pl-7">
+                {newLeadsData.slice(0, 3).map((lead, idx) => (
+                  <div key={idx} className="text-sm text-green-700 flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    <span className="font-medium">{lead.nome}</span>
+                    <span className="text-green-600">•</span>
+                    <span>{lead.telefone}</span>
+                  </div>
+                ))}
+                {newLeadsData.length > 3 && (
+                  <div className="text-xs text-green-600 pl-3.5">
+                    + {newLeadsData.length - 3} mais {newLeadsData.length - 3 === 1 ? 'lead' : 'leads'}
+                  </div>
+                )}
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}

@@ -79,10 +79,31 @@ Deno.serve(async (req) => {
     const rowCount = data.values ? data.values.length - 1 : 0;
     const leadsCount = Math.max(0, rowCount);
 
+    // Get last 5 leads (excluding header)
+    const lastLeads = [];
+    if (data.values && data.values.length > 1) {
+      const headers = data.values[0];
+      const nameIndex = headers.findIndex(h => h && h.toLowerCase().includes('nome'));
+      const phoneIndex = headers.findIndex(h => h && (h.toLowerCase().includes('telefone') || h.toLowerCase().includes('whatsapp')));
+      
+      // Get last 5 rows (most recent leads)
+      const recentRows = data.values.slice(-5).reverse();
+      
+      for (const row of recentRows) {
+        if (row.length > 0) {
+          lastLeads.push({
+            nome: nameIndex >= 0 ? row[nameIndex] : 'N/A',
+            telefone: phoneIndex >= 0 ? row[phoneIndex] : 'N/A'
+          });
+        }
+      }
+    }
+
     return Response.json({ 
       leads: leadsCount,
       month: currentMonth,
-      spreadsheetId
+      spreadsheetId,
+      lastLeads
     });
 
   } catch (error) {
