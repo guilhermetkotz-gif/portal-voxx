@@ -68,14 +68,10 @@ Deno.serve(async (req) => {
     const amountSpentIndex = headers.findIndex(h => 
       h && (h.toLowerCase().includes('amount') && h.toLowerCase().includes('spent'))
     );
-    const diarioD1Index = headers.findIndex(h => 
-      h && (h.toLowerCase().includes('diário') || h.toLowerCase().includes('diario')) && h.includes('D-1')
-    );
     
     console.log('Headers:', headers);
     console.log('Account Name Index:', accountNameIndex);
     console.log('Amount Spent Index:', amountSpentIndex);
-    console.log('Diário D-1 Index:', diarioD1Index);
 
     if (accountNameIndex === -1 || amountSpentIndex === -1) {
       return Response.json({ 
@@ -92,7 +88,6 @@ Deno.serve(async (req) => {
       const row = rows[i];
       const accountName = row[accountNameIndex];
       const amountSpentRaw = row[amountSpentIndex];
-      const diarioD1Raw = diarioD1Index !== -1 ? row[diarioD1Index] : null;
       
       // Limpar o valor e converter (remover R$, pontos e vírgulas)
       let amountSpent = 0;
@@ -105,19 +100,10 @@ Deno.serve(async (req) => {
         amountSpent = parseFloat(cleanValue) || 0;
       }
       
-      let diarioD1 = 0;
-      if (diarioD1Raw) {
-        const cleanValue = String(diarioD1Raw)
-          .replace(/R\$/g, '')
-          .replace(/\./g, '')
-          .replace(/,/g, '.')
-          .trim();
-        diarioD1 = parseFloat(cleanValue) || 0;
-      }
-      
       if (accountName) {
         amountSpentByAccount[accountName] = amountSpent;
-        diarioD1ByAccount[accountName] = diarioD1;
+        // Amount Spent é o mesmo que Diário D-1
+        diarioD1ByAccount[accountName] = amountSpent;
       }
     }
 
