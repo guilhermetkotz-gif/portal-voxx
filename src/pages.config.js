@@ -27,6 +27,7 @@ import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
+import CrcCaixaLeads from './pages/CrcCaixaLeads';
 import __Layout from './Layout.jsx';
 
 
@@ -60,6 +61,7 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
+    "CrcCaixaLeads": CrcCaixaLeads,
 }
 
 export const pagesConfig = {
