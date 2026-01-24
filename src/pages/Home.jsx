@@ -203,7 +203,11 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       {/* New Leads Alert */}
       {showNewLeadAlert && (
         <Alert className="bg-green-50 border-green-200 animate-in fade-in slide-in-from-top-4">
-          <CheckCircle className="w-5 h-5 text-green-600" />
+          <img 
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/695d14d862b9c933054dfba4/9c0850cc4_image.png" 
+            alt="Google" 
+            className="w-5 h-5"
+          />
           <AlertDescription className="flex items-center justify-between">
             <span className="text-green-800 font-medium">
               🎉 {newLeadsCount} {newLeadsCount === 1 ? 'novo lead cadastrado' : 'novos leads cadastrados'} na planilha Google!
