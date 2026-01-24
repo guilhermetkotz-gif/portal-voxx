@@ -71,6 +71,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
   });
 
   const amountSpentByAccount = sheetData?.amountSpentByAccount || {};
+  const diarioD1ByAccount = sheetData?.diarioD1ByAccount || {};
 
   // ClientAdAccount não está sendo usada, buscaremos direto do Cliente
   // const { data: clientAdAccounts = [] } = useQuery({
@@ -88,14 +89,16 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         return null;
       }
 
-      // Buscar valor investido diretamente do nome do cliente
+      // Buscar valor investido e diário D-1 diretamente do nome do cliente
       // A planilha usa nomes como "Oral Sin - Castanhal (nova)"
       let valorInvestido = 0;
+      let diarioD1 = 0;
       
       // Tentar encontrar o nome exato primeiro
       const nomeCliente = cliente.nome?.trim();
       if (nomeCliente && amountSpentByAccount[nomeCliente] !== undefined) {
         valorInvestido = amountSpentByAccount[nomeCliente];
+        diarioD1 = diarioD1ByAccount[nomeCliente] || 0;
       } else {
         // Buscar por correspondência parcial (case-insensitive)
         const clienteNormalized = nomeCliente?.toLowerCase();
@@ -105,6 +108,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         
         if (matchingKey) {
           valorInvestido = amountSpentByAccount[matchingKey];
+          diarioD1 = diarioD1ByAccount[matchingKey] || 0;
         }
       }
 
@@ -200,7 +204,8 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         investimentoDiarioFase1,
         investimentoDiarioFase2,
         diasFase1,
-        diasFase2
+        diasFase2,
+        diarioD1
       };
     }).filter(Boolean);
   }, [clientes, planejamentos, amountSpentByAccount, customConfigs, currentMonth]);
@@ -347,6 +352,13 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
                     </div>
 
                     <div className="flex items-center gap-6 mr-4">
+                      <div className="text-right">
+                        <p className="text-xs text-slate-600 mb-1">Diário (D-1)</p>
+                        <p className="text-sm font-semibold text-blue-600">
+                          {formatCurrency(dados.diarioD1)}
+                        </p>
+                      </div>
+                      
                       <div className="text-right">
                         <p className="text-xs text-slate-600 mb-1">Diário Atual</p>
                         <p className="text-sm font-semibold text-slate-700">
