@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MessageCircle, Search, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { MessageCircle, Search, Clock, CheckCircle, XCircle, AlertCircle, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -34,12 +35,12 @@ export default function GerenciarChats({ user }) {
   }, []);
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }) => {
+    mutationFn: ({ id, status, atendente }) => {
       const updates = { status };
       
-      if (status === 'em_atendimento' && !selectedConversation?.atendente_id) {
-        updates.atendente_id = user.id;
-        updates.atendente_nome = user.full_name;
+      if (status === 'em_atendimento' && atendente) {
+        updates.atendente_id = atendente.id;
+        updates.atendente_nome = atendente.full_name;
       }
       
       return base44.entities.ChatConversation.update(id, updates);
@@ -49,6 +50,20 @@ export default function GerenciarChats({ user }) {
       toast.success('Status atualizado');
     }
   });
+
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    
+    const { draggableId, destination } = result;
+    const newStatus = destination.droppableId;
+    const conversationId = draggableId;
+    
+    updateStatusMutation.mutate({ 
+      id: conversationId, 
+      status: newStatus,
+      atendente: newStatus === 'em_atendimento' ? user : null
+    });
+  };
 
   const filteredConversations = conversations.filter(conv => {
     if (statusFilter !== 'all' && conv.status !== statusFilter) return false;
@@ -178,123 +193,356 @@ export default function GerenciarChats({ user }) {
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Search Filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por cliente, usuário ou assunto..."
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="aberto">Aberto</SelectItem>
-                <SelectItem value="em_atendimento">Em Atendimento</SelectItem>
-                <SelectItem value="resolvido">Resolvido</SelectItem>
-                <SelectItem value="fechado">Fechado</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por cliente, usuário ou assunto..."
+              className="pl-10"
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Conversations List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Conversas ({filteredConversations.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {filteredConversations.map((conv) => (
-              <div
-                key={conv.id}
-                onClick={() => setSelectedConversation(conv)}
-                className={cn(
-                  "p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md",
-                  (conv.nao_lidas_voxx || 0) > 0 ? "bg-violet-50 border-violet-200" : "bg-white border-slate-200"
-                )}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-slate-900">
-                        {conv.cliente_nome}
-                      </h4>
-                      <Badge className={statusColors[conv.status]}>
-                        {conv.status}
-                      </Badge>
-                      {(conv.nao_lidas_voxx || 0) > 0 && (
-                        <Badge className="bg-violet-600 text-white">
-                          {conv.nao_lidas_voxx} nova{conv.nao_lidas_voxx > 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-slate-600 mb-1">
-                      <span className="font-medium">{conv.usuario_nome}</span>
-                      {conv.assunto && ` • ${conv.assunto}`}
-                    </p>
-                    <p className="text-sm text-slate-500 line-clamp-1">
-                      {conv.ultima_mensagem}
-                    </p>
-                  </div>
-                  
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="text-xs text-slate-500">
-                      {conv.ultima_mensagem_em && format(new Date(conv.ultima_mensagem_em), 'dd/MM HH:mm')}
-                    </span>
-                    {conv.atendente_nome && (
-                      <span className="text-xs text-slate-600">
-                        👤 {conv.atendente_nome}
-                      </span>
+      {/* Kanban Board */}
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Coluna: Aberto */}
+          <Card className="bg-orange-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Clock className="w-4 h-4 text-orange-500" />
+                Aberto ({statusCounts.aberto})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Droppable droppableId="aberto">
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={cn(
+                      "space-y-2 min-h-[200px]",
+                      snapshot.isDraggingOver && "bg-orange-100 rounded-lg p-2"
                     )}
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateStatusMutation.mutate({ id: conv.id, status: 'em_atendimento' });
-                        }}
-                        disabled={conv.status === 'em_atendimento'}
-                      >
-                        Atender
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateStatusMutation.mutate({ id: conv.id, status: 'resolvido' });
-                        }}
-                        disabled={conv.status === 'resolvido'}
-                      >
-                        Resolver
-                      </Button>
-                    </div>
+                  >
+                    {conversations
+                      .filter(c => c.status === 'aberto')
+                      .filter(c => {
+                        if (!searchTerm) return true;
+                        const search = searchTerm.toLowerCase();
+                        return (
+                          c.cliente_nome?.toLowerCase().includes(search) ||
+                          c.usuario_nome?.toLowerCase().includes(search) ||
+                          c.assunto?.toLowerCase().includes(search)
+                        );
+                      })
+                      .map((conv, index) => (
+                        <Draggable key={conv.id} draggableId={conv.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              onClick={() => setSelectedConversation(conv)}
+                              className={cn(
+                                "p-3 rounded-lg border bg-white cursor-pointer transition-all hover:shadow-md",
+                                (conv.nao_lidas_voxx || 0) > 0 && "ring-2 ring-violet-400",
+                                snapshot.isDragging && "shadow-lg rotate-2"
+                              )}
+                            >
+                              <div className="flex items-start gap-2 mb-2">
+                                <GripVertical className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm text-slate-900 truncate">
+                                    {conv.cliente_nome}
+                                  </h4>
+                                  {(conv.nao_lidas_voxx || 0) > 0 && (
+                                    <Badge className="bg-violet-600 text-white text-xs mt-1">
+                                      {conv.nao_lidas_voxx} nova{conv.nao_lidas_voxx > 1 ? 's' : ''}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-xs text-slate-600 mb-1">
+                                {conv.usuario_nome}
+                              </p>
+                              {conv.assunto && (
+                                <p className="text-xs text-slate-500 font-medium mb-1 truncate">
+                                  {conv.assunto}
+                                </p>
+                              )}
+                              <p className="text-xs text-slate-500 line-clamp-2">
+                                {conv.ultima_mensagem}
+                              </p>
+                              <span className="text-xs text-slate-400 mt-2 block">
+                                {conv.ultima_mensagem_em && format(new Date(conv.ultima_mensagem_em), 'dd/MM HH:mm')}
+                              </span>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                    {provided.placeholder}
                   </div>
-                </div>
-              </div>
-            ))}
-            
-            {filteredConversations.length === 0 && (
-              <div className="text-center py-12 text-slate-500">
-                Nenhuma conversa encontrada
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                )}
+              </Droppable>
+            </CardContent>
+          </Card>
+
+          {/* Coluna: Em Atendimento */}
+          <Card className="bg-blue-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <MessageCircle className="w-4 h-4 text-blue-500" />
+                Em Atendimento ({statusCounts.em_atendimento})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Droppable droppableId="em_atendimento">
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={cn(
+                      "space-y-2 min-h-[200px]",
+                      snapshot.isDraggingOver && "bg-blue-100 rounded-lg p-2"
+                    )}
+                  >
+                    {conversations
+                      .filter(c => c.status === 'em_atendimento')
+                      .filter(c => {
+                        if (!searchTerm) return true;
+                        const search = searchTerm.toLowerCase();
+                        return (
+                          c.cliente_nome?.toLowerCase().includes(search) ||
+                          c.usuario_nome?.toLowerCase().includes(search) ||
+                          c.assunto?.toLowerCase().includes(search)
+                        );
+                      })
+                      .map((conv, index) => (
+                        <Draggable key={conv.id} draggableId={conv.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              onClick={() => setSelectedConversation(conv)}
+                              className={cn(
+                                "p-3 rounded-lg border bg-white cursor-pointer transition-all hover:shadow-md",
+                                (conv.nao_lidas_voxx || 0) > 0 && "ring-2 ring-violet-400",
+                                snapshot.isDragging && "shadow-lg rotate-2"
+                              )}
+                            >
+                              <div className="flex items-start gap-2 mb-2">
+                                <GripVertical className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm text-slate-900 truncate">
+                                    {conv.cliente_nome}
+                                  </h4>
+                                  {(conv.nao_lidas_voxx || 0) > 0 && (
+                                    <Badge className="bg-violet-600 text-white text-xs mt-1">
+                                      {conv.nao_lidas_voxx} nova{conv.nao_lidas_voxx > 1 ? 's' : ''}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-xs text-slate-600 mb-1">
+                                {conv.usuario_nome}
+                              </p>
+                              {conv.atendente_nome && (
+                                <p className="text-xs text-blue-600 mb-1">
+                                  👤 {conv.atendente_nome}
+                                </p>
+                              )}
+                              {conv.assunto && (
+                                <p className="text-xs text-slate-500 font-medium mb-1 truncate">
+                                  {conv.assunto}
+                                </p>
+                              )}
+                              <p className="text-xs text-slate-500 line-clamp-2">
+                                {conv.ultima_mensagem}
+                              </p>
+                              <span className="text-xs text-slate-400 mt-2 block">
+                                {conv.ultima_mensagem_em && format(new Date(conv.ultima_mensagem_em), 'dd/MM HH:mm')}
+                              </span>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </CardContent>
+          </Card>
+
+          {/* Coluna: Resolvido */}
+          <Card className="bg-green-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                Resolvido ({statusCounts.resolvido})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Droppable droppableId="resolvido">
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={cn(
+                      "space-y-2 min-h-[200px]",
+                      snapshot.isDraggingOver && "bg-green-100 rounded-lg p-2"
+                    )}
+                  >
+                    {conversations
+                      .filter(c => c.status === 'resolvido')
+                      .filter(c => {
+                        if (!searchTerm) return true;
+                        const search = searchTerm.toLowerCase();
+                        return (
+                          c.cliente_nome?.toLowerCase().includes(search) ||
+                          c.usuario_nome?.toLowerCase().includes(search) ||
+                          c.assunto?.toLowerCase().includes(search)
+                        );
+                      })
+                      .map((conv, index) => (
+                        <Draggable key={conv.id} draggableId={conv.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              onClick={() => setSelectedConversation(conv)}
+                              className={cn(
+                                "p-3 rounded-lg border bg-white cursor-pointer transition-all hover:shadow-md",
+                                snapshot.isDragging && "shadow-lg rotate-2"
+                              )}
+                            >
+                              <div className="flex items-start gap-2 mb-2">
+                                <GripVertical className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm text-slate-900 truncate">
+                                    {conv.cliente_nome}
+                                  </h4>
+                                </div>
+                              </div>
+                              <p className="text-xs text-slate-600 mb-1">
+                                {conv.usuario_nome}
+                              </p>
+                              {conv.atendente_nome && (
+                                <p className="text-xs text-green-600 mb-1">
+                                  👤 {conv.atendente_nome}
+                                </p>
+                              )}
+                              {conv.assunto && (
+                                <p className="text-xs text-slate-500 font-medium mb-1 truncate">
+                                  {conv.assunto}
+                                </p>
+                              )}
+                              <p className="text-xs text-slate-500 line-clamp-2">
+                                {conv.ultima_mensagem}
+                              </p>
+                              <span className="text-xs text-slate-400 mt-2 block">
+                                {conv.ultima_mensagem_em && format(new Date(conv.ultima_mensagem_em), 'dd/MM HH:mm')}
+                              </span>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </CardContent>
+          </Card>
+
+          {/* Coluna: Fechado */}
+          <Card className="bg-slate-50">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <XCircle className="w-4 h-4 text-slate-400" />
+                Fechado ({statusCounts.fechado})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Droppable droppableId="fechado">
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={cn(
+                      "space-y-2 min-h-[200px]",
+                      snapshot.isDraggingOver && "bg-slate-100 rounded-lg p-2"
+                    )}
+                  >
+                    {conversations
+                      .filter(c => c.status === 'fechado')
+                      .filter(c => {
+                        if (!searchTerm) return true;
+                        const search = searchTerm.toLowerCase();
+                        return (
+                          c.cliente_nome?.toLowerCase().includes(search) ||
+                          c.usuario_nome?.toLowerCase().includes(search) ||
+                          c.assunto?.toLowerCase().includes(search)
+                        );
+                      })
+                      .map((conv, index) => (
+                        <Draggable key={conv.id} draggableId={conv.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              {...provided.dragHandleProps}
+                              onClick={() => setSelectedConversation(conv)}
+                              className={cn(
+                                "p-3 rounded-lg border bg-white cursor-pointer transition-all hover:shadow-md opacity-75",
+                                snapshot.isDragging && "shadow-lg rotate-2"
+                              )}
+                            >
+                              <div className="flex items-start gap-2 mb-2">
+                                <GripVertical className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-sm text-slate-900 truncate">
+                                    {conv.cliente_nome}
+                                  </h4>
+                                </div>
+                              </div>
+                              <p className="text-xs text-slate-600 mb-1">
+                                {conv.usuario_nome}
+                              </p>
+                              {conv.atendente_nome && (
+                                <p className="text-xs text-slate-500 mb-1">
+                                  👤 {conv.atendente_nome}
+                                </p>
+                              )}
+                              {conv.assunto && (
+                                <p className="text-xs text-slate-500 font-medium mb-1 truncate">
+                                  {conv.assunto}
+                                </p>
+                              )}
+                              <p className="text-xs text-slate-500 line-clamp-2">
+                                {conv.ultima_mensagem}
+                              </p>
+                              <span className="text-xs text-slate-400 mt-2 block">
+                                {conv.ultima_mensagem_em && format(new Date(conv.ultima_mensagem_em), 'dd/MM HH:mm')}
+                              </span>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </CardContent>
+          </Card>
+        </div>
+      </DragDropContext>
     </div>
   );
 }
