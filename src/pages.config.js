@@ -6,6 +6,9 @@ import CadastroCliente from './pages/CadastroCliente';
 import Chat from './pages/Chat';
 import ConfiguracaoAlertas from './pages/ConfiguracaoAlertas';
 import Conta from './pages/Conta';
+import CrcCaixaLeads from './pages/CrcCaixaLeads';
+import CrcConfiguracao from './pages/CrcConfiguracao';
+import CrcPerformance from './pages/CrcPerformance';
 import Cronograma from './pages/Cronograma';
 import DashboardPortfolio from './pages/DashboardPortfolio';
 import Demandas from './pages/Demandas';
@@ -27,9 +30,6 @@ import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import CrcCaixaLeads from './pages/CrcCaixaLeads';
-import CrcPerformance from './pages/CrcPerformance';
-import CrcConfiguracao from './pages/CrcConfiguracao';
 import __Layout from './Layout.jsx';
 
 
@@ -42,6 +42,9 @@ export const PAGES = {
     "Chat": Chat,
     "ConfiguracaoAlertas": ConfiguracaoAlertas,
     "Conta": Conta,
+    "CrcCaixaLeads": CrcCaixaLeads,
+    "CrcConfiguracao": CrcConfiguracao,
+    "CrcPerformance": CrcPerformance,
     "Cronograma": Cronograma,
     "DashboardPortfolio": DashboardPortfolio,
     "Demandas": Demandas,
@@ -63,9 +66,6 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "CrcCaixaLeads": CrcCaixaLeads,
-    "CrcPerformance": CrcPerformance,
-    "CrcConfiguracao": CrcConfiguracao,
 }
 
 export const pagesConfig = {

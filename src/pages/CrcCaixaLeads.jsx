@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Plus, Search, Phone, Copy, ExternalLink, 
   Clock, AlertCircle, CheckCircle, Loader2, RefreshCw 
@@ -42,6 +43,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
   const [showTentativaModal, setShowTentativaModal] = useState(false);
   const [activeTab, setActiveTab] = useState('novos');
+  const [editingCell, setEditingCell] = useState(null);
 
   const { data: leads = [], isLoading, refetch } = useQuery({
     queryKey: ['crcLeads', currentCliente?.id],
@@ -93,6 +95,18 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
   const handleRegistrarTentativa = (lead) => {
     setSelectedLead(lead);
     setShowTentativaModal(true);
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: ({ leadId, data }) => base44.entities.CrcLead.update(leadId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['crcLeads']);
+      setEditingCell(null);
+    }
+  });
+
+  const handleFieldUpdate = (leadId, field, value) => {
+    updateMutation.mutate({ leadId, data: { [field]: value } });
   };
 
   const getProximaAcao = (lead) => {
@@ -207,8 +221,8 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                   </thead>
                   <tbody className="divide-y">
                     {filteredLeads.map((lead) => (
-                      <tr key={lead.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => handleOpenDetail(lead)}>
-                        <td className="px-4 py-3 text-sm">
+                      <tr key={lead.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 text-sm" onClick={() => handleOpenDetail(lead)}>
                           <div className="flex items-center gap-2">
                             {format(new Date(lead.data_chegada), 'dd/MM HH:mm')}
                             {lead.sla_atrasado && (
@@ -216,7 +230,9 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium">{lead.nome || '-'}</td>
+                        <td className="px-4 py-3 text-sm font-medium" onClick={() => handleOpenDetail(lead)}>
+                          {lead.nome || '-'}
+                        </td>
                         <td className="px-4 py-3 text-sm">
                           <div className="flex items-center gap-2">
                             {lead.telefone}
@@ -232,7 +248,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                             </Button>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3 text-sm" onClick={() => handleOpenDetail(lead)}>
                           <div className="flex items-center gap-1">
                             {lead.origem?.replace(/_/g, ' ')}
                             {lead.fonte_cadastro === 'google_sheet' && (
@@ -240,13 +256,68 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm">{lead.tratamento?.replace(/_/g, ' ')}</td>
-                        <td className="px-4 py-3">
-                          <Badge className={statusColors[lead.status]}>
-                            {statusLabels[lead.status]}
-                          </Badge>
+                        <td className="px-4 py-3 text-sm" onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCell({ leadId: lead.id, field: 'tratamento' });
+                        }}>
+                          {editingCell?.leadId === lead.id && editingCell?.field === 'tratamento' ? (
+                            <Select 
+                              value={lead.tratamento} 
+                              onValueChange={(v) => handleFieldUpdate(lead.id, 'tratamento', v)}
+                              open
+                              onOpenChange={(open) => !open && setEditingCell(null)}
+                            >
+                              <SelectTrigger className="h-7 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="nao_informado">Não informado</SelectItem>
+                                <SelectItem value="implante">Implante</SelectItem>
+                                <SelectItem value="protese">Prótese</SelectItem>
+                                <SelectItem value="protese_protocolo">Prótese Protocolo</SelectItem>
+                                <SelectItem value="zigomatico">Zigomático</SelectItem>
+                                <SelectItem value="tratamento_clinico">Tratamento Clínico</SelectItem>
+                                <SelectItem value="lentes_de_contato">Lentes de Contato</SelectItem>
+                                <SelectItem value="ortodontia">Ortodontia</SelectItem>
+                                <SelectItem value="rof">ROF</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="cursor-pointer hover:bg-slate-100 px-2 py-1 rounded">
+                              {lead.tratamento?.replace(/_/g, ' ')}
+                            </span>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3" onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingCell({ leadId: lead.id, field: 'status' });
+                        }}>
+                          {editingCell?.leadId === lead.id && editingCell?.field === 'status' ? (
+                            <Select 
+                              value={lead.status} 
+                              onValueChange={(v) => handleFieldUpdate(lead.id, 'status', v)}
+                              open
+                              onOpenChange={(open) => !open && setEditingCell(null)}
+                            >
+                              <SelectTrigger className="h-7 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="sem_contato">Sem Contato</SelectItem>
+                                <SelectItem value="em_tratativa">Em Tratativa</SelectItem>
+                                <SelectItem value="agendou">Agendou</SelectItem>
+                                <SelectItem value="compareceu">Compareceu</SelectItem>
+                                <SelectItem value="interesse_futuro">Interesse Futuro</SelectItem>
+                                <SelectItem value="perda">Perda</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Badge className={`${statusColors[lead.status]} cursor-pointer`}>
+                              {statusLabels[lead.status]}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm" onClick={() => handleOpenDetail(lead)}>
                           {lead.qtd_tentativas || 0}x
                           {lead.ultima_tentativa_em && (
                             <div className="text-xs text-slate-500">
@@ -254,7 +325,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                             </div>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
+                        <td className="px-4 py-3 text-sm text-slate-600" onClick={() => handleOpenDetail(lead)}>
                           {getProximaAcao(lead)}
                         </td>
                         <td className="px-4 py-3 text-right">
