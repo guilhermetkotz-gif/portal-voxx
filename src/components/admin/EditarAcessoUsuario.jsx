@@ -28,6 +28,7 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
   const [nivelAcesso, setNivelAcesso] = useState('viewer');
   const [searchCliente, setSearchCliente] = useState('');
   const [tipoUsuario, setTipoUsuario] = useState(usuario.tipo_usuario || 'cliente_usuario');
+  const [statusUsuario, setStatusUsuario] = useState(usuario.status || 'pendente');
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientes'],
@@ -150,6 +151,32 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
     }
   });
 
+  const atualizarStatusUsuario = useMutation({
+    mutationFn: async (novoStatus) => {
+      await base44.entities.User.update(usuario.id, {
+        status: novoStatus
+      });
+
+      // Log action
+      await base44.entities.LogAuditoria.create({
+        acao: 'UPDATE_USER_STATUS',
+        usuario_id: currentUser.id,
+        usuario_email: currentUser.email,
+        entidade: 'User',
+        entidade_id: usuario.id,
+        detalhes: {
+          usuario_afetado: usuario.email,
+          status_anterior: usuario.status,
+          status_novo: novoStatus
+        }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todosUsuarios'] });
+      toast.success('Status do usuário atualizado');
+    }
+  });
+
   const clientesNaoAtribuidos = clientes.filter(c => !acessos.some(a => a.cliente_id === c.id));
   
   const clientesDisponiveis = clientesNaoAtribuidos.filter(c => 
@@ -180,12 +207,6 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
               <p className="text-slate-500 mb-1">Email</p>
               <p className="font-medium">{usuario.email}</p>
             </div>
-            <div>
-              <p className="text-slate-500 mb-1">Status</p>
-              <Badge className={usuario.status === 'ativo' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
-                {usuario.status}
-              </Badge>
-            </div>
             {usuario.cargo && (
               <div>
                 <p className="text-slate-500 mb-1">Cargo</p>
@@ -194,26 +215,49 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
             )}
           </div>
           
-          <div>
-            <label className="text-sm font-medium text-slate-700 mb-2 block">Tipo de Usuário no Sistema</label>
-            <Select 
-              value={tipoUsuario} 
-              onValueChange={(v) => {
-                setTipoUsuario(v);
-                atualizarTipoUsuario.mutate(v);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="voxx_admin">voxx_admin</SelectItem>
-                <SelectItem value="voxx_manager">voxx_manager</SelectItem>
-                <SelectItem value="voxx_operacao">voxx_operacao</SelectItem>
-                <SelectItem value="cliente_admin">cliente_admin</SelectItem>
-                <SelectItem value="cliente_usuario">cliente_usuario</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Status do Usuário</label>
+              <Select 
+                value={statusUsuario} 
+                onValueChange={(v) => {
+                  setStatusUsuario(v);
+                  atualizarStatusUsuario.mutate(v);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="ativo">Ativo</SelectItem>
+                  <SelectItem value="inativo">Inativo</SelectItem>
+                  <SelectItem value="bloqueado">Bloqueado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Tipo de Usuário no Sistema</label>
+              <Select 
+                value={tipoUsuario} 
+                onValueChange={(v) => {
+                  setTipoUsuario(v);
+                  atualizarTipoUsuario.mutate(v);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="voxx_admin">voxx_admin</SelectItem>
+                  <SelectItem value="voxx_manager">voxx_manager</SelectItem>
+                  <SelectItem value="voxx_operacao">voxx_operacao</SelectItem>
+                  <SelectItem value="cliente_admin">cliente_admin</SelectItem>
+                  <SelectItem value="cliente_usuario">cliente_usuario</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </Card>
