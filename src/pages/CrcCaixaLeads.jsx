@@ -18,12 +18,12 @@ import CadastroLeadModal from '@/components/crc/CadastroLeadModal';
 import RegistrarTentativaModal from '@/components/crc/RegistrarTentativaModal';
 
 const statusColors = {
-  sem_contato: 'bg-slate-100 text-slate-700 border-slate-200',
-  em_tratativa: 'bg-blue-50 text-blue-700 border-blue-200',
-  agendou: 'bg-purple-50 text-purple-700 border-purple-200',
-  compareceu: 'bg-green-50 text-green-700 border-green-200',
-  interesse_futuro: 'bg-amber-50 text-amber-700 border-amber-200',
-  perda: 'bg-red-50 text-red-700 border-red-200'
+  sem_contato: 'bg-gray-100 text-gray-700 border-gray-300',
+  em_tratativa: 'bg-sky-100 text-sky-700 border-sky-300',
+  agendou: 'bg-violet-100 text-violet-700 border-violet-300',
+  compareceu: 'bg-emerald-100 text-emerald-700 border-emerald-300',
+  interesse_futuro: 'bg-orange-100 text-orange-700 border-orange-300',
+  perda: 'bg-rose-100 text-rose-700 border-rose-300'
 };
 
 const statusLabels = {
