@@ -145,8 +145,8 @@ export default function GestaoSaldoMetaAds({ user }) {
         .reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
       
       // Pegar gasto diário automático da planilha se disponível
-      const gastoDiarioAuto = mainAccount?.account_name && gastoDiarioData?.gastoDiarioPorConta?.[mainAccount.account_name] || 0;
-      const gastoDiario = edits.gasto_diario !== undefined ? parseFloat(edits.gasto_diario) : (balance?.gasto_diario || gastoDiarioAuto || 0);
+      const gastoDiarioAuto = (mainAccount?.account_name && gastoDiarioData?.gastoDiarioPorConta?.[mainAccount.account_name]) || 0;
+      const gastoDiario = edits.gasto_diario !== undefined ? parseFloat(edits.gasto_diario) : (balance?.gasto_diario || gastoDiarioAuto);
       const qtdTomadas = edits.qtd_tomadas !== undefined ? parseInt(edits.qtd_tomadas) : (balance?.qtd_tomadas || 4);
       const tomadasPagas = historico.filter(t => t.pago).length;
       
@@ -575,19 +575,23 @@ export default function GestaoSaldoMetaAds({ user }) {
                         <div>
                           <Label className="text-xs flex items-center gap-1">
                             Gasto Diário (R$)
-                            {row.gastoDiario > 0 && !edits.gasto_diario && !row.balance?.gasto_diario && (
+                            {row.gastoDiario > 0 && !row.balance?.gasto_diario && (
                               <Badge className="bg-blue-100 text-blue-700 text-[10px] h-4">Auto</Badge>
                             )}
                           </Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={edits.gasto_diario !== undefined ? edits.gasto_diario : row.balance?.gasto_diario || row.gastoDiario || ''}
-                            onChange={(e) => handleFieldChange(row.cliente.id, 'gasto_diario', e.target.value)}
-                            className="mt-1"
-                            disabled={!isEditing}
-                            placeholder={row.gastoDiario > 0 ? formatCurrency(row.gastoDiario) : ''}
-                          />
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={edits.gasto_diario !== undefined ? edits.gasto_diario : (row.balance?.gasto_diario || row.gastoDiario || '')}
+                              onChange={(e) => handleFieldChange(row.cliente.id, 'gasto_diario', e.target.value)}
+                              className="mt-1"
+                              disabled={!isEditing}
+                            />
+                            {!row.balance?.gasto_diario && row.gastoDiario > 0 && !edits.gasto_diario && (
+                              <p className="text-xs text-blue-600 mt-1">Da planilha: {formatCurrency(row.gastoDiario)}</p>
+                            )}
+                          </div>
                         </div>
 
                         <div>
