@@ -23,7 +23,7 @@ const statusColors = {
 
 export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
   const queryClient = useQueryClient();
-  const [isEditing, setIsEditing] = useState(false);
+  const [editField, setEditField] = useState(null);
   const [editData, setEditData] = useState(lead);
 
   const { data: tentativas = [] } = useQuery({
@@ -37,53 +37,33 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
     onSuccess: () => {
       queryClient.invalidateQueries(['crcLeads']);
       queryClient.invalidateQueries(['crcTentativas']);
-      setIsEditing(false);
+      setEditField(null);
       onUpdate();
     }
   });
 
-  const handleSave = () => {
+  const handleFieldSave = (field, value) => {
+    const updates = { [field]: value };
+    
     // Validations
-    if (editData.status === 'perda' && !editData.motivo_perda) {
-      alert('Motivo de perda é obrigatório');
-      return;
+    if (field === 'status' && value === 'perda' && !editData.motivo_perda) {
+      return; // Will prompt for motivo_perda
     }
-    if (editData.status === 'agendou' && !editData.data_agendamento) {
-      alert('Data de agendamento é obrigatória');
-      return;
+    if (field === 'status' && value === 'agendou' && !editData.data_agendamento) {
+      return; // Will prompt for data_agendamento
     }
-    if (editData.status === 'interesse_futuro' && !editData.data_retorno) {
-      alert('Data de retorno é obrigatória');
-      return;
+    if (field === 'status' && value === 'interesse_futuro' && !editData.data_retorno) {
+      return; // Will prompt for data_retorno
     }
 
-    updateMutation.mutate(editData);
+    updateMutation.mutate(updates);
   };
 
   return (
     <Sheet open onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="flex items-center justify-between">
-            <span>Detalhes do Lead</span>
-            {!isEditing ? (
-              <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
-                <Edit2 className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>
-                  <X className="w-4 h-4 mr-2" />
-                  Cancelar
-                </Button>
-                <Button size="sm" onClick={handleSave}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar
-                </Button>
-              </div>
-            )}
-          </SheetTitle>
+          <SheetTitle>Detalhes do Lead</SheetTitle>
         </SheetHeader>
 
         <div className="space-y-6 mt-6">
@@ -93,10 +73,27 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
             <div className="space-y-3">
               <div>
                 <Label>Nome</Label>
-                {isEditing ? (
-                  <Input value={editData.nome} onChange={(e) => setEditData({ ...editData, nome: e.target.value })} />
+                {editField === 'nome' ? (
+                  <div className="flex gap-2">
+                    <Input 
+                      value={editData.nome} 
+                      onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={() => { handleFieldSave('nome', editData.nome); }}>
+                      <Save className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setEditData(lead); setEditField(null); }}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 ) : (
-                  <p className="text-sm font-medium">{lead.nome || '-'}</p>
+                  <p 
+                    className="text-sm font-medium cursor-pointer hover:bg-slate-50 p-2 rounded" 
+                    onClick={() => setEditField('nome')}
+                  >
+                    {lead.nome || '-'}
+                  </p>
                 )}
               </div>
               <div>
@@ -124,9 +121,17 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
             <div className="space-y-3">
               <div>
                 <Label>Status</Label>
-                {isEditing ? (
-                  <Select value={editData.status} onValueChange={(v) => setEditData({ ...editData, status: v })}>
-                    <SelectTrigger>
+                {editField === 'status' ? (
+                  <Select 
+                    value={editData.status} 
+                    onValueChange={(v) => { 
+                      setEditData({ ...editData, status: v }); 
+                      handleFieldSave('status', v);
+                    }}
+                    open={editField === 'status'}
+                    onOpenChange={(open) => !open && setEditField(null)}
+                  >
+                    <SelectTrigger autoFocus>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -139,16 +144,26 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Badge className={statusColors[lead.status]}>{lead.status}</Badge>
+                  <div onClick={() => setEditField('status')} className="cursor-pointer">
+                    <Badge className={statusColors[lead.status]}>{lead.status.replace(/_/g, ' ')}</Badge>
+                  </div>
                 )}
               </div>
 
-              {(isEditing ? editData.status === 'perda' : lead.status === 'perda') && (
+              {lead.status === 'perda' && (
                 <div>
-                  <Label>Motivo da Perda *</Label>
-                  {isEditing ? (
-                    <Select value={editData.motivo_perda} onValueChange={(v) => setEditData({ ...editData, motivo_perda: v })}>
-                      <SelectTrigger>
+                  <Label>Motivo da Perda</Label>
+                  {editField === 'motivo_perda' ? (
+                    <Select 
+                      value={editData.motivo_perda} 
+                      onValueChange={(v) => { 
+                        setEditData({ ...editData, motivo_perda: v }); 
+                        handleFieldSave('motivo_perda', v);
+                      }}
+                      open={editField === 'motivo_perda'}
+                      onOpenChange={(open) => !open && setEditField(null)}
+                    >
+                      <SelectTrigger autoFocus>
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -160,38 +175,87 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                       </SelectContent>
                     </Select>
                   ) : (
-                    <p className="text-sm">{lead.motivo_perda?.replace(/_/g, ' ')}</p>
+                    <p 
+                      className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
+                      onClick={() => setEditField('motivo_perda')}
+                    >
+                      {lead.motivo_perda?.replace(/_/g, ' ') || 'Clique para definir'}
+                    </p>
                   )}
                 </div>
               )}
 
-              {(isEditing ? editData.status === 'agendou' : lead.status === 'agendou') && (
+              {lead.status === 'agendou' && (
                 <div>
-                  <Label>Data de Agendamento *</Label>
-                  {isEditing ? (
-                    <Input type="datetime-local" value={editData.data_agendamento} onChange={(e) => setEditData({ ...editData, data_agendamento: e.target.value })} />
+                  <Label>Data de Agendamento</Label>
+                  {editField === 'data_agendamento' ? (
+                    <div className="flex gap-2">
+                      <Input 
+                        type="datetime-local" 
+                        value={editData.data_agendamento} 
+                        onChange={(e) => setEditData({ ...editData, data_agendamento: e.target.value })}
+                        autoFocus
+                      />
+                      <Button size="sm" onClick={() => { handleFieldSave('data_agendamento', editData.data_agendamento); }}>
+                        <Save className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setEditData(lead); setEditField(null); }}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
                   ) : (
-                    <p className="text-sm">{lead.data_agendamento && format(new Date(lead.data_agendamento), "dd/MM/yyyy 'às' HH:mm")}</p>
+                    <p 
+                      className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
+                      onClick={() => setEditField('data_agendamento')}
+                    >
+                      {lead.data_agendamento ? format(new Date(lead.data_agendamento), "dd/MM/yyyy 'às' HH:mm") : 'Clique para definir'}
+                    </p>
                   )}
                 </div>
               )}
 
-              {(isEditing ? editData.status === 'interesse_futuro' : lead.status === 'interesse_futuro') && (
+              {lead.status === 'interesse_futuro' && (
                 <div>
-                  <Label>Data de Retorno *</Label>
-                  {isEditing ? (
-                    <Input type="date" value={editData.data_retorno} onChange={(e) => setEditData({ ...editData, data_retorno: e.target.value })} />
+                  <Label>Data de Retorno</Label>
+                  {editField === 'data_retorno' ? (
+                    <div className="flex gap-2">
+                      <Input 
+                        type="date" 
+                        value={editData.data_retorno} 
+                        onChange={(e) => setEditData({ ...editData, data_retorno: e.target.value })}
+                        autoFocus
+                      />
+                      <Button size="sm" onClick={() => { handleFieldSave('data_retorno', editData.data_retorno); }}>
+                        <Save className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setEditData(lead); setEditField(null); }}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
                   ) : (
-                    <p className="text-sm">{lead.data_retorno && format(new Date(lead.data_retorno), 'dd/MM/yyyy')}</p>
+                    <p 
+                      className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
+                      onClick={() => setEditField('data_retorno')}
+                    >
+                      {lead.data_retorno ? format(new Date(lead.data_retorno), 'dd/MM/yyyy') : 'Clique para definir'}
+                    </p>
                   )}
                 </div>
               )}
 
               <div>
                 <Label>Tratamento</Label>
-                {isEditing ? (
-                  <Select value={editData.tratamento} onValueChange={(v) => setEditData({ ...editData, tratamento: v })}>
-                    <SelectTrigger>
+                {editField === 'tratamento' ? (
+                  <Select 
+                    value={editData.tratamento} 
+                    onValueChange={(v) => { 
+                      setEditData({ ...editData, tratamento: v }); 
+                      handleFieldSave('tratamento', v);
+                    }}
+                    open={editField === 'tratamento'}
+                    onOpenChange={(open) => !open && setEditField(null)}
+                  >
+                    <SelectTrigger autoFocus>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -207,16 +271,42 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-sm">{lead.tratamento?.replace(/_/g, ' ')}</p>
+                  <p 
+                    className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
+                    onClick={() => setEditField('tratamento')}
+                  >
+                    {lead.tratamento?.replace(/_/g, ' ') || '-'}
+                  </p>
                 )}
               </div>
 
               <div>
                 <Label>Observações</Label>
-                {isEditing ? (
-                  <Textarea value={editData.observacoes || ''} onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })} />
+                {editField === 'observacoes' ? (
+                  <div className="space-y-2">
+                    <Textarea 
+                      value={editData.observacoes || ''} 
+                      onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => { handleFieldSave('observacoes', editData.observacoes); }}>
+                        <Save className="w-4 h-4 mr-2" />
+                        Salvar
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setEditData(lead); setEditField(null); }}>
+                        <X className="w-4 h-4 mr-2" />
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
-                  <p className="text-sm">{lead.observacoes || '-'}</p>
+                  <p 
+                    className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded min-h-[40px]"
+                    onClick={() => setEditField('observacoes')}
+                  >
+                    {lead.observacoes || 'Clique para adicionar'}
+                  </p>
                 )}
               </div>
             </div>
