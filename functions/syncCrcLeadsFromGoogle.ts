@@ -4,20 +4,67 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     
-    // Admin only
-    const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Unauthorized' }, { status: 403 });
+    // Get clienteId from request body (manual call) or fetch all clientes (automation)
+    let payload = {};
+    try {
+      payload = await req.json();
+    } catch {
+      // No body - running from automation
     }
 
-    const { clienteId } = await req.json();
+    const { clienteId } = payload;
     
-    if (!clienteId) {
-      return Response.json({ error: 'clienteId é obrigatório' }, { status: 400 });
+    // If no clienteId, sync all clientes with google_leads_sheet_url
+    let clientesToSync = [];
+    if (clienteId) {
+      const cliente = await base44.asServiceRole.entities.Cliente.get(clienteId);
+      if (cliente) clientesToSync = [cliente];
+    } else {
+      // Get all clientes with google_leads_sheet_url configured
+      const allClientes = await base44.asServiceRole.entities.Cliente.list('-updated_date', 500);
+      clientesToSync = allClientes.filter(c => c.google_leads_sheet_url);
     }
 
-    // Get cliente with Google Sheets URL
-    const cliente = await base44.asServiceRole.entities.Cliente.get(clienteId);
+    if (clientesToSync.length === 0) {
+      return Response.json({ 
+        error: 'Nenhum cliente com planilha configurada',
+        imported: 0
+      });
+    }
+
+    let totalImported = 0;
+    let totalSkipped = 0;
+    const results = [];
+
+    for (const cliente of clientesToSync) {
+      try {
+        const result = await syncClienteLeads(base44, cliente);
+        totalImported += result.imported;
+        totalSkipped += result.skipped;
+        results.push({ cliente: cliente.nome, ...result });
+      } catch (error) {
+        results.push({ cliente: cliente.nome, error: error.message, imported: 0, skipped: 0 });
+      }
+    }
+
+    return Response.json({ 
+      totalImported,
+      totalSkipped,
+      clientesSynced: clientesToSync.length,
+      results
+    });
+
+  } catch (error) {
+    console.error('Error in syncCrcLeadsFromGoogle:', error);
+    return Response.json({ 
+      error: error.message,
+      imported: 0
+    }, { status: 500 });
+  }
+});
+
+async function syncClienteLeads(base44, cliente) {
+  const clienteId = cliente.id;
     if (!cliente || !cliente.google_leads_sheet_url) {
       return Response.json({ 
         error: 'Cliente não encontrado ou planilha não configurada',
@@ -171,18 +218,10 @@ Deno.serve(async (req) => {
       imported++;
     }
 
-    return Response.json({ 
+    return { 
       imported,
       skipped,
       total: rows.length,
       message: `${imported} leads importados, ${skipped} ignorados`
-    });
-
-  } catch (error) {
-    console.error('Error in syncCrcLeadsFromGoogle:', error);
-    return Response.json({ 
-      error: error.message,
-      imported: 0
-    }, { status: 500 });
-  }
-});
+    };
+}
