@@ -357,6 +357,9 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
                         <p className="text-sm font-semibold text-blue-600">
                           {formatCurrency(dados.diarioD1)}
                         </p>
+                        {dados.diarioD1 === 0 && (
+                          <p className="text-[10px] text-red-500">Nome: {dados.cliente.nome}</p>
+                        )}
                       </div>
                       
                       <div className="text-right">
