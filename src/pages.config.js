@@ -28,6 +28,8 @@ import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
 import CrcCaixaLeads from './pages/CrcCaixaLeads';
+import CrcPerformance from './pages/CrcPerformance';
+import CrcConfiguracao from './pages/CrcConfiguracao';
 import __Layout from './Layout.jsx';
 
 
@@ -62,6 +64,8 @@ export const PAGES = {
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
     "CrcCaixaLeads": CrcCaixaLeads,
+    "CrcPerformance": CrcPerformance,
+    "CrcConfiguracao": CrcConfiguracao,
 }
 
 export const pagesConfig = {
