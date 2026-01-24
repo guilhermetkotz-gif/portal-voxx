@@ -24,7 +24,9 @@ import {
   CreditCard,
   MessageCircle,
   Activity,
-  Calculator
+  Calculator,
+  HeadphonesIcon,
+  Settings
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -41,6 +43,10 @@ const menuItems = [
   { name: "Saldo Meta Ads", icon: CreditCard, page: "GestaoSaldoMetaAds", adminOnly: true },
   { name: "Recálculo Meta Ads", icon: Calculator, page: "RecalculoMetaAds", adminOnly: true },
   { name: "Abrir Demanda", icon: PlusCircle, page: "AbrirDemanda", highlight: true },
+  { divider: true },
+  { name: "CRC - Caixa de Leads", icon: HeadphonesIcon, page: "CrcCaixaLeads", oralSinOnly: true },
+  { name: "CRC - Performance", icon: BarChart3, page: "CrcPerformance", oralSinOnly: true },
+  { name: "CRC - Configuração", icon: Settings, page: "CrcConfiguracao", adminOnly: true, oralSinOnly: true },
   { divider: true },
   { name: "Newsletter", icon: Newspaper, page: "Newsletter" },
   { name: "Central de Ajuda", icon: HelpCircle, page: "Ajuda" },
@@ -102,6 +108,12 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
 
           // Hide voxx-only items for non-voxx users
           if (item.voxxOnly && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin' && user?.tipo_usuario !== 'voxx_operacao' && user?.tipo_usuario !== 'voxx_manager') {
+            return null;
+          }
+
+          // Hide oral-sin-only items for non-oral-sin clients
+          if (item.oralSinOnly && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin') {
+            // Only show for Oral Sin clients (you can check by tipo_cliente or specific flag)
             return null;
           }
 
