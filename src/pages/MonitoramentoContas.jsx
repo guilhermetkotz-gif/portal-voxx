@@ -59,6 +59,25 @@ export default function MonitoramentoContas({ user }) {
         staleTime: 5 * 60 * 1000
     });
 
+    const { data: voxxUsers = [] } = useQuery({
+        queryKey: ['voxxUsers'],
+        queryFn: async () => {
+            const allUsers = await base44.entities.User.list('-created_date', 500);
+            return allUsers.filter(u => 
+                u.tipo_usuario?.startsWith('voxx_') || u.role === 'admin'
+            );
+        },
+        staleTime: 5 * 60 * 1000
+    });
+
+    const updateClienteMutation = useMutation({
+        mutationFn: ({ clienteId, responsavel }) => 
+            base44.entities.Cliente.update(clienteId, { responsavel_voxx_trafego: responsavel }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['clientes'] });
+        }
+    });
+
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [recommendations, setRecommendations] = useState({});
     const [otimizacaoModalOpen, setOtimizacaoModalOpen] = useState(false);
@@ -514,9 +533,10 @@ export default function MonitoramentoContas({ user }) {
 
             {/* Tabs */}
             <Tabs defaultValue="monitoramento" className="w-full">
-                <TabsList className="grid w-full max-w-2xl grid-cols-3">
+                <TabsList className="grid w-full max-w-3xl grid-cols-4">
                     <TabsTrigger value="monitoramento">Monitoramento de Contas</TabsTrigger>
                     <TabsTrigger value="radar">RADAR META</TabsTrigger>
+                    <TabsTrigger value="operadores">Contas/Operador</TabsTrigger>
                     <TabsTrigger value="otimizacoes">Histórico de Otimizações</TabsTrigger>
                 </TabsList>
 
@@ -1600,6 +1620,84 @@ export default function MonitoramentoContas({ user }) {
                                         </ul>
                                     </div>
                                 </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Tab: Contas/Operador */}
+                <TabsContent value="operadores" className="space-y-6 mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Gerenciar Responsáveis de Tráfego</CardTitle>
+                            <p className="text-sm text-slate-500 mt-2">
+                                Atribua um responsável de tráfego/operação para cada cliente
+                            </p>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Cliente</TableHead>
+                                            <TableHead>Cidade/Estado</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Responsável Tráfego/Operação</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {clientes
+                                            .sort((a, b) => a.nome.localeCompare(b.nome))
+                                            .map((cliente) => (
+                                            <TableRow key={cliente.id}>
+                                                <TableCell className="font-medium">
+                                                    {cliente.nome}
+                                                </TableCell>
+                                                <TableCell className="text-slate-600">
+                                                    {cliente.cidade}, {cliente.estado}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={cn(
+                                                        cliente.status === 'ativo' ? 'bg-green-100 text-green-800' :
+                                                        cliente.status === 'implantacao' ? 'bg-blue-100 text-blue-800' :
+                                                        cliente.status === 'pausado' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-slate-100 text-slate-800'
+                                                    )}>
+                                                        {cliente.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Select
+                                                        value={cliente.responsavel_voxx_trafego || ''}
+                                                        onValueChange={(value) => 
+                                                            updateClienteMutation.mutate({ 
+                                                                clienteId: cliente.id, 
+                                                                responsavel: value 
+                                                            })
+                                                        }
+                                                    >
+                                                        <SelectTrigger className="w-64">
+                                                            <SelectValue placeholder="Selecione um responsável" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value={null}>Nenhum responsável</SelectItem>
+                                                            {voxxUsers.map((voxxUser) => (
+                                                                <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                                                                    {voxxUser.full_name} ({voxxUser.email})
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                {clientes.length === 0 && (
+                                    <div className="text-center py-12 text-slate-500">
+                                        Nenhum cliente cadastrado
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
