@@ -24,7 +24,8 @@ import {
   ThumbsUp,
   Radio,
   Target,
-  RefreshCw
+  RefreshCw,
+  MessageCircle
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -182,6 +183,15 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
                 <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
+              <Link to={createPageUrl('Chat')}>
+                <Button 
+                  variant="outline"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Chat
+                </Button>
+              </Link>
               <Link to={createPageUrl('AbrirDemanda')}>
                 <Button className="bg-white text-violet-700 hover:bg-violet-50 font-semibold">
                   <PlusCircle className="w-4 h-4 mr-2" />

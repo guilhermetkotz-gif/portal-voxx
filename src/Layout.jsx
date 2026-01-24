@@ -14,8 +14,9 @@ import { createPageUrl } from '@/utils';
 import ChatWidget from '@/components/chat/ChatWidget';
 
 const pageTitles = {
-        Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
-        Performance: { title: "Performance", subtitle: "Meta & Google Ads" },
+      Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
+      Chat: { title: "Chat & Suporte", subtitle: "Fale com nossa equipe" },
+      Performance: { title: "Performance", subtitle: "Meta & Google Ads" },
         DashboardPortfolio: { title: "Dashboard do Portfólio", subtitle: "Performance agregada de contas" },
         Saldos: { title: "Saldos & Investimentos", subtitle: "Controle financeiro" },
         Demandas: { title: "Demandas", subtitle: "Acompanhe suas solicitações" },

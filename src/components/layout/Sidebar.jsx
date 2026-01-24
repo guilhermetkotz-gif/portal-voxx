@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
   { name: "Home", icon: LayoutDashboard, page: "Home" },
+  { name: "Chat", icon: MessageCircle, page: "Chat" },
   { name: "Performance", icon: BarChart3, page: "Performance" },
   { name: "Saldos & Investimentos", icon: Wallet, page: "Saldos" },
   { name: "Demandas", icon: TicketCheck, page: "Demandas", badge: true },
