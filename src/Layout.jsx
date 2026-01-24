@@ -308,8 +308,8 @@ export default function Layout({ children, currentPageName }) {
         </div>
         </main>
 
-        {/* Chat Widget for non-Voxx users */}
-        {user && currentCliente && (
+        {/* Chat Widget for all authenticated users */}
+        {user && (
         <ChatWidget user={user} currentCliente={currentCliente} />
         )}
         </div>
