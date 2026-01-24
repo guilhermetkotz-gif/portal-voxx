@@ -65,15 +65,29 @@ export default function CrcConfiguracao({ currentCliente, user }) {
   });
 
   const syncMutation = useMutation({
-    mutationFn: () => base44.functions.invoke('syncCrcLeadsFromGoogle', { 
-      clienteId: currentCliente.id 
-    }),
+    mutationFn: async () => {
+      // First save config if needed
+      if (!config) {
+        await base44.entities.CrcConfig.create({
+          ...formData,
+          unidade_id: currentCliente.id
+        });
+      }
+      
+      // Then sync leads
+      const response = await base44.functions.invoke('syncCrcLeadsFromGoogle', { 
+        clienteId: currentCliente.id 
+      });
+      return response;
+    },
     onSuccess: (response) => {
       queryClient.invalidateQueries(['crcLeads']);
-      toast.success(response.data.message || `${response.data.imported} leads importados`);
+      queryClient.invalidateQueries(['crcConfig']);
+      const data = response.data;
+      toast.success(data.message || `${data.totalImported || data.imported || 0} leads importados`);
     },
     onError: (error) => {
-      toast.error(error.message || 'Erro ao sincronizar leads');
+      toast.error(error.response?.data?.error || error.message || 'Erro ao sincronizar leads');
     }
   });
 
@@ -81,11 +95,26 @@ export default function CrcConfiguracao({ currentCliente, user }) {
     saveMutation.mutate(formData);
   };
 
-  const handleSync = () => {
+  const handleSync = async () => {
     if (!currentCliente?.google_leads_sheet_url) {
       toast.error('Configure a URL da planilha Google no cadastro do cliente');
       return;
     }
+    
+    // Save config first if needed
+    if (!config) {
+      try {
+        await base44.entities.CrcConfig.create({
+          ...formData,
+          unidade_id: currentCliente.id
+        });
+        await queryClient.invalidateQueries(['crcConfig']);
+      } catch (error) {
+        toast.error('Erro ao salvar configuração: ' + error.message);
+        return;
+      }
+    }
+    
     syncMutation.mutate();
   };
 
