@@ -185,9 +185,6 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       const diff = currentCount - previousLeadsCount;
       setNewLeadsCount(diff);
       setShowNewLeadAlert(true);
-      
-      // Auto-hide alert after 10 seconds
-      setTimeout(() => setShowNewLeadAlert(false), 10000);
     }
     
     setPreviousLeadsCount(currentCount);
