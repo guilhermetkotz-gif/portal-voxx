@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Plus, Search, Phone, Copy, ExternalLink, 
-  Clock, AlertCircle, CheckCircle, Loader2, RefreshCw 
+  Clock, AlertCircle, CheckCircle, Loader2, RefreshCw,
+  MessageCircle, Edit2, Calendar, XCircle, UserCheck, Hourglass
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -17,12 +18,12 @@ import CadastroLeadModal from '@/components/crc/CadastroLeadModal';
 import RegistrarTentativaModal from '@/components/crc/RegistrarTentativaModal';
 
 const statusColors = {
-  sem_contato: 'bg-slate-100 text-slate-700',
-  em_tratativa: 'bg-blue-100 text-blue-700',
-  agendou: 'bg-purple-100 text-purple-700',
-  compareceu: 'bg-green-100 text-green-700',
-  interesse_futuro: 'bg-amber-100 text-amber-700',
-  perda: 'bg-red-100 text-red-700'
+  sem_contato: 'bg-slate-100 text-slate-700 border-slate-200',
+  em_tratativa: 'bg-blue-50 text-blue-700 border-blue-200',
+  agendou: 'bg-purple-50 text-purple-700 border-purple-200',
+  compareceu: 'bg-green-50 text-green-700 border-green-200',
+  interesse_futuro: 'bg-amber-50 text-amber-700 border-amber-200',
+  perda: 'bg-red-50 text-red-700 border-red-200'
 };
 
 const statusLabels = {
@@ -32,6 +33,15 @@ const statusLabels = {
   compareceu: 'Compareceu',
   interesse_futuro: 'Interesse Futuro',
   perda: 'Perda'
+};
+
+const statusIcons = {
+  sem_contato: Clock,
+  em_tratativa: MessageCircle,
+  agendou: Calendar,
+  compareceu: UserCheck,
+  interesse_futuro: Hourglass,
+  perda: XCircle
 };
 
 export default function CrcCaixaLeads({ currentCliente, user }) {
@@ -153,14 +163,14 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
           </div>
         </div>
 
-        <div className="mb-4">
+        <div className="mb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <Input
               placeholder="Buscar por nome ou telefone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-11 text-base border-slate-300 focus:border-violet-500 focus:ring-violet-500"
             />
           </div>
         </div>
@@ -196,63 +206,97 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                 <Loader2 className="w-6 h-6 animate-spin text-violet-600" />
               </div>
             ) : filteredLeads.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">
-                Nenhum lead encontrado
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="w-24 h-24 bg-gradient-to-br from-violet-50 to-purple-50 rounded-full flex items-center justify-center mb-4">
+                  <Search className="w-12 h-12 text-violet-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Nenhum lead encontrado</h3>
+                <p className="text-sm text-slate-500 mb-6">Cadastre seu primeiro lead para começar</p>
+                <Button onClick={() => setShowCadastroModal(true)} className="bg-violet-600 hover:bg-violet-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Cadastrar Novo Lead
+                </Button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full">
-                  <thead className="bg-slate-50 border-b">
+                  <thead className="bg-gradient-to-r from-slate-50 to-slate-100 sticky top-0 z-10">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">Data</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">Nome</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">Telefone</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">Origem</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">Tratamento</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">Tentativas</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-600">Próxima Ação</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-slate-600">Ações</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">Data</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">Nome</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">Telefone</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">Origem</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">Tratamento</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">Tentativas</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wide">Próxima Ação</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-700 uppercase tracking-wide">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
-                    {filteredLeads.map((lead) => (
-                      <tr key={lead.id} className="hover:bg-slate-50">
-                        <td className="px-4 py-3 text-sm">
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {filteredLeads.map((lead, idx) => (
+                      <tr key={lead.id} className={`transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-violet-50/50`}>
+                        <td className="px-4 py-4 text-sm">
                           <div className="flex items-center gap-2">
-                            {format(new Date(lead.data_chegada), 'dd/MM HH:mm')}
+                            <span className="font-medium text-slate-700">{format(new Date(lead.data_chegada), 'dd/MM')}</span>
+                            <span className="text-slate-500 text-xs">{format(new Date(lead.data_chegada), 'HH:mm')}</span>
                             {lead.sla_atrasado && (
-                              <AlertCircle className="w-4 h-4 text-red-500" />
+                              <AlertCircle className="w-4 h-4 text-red-500 animate-pulse" />
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium">
-                          {lead.nome || '-'}
+                        <td className="px-4 py-4 text-sm" onClick={() => setEditingCell({ leadId: lead.id, field: 'nome' })}>
+                          {editingCell?.leadId === lead.id && editingCell?.field === 'nome' ? (
+                            <Input
+                              value={lead.nome}
+                              onChange={(e) => handleFieldUpdate(lead.id, 'nome', e.target.value)}
+                              onBlur={() => setEditingCell(null)}
+                              autoFocus
+                              className="h-8 text-sm"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-2 group cursor-pointer">
+                              <span className="font-semibold text-slate-900">{lead.nome || '-'}</span>
+                              <Edit2 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex items-center gap-2">
-                            {lead.telefone}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopyPhone(lead.telefone);
-                              }}
-                            >
-                              <Copy className="w-3 h-3" />
-                            </Button>
+                        <td className="px-4 py-4 text-sm">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-slate-700">{lead.telefone}</span>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCopyPhone(lead.telefone)}
+                                className="h-7 w-7 p-0 hover:bg-slate-200"
+                                title="Copiar"
+                              >
+                                <Copy className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(`https://wa.me/55${lead.telefone.replace(/\D/g, '')}`, '_blank')}
+                                className="h-7 w-7 p-0 hover:bg-green-100"
+                                title="WhatsApp"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+                              </Button>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex items-center gap-1">
-                            {lead.origem?.replace(/_/g, ' ')}
+                        <td className="px-4 py-4 text-sm">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-slate-700">{lead.origem?.replace(/_/g, ' ')}</span>
                             {lead.fonte_cadastro === 'google_sheet' && (
-                              <Badge variant="outline" className="text-xs">Google</Badge>
+                              <Badge variant="outline" className="text-xs w-fit border-blue-300 text-blue-700 bg-blue-50">
+                                Google Sheets
+                              </Badge>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm" onClick={() => setEditingCell({ leadId: lead.id, field: 'tratamento' })}>
+                        <td className="px-4 py-4 text-sm" onClick={() => setEditingCell({ leadId: lead.id, field: 'tratamento' })}>
                           {editingCell?.leadId === lead.id && editingCell?.field === 'tratamento' ? (
                             <Select 
                               value={lead.tratamento} 
@@ -260,7 +304,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                               open
                               onOpenChange={(open) => !open && setEditingCell(null)}
                             >
-                              <SelectTrigger className="h-7 text-xs">
+                              <SelectTrigger className="h-8 text-xs border-violet-300 focus:border-violet-500">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -276,12 +320,15 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                               </SelectContent>
                             </Select>
                           ) : (
-                            <span className="cursor-pointer hover:bg-slate-100 px-2 py-1 rounded">
-                              {lead.tratamento?.replace(/_/g, ' ')}
-                            </span>
+                            <div className="group cursor-pointer">
+                              <span className="px-3 py-1.5 rounded-md bg-slate-100 group-hover:bg-violet-100 transition-colors text-slate-700 group-hover:text-violet-700 text-xs font-medium inline-flex items-center gap-1">
+                                {lead.tratamento?.replace(/_/g, ' ')}
+                                <Edit2 className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              </span>
+                            </div>
                           )}
                         </td>
-                        <td className="px-4 py-3" onClick={() => setEditingCell({ leadId: lead.id, field: 'status' })}>
+                        <td className="px-4 py-4" onClick={() => setEditingCell({ leadId: lead.id, field: 'status' })}>
                           {editingCell?.leadId === lead.id && editingCell?.field === 'status' ? (
                             <Select 
                               value={lead.status} 
@@ -289,7 +336,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                               open
                               onOpenChange={(open) => !open && setEditingCell(null)}
                             >
-                              <SelectTrigger className="h-7 text-xs">
+                              <SelectTrigger className="h-8 text-xs border-violet-300 focus:border-violet-500">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -302,32 +349,35 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                               </SelectContent>
                             </Select>
                           ) : (
-                            <Badge className={`${statusColors[lead.status]} cursor-pointer`}>
+                            <Badge className={`${statusColors[lead.status]} cursor-pointer border hover:shadow-sm transition-all inline-flex items-center gap-1.5 px-3 py-1.5`}>
+                              {React.createElement(statusIcons[lead.status], { className: "w-3.5 h-3.5" })}
                               {statusLabels[lead.status]}
                             </Badge>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          {lead.qtd_tentativas || 0}x
-                          {lead.ultima_tentativa_em && (
-                            <div className="text-xs text-slate-500">
-                              {format(new Date(lead.ultima_tentativa_em), 'dd/MM HH:mm')}
-                            </div>
-                          )}
+                        <td className="px-4 py-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-semibold ${(lead.qtd_tentativas || 0) > 3 ? 'text-amber-600' : 'text-slate-700'}`}>
+                              {lead.qtd_tentativas || 0}x
+                            </span>
+                            {lead.ultima_tentativa_em && (
+                              <div className="text-xs text-slate-500">
+                                {format(new Date(lead.ultima_tentativa_em), 'dd/MM HH:mm')}
+                              </div>
+                            )}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {getProximaAcao(lead)}
+                        <td className="px-4 py-4 text-sm">
+                          <span className="text-slate-600 font-medium">{getProximaAcao(lead)}</span>
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="px-4 py-4 text-right">
                           <Button
                             size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRegistrarTentativa(lead);
-                            }}
+                            onClick={() => handleRegistrarTentativa(lead)}
+                            className="bg-violet-600 hover:bg-violet-700 shadow-sm"
                           >
-                            <Phone className="w-3 h-3 mr-1" />
-                            Tentativa
+                            <Phone className="w-3.5 h-3.5 mr-1.5" />
+                            Registrar
                           </Button>
                         </td>
                       </tr>
