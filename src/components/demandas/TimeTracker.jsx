@@ -52,7 +52,7 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0 }) => {
 
   const handleReset = () => {
     setIsRunning(false);
-    setTotalSeconds(initialMinutes * 60);
+    setTotalSeconds(0);
     setSessionSeconds(0);
   };
 
