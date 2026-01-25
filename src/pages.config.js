@@ -30,6 +30,7 @@ import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
+import MonitoramentoDemandas from './pages/MonitoramentoDemandas';
 import __Layout from './Layout.jsx';
 
 
@@ -66,6 +67,7 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
+    "MonitoramentoDemandas": MonitoramentoDemandas,
 }
 
 export const pagesConfig = {
