@@ -160,20 +160,22 @@ export default function ListaSaldoMetaAdsSimples({ balanceControls, clientes, se
                         )}
                       </td>
                       <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                        {canEdit ? (
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={edits.saldo !== undefined ? edits.saldo : balance?.saldo || ''}
-                            onChange={(e) => handleFieldChange(cliente.id, 'saldo', e.target.value)}
-                            onBlur={() => handleSave(cliente, 'saldo')}
-                            className="h-8 text-xs text-right"
-                          />
-                        ) : (
-                          <span className="font-semibold text-slate-900">
-                            {formatCurrency(balance?.saldo || 0)}
-                          </span>
-                        )}
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={edits.saldo !== undefined ? edits.saldo : balance?.saldo || ''}
+                          onChange={(e) => handleFieldChange(cliente.id, 'saldo', e.target.value)}
+                          onBlur={() => handleSave(cliente, 'saldo')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSave(cliente, 'saldo');
+                              e.target.blur();
+                            }
+                          }}
+                          className="h-8 text-xs text-right"
+                          placeholder="0,00"
+                        />
                       </td>
                     </tr>
                   );
