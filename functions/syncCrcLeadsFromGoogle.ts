@@ -168,12 +168,13 @@ async function syncClienteLeads(base44, cliente) {
       }
 
       // Parse date BEFORE checking existing (we need it for comparison)
-      // Parse date with proper timezone handling
+      // Parse date with proper timezone handling (Brazil timezone = UTC-3)
       let dataChegada = new Date().toISOString();
       if (dateIdx >= 0 && row[dateIdx]) {
         try {
           const dateStr = row[dateIdx].trim();
-          console.log('Parsing date:', dateStr, 'for row:', rowId);
+          console.log('🔍 [ROW', rowId, '] Raw date from sheet:', dateStr);
+          
           // Handle DD/MM/YYYY HH:MM format (common in Brazilian sheets)
           if (dateStr.includes('/')) {
             const [datePart, timePart] = dateStr.split(' ');
@@ -184,18 +185,19 @@ async function syncClienteLeads(base44, cliente) {
             const month = parts[1].padStart(2, '0');
             const year = parts[2]?.length === 2 ? `20${parts[2]}` : parts[2];
             
-            const time = timePart || '00:00';
+            const time = timePart || '12:00'; // Use noon to avoid timezone issues
             const [hours, minutes] = time.split(':');
             
             // Build ISO date string correctly: YYYY-MM-DD
             const isoDateStr = `${year}-${month}-${day}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
-            console.log('Parsed to:', isoDateStr);
+            console.log('📅 [ROW', rowId, '] Converted to ISO:', isoDateStr);
             dataChegada = new Date(isoDateStr).toISOString();
+            console.log('✅ [ROW', rowId, '] Final UTC timestamp:', dataChegada);
           } else {
             dataChegada = new Date(dateStr).toISOString();
           }
         } catch (error) {
-          console.error('Date parse error:', error, 'for input:', row[dateIdx]);
+          console.error('❌ Date parse error:', error, 'for input:', row[dateIdx]);
           // Use current date if parse fails
         }
       }
