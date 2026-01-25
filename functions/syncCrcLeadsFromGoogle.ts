@@ -188,12 +188,23 @@ async function syncClienteLeads(base44, cliente) {
         }
       }
 
-      // Parse date
+      // Parse date with proper timezone handling
       let dataChegada = new Date().toISOString();
       if (dateIdx >= 0 && row[dateIdx]) {
         try {
-          dataChegada = new Date(row[dateIdx]).toISOString();
-        } catch {
+          const dateStr = row[dateIdx].trim();
+          // Handle DD/MM/YYYY HH:MM format (common in Brazilian sheets)
+          if (dateStr.includes('/')) {
+            const [datePart, timePart] = dateStr.split(' ');
+            const [day, month, year] = datePart.split('/');
+            const fullYear = year?.length === 2 ? `20${year}` : year;
+            const time = timePart || '00:00';
+            dataChegada = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${time}:00`).toISOString();
+          } else {
+            dataChegada = new Date(dateStr).toISOString();
+          }
+        } catch (error) {
+          console.error('Date parse error:', error);
           // Use current date if parse fails
         }
       }
