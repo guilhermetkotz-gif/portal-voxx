@@ -214,8 +214,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     ? Math.floor(saldoMeta / gastoDiarioMeta) 
     : null;
   
-  // Calcular próximo investimento = duração saldo - 2 dias
-  const dataProximoInvestimentoMeta = diasRestantesMeta !== null && diasRestantesMeta > 2
+  // Calcular próximo investimento = data de hoje + duração saldo - 2
+  const dataProximoInvestimentoMeta = diasRestantesMeta !== null
     ? new Date(Date.now() + (diasRestantesMeta - 2) * 24 * 60 * 60 * 1000)
     : null;
   const diasRestantesGoogle = cliente?.investimento_dia_google > 0 
