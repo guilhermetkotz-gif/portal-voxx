@@ -55,6 +55,18 @@ export default function GestaoSaldoMetaAds({ user }) {
     enabled: !!selectedMonth,
   });
 
+  // Buscar gastos diários da planilha (D-1)
+  const { data: sheetData } = useQuery({
+    queryKey: ['amountSpentFromSheet'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000
+  });
+
+  const diarioD1ByAccount = sheetData?.diarioD1ByAccount || {};
+
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data) => {
@@ -134,7 +146,21 @@ export default function GestaoSaldoMetaAds({ user }) {
         .filter(t => t.pago)
         .reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
       
-      const gastoDiario = balance?.gasto_diario || 0;
+      // Buscar gasto diário da planilha (D-1) usando o nome do cliente
+      let gastoDiario = 0;
+      const nomeCliente = row.cliente.nome?.trim();
+      if (nomeCliente && diarioD1ByAccount[nomeCliente] !== undefined) {
+        gastoDiario = diarioD1ByAccount[nomeCliente];
+      } else {
+        // Buscar por correspondência case-insensitive
+        const clienteNormalized = nomeCliente?.toLowerCase();
+        const matchingKey = Object.keys(diarioD1ByAccount).find(key => 
+          key.toLowerCase() === clienteNormalized
+        );
+        if (matchingKey) {
+          gastoDiario = diarioD1ByAccount[matchingKey];
+        }
+      }
       const qtdTomadas = edits.qtd_tomadas !== undefined ? parseInt(edits.qtd_tomadas) : (balance?.qtd_tomadas || 4);
       const tomadasPagas = historico.filter(t => t.pago).length;
       
@@ -561,15 +587,14 @@ export default function GestaoSaldoMetaAds({ user }) {
                         </div>
 
                         <div>
-                          <Label className="text-xs">Gasto Diário (R$)</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={edits.gasto_diario !== undefined ? edits.gasto_diario : row.balance?.gasto_diario || ''}
-                            onChange={(e) => handleFieldChange(row.cliente.id, 'gasto_diario', e.target.value)}
-                            className="mt-1"
-                            disabled={!isEditing}
-                          />
+                          <Label className="text-xs flex items-center gap-1">
+                            Gasto Diário (D-1)
+                            <Badge className="bg-blue-100 text-blue-700 text-[10px] h-4">Auto</Badge>
+                          </Label>
+                          <div className="mt-1 px-3 py-2 bg-blue-50 rounded-md text-sm font-semibold text-blue-700 h-9 flex items-center">
+                            {formatCurrency(row.gastoDiario)}
+                          </div>
+                          <p className="text-xs text-blue-600 mt-1">Da planilha "ontem meta Ads"</p>
                         </div>
 
                         <div>
