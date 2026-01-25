@@ -314,7 +314,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                 {/* Tempo Total de Trabalho */}
                 {currentDemanda.tempo_trabalho_minutos > 0 && (
                   <Card className="border-green-200 bg-green-50">
-                    <CardContent className="pt-6">
+                    <CardContent className="pt-6 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-gray-600">Tempo Total de Trabalho</p>
@@ -327,6 +327,21 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                         </div>
                         <Clock className="w-8 h-8 text-green-600" />
                       </div>
+                      
+                      {/* Histórico de Tempo por Usuário */}
+                      {currentDemanda.historico_tempo_trabalho && currentDemanda.historico_tempo_trabalho.length > 0 && (
+                        <div className="border-t border-green-200 pt-3">
+                          <p className="text-xs font-semibold text-gray-700 mb-2">Registros por Usuário:</p>
+                          <div className="space-y-1.5 text-xs">
+                            {currentDemanda.historico_tempo_trabalho.map((registro, idx) => (
+                              <div key={idx} className="flex items-center justify-between bg-white bg-opacity-50 p-1.5 rounded">
+                                <span className="font-medium text-gray-700">{registro.usuario_nome}</span>
+                                <span className="text-green-700 font-semibold">{registro.minutos}min</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 )}
