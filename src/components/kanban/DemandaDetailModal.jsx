@@ -289,6 +289,33 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
               </Card>
             ) : (
               <>
+                {/* Cronômetro de Trabalho */}
+                <TimeTracker 
+                  demandaId={demanda.id}
+                  onSaveTime={handleSaveTime}
+                  initialMinutes={currentDemanda.tempo_trabalho_minutos || 0}
+                />
+
+                {/* Tempo Total de Trabalho */}
+                {currentDemanda.tempo_trabalho_minutos > 0 && (
+                  <Card className="border-green-200 bg-green-50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-600">Tempo Total de Trabalho</p>
+                          <p className="text-2xl font-bold text-green-700 mt-1">
+                            {currentDemanda.tempo_trabalho_minutos >= 60 
+                              ? `${Math.floor(currentDemanda.tempo_trabalho_minutos / 60)}h ${currentDemanda.tempo_trabalho_minutos % 60}m`
+                              : `${currentDemanda.tempo_trabalho_minutos}m`
+                            }
+                          </p>
+                        </div>
+                        <Clock className="w-8 h-8 text-green-600" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Detalhes */}
                 <Card>
                   <CardHeader>
