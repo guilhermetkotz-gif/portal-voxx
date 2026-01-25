@@ -49,8 +49,18 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     try {
       const currentTime = currentDemanda?.tempo_trabalho_minutos || 0;
       const newTotal = currentTime + minutes;
+      const historico = currentDemanda?.historico_tempo_trabalho || [];
+      
+      historico.push({
+        usuario_id: user?.id,
+        usuario_nome: user?.full_name || user?.email,
+        minutos: minutes,
+        data_registro: new Date().toISOString()
+      });
+      
       await base44.entities.Demanda.update(demanda.id, { 
-        tempo_trabalho_minutos: newTotal 
+        tempo_trabalho_minutos: newTotal,
+        historico_tempo_trabalho: historico
       });
       queryClient.invalidateQueries({ queryKey: ['demanda', demanda.id] });
       toast.success(`${minutes} minutos adicionados ao tempo de trabalho!`);
