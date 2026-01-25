@@ -12,6 +12,7 @@ import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from 
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ChatWidget from '@/components/chat/ChatWidget';
+import { Toaster } from '@/components/ui/toaster';
 
 const pageTitles = {
       Home: { title: "Resumo Executivo", subtitle: "Visão geral da sua conta" },
@@ -313,6 +314,9 @@ export default function Layout({ children, currentPageName }) {
         {user && (
         <ChatWidget user={user} currentCliente={currentCliente} />
         )}
+
+        {/* Toaster for notifications */}
+        <Toaster />
         </div>
         );
         }
