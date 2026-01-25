@@ -308,7 +308,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                 <TimeTracker 
                   demandaId={demanda.id}
                   onSaveTime={handleSaveTime}
-                  initialMinutes={currentDemanda.tempo_trabalho_minutos || 0}
+                  initialMinutes={0}
                 />
 
                 {/* Tempo Total de Trabalho */}
