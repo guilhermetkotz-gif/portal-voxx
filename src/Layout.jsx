@@ -31,8 +31,9 @@ const pageTitles = {
         Ajuda: { title: "Central de Ajuda", subtitle: "Playbook e FAQ" },
         Conta: { title: "Minha Conta", subtitle: "Configurações do perfil" },
         GerenciarAcessos: { title: "Gerenciar Acessos", subtitle: "Controle de usuários e permissões" },
-        Kanban: { title: "Kanban de Demandas", subtitle: "Gerencie demandas por setor" }
-        };
+        Kanban: { title: "Kanban de Demandas", subtitle: "Gerencie demandas por setor" },
+                MonitoramentoDemandas: { title: "Monitoramento de Demandas", subtitle: "Analytics e KPIs de demandas" }
+                };
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
