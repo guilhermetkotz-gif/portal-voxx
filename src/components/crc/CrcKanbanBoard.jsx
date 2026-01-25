@@ -191,14 +191,14 @@ export default function CrcKanbanBoard({ leads, onLeadClick, onStatusChange }) {
     }
   };
 
-  // Agrupar leads por status
+  // Agrupar leads por status e ordenar do mais recente para o mais antigo
   const leadsByStatus = {
-    sem_contato: leads.filter(l => l.status === 'sem_contato'),
-    em_tratativa: leads.filter(l => l.status === 'em_tratativa'),
-    agendou: leads.filter(l => l.status === 'agendou'),
-    compareceu: leads.filter(l => l.status === 'compareceu'),
-    interesse_futuro: leads.filter(l => l.status === 'interesse_futuro'),
-    perda: leads.filter(l => l.status === 'perda')
+    sem_contato: leads.filter(l => l.status === 'sem_contato').sort((a, b) => new Date(b.data_chegada) - new Date(a.data_chegada)),
+    em_tratativa: leads.filter(l => l.status === 'em_tratativa').sort((a, b) => new Date(b.data_chegada) - new Date(a.data_chegada)),
+    agendou: leads.filter(l => l.status === 'agendou').sort((a, b) => new Date(b.data_chegada) - new Date(a.data_chegada)),
+    compareceu: leads.filter(l => l.status === 'compareceu').sort((a, b) => new Date(b.data_chegada) - new Date(a.data_chegada)),
+    interesse_futuro: leads.filter(l => l.status === 'interesse_futuro').sort((a, b) => new Date(b.data_chegada) - new Date(a.data_chegada)),
+    perda: leads.filter(l => l.status === 'perda').sort((a, b) => new Date(b.data_chegada) - new Date(a.data_chegada))
   };
 
   return (
