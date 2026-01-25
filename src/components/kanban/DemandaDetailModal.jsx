@@ -46,12 +46,18 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   });
 
   const handleSaveTime = async (minutes) => {
-    const currentTime = demanda?.tempo_trabalho_minutos || 0;
-    const newTotal = currentTime + minutes;
-    await updateDemandaMutation.mutateAsync({ 
-      tempo_trabalho_minutos: newTotal 
-    });
-    toast.success(`${minutes} minutos adicionados ao tempo de trabalho!`);
+    try {
+      const currentTime = currentDemanda?.tempo_trabalho_minutos || 0;
+      const newTotal = currentTime + minutes;
+      await base44.entities.Demanda.update(demanda.id, { 
+        tempo_trabalho_minutos: newTotal 
+      });
+      queryClient.invalidateQueries(['demanda', demanda.id]);
+      queryClient.invalidateQueries(['demandasKanban']);
+      toast.success(`${minutes} minutos adicionados ao tempo de trabalho!`);
+    } catch (error) {
+      toast.error('Erro ao salvar tempo de trabalho');
+    }
   };
 
   // Recarrega demanda atual
