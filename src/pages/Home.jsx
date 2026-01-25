@@ -192,9 +192,26 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     setPreviousLeadsCount(currentCount);
   }, [googleLeadsData?.leads, dataUpdatedAt]);
 
+  // Fetch balance control for current month
+  const currentDate = new Date();
+  const currentMonth = format(currentDate, 'yyyy-MM-01');
+  
+  const { data: balanceControl } = useQuery({
+    queryKey: ['metaAdsBalance', selectedClienteId, currentMonth],
+    queryFn: () => base44.entities.MetaAdsBalanceControl.filter({ 
+      client_id: selectedClienteId,
+      month_year: currentMonth 
+    }),
+    enabled: !!selectedClienteId,
+    staleTime: 60 * 1000
+  });
+
+  const saldoMeta = balanceControl?.[0]?.saldo || cliente?.saldo_meta || 0;
+  const gastoDiarioMeta = balanceControl?.[0]?.gasto_diario || cliente?.investimento_dia_meta || 0;
+
   const totalLeadsGoogle = googleLeadsData?.leads || (cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0);
-  const diasRestantesMeta = cliente?.investimento_dia_meta > 0 
-    ? Math.floor((cliente?.saldo_meta || 0) / cliente.investimento_dia_meta) 
+  const diasRestantesMeta = gastoDiarioMeta > 0 
+    ? Math.floor(saldoMeta / gastoDiarioMeta) 
     : null;
   const diasRestantesGoogle = cliente?.investimento_dia_google > 0 
     ? Math.floor((cliente?.saldo_google || 0) / cliente.investimento_dia_google) 
@@ -412,7 +429,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
               <span className="font-semibold text-slate-900">Saldo Meta</span>
             </div>
             <span className="text-2xl font-bold text-slate-900">
-              {formatCurrency(cliente?.saldo_meta)}
+              {formatCurrency(saldoMeta)}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
