@@ -555,8 +555,16 @@ export default function GestaoSaldoMetaAds({ user }) {
                             step="0.01"
                             value={edits.saldo !== undefined ? edits.saldo : row.balance?.saldo || ''}
                             onChange={(e) => handleFieldChange(row.cliente.id, 'saldo', e.target.value)}
+                            onBlur={() => handleSave(row)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSave(row);
+                                e.target.blur();
+                              }
+                            }}
                             className="mt-1"
-                            disabled={!isEditing}
+                            placeholder="0,00"
                           />
                         </div>
 
