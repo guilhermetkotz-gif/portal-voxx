@@ -191,7 +191,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                 Kanban
               </Button>
             </div>
-            <Button variant="outline" onClick={refetch}>
+            <Button variant="outline" onClick={() => queryClient.invalidateQueries(['crcLeads'])}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Atualizar
             </Button>
