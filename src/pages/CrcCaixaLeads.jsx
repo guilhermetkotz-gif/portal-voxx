@@ -286,7 +286,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                       <tr key={lead.id} className={`transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-violet-50/50`}>
                         <td className="px-4 py-4 text-sm">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-slate-700">{format(new Date(lead.data_chegada), 'dd/MM')}</span>
+                            <span className="font-medium text-slate-700">{format(new Date(lead.data_chegada), 'dd/MM/yyyy')}</span>
                             <span className="text-slate-500 text-xs">{format(new Date(lead.data_chegada), 'HH:mm')}</span>
                             {lead.sla_atrasado && (
                               <AlertCircle className="w-4 h-4 text-red-500 animate-pulse" />
