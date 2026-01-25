@@ -213,6 +213,11 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const diasRestantesMeta = gastoDiarioMeta > 0 
     ? Math.floor(saldoMeta / gastoDiarioMeta) 
     : null;
+  
+  // Calcular próximo investimento = duração saldo - 2 dias
+  const dataProximoInvestimentoMeta = diasRestantesMeta !== null && diasRestantesMeta > 2
+    ? new Date(Date.now() + (diasRestantesMeta - 2) * 24 * 60 * 60 * 1000)
+    : null;
   const diasRestantesGoogle = cliente?.investimento_dia_google > 0 
     ? Math.floor((cliente?.saldo_google || 0) / cliente.investimento_dia_google) 
     : null;
@@ -435,8 +440,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-1 text-slate-500">
               <Calendar className="w-4 h-4" />
-              Próx. investimento: {cliente?.data_proximo_investimento_meta 
-                ? format(new Date(cliente.data_proximo_investimento_meta), "dd/MM") 
+              Próx. investimento: {dataProximoInvestimentoMeta 
+                ? format(dataProximoInvestimentoMeta, "dd/MM") 
                 : '-'}
             </div>
             {diasRestantesMeta !== null && (
