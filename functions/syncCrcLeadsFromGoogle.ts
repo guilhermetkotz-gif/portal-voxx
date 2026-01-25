@@ -232,38 +232,6 @@ async function syncClienteLeads(base44, cliente) {
         }
       }
 
-      // Parse date with proper timezone handling
-      let dataChegada = new Date().toISOString();
-      if (dateIdx >= 0 && row[dateIdx]) {
-        try {
-          const dateStr = row[dateIdx].trim();
-          console.log('Parsing date:', dateStr);
-          // Handle DD/MM/YYYY HH:MM format (common in Brazilian sheets)
-          if (dateStr.includes('/')) {
-            const [datePart, timePart] = dateStr.split(' ');
-            const parts = datePart.split('/');
-            
-            // DD/MM/YYYY format
-            const day = parts[0].padStart(2, '0');
-            const month = parts[1].padStart(2, '0');
-            const year = parts[2]?.length === 2 ? `20${parts[2]}` : parts[2];
-            
-            const time = timePart || '00:00';
-            const [hours, minutes] = time.split(':');
-            
-            // Build ISO date string correctly: YYYY-MM-DD
-            const isoDateStr = `${year}-${month}-${day}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
-            console.log('Parsed to:', isoDateStr);
-            dataChegada = new Date(isoDateStr).toISOString();
-          } else {
-            dataChegada = new Date(dateStr).toISOString();
-          }
-        } catch (error) {
-          console.error('Date parse error:', error, 'for input:', row[dateIdx]);
-          // Use current date if parse fails
-        }
-      }
-
       // Create lead
       await base44.asServiceRole.entities.CrcLead.create({
         unidade_id: clienteId,
