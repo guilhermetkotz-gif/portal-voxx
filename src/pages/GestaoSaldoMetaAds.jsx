@@ -438,7 +438,7 @@ export default function GestaoSaldoMetaAds({ user }) {
                           )}
                         </div>
                         <p className="text-xs text-slate-500 font-mono mb-2">
-                          {row.mainAccount?.ad_account_id ? `ID: ${row.mainAccount.ad_account_id}` : `${row.cliente.cidade || '—'}, ${row.cliente.estado || '—'}`}
+                          {row.mainAccount ? `ID: ${row.mainAccount.ad_account_id}` : `${row.cliente.cidade}, ${row.cliente.estado}`}
                         </p>
 
                         {/* Resumo Financeiro Compacto */}
