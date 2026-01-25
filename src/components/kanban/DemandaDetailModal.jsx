@@ -45,6 +45,15 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     previsao_entrega: demanda?.previsao_entrega || ''
   });
 
+  const handleSaveTime = async (minutes) => {
+    const currentTime = demanda?.tempo_trabalho_minutos || 0;
+    const newTotal = currentTime + minutes;
+    await updateDemandaMutation.mutateAsync({ 
+      tempo_trabalho_minutos: newTotal 
+    });
+    toast.success(`${minutes} minutos adicionados ao tempo de trabalho!`);
+  };
+
   // Recarrega demanda atual
   const { data: demandaAtual } = useQuery({
     queryKey: ['demanda', demanda?.id],
