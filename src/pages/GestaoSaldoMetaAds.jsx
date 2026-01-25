@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { Wallet, AlertTriangle, CheckCircle2, TrendingUp, Calendar, ExternalLink, Edit2, Save, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Wallet, AlertTriangle, CheckCircle2, TrendingUp, Calendar, ExternalLink, Edit2, Save, Plus, Trash2, ChevronDown, ChevronUp, Users, DollarSign, Activity } from 'lucide-react';
+import KPICard from '@/components/ui/KPICard';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { createPageUrl } from '@/utils';
@@ -289,6 +290,27 @@ export default function GestaoSaldoMetaAds({ user }) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
   };
 
+  // Métricas agregadas para o dashboard
+  const dashboardMetrics = useMemo(() => {
+    const clientesAtivos = dataRows.filter(row => row.cliente.status === 'ativo').length;
+    const totalSaldo = dataRows.reduce((sum, row) => sum + row.saldo, 0);
+    const totalGastoDiario = dataRows.reduce((sum, row) => sum + row.gastoDiario, 0);
+    const totalPlanejado = dataRows.reduce((sum, row) => sum + row.valorPlanejado, 0);
+    const totalFaltaPagar = dataRows.reduce((sum, row) => sum + row.valorFaltaPagar, 0);
+    const clientesComAlerta = dataRows.filter(row => row.saldoAlert !== 'ok').length;
+    const duracaoMediaSaldo = totalGastoDiario > 0 ? totalSaldo / totalGastoDiario : 0;
+    
+    return {
+      clientesAtivos,
+      totalSaldo,
+      totalGastoDiario,
+      totalPlanejado,
+      totalFaltaPagar,
+      clientesComAlerta,
+      duracaoMediaSaldo
+    };
+  }, [dataRows]);
+
   const getSaldoAlertColor = (alert) => {
     switch (alert) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-300';
@@ -336,6 +358,53 @@ export default function GestaoSaldoMetaAds({ user }) {
         </CardHeader>
         
         <CardContent className="pt-6">
+          {/* Dashboard de Métricas */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <KPICard
+              title="Clientes Ativos"
+              value={dashboardMetrics.clientesAtivos}
+              subtitle={`${dataRows.length} total`}
+              icon={Users}
+              variant="primary"
+            />
+            <KPICard
+              title="Saldo Total Disponível"
+              value={formatCurrency(dashboardMetrics.totalSaldo)}
+              subtitle={`~${dashboardMetrics.duracaoMediaSaldo.toFixed(1)} dias em média`}
+              icon={Wallet}
+              variant="success"
+            />
+            <KPICard
+              title="Gasto Diário Total"
+              value={formatCurrency(dashboardMetrics.totalGastoDiario)}
+              subtitle="Baseado em D-1"
+              icon={TrendingUp}
+              variant="default"
+            />
+            <KPICard
+              title="Total Planejado"
+              value={formatCurrency(dashboardMetrics.totalPlanejado)}
+              subtitle={`Falta pagar: ${formatCurrency(dashboardMetrics.totalFaltaPagar)}`}
+              icon={DollarSign}
+              variant={dashboardMetrics.totalFaltaPagar > 0 ? "warning" : "success"}
+            />
+          </div>
+
+          {/* Alertas Consolidados */}
+          {dashboardMetrics.clientesComAlerta > 0 && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-900">
+                  {dashboardMetrics.clientesComAlerta} {dashboardMetrics.clientesComAlerta === 1 ? 'cliente precisa' : 'clientes precisam'} de atenção
+                </p>
+                <p className="text-xs text-red-700 mt-0.5">
+                  Saldo baixo detectado - verifique os clientes com alertas abaixo
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Modo de Visualização */}
           <div className="mb-6 flex gap-2">
             <Button
@@ -440,6 +509,18 @@ export default function GestaoSaldoMetaAds({ user }) {
                           )}
                           {!row.planejamento && (
                             <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 text-xs h-5">Sem planejamento</Badge>
+                          )}
+                          {row.saldoAlert === 'critical' && (
+                            <Badge className="bg-red-600 text-white text-xs h-5">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Saldo Crítico
+                            </Badge>
+                          )}
+                          {row.saldoAlert === 'warning' && (
+                            <Badge className="bg-yellow-600 text-white text-xs h-5">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Saldo Baixo
+                            </Badge>
                           )}
                         </div>
                         <p className="text-xs text-slate-500 font-mono mb-2">
