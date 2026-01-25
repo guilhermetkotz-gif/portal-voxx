@@ -558,6 +558,9 @@ export default function GestaoSaldoMetaAds({ user }) {
                               const rawValue = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
                               const numValue = parseFloat(rawValue) || 0;
                               handleFieldChange(row.cliente.id, 'saldo', numValue);
+                              if (!editingClients.has(row.cliente.id)) {
+                                setEditingClients(prev => new Set(prev).add(row.cliente.id));
+                              }
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
