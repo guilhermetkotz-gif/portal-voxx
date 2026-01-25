@@ -562,6 +562,16 @@ export default function GestaoSaldoMetaAds({ user }) {
                                 setEditingClients(prev => new Set(prev).add(row.cliente.id));
                               }
                             }}
+                            onBlur={() => {
+                              if (edits.saldo !== undefined) {
+                                handleSave(row);
+                                setEditingClients(prev => {
+                                  const newSet = new Set(prev);
+                                  newSet.delete(row.cliente.id);
+                                  return newSet;
+                                });
+                              }
+                            }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();
