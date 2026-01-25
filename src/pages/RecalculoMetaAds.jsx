@@ -216,10 +216,10 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     d.cliente.cidade?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Ordenar por impacto (maior diferença entre médio e recalculado)
+  // Ordenar por impacto (maior diferença entre D-1 e recalculado)
   const dadosOrdenados = [...dadosFiltrados].sort((a, b) => {
-    const diferencaA = Math.abs(a.investimentoDiarioRecalculado - a.investimentoDiarioMedio);
-    const diferencaB = Math.abs(b.investimentoDiarioRecalculado - b.investimentoDiarioMedio);
+    const diferencaA = Math.abs(a.investimentoDiarioRecalculado - a.diarioD1);
+    const diferencaB = Math.abs(b.investimentoDiarioRecalculado - b.diarioD1);
     return diferencaB - diferencaA;
   });
 
@@ -243,9 +243,9 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     }));
   };
 
-  const getImpactoColor = (recalculado, medio) => {
-    const diferenca = Math.abs(recalculado - medio);
-    const percentual = medio > 0 ? (diferenca / medio) * 100 : 0;
+  const getImpactoColor = (recalculado, diarioD1) => {
+    const diferenca = Math.abs(recalculado - diarioD1);
+    const percentual = diarioD1 > 0 ? (diferenca / diarioD1) * 100 : 0;
     
     if (percentual > 30) return 'bg-red-50 border-red-300';
     if (percentual > 15) return 'bg-yellow-50 border-yellow-300';
@@ -330,7 +330,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         ) : (
           dadosOrdenados.map(dados => {
             const isExpanded = expandedCards.has(dados.cliente.id);
-            const impactoColor = getImpactoColor(dados.investimentoDiarioRecalculado, dados.investimentoDiarioMedio);
+            const impactoColor = getImpactoColor(dados.investimentoDiarioRecalculado, dados.diarioD1);
             
             return (
               <Card key={dados.cliente.id} className={`border-2 ${impactoColor}`}>
