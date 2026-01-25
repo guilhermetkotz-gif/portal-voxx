@@ -206,8 +206,43 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     staleTime: 60 * 1000
   });
 
+  // Buscar gasto diário da planilha "ontem meta Ads"
+  const { data: sheetData } = useQuery({
+    queryKey: ['amountSpentFromSheet'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000
+  });
+
+  const diarioD1ByAccount = sheetData?.diarioD1ByAccount || {};
+
   const saldoMeta = balanceControl?.[0]?.saldo || cliente?.saldo_meta || 0;
-  const gastoDiarioMeta = balanceControl?.[0]?.gasto_diario || cliente?.investimento_dia_meta || 0;
+  
+  // Buscar gasto diário da planilha usando o nome do cliente
+  let gastoDiarioMeta = 0;
+  const nomeCliente = cliente?.nome?.trim();
+  
+  const normalizeNome = (nome) => {
+    return nome?.toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/\s*-\s*/g, '')
+      .trim() || '';
+  };
+  
+  const clienteNormalizado = normalizeNome(nomeCliente);
+  
+  if (nomeCliente && diarioD1ByAccount[nomeCliente] !== undefined) {
+    gastoDiarioMeta = diarioD1ByAccount[nomeCliente];
+  } else {
+    const matchingKey = Object.keys(diarioD1ByAccount).find(key => 
+      normalizeNome(key) === clienteNormalizado
+    );
+    if (matchingKey) {
+      gastoDiarioMeta = diarioD1ByAccount[matchingKey];
+    }
+  }
 
   const totalLeadsGoogle = googleLeadsData?.leads || (cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0);
   const diasRestantesMeta = gastoDiarioMeta > 0 
@@ -424,7 +459,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       </Card>
 
       {/* Saldos */}
-      <div className="grid sm:grid-cols-2 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -453,6 +488,29 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
                 ~{diasRestantesMeta} dias restantes
               </span>
             )}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-violet-100 rounded-lg">
+                <DollarSign className="w-4 h-4 text-violet-600" />
+              </div>
+              <span className="font-semibold text-slate-900">Gasto Diário Meta</span>
+            </div>
+            <span className="text-2xl font-bold text-slate-900">
+              {formatCurrency(gastoDiarioMeta)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-1 text-slate-500">
+              <Calendar className="w-4 h-4" />
+              Ontem (D-1)
+            </div>
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+              Da planilha
+            </span>
           </div>
         </Card>
 
