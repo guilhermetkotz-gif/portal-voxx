@@ -53,8 +53,44 @@ export default function Performance({ currentCliente, selectedClienteId, user })
     staleTime: 2 * 60 * 1000
   });
 
+  // Buscar gasto diário da planilha "ontem meta Ads"
+  const { data: sheetData } = useQuery({
+    queryKey: ['amountSpentFromSheet'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
+      return response.data;
+    },
+    staleTime: 2 * 60 * 1000
+  });
+
+  const diarioD1ByAccount = sheetData?.diarioD1ByAccount || {};
+
   const cliente = currentCliente;
   const isVoxx = user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_operacao';
+  
+  // Buscar gasto diário do cliente atual
+  let gastoDiarioMeta = 0;
+  const nomeCliente = cliente?.nome?.trim();
+  
+  const normalizeNome = (nome) => {
+    return nome?.toLowerCase()
+      .replace(/\s+/g, ' ')
+      .replace(/\s*-\s*/g, '')
+      .trim() || '';
+  };
+  
+  const clienteNormalizado = normalizeNome(nomeCliente);
+  
+  if (nomeCliente && diarioD1ByAccount[nomeCliente] !== undefined) {
+    gastoDiarioMeta = diarioD1ByAccount[nomeCliente];
+  } else {
+    const matchingKey = Object.keys(diarioD1ByAccount).find(key => 
+      normalizeNome(key) === clienteNormalizado
+    );
+    if (matchingKey) {
+      gastoDiarioMeta = diarioD1ByAccount[matchingKey];
+    }
+  }
 
   if (isLoading) {
     return (
@@ -78,7 +114,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
 
         <TabsContent value="meta" className="space-y-6 mt-6">
           {/* Meta KPIs */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <KPICard
               title="Leads Entregues"
               value={cliente?.leads_meta_mes?.toLocaleString('pt-BR') || '-'}
@@ -94,16 +130,23 @@ export default function Performance({ currentCliente, selectedClienteId, user })
               variant={cliente?.custo_por_lead_meta > (cliente?.cpl_baseline_meta * 1.2) ? 'warning' : 'default'}
             />
             <KPICard
+              title="Gasto Diário (D-1)"
+              value={formatCurrency(gastoDiarioMeta)}
+              subtitle="Da planilha ontem"
+              icon={TrendingUp}
+              variant="default"
+            />
+            <KPICard
               title="Investimento no Mês"
               value={formatCurrency(cliente?.investimento_meta_mes)}
-              subtitle={`${formatCurrency(cliente?.investimento_dia_meta)}/dia`}
+              subtitle={`Total acumulado`}
               icon={TrendingUp}
             />
             <KPICard
               title="Saldo Disponível"
               value={formatCurrency(cliente?.saldo_meta)}
               icon={Target}
-              variant={cliente?.saldo_meta < (cliente?.investimento_dia_meta * 3) ? 'danger' : 'success'}
+              variant={cliente?.saldo_meta < (gastoDiarioMeta * 3) ? 'danger' : 'success'}
             />
           </div>
 
