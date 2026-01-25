@@ -10,12 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   Plus, Search, Phone, Copy, ExternalLink, 
   Clock, AlertCircle, CheckCircle, Loader2, RefreshCw,
-  MessageCircle, Edit2, Calendar, XCircle, UserCheck, Hourglass
+  MessageCircle, Edit2, Calendar, XCircle, UserCheck, Hourglass, LayoutGrid, List
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import CadastroLeadModal from '@/components/crc/CadastroLeadModal';
 import RegistrarTentativaModal from '@/components/crc/RegistrarTentativaModal';
+import CrcKanbanBoard from '@/components/crc/CrcKanbanBoard';
+import LeadDetailDrawer from '@/components/crc/LeadDetailDrawer';
 
 const statusColors = {
   sem_contato: 'bg-gray-100 text-gray-700 border-gray-300',
@@ -53,6 +55,8 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
   const [showTentativaModal, setShowTentativaModal] = useState(false);
   const [activeTab, setActiveTab] = useState('todos');
   const [editingCell, setEditingCell] = useState(null);
+  const [viewMode, setViewMode] = useState('list');
+  const [showDetailDrawer, setShowDetailDrawer] = useState(false);
 
   const { data: leads = [], isLoading, refetch } = useQuery({
     queryKey: ['crcLeads', currentCliente?.id],
@@ -116,6 +120,18 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
     updateMutation.mutate({ leadId, data: { [field]: value } });
   };
 
+  const handleStatusChange = (leadId, newStatus) => {
+    updateMutation.mutate({ 
+      leadId, 
+      data: { status: newStatus }
+    });
+  };
+
+  const handleLeadClick = (lead) => {
+    setSelectedLead(lead);
+    setShowDetailDrawer(true);
+  };
+
   const getProximaAcao = (lead) => {
     if (lead.status === 'sem_contato') return 'Tentar contato';
     if (lead.status === 'em_tratativa') return 'Nova tentativa';
@@ -154,6 +170,24 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
             </p>
           </div>
           <div className="flex gap-2">
+            <div className="flex border rounded-lg overflow-hidden">
+              <Button 
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                onClick={() => setViewMode('list')}
+                className="rounded-none h-9"
+              >
+                <List className="w-4 h-4 mr-2" />
+                Lista
+              </Button>
+              <Button 
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                onClick={() => setViewMode('kanban')}
+                className="rounded-none h-9"
+              >
+                <LayoutGrid className="w-4 h-4 mr-2" />
+                Kanban
+              </Button>
+            </div>
             <Button variant="outline" onClick={refetch}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Atualizar
@@ -222,6 +256,12 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                   Cadastrar Novo Lead
                 </Button>
               </div>
+            ) : viewMode === 'kanban' ? (
+              <CrcKanbanBoard 
+                leads={filteredLeads}
+                onLeadClick={handleLeadClick}
+                onStatusChange={handleStatusChange}
+              />
             ) : (
               <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full">
@@ -419,6 +459,19 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
             queryClient.invalidateQueries(['crcLeads']);
             setShowTentativaModal(false);
             setSelectedLead(null);
+          }}
+        />
+      )}
+
+      {showDetailDrawer && selectedLead && (
+        <LeadDetailDrawer
+          lead={selectedLead}
+          onClose={() => {
+            setShowDetailDrawer(false);
+            setSelectedLead(null);
+          }}
+          onUpdate={() => {
+            queryClient.invalidateQueries(['crcLeads']);
           }}
         />
       )}
