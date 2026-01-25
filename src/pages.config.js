@@ -59,6 +59,7 @@ export const PAGES = {
     "Home": Home,
     "Kanban": Kanban,
     "MonitoramentoContas": MonitoramentoContas,
+    "MonitoramentoDemandas": MonitoramentoDemandas,
     "Newsletter": Newsletter,
     "OnboardingCliente": OnboardingCliente,
     "Performance": Performance,
