@@ -148,7 +148,7 @@ export default function GestaoSaldoMetaAds({ user }) {
       
       // Buscar gasto diário da planilha (D-1) usando o nome do cliente
       let gastoDiario = 0;
-      const nomeCliente = row.cliente.nome?.trim();
+      const nomeCliente = cliente.nome?.trim();
       if (nomeCliente && diarioD1ByAccount[nomeCliente] !== undefined) {
         gastoDiario = diarioD1ByAccount[nomeCliente];
       } else {
