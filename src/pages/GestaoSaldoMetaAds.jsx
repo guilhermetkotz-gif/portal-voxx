@@ -547,13 +547,17 @@ export default function GestaoSaldoMetaAds({ user }) {
                           <Input
                             type="text"
                             value={edits.saldo !== undefined ? formatCurrency(edits.saldo) : (row.balance?.saldo ? formatCurrency(row.balance.saldo) : '')}
+                            onFocus={(e) => {
+                              e.target.value = '';
+                              handleFieldChange(row.cliente.id, 'saldo', 0);
+                              if (!editingClients.has(row.cliente.id)) {
+                                setEditingClients(prev => new Set(prev).add(row.cliente.id));
+                              }
+                            }}
                             onChange={(e) => {
                               const rawValue = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
                               const numValue = parseFloat(rawValue) || 0;
                               handleFieldChange(row.cliente.id, 'saldo', numValue);
-                              if (!editingClients.has(row.cliente.id)) {
-                                setEditingClients(prev => new Set(prev).add(row.cliente.id));
-                              }
                             }}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
