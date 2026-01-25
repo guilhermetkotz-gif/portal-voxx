@@ -52,8 +52,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
       await base44.entities.Demanda.update(demanda.id, { 
         tempo_trabalho_minutos: newTotal 
       });
-      queryClient.invalidateQueries(['demanda', demanda.id]);
-      queryClient.invalidateQueries(['demandasKanban']);
+      queryClient.invalidateQueries({ queryKey: ['demanda', demanda.id] });
       toast.success(`${minutes} minutos adicionados ao tempo de trabalho!`);
     } catch (error) {
       toast.error('Erro ao salvar tempo de trabalho');
