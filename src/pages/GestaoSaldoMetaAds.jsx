@@ -545,12 +545,30 @@ export default function GestaoSaldoMetaAds({ user }) {
                         <div>
                           <Label className="text-xs">Saldo (R$)</Label>
                           <Input
-                            type="number"
-                            step="0.01"
-                            value={edits.saldo !== undefined ? edits.saldo : row.balance?.saldo || ''}
-                            onChange={(e) => handleFieldChange(row.cliente.id, 'saldo', e.target.value)}
+                            type="text"
+                            value={edits.saldo !== undefined ? formatCurrency(edits.saldo) : (row.balance?.saldo ? formatCurrency(row.balance.saldo) : '')}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
+                              const numValue = parseFloat(rawValue) || 0;
+                              handleFieldChange(row.cliente.id, 'saldo', numValue);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                if (!editingClients.has(row.cliente.id)) {
+                                  setEditingClients(prev => new Set(prev).add(row.cliente.id));
+                                }
+                                handleSave(row);
+                                setEditingClients(prev => {
+                                  const newSet = new Set(prev);
+                                  newSet.delete(row.cliente.id);
+                                  return newSet;
+                                });
+                              }
+                            }}
                             className="mt-1"
                             disabled={!isEditing}
+                            placeholder="R$ 0,00"
                           />
                         </div>
 
