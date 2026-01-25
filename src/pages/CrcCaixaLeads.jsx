@@ -62,9 +62,10 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
     queryKey: ['crcLeads', currentCliente?.id],
     queryFn: () => base44.entities.CrcLead.filter({ 
       unidade_id: currentCliente?.id 
-    }, '-data_chegada', 500),
+    }),
     enabled: !!currentCliente?.id,
-    staleTime: 30 * 1000
+    staleTime: 5 * 1000,
+    refetchOnWindowFocus: true
   });
 
   const { data: config } = useQuery({
