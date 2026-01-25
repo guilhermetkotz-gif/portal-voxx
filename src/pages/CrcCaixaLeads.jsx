@@ -78,24 +78,26 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
     enabled: !!currentCliente?.id
   });
 
-  const filteredLeads = leads.filter(lead => {
-    const matchSearch = !searchTerm || 
-      lead.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.telefone?.includes(searchTerm);
-    
-    const matchTab = {
-      todos: true,
-      novos: lead.status === 'sem_contato' && !lead.sla_atrasado,
-      tratativa: lead.status === 'em_tratativa',
-      agendados: lead.status === 'agendou',
-      futuro: lead.status === 'interesse_futuro',
-      perdas: lead.status === 'perda',
-      atrasados: lead.status === 'sem_contato' && lead.sla_atrasado,
-      google: lead.fonte_cadastro === 'google_sheet'
-    }[activeTab];
+  const filteredLeads = leads
+    .filter(lead => {
+      const matchSearch = !searchTerm || 
+        lead.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.telefone?.includes(searchTerm);
+      
+      const matchTab = {
+        todos: true,
+        novos: lead.status === 'sem_contato' && !lead.sla_atrasado,
+        tratativa: lead.status === 'em_tratativa',
+        agendados: lead.status === 'agendou',
+        futuro: lead.status === 'interesse_futuro',
+        perdas: lead.status === 'perda',
+        atrasados: lead.status === 'sem_contato' && lead.sla_atrasado,
+        google: lead.fonte_cadastro === 'google_sheet'
+      }[activeTab];
 
-    return matchSearch && matchTab;
-  });
+      return matchSearch && matchTab;
+    })
+    .sort((a, b) => new Date(b.data_chegada) - new Date(a.data_chegada));
 
   const handleCopyPhone = (phone) => {
     navigator.clipboard.writeText(phone);
