@@ -33,91 +33,138 @@ Deno.serve(async (req) => {
     
     const metadata = await metadataResponse.json();
     
-    // Buscar a aba "ontem meta Ads"
-    const targetSheet = metadata.sheets.find(sheet => 
+    // Buscar a aba "Página 1 (mês)" para Amount Spent (investido no mês)
+    const mesSheet = metadata.sheets.find(sheet => 
+      sheet.properties.title.toLowerCase().includes('página 1') || 
+      sheet.properties.title.toLowerCase().includes('pagina 1') ||
+      sheet.properties.title.toLowerCase().includes('mês')
+    );
+    const mesSheetName = mesSheet?.properties?.title || metadata.sheets[0]?.properties?.title;
+    
+    // Buscar a aba "ontem meta Ads" para Diário D-1
+    const ontemSheet = metadata.sheets.find(sheet => 
       sheet.properties.title.toLowerCase().includes('ontem') && 
       sheet.properties.title.toLowerCase().includes('meta')
     );
+    const ontemSheetName = ontemSheet?.properties?.title;
     
-    const sheetName = targetSheet?.properties?.title || 'ontem meta Ads';
+    if (!ontemSheetName) {
+      return Response.json({ 
+        error: 'Sheet "ontem meta Ads" not found',
+        availableSheets: metadata.sheets.map(s => s.properties.title)
+      }, { status: 400 });
+    }
     
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}`;
-    
-    const response = await fetch(sheetsUrl, {
+    // Buscar dados da aba do mês
+    const mesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(mesSheetName)}`;
+    const mesResponse = await fetch(mesUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       }
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (!mesResponse.ok) {
       return Response.json({ 
-        error: 'Failed to fetch sheet data', 
-        details: errorText 
-      }, { status: response.status });
+        error: 'Failed to fetch monthly sheet data', 
+        details: await mesResponse.text() 
+      }, { status: mesResponse.status });
     }
 
-    const data = await response.json();
-    const rows = data.values || [];
-
-    if (rows.length === 0) {
-      return Response.json({ amountSpentByAccount: {} });
-    }
-
-    // Primeira linha são os headers
-    const headers = rows[0];
+    const mesData = await mesResponse.json();
+    const mesRows = mesData.values || [];
     
-    // Encontrar índices das colunas
-    const accountNameIndex = headers.findIndex(h => 
-      h && (h.toLowerCase().includes('account') && h.toLowerCase().includes('name'))
-    );
-    const amountSpentIndex = headers.findIndex(h => 
-      h && (h.toLowerCase().includes('amount') && h.toLowerCase().includes('spent'))
-    );
-    
-    console.log('Headers:', headers);
-    console.log('Account Name Index:', accountNameIndex);
-    console.log('Amount Spent Index:', amountSpentIndex);
-
-    if (accountNameIndex === -1 || amountSpentIndex === -1) {
-      return Response.json({ 
-        error: 'Could not find required columns (Account Name, Amount Spent)', 
-        headers 
-      }, { status: 400 });
-    }
-
-    // Processar dados
-    const amountSpentByAccount = {};
-    const diarioD1ByAccount = {};
-    
-    for (let i = 1; i < rows.length; i++) {
-      const row = rows[i];
-      const accountName = row[accountNameIndex];
-      const amountSpentRaw = row[amountSpentIndex];
-      
-      // Limpar o valor e converter (remover R$, pontos e vírgulas)
-      let amountSpent = 0;
-      if (amountSpentRaw) {
-        const cleanValue = String(amountSpentRaw)
-          .replace(/R\$/g, '')
-          .replace(/\./g, '') // Remove separador de milhares
-          .replace(/,/g, '.') // Troca vírgula por ponto
-          .trim();
-        amountSpent = parseFloat(cleanValue) || 0;
+    // Buscar dados da aba de ontem
+    const ontemUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(ontemSheetName)}`;
+    const ontemResponse = await fetch(ontemUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
       }
+    });
+
+    if (!ontemResponse.ok) {
+      return Response.json({ 
+        error: 'Failed to fetch yesterday sheet data', 
+        details: await ontemResponse.text() 
+      }, { status: ontemResponse.status });
+    }
+
+    const ontemData = await ontemResponse.json();
+    const ontemRows = ontemData.values || [];
+
+    // Processar dados do mês (Amount Spent total)
+    const amountSpentByAccount = {};
+    if (mesRows.length > 0) {
+      const mesHeaders = mesRows[0];
+      const mesAccountNameIndex = mesHeaders.findIndex(h => 
+        h && (h.toLowerCase().includes('account') && h.toLowerCase().includes('name'))
+      );
+      const mesAmountSpentIndex = mesHeaders.findIndex(h => 
+        h && (h.toLowerCase().includes('amount') && h.toLowerCase().includes('spent'))
+      );
       
-      if (accountName) {
-        amountSpentByAccount[accountName] = amountSpent;
-        // Amount Spent é o mesmo que Diário D-1
-        diarioD1ByAccount[accountName] = amountSpent;
+      if (mesAccountNameIndex !== -1 && mesAmountSpentIndex !== -1) {
+        for (let i = 1; i < mesRows.length; i++) {
+          const row = mesRows[i];
+          const accountName = row[mesAccountNameIndex];
+          const amountSpentRaw = row[mesAmountSpentIndex];
+          
+          let amountSpent = 0;
+          if (amountSpentRaw) {
+            const cleanValue = String(amountSpentRaw)
+              .replace(/R\$/g, '')
+              .replace(/\./g, '')
+              .replace(/,/g, '.')
+              .trim();
+            amountSpent = parseFloat(cleanValue) || 0;
+          }
+          
+          if (accountName) {
+            amountSpentByAccount[accountName] = amountSpent;
+          }
+        }
+      }
+    }
+    
+    // Processar dados de ontem (Diário D-1)
+    const diarioD1ByAccount = {};
+    if (ontemRows.length > 0) {
+      const ontemHeaders = ontemRows[0];
+      const ontemAccountNameIndex = ontemHeaders.findIndex(h => 
+        h && (h.toLowerCase().includes('account') && h.toLowerCase().includes('name'))
+      );
+      const ontemAmountSpentIndex = ontemHeaders.findIndex(h => 
+        h && (h.toLowerCase().includes('amount') && h.toLowerCase().includes('spent'))
+      );
+      
+      if (ontemAccountNameIndex !== -1 && ontemAmountSpentIndex !== -1) {
+        for (let i = 1; i < ontemRows.length; i++) {
+          const row = ontemRows[i];
+          const accountName = row[ontemAccountNameIndex];
+          const amountSpentRaw = row[ontemAmountSpentIndex];
+          
+          let amountSpent = 0;
+          if (amountSpentRaw) {
+            const cleanValue = String(amountSpentRaw)
+              .replace(/R\$/g, '')
+              .replace(/\./g, '')
+              .replace(/,/g, '.')
+              .trim();
+            amountSpent = parseFloat(cleanValue) || 0;
+          }
+          
+          if (accountName) {
+            diarioD1ByAccount[accountName] = amountSpent;
+          }
+        }
       }
     }
 
     return Response.json({ 
       amountSpentByAccount,
       diarioD1ByAccount,
-      totalAccounts: Object.keys(amountSpentByAccount).length
+      totalAccounts: Math.max(Object.keys(amountSpentByAccount).length, Object.keys(diarioD1ByAccount).length)
     });
 
   } catch (error) {
