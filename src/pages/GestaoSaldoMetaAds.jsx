@@ -238,12 +238,6 @@ export default function GestaoSaldoMetaAds({ user }) {
     const edits = editingRows[row.cliente.id] || {};
     const balance = row.balance || {};
     
-    // Verificar se tem conta Meta principal
-    if (!row.mainAccount) {
-      toast({ title: 'Erro', description: 'Cliente sem conta Meta Ads principal configurada.', variant: 'destructive' });
-      return;
-    }
-    
     // Calcular valor_pago e tomadas_pagas baseado no histórico
     const historico = edits.historico_tomadas || balance.historico_tomadas || [];
     const valorPagoCalculado = historico
@@ -258,7 +252,7 @@ export default function GestaoSaldoMetaAds({ user }) {
       client_id: row.cliente.id,
       client_name: row.cliente.nome,
       month_year: selectedMonth,
-      ad_account_id: row.mainAccount.ad_account_id,
+      ad_account_id: row.mainAccount?.ad_account_id || '',
       saldo: edits.saldo !== undefined ? parseFloat(edits.saldo) : balance.saldo || 0,
       valor_planejado_meta: valorPlanejadoMeta,
       valor_pago: valorPagoCalculado,
