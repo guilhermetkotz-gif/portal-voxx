@@ -14,6 +14,7 @@ import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 import moment from 'moment-timezone';
 
 const DEFAULT_COLUMN_ORDER = [
+  'ATENDIMENTO',
   'TRAFEGO_META',
   'TRAFEGO_GOOGLE',
   'TRAFEGO_TIKTOK',
@@ -28,6 +29,7 @@ const DEFAULT_COLUMN_ORDER = [
 ];
 
 const COLUMN_DEFINITIONS = {
+  ATENDIMENTO: { name: "Atendimento" },
   TRAFEGO_META: { name: "Tráfego Meta Ads" },
   TRAFEGO_GOOGLE: { name: "Tráfego Google Ads" },
   TRAFEGO_TIKTOK: { name: "Tráfego TikTok Ads" },
