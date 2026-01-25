@@ -32,9 +32,16 @@ Deno.serve(async (req) => {
     }
     
     const metadata = await metadataResponse.json();
-    const firstSheetName = metadata.sheets[0]?.properties?.title;
     
-    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(firstSheetName)}`;
+    // Buscar a aba "ontem meta Ads"
+    const targetSheet = metadata.sheets.find(sheet => 
+      sheet.properties.title.toLowerCase().includes('ontem') && 
+      sheet.properties.title.toLowerCase().includes('meta')
+    );
+    
+    const sheetName = targetSheet?.properties?.title || 'ontem meta Ads';
+    
+    const sheetsUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName)}`;
     
     const response = await fetch(sheetsUrl, {
       headers: {
