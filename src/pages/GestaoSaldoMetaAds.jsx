@@ -551,46 +551,12 @@ export default function GestaoSaldoMetaAds({ user }) {
                         <div>
                           <Label className="text-xs">Saldo (R$)</Label>
                           <Input
-                            type="text"
-                            value={edits.saldo !== undefined ? formatCurrency(edits.saldo) : (row.balance?.saldo ? formatCurrency(row.balance.saldo) : '')}
-                            onFocus={(e) => {
-                              e.target.value = '';
-                              handleFieldChange(row.cliente.id, 'saldo', 0);
-                              if (!editingClients.has(row.cliente.id)) {
-                                setEditingClients(prev => new Set(prev).add(row.cliente.id));
-                              }
-                            }}
-                            onChange={(e) => {
-                              const rawValue = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
-                              const numValue = parseFloat(rawValue) || 0;
-                              handleFieldChange(row.cliente.id, 'saldo', numValue);
-                              if (!editingClients.has(row.cliente.id)) {
-                                setEditingClients(prev => new Set(prev).add(row.cliente.id));
-                              }
-                            }}
-                            onBlur={() => {
-                              if (edits.saldo !== undefined) {
-                                handleSave(row);
-                                setEditingClients(prev => {
-                                  const newSet = new Set(prev);
-                                  newSet.delete(row.cliente.id);
-                                  return newSet;
-                                });
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleSave(row);
-                                setEditingClients(prev => {
-                                  const newSet = new Set(prev);
-                                  newSet.delete(row.cliente.id);
-                                  return newSet;
-                                });
-                              }
-                            }}
+                            type="number"
+                            step="0.01"
+                            value={edits.saldo !== undefined ? edits.saldo : row.balance?.saldo || ''}
+                            onChange={(e) => handleFieldChange(row.cliente.id, 'saldo', e.target.value)}
                             className="mt-1"
-                            placeholder="R$ 0,00"
+                            disabled={!isEditing}
                           />
                         </div>
 
