@@ -149,13 +149,24 @@ export default function GestaoSaldoMetaAds({ user }) {
       // Buscar gasto diário da planilha (D-1) usando o nome do cliente
       let gastoDiario = 0;
       const nomeCliente = cliente.nome?.trim();
+      
+      // Normalizar nome para comparação (remover espaços extras, hífens, tornar minúsculo)
+      const normalizeNome = (nome) => {
+        return nome?.toLowerCase()
+          .replace(/\s+/g, ' ')
+          .replace(/\s*-\s*/g, '')
+          .trim() || '';
+      };
+      
+      const clienteNormalizado = normalizeNome(nomeCliente);
+      
+      // Buscar correspondência exata primeiro
       if (nomeCliente && diarioD1ByAccount[nomeCliente] !== undefined) {
         gastoDiario = diarioD1ByAccount[nomeCliente];
       } else {
-        // Buscar por correspondência case-insensitive
-        const clienteNormalized = nomeCliente?.toLowerCase();
+        // Buscar por correspondência normalizada
         const matchingKey = Object.keys(diarioD1ByAccount).find(key => 
-          key.toLowerCase() === clienteNormalized
+          normalizeNome(key) === clienteNormalizado
         );
         if (matchingKey) {
           gastoDiario = diarioD1ByAccount[matchingKey];

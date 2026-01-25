@@ -90,20 +90,29 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       }
 
       // Buscar valor investido e diário D-1 diretamente do nome do cliente
-      // A planilha usa nomes como "Oral Sin - Castanhal (nova)"
       let valorInvestido = 0;
       let diarioD1 = 0;
       
-      // Tentar encontrar o nome exato primeiro
       const nomeCliente = cliente.nome?.trim();
+      
+      // Normalizar nome para comparação (remover espaços extras, hífens, tornar minúsculo)
+      const normalizeNome = (nome) => {
+        return nome?.toLowerCase()
+          .replace(/\s+/g, ' ')
+          .replace(/\s*-\s*/g, '')
+          .trim() || '';
+      };
+      
+      const clienteNormalizado = normalizeNome(nomeCliente);
+      
+      // Buscar correspondência exata primeiro
       if (nomeCliente && amountSpentByAccount[nomeCliente] !== undefined) {
         valorInvestido = amountSpentByAccount[nomeCliente];
         diarioD1 = diarioD1ByAccount[nomeCliente] || 0;
       } else {
-        // Buscar por correspondência parcial (case-insensitive)
-        const clienteNormalized = nomeCliente?.toLowerCase();
+        // Buscar por correspondência normalizada
         const matchingKey = Object.keys(amountSpentByAccount).find(key => 
-          key.toLowerCase() === clienteNormalized
+          normalizeNome(key) === clienteNormalizado
         );
         
         if (matchingKey) {
