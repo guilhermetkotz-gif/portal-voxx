@@ -31,7 +31,23 @@ export default function GerenciarContas({ user }) {
     staleTime: 2 * 60 * 1000
   });
 
-  const clientesFiltrados = clientes.filter(cliente => {
+  // Remover duplicatas baseado no nome (manter a mais recente)
+  const clientesUnicos = React.useMemo(() => {
+    const map = new Map();
+    clientes.forEach(cliente => {
+      const chave = cliente.nome?.toLowerCase().trim();
+      if (chave) {
+        const existente = map.get(chave);
+        // Manter o registro com mais dados ou o mais recente
+        if (!existente || new Date(cliente.updated_date) > new Date(existente.updated_date)) {
+          map.set(chave, cliente);
+        }
+      }
+    });
+    return Array.from(map.values());
+  }, [clientes]);
+
+  const clientesFiltrados = clientesUnicos.filter(cliente => {
     const matchSearch = !search || 
       cliente.nome?.toLowerCase().includes(search.toLowerCase()) ||
       cliente.cidade?.toLowerCase().includes(search.toLowerCase()) ||
