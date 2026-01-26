@@ -12,10 +12,34 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0 }) => {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
+  
+  const { data: demandaAtual } = useQuery({
+    queryKey: ['demanda', demandaId],
+    queryFn: () => base44.entities.Demanda.filter({ id: demandaId }).then(d => d[0]),
+    enabled: !!demandaId,
+    refetchInterval: 2000, // Atualiza a cada 2 segundos para pegar mudanças
+  });
+  
   const [isRunning, setIsRunning] = useState(false);
   const [totalSeconds, setTotalSeconds] = useState(initialMinutes * 60);
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const intervalRef = useRef(null);
+  
+  // Restaurar cronômetro ativo ao montar ou quando demanda atualizar
+  useEffect(() => {
+    if (demandaAtual?.cronometro_ativo && demandaAtual?.cronometro_inicio) {
+      const inicio = new Date(demandaAtual.cronometro_inicio).getTime();
+      const agora = Date.now();
+      const segundosDecorridos = Math.floor((agora - inicio) / 1000);
+      
+      setTotalSeconds(segundosDecorridos);
+      setSessionSeconds(segundosDecorridos);
+      setIsRunning(true);
+    } else if (!demandaAtual?.cronometro_ativo && isRunning) {
+      // Se o cronômetro foi pausado em outro lugar
+      setIsRunning(false);
+    }
+  }, [demandaAtual?.cronometro_ativo, demandaAtual?.cronometro_inicio]);
 
   // Atualiza a cada segundo
   useEffect(() => {
