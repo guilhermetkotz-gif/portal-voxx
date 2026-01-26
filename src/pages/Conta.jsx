@@ -312,9 +312,17 @@ export default function Conta() {
               return (
                 <div key={member.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-slate-600 font-semibold">
-                      {member.full_name?.charAt(0) || 'U'}
-                    </div>
+                    {member.profile_picture ? (
+                      <img 
+                        src={member.profile_picture} 
+                        alt={member.full_name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-slate-600 font-semibold">
+                        {member.full_name?.charAt(0) || 'U'}
+                      </div>
+                    )}
                     <div>
                       <p className="font-medium text-slate-900">{member.full_name}</p>
                       <p className="text-sm text-slate-500">{member.email}</p>

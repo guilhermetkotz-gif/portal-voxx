@@ -117,9 +117,17 @@ export default function Header({
               <p className="text-sm font-medium text-slate-900">{user?.full_name || 'Usuário'}</p>
               <p className="text-xs text-slate-500">{user?.cargo || user?.tipo_acesso}</p>
             </div>
-            <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-violet-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-              {user?.full_name?.charAt(0) || 'U'}
-            </div>
+            {user?.profile_picture ? (
+              <img 
+                src={user.profile_picture} 
+                alt={user?.full_name}
+                className="w-9 h-9 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-9 h-9 bg-gradient-to-br from-violet-500 to-violet-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                {user?.full_name?.charAt(0) || 'U'}
+              </div>
+            )}
           </div>
         </div>
       </div>
