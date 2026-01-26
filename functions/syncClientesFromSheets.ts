@@ -145,9 +145,9 @@ Deno.serve(async (req) => {
                 continue;
             }
             
-            // Log Terra Boa specifically
-            if (nome.toLowerCase().includes('terra boa')) {
-                console.log(`Row ${i+1}: Found Terra Boa - "${nome}"`);
+            // Log Terra Boa and Petrolina specifically
+            if (nome.toLowerCase().includes('terra boa') || nome.toLowerCase().includes('petrolina')) {
+                console.log(`Row ${i+1}: Found - "${nome}"`);
             }
             
             // Log clientes de Londrina da planilha de performance
@@ -204,6 +204,7 @@ Deno.serve(async (req) => {
                 nome,
                 cidade,
                 estado,
+                legacy_client_key: nome,
                 leads_meta_mes: messagingConversationsIdx >= 0 ? parseNumber(row[messagingConversationsIdx]) : null,
                 custo_por_lead_meta: costPerMessagingIdx >= 0 ? parseNumber(row[costPerMessagingIdx]) : null,
                 investimento_meta_mes: amountSpentIdx >= 0 ? parseNumber(row[amountSpentIdx]) : null,
@@ -232,14 +233,14 @@ Deno.serve(async (req) => {
             );
 
             if (existingCliente) {
-                if (nome.toLowerCase().includes('terra boa')) {
-                    console.log(`Terra Boa - Updating existing ID ${existingCliente.id}:`, clienteData);
+                if (nome.toLowerCase().includes('terra boa') || nome.toLowerCase().includes('petrolina')) {
+                    console.log(`${nome} - Updating existing ID ${existingCliente.id}:`, clienteData);
                 }
                 await base44.asServiceRole.entities.Cliente.update(existingCliente.id, clienteData);
                 updatedCount++;
             } else {
-                if (nome.toLowerCase().includes('terra boa')) {
-                    console.log(`Terra Boa - Creating new client:`, clienteData);
+                if (nome.toLowerCase().includes('terra boa') || nome.toLowerCase().includes('petrolina')) {
+                    console.log(`${nome} - Creating new client:`, clienteData);
                 }
                 await base44.asServiceRole.entities.Cliente.create(clienteData);
                 createdCount++;
