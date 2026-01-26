@@ -14,21 +14,39 @@ import {
   TrendingUp,
   MapPin,
   Calendar,
-  DollarSign
+  DollarSign,
+  Trash2
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isVoxxAdmin, isVoxxManager } from '@/components/utils/auth';
+import { toast } from 'sonner';
 
 export default function GerenciarContas({ user }) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [tipoFilter, setTipoFilter] = useState('todos');
+  const [clienteParaDelete, setClienteParaDelete] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ['todosClientes'],
     queryFn: () => base44.entities.Cliente.list('nome', 500),
     staleTime: 2 * 60 * 1000
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (clienteId) => {
+      await base44.entities.Cliente.delete(clienteId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todosClientes'] });
+      toast.success('Cliente deletado com sucesso!');
+      setClienteParaDelete(null);
+    },
+    onError: (error) => {
+      toast.error('Erro ao deletar cliente: ' + error.message);
+    }
   });
 
   // Remover duplicatas baseado no nome (manter a mais recente)
