@@ -84,19 +84,15 @@ export default function MonitoramentoContas({ user }) {
 
     const updateClienteMutation = useMutation({
         mutationFn: async ({ clienteId, responsavel }) => {
-            console.log('Updating cliente:', { clienteId, responsavel });
-            const result = await base44.entities.Cliente.update(clienteId, { 
-                responsavel_voxx_trafego: responsavel || null 
-            });
-            console.log('Update result:', result);
-            return { responsavel, result };
+            const updateData = { responsavel_voxx_trafego: responsavel === '__NONE__' ? null : responsavel };
+            await base44.entities.Cliente.update(clienteId, updateData);
+            return responsavel;
         },
-        onSuccess: ({ responsavel }) => {
+        onSuccess: (responsavel) => {
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
-            toast.success(`Responsável ${responsavel ? 'atualizado' : 'removido'} com sucesso!`);
+            toast.success(`Responsável ${responsavel && responsavel !== '__NONE__' ? 'atualizado' : 'removido'} com sucesso!`);
         },
         onError: (error) => {
-            console.error('Error updating responsavel:', error);
             toast.error('Erro ao atualizar responsável: ' + error.message);
         }
     });
@@ -1775,22 +1771,14 @@ export default function MonitoramentoContas({ user }) {
                                                     <Select
                                                         value={cliente.responsavel_voxx_trafego || '__NONE__'}
                                                         onValueChange={(value) => {
-                                                            console.log('Select changed:', { clienteId: cliente.id, value });
                                                             updateClienteMutation.mutate({ 
                                                                 clienteId: cliente.id, 
-                                                                responsavel: value === '__NONE__' ? null : value 
+                                                                responsavel: value
                                                             });
                                                         }}
-                                                        disabled={updateClienteMutation.isPending}
                                                     >
                                                         <SelectTrigger className="w-64">
-                                                            <SelectValue placeholder="Selecione um responsável">
-                                                                {cliente.responsavel_voxx_trafego ? (
-                                                                    voxxUsers.find(u => u.email === cliente.responsavel_voxx_trafego)?.full_name || cliente.responsavel_voxx_trafego
-                                                                ) : (
-                                                                    "Nenhum responsável"
-                                                                )}
-                                                            </SelectValue>
+                                                            <SelectValue placeholder="Selecione um responsável" />
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="__NONE__">Nenhum responsável</SelectItem>
