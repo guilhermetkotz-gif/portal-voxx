@@ -59,6 +59,11 @@ const Kanban = ({ user, selectedClienteId }) => {
     return saved ? JSON.parse(saved) : DEFAULT_COLUMN_ORDER;
   });
 
+  const [minimizedColumns, setMinimizedColumns] = useState(() => {
+    const saved = localStorage.getItem('kanban_minimized_columns');
+    return saved ? JSON.parse(saved) : {};
+  });
+
   const [columns, setColumns] = useState(() => {
     const cols = {};
     DEFAULT_COLUMN_ORDER.forEach(key => {
@@ -164,6 +169,12 @@ const Kanban = ({ user, selectedClienteId }) => {
       toast.error('Erro ao atualizar setor: ' + error.message);
     },
   });
+
+  const toggleMinimize = (columnId) => {
+    const newMinimized = { ...minimizedColumns, [columnId]: !minimizedColumns[columnId] };
+    setMinimizedColumns(newMinimized);
+    localStorage.setItem('kanban_minimized_columns', JSON.stringify(newMinimized));
+  };
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -277,6 +288,8 @@ const Kanban = ({ user, selectedClienteId }) => {
                           demands={column.items}
                           onCardClick={setSelectedDemanda}
                           dragHandleProps={provided.dragHandleProps}
+                          isMinimized={minimizedColumns[columnId]}
+                          onToggleMinimize={() => toggleMinimize(columnId)}
                         />
                       </div>
                     )}

@@ -3,19 +3,31 @@ import { Droppable, Draggable } from '@hello-pangea/dnd';
 import KanbanDemandCard from './KanbanDemandCard';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Minimize2, Maximize2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps }) => {
+const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps, isMinimized, onToggleMinimize }) => {
   return (
-    <Card className="flex flex-col flex-shrink-0 w-80 max-h-[calc(100vh-200px)]">
+    <Card className={cn(
+      "flex flex-col flex-shrink-0 max-h-[calc(100vh-200px)]",
+      isMinimized ? "w-64" : "w-80"
+    )}>
       <CardHeader className="p-4 border-b bg-slate-50">
         <div className="flex items-center gap-2">
           <div {...dragHandleProps} className="cursor-grab active:cursor-grabbing">
             <GripVertical className="h-4 w-4 text-slate-400" />
           </div>
-          <CardTitle className="text-base font-semibold text-slate-900">
+          <CardTitle className="text-base font-semibold text-slate-900 flex-1">
             {title} <span className="text-sm font-normal text-slate-500">({demands.length})</span>
           </CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleMinimize}
+            className="h-7 w-7 flex-shrink-0"
+          >
+            {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+          </Button>
         </div>
       </CardHeader>
       <Droppable droppableId={id}>
@@ -37,7 +49,7 @@ const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps }) => {
                     {...providedDraggable.dragHandleProps}
                     className={cn(snapshotDraggable.isDragging && "opacity-50")}
                   >
-                    <KanbanDemandCard demanda={demanda} onClick={onCardClick} />
+                    <KanbanDemandCard demanda={demanda} onClick={onCardClick} isMinimized={isMinimized} />
                   </div>
                 )}
               </Draggable>
