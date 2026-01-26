@@ -1696,7 +1696,7 @@ export default function MonitoramentoContas({ user }) {
                                                             <SelectValue placeholder="Selecione um responsável" />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value={null}>Nenhum responsável</SelectItem>
+                                                            <SelectItem value="__NONE__">Nenhum responsável</SelectItem>
                                                             {voxxUsers.map((voxxUser) => (
                                                                 <SelectItem key={voxxUser.id} value={voxxUser.email}>
                                                                     {voxxUser.full_name} ({voxxUser.email})
