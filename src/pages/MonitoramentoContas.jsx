@@ -84,16 +84,19 @@ export default function MonitoramentoContas({ user }) {
 
     const updateClienteMutation = useMutation({
         mutationFn: async ({ clienteId, responsavel }) => {
-            await base44.entities.Cliente.update(clienteId, { 
+            console.log('Updating cliente:', { clienteId, responsavel });
+            const result = await base44.entities.Cliente.update(clienteId, { 
                 responsavel_voxx_trafego: responsavel || null 
             });
-            return responsavel;
+            console.log('Update result:', result);
+            return { responsavel, result };
         },
-        onSuccess: (responsavel) => {
+        onSuccess: ({ responsavel }) => {
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
             toast.success(`Responsável ${responsavel ? 'atualizado' : 'removido'} com sucesso!`);
         },
         onError: (error) => {
+            console.error('Error updating responsavel:', error);
             toast.error('Erro ao atualizar responsável: ' + error.message);
         }
     });
