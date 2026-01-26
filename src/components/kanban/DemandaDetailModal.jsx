@@ -162,6 +162,30 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     setComentarioAnexo(null);
   };
 
+  const handlePasteImage = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        
+        setUploading(true);
+        try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+          setComentarioAnexo({ name: file.name || 'Imagem colada', url: file_url });
+          toast.success('Imagem colada e anexada!');
+        } catch (error) {
+          toast.error('Erro ao anexar imagem');
+        } finally {
+          setUploading(false);
+        }
+        break;
+      }
+    }
+  };
+
   const handleSaveEdit = () => {
     updateDemandaMutation.mutate(editData);
   };
@@ -496,7 +520,8 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                     <Textarea
                       value={comentario}
                       onChange={(e) => setComentario(e.target.value)}
-                      placeholder="Digite seu comentário..."
+                      onPaste={handlePasteImage}
+                      placeholder="Digite seu comentário ou cole uma imagem..."
                       className="min-h-[80px]"
                     />
                     
