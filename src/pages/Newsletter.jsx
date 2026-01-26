@@ -14,7 +14,8 @@ import {
   Sparkles,
   BookOpen,
   Calendar,
-  Plus
+  Plus,
+  Edit
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -28,7 +29,7 @@ const categoriaConfig = {
   novidade: { label: 'Novidade', icon: Sparkles, color: 'bg-pink-100 text-pink-700' }
 };
 
-function NewsletterCard({ newsletter, onClick }) {
+function NewsletterCard({ newsletter, onClick, onEdit, isAdmin }) {
   const config = categoriaConfig[newsletter.categoria] || categoriaConfig.comunicado;
   const Icon = config.icon;
 
@@ -60,6 +61,23 @@ function NewsletterCard({ newsletter, onClick }) {
         <p className="text-sm text-slate-500 line-clamp-3">
           {newsletter.conteudo?.replace(/[#*_]/g, '').substring(0, 150)}...
         </p>
+        
+        {isAdmin && (
+          <div className="mt-3 pt-3 border-t border-slate-200">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(newsletter);
+              }}
+              className="w-full"
+            >
+              <Edit className="w-3 h-3 mr-2" />
+              Editar
+            </Button>
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -120,6 +138,7 @@ export default function Newsletter() {
   const [selectedNewsletter, setSelectedNewsletter] = useState(null);
   const [categoriaFilter, setCategoriaFilter] = useState('all');
   const [criarModalOpen, setCriarModalOpen] = useState(false);
+  const [editingNewsletter, setEditingNewsletter] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -140,7 +159,12 @@ export default function Newsletter() {
 
   const { data: newsletters = [], isLoading } = useQuery({
     queryKey: ['newsletters'],
-    queryFn: () => base44.entities.Newsletter.filter({ publicado: true }, '-created_date', 50),
+    queryFn: () => {
+      if (isAdmin) {
+        return base44.entities.Newsletter.list('-created_date', 100);
+      }
+      return base44.entities.Newsletter.filter({ publicado: true }, '-created_date', 50);
+    },
     staleTime: 5 * 60 * 1000
   });
 
@@ -206,6 +230,8 @@ export default function Newsletter() {
               key={newsletter.id} 
               newsletter={newsletter}
               onClick={setSelectedNewsletter}
+              onEdit={setEditingNewsletter}
+              isAdmin={isAdmin}
             />
           ))}
         </div>
@@ -222,6 +248,15 @@ export default function Newsletter() {
       <CriarNewsletterModal
         open={criarModalOpen}
         onOpenChange={setCriarModalOpen}
+      />
+
+      {/* Modal de Edição */}
+      <CriarNewsletterModal
+        open={!!editingNewsletter}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setEditingNewsletter(null);
+        }}
+        newsletter={editingNewsletter}
       />
     </div>
   );

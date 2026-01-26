@@ -12,8 +12,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Upload, Link as LinkIcon, Loader2 } from 'lucide-react';
 
-export default function CriarNewsletterModal({ open, onOpenChange }) {
+export default function CriarNewsletterModal({ open, onOpenChange, newsletter = null }) {
   const queryClient = useQueryClient();
+  const isEditing = !!newsletter;
+  
   const [formData, setFormData] = useState({
     titulo: '',
     conteudo: '',
@@ -25,6 +27,33 @@ export default function CriarNewsletterModal({ open, onOpenChange }) {
   const [imagemTab, setImagemTab] = useState('url');
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  // Reset form when modal opens with newsletter data
+  React.useEffect(() => {
+    if (open) {
+      if (newsletter) {
+        setFormData({
+          titulo: newsletter.titulo || '',
+          conteudo: newsletter.conteudo || '',
+          categoria: newsletter.categoria || 'comunicado',
+          segmento: newsletter.segmento || [],
+          imagem_url: newsletter.imagem_url || '',
+          publicado: newsletter.publicado || false
+        });
+        setImagemTab(newsletter.imagem_url ? 'url' : 'upload');
+      } else {
+        setFormData({
+          titulo: '',
+          conteudo: '',
+          categoria: 'comunicado',
+          segmento: [],
+          imagem_url: '',
+          publicado: false
+        });
+        setImagemTab('url');
+      }
+    }
+  }, [open, newsletter]);
+
   const segmentoOptions = [
     { value: 'oral_sin', label: 'Oral Sin' },
     { value: 'particular', label: 'Particular' },
@@ -33,22 +62,20 @@ export default function CriarNewsletterModal({ open, onOpenChange }) {
   ];
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Newsletter.create(data),
+    mutationFn: (data) => {
+      if (isEditing) {
+        return base44.entities.Newsletter.update(newsletter.id, data);
+      } else {
+        return base44.entities.Newsletter.create(data);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['newsletters'] });
-      toast.success('Newsletter criada com sucesso!');
+      toast.success(isEditing ? 'Newsletter atualizada com sucesso!' : 'Newsletter criada com sucesso!');
       onOpenChange(false);
-      setFormData({
-        titulo: '',
-        conteudo: '',
-        categoria: 'comunicado',
-        segmento: [],
-        imagem_url: '',
-        publicado: false
-      });
     },
     onError: (error) => {
-      toast.error('Erro ao criar newsletter: ' + error.message);
+      toast.error(`Erro ao ${isEditing ? 'atualizar' : 'criar'} newsletter: ` + error.message);
     }
   });
 
@@ -97,7 +124,7 @@ export default function CriarNewsletterModal({ open, onOpenChange }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Newsletter</DialogTitle>
+          <DialogTitle>{isEditing ? 'Edit Newsletter' : 'Nova Newsletter'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -224,10 +251,10 @@ export default function CriarNewsletterModal({ open, onOpenChange }) {
               {createMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Criando...
+                  {isEditing ? 'Salvando...' : 'Criando...'}
                 </>
               ) : (
-                'Criar Newsletter'
+                isEditing ? 'Submit' : 'Criar Newsletter'
               )}
             </Button>
           </div>
