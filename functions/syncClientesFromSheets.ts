@@ -221,21 +221,17 @@ Deno.serve(async (req) => {
                 cost_per_unique_link: costPerUniqueLinkIdx >= 0 ? parseNumber(row[costPerUniqueLinkIdx]) : null
             };
             
-            // Remove null values but keep legacy_client_key
-            Object.keys(clienteData).forEach(key => {
-                if (key !== 'legacy_client_key' && (clienteData[key] === null || clienteData[key] === undefined || clienteData[key] === '')) {
-                    delete clienteData[key];
-                }
-            });
-            
             const existingCliente = existingClientes.find(c => 
                 c.nome?.toLowerCase() === nome.toLowerCase()
             );
-
-            // Ensure legacy_client_key is always present
-            if (!clienteData.legacy_client_key) {
-                clienteData.legacy_client_key = nome;
-            }
+            
+            // Remove null values but keep required fields (legacy_client_key, nome, cidade, estado)
+            Object.keys(clienteData).forEach(key => {
+                const requiredFields = ['legacy_client_key', 'nome', 'cidade', 'estado'];
+                if (!requiredFields.includes(key) && (clienteData[key] === null || clienteData[key] === undefined || clienteData[key] === '')) {
+                    delete clienteData[key];
+                }
+            });
 
             if (existingCliente) {
                 if (nome.toLowerCase().includes('terra boa') || nome.toLowerCase().includes('petrolina')) {
