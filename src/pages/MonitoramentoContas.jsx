@@ -475,10 +475,6 @@ export default function MonitoramentoContas({ user }) {
                 status += ` [⚠️ Saturação ${frequenciaEstado.toLowerCase()}]`;
             }
 
-            if (problemas.length > 0) {
-                status += ` (${problemas.join(', ')})`;
-            }
-
             // ========== PREVISÃO 7 DIAS ==========
             // Projeções lineares baseadas na tendência atual
             const taxaCPL = cpl7d > 0 ? (cplAtual - cpl7d) / cpl7d : 0;
