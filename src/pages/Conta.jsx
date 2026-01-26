@@ -17,7 +17,9 @@ import {
   CheckCircle,
   Users,
   Mail,
-  Phone
+  Phone,
+  Upload,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,6 +33,7 @@ const tipoAcessoLabels = {
 export default function Conta() {
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ['currentUser'],
@@ -91,6 +94,36 @@ export default function Conta() {
     setSaving(false);
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem válida');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      await updateProfile.mutateAsync({ profile_picture: file_url });
+      toast.success('Foto atualizada com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao fazer upload da foto');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    try {
+      await updateProfile.mutateAsync({ profile_picture: null });
+      toast.success('Foto removida com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao remover foto');
+    }
+  };
+
   if (loadingUser) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -106,8 +139,40 @@ export default function Conta() {
       {/* Profile Card */}
       <Card className="p-6">
         <div className="flex items-start gap-4 mb-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold">
-            {user?.full_name?.charAt(0) || 'U'}
+          <div className="relative group">
+            {user?.profile_picture ? (
+              <img 
+                src={user.profile_picture} 
+                alt={user.full_name}
+                className="w-16 h-16 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="w-16 h-16 bg-gradient-to-br from-violet-500 to-violet-600 rounded-xl flex items-center justify-center text-white text-2xl font-bold">
+                {user?.full_name?.charAt(0) || 'U'}
+              </div>
+            )}
+            {uploadingPhoto && (
+              <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-white" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <label className="cursor-pointer">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden" 
+                  onChange={handlePhotoUpload}
+                  disabled={uploadingPhoto}
+                />
+                <Upload className="w-5 h-5 text-white hover:scale-110 transition-transform" />
+              </label>
+              {user?.profile_picture && (
+                <button onClick={handleRemovePhoto} disabled={uploadingPhoto}>
+                  <X className="w-5 h-5 text-white hover:scale-110 transition-transform" />
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-bold text-slate-900">{user?.full_name}</h2>
