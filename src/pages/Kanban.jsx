@@ -49,7 +49,7 @@ const Kanban = ({ user, selectedClienteId }) => {
   const [selectedDemanda, setSelectedDemanda] = useState(null);
   const [filters, setFilters] = useState({
     cliente_id: 'all',
-    status: 'all',
+    status: [],
     prioridade: 'all',
     prazo: 'all'
   });
@@ -107,8 +107,8 @@ const Kanban = ({ user, selectedClienteId }) => {
         filteredDemandas = filteredDemandas.filter(d => d.cliente_id === filters.cliente_id);
       }
       
-      if (filters.status !== 'all') {
-        filteredDemandas = filteredDemandas.filter(d => d.status === filters.status);
+      if (Array.isArray(filters.status) && filters.status.length > 0) {
+        filteredDemandas = filteredDemandas.filter(d => filters.status.includes(d.status));
       }
       
       if (filters.prioridade !== 'all') {

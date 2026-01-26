@@ -2,23 +2,47 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Filter, X, Search } from 'lucide-react';
+import { Filter, X, Search, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 const KanbanFilters = ({ filters, setFilters, clientes }) => {
   const [searchCliente, setSearchCliente] = useState('');
+  const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
+  
+  const statusOptions = [
+    { value: 'recebida', label: 'Recebida' },
+    { value: 'em_triagem', label: 'Em Triagem' },
+    { value: 'em_execucao', label: 'Em Execução' },
+    { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
+    { value: 'em_revisao', label: 'Em Revisão' },
+    { value: 'concluida', label: 'Concluída' }
+  ];
+  
   const handleClearFilters = () => {
     setFilters({
       cliente_id: 'all',
-      status: 'all',
+      status: [],
       prioridade: 'all',
       prazo: 'all'
     });
     setSearchCliente('');
   };
 
-  const hasActiveFilters = filters.cliente_id !== 'all' || filters.status !== 'all' || 
-                           filters.prioridade !== 'all' || filters.prazo !== 'all';
+  const toggleStatus = (statusValue) => {
+    const currentStatus = Array.isArray(filters.status) ? filters.status : [];
+    const newStatus = currentStatus.includes(statusValue)
+      ? currentStatus.filter(s => s !== statusValue)
+      : [...currentStatus, statusValue];
+    setFilters({ ...filters, status: newStatus });
+  };
+
+  const hasActiveFilters = filters.cliente_id !== 'all' || 
+                           (Array.isArray(filters.status) && filters.status.length > 0) || 
+                           filters.prioridade !== 'all' || 
+                           filters.prazo !== 'all';
 
   const filteredClientes = clientes.filter(c => 
     c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
@@ -64,20 +88,54 @@ const KanbanFilters = ({ filters, setFilters, clientes }) => {
             </SelectContent>
           </Select>
 
-          <Select value={filters.status} onValueChange={(v) => setFilters({ ...filters, status: v })}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Todos os status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="recebida">Recebida</SelectItem>
-              <SelectItem value="em_triagem">Em Triagem</SelectItem>
-              <SelectItem value="em_execucao">Em Execução</SelectItem>
-              <SelectItem value="aguardando_cliente">Aguardando Cliente</SelectItem>
-              <SelectItem value="em_revisao">Em Revisão</SelectItem>
-              <SelectItem value="concluida">Concluída</SelectItem>
-            </SelectContent>
-          </Select>
+          <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[200px] justify-start">
+                {Array.isArray(filters.status) && filters.status.length > 0 ? (
+                  <>
+                    <Badge variant="secondary" className="mr-1">
+                      {filters.status.length}
+                    </Badge>
+                    Status selecionados
+                  </>
+                ) : (
+                  'Todos os status'
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0">
+              <div className="p-2 space-y-1">
+                {statusOptions.map((option) => {
+                  const isSelected = Array.isArray(filters.status) && filters.status.includes(option.value);
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => toggleStatus(option.value)}
+                      className={cn(
+                        "w-full flex items-center justify-between px-3 py-2 text-sm rounded-md hover:bg-slate-100 transition-colors",
+                        isSelected && "bg-slate-100"
+                      )}
+                    >
+                      <span>{option.label}</span>
+                      {isSelected && <Check className="h-4 w-4 text-violet-600" />}
+                    </button>
+                  );
+                })}
+              </div>
+              {Array.isArray(filters.status) && filters.status.length > 0 && (
+                <div className="border-t p-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => setFilters({ ...filters, status: [] })}
+                  >
+                    Limpar seleção
+                  </Button>
+                </div>
+              )}
+            </PopoverContent>
+          </Popover>
 
           <Select value={filters.prioridade} onValueChange={(v) => setFilters({ ...filters, prioridade: v })}>
             <SelectTrigger className="w-[150px]">
