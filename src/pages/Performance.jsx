@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
@@ -64,6 +64,63 @@ export default function Performance({ currentCliente, selectedClienteId, user })
   });
 
   const diarioD1ByAccount = sheetData?.diarioD1ByAccount || {};
+  const amountSpentByAccount = sheetData?.amountSpentByAccount || {};
+
+  // Buscar planejamento do mês atual
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth() + 1;
+  const currentMonth = `${ano}-${String(mes).padStart(2, '0')}`;
+
+  const { data: planejamentos = [] } = useQuery({
+    queryKey: ['planejamentosPerformance', currentMonth, currentCliente?.id],
+    queryFn: () => base44.entities.PlanejamentoEstrategico.filter({
+      mes_referencia: `${currentMonth}-01`,
+      cliente_id: currentCliente?.id
+    }),
+    enabled: !!currentCliente?.id,
+    staleTime: 30 * 1000
+  });
+
+  // Calcular budget restante
+  const budgetRestante = useMemo(() => {
+    const planejamento = planejamentos[0];
+    if (!planejamento || !currentCliente) return 0;
+
+    const investimentoTotal = (planejamento.meta_faturamento * planejamento.percentual_investimento_marketing) / 100;
+    const totalMetaAds = investimentoTotal - (planejamento.investimento_google || 0) - (planejamento.investimento_tiktok || 0);
+    const valorImpostos = (totalMetaAds * planejamento.percentual_impostos) / 100;
+    const investimentoLeads = totalMetaAds - valorImpostos - (planejamento.investimento_feed || 0);
+    
+    const budgetMensal = investimentoLeads;
+    
+    // Buscar valor investido
+    let valorInvestido = 0;
+    const nomeCliente = currentCliente.nome?.trim();
+    
+    const normalizeNome = (nome) => {
+      return nome?.toLowerCase()
+        .replace(/\s+/g, ' ')
+        .replace(/\s*-\s*/g, '')
+        .trim() || '';
+    };
+    
+    const clienteNormalizado = normalizeNome(nomeCliente);
+    
+    if (nomeCliente && amountSpentByAccount[nomeCliente] !== undefined) {
+      valorInvestido = amountSpentByAccount[nomeCliente];
+    } else {
+      const matchingKey = Object.keys(amountSpentByAccount).find(key => 
+        normalizeNome(key) === clienteNormalizado
+      );
+      
+      if (matchingKey) {
+        valorInvestido = amountSpentByAccount[matchingKey];
+      }
+    }
+    
+    return budgetMensal - valorInvestido;
+  }, [planejamentos, currentCliente, amountSpentByAccount]);
 
   const cliente = currentCliente;
   const isVoxx = user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_operacao';
@@ -143,10 +200,11 @@ export default function Performance({ currentCliente, selectedClienteId, user })
               icon={TrendingUp}
             />
             <KPICard
-              title="Saldo Disponível"
-              value={formatCurrency(cliente?.saldo_meta)}
+              title="BUDGET RESTANTE META ADS"
+              value={formatCurrency(budgetRestante)}
+              subtitle={`Mês ${mes}/${ano}`}
               icon={Target}
-              variant={cliente?.saldo_meta < (gastoDiarioMeta * 3) ? 'danger' : 'success'}
+              variant={budgetRestante < (gastoDiarioMeta * 3) ? 'danger' : 'success'}
             />
           </div>
 
