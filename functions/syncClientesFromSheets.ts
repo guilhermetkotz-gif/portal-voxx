@@ -232,6 +232,11 @@ Deno.serve(async (req) => {
                 c.nome?.toLowerCase() === nome.toLowerCase()
             );
 
+            // Ensure legacy_client_key is always present
+            if (!clienteData.legacy_client_key) {
+                clienteData.legacy_client_key = nome;
+            }
+
             if (existingCliente) {
                 if (nome.toLowerCase().includes('terra boa') || nome.toLowerCase().includes('petrolina')) {
                     console.log(`${nome} - Updating existing ID ${existingCliente.id}:`, clienteData);
