@@ -347,15 +347,52 @@ export default function GerenciarContas({ user }) {
                   )}
                 </div>
 
-                <Button variant="outline" size="sm">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
+                <div className="flex gap-2">
+                   <Button variant="outline" size="sm">
+                     <Edit className="w-4 h-4 mr-2" />
+                     Editar
+                   </Button>
+                   <Button 
+                     variant="outline" 
+                     size="sm" 
+                     onClick={() => setClienteParaDelete(cliente)}
+                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                   >
+                     <Trash2 className="w-4 h-4" />
+                   </Button>
+                 </div>
               </div>
             </Card>
           ))
         )}
       </div>
+
+      {/* Diálogo de Confirmação de Deleção */}
+      {clienteParaDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Deletar Cliente?</h2>
+            <p className="text-slate-600 mb-4">
+              Tem certeza que deseja deletar <strong>{clienteParaDelete.nome}</strong>? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setClienteParaDelete(null)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => deleteMutation.mutate(clienteParaDelete.id)}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Deletando...' : 'Deletar'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
