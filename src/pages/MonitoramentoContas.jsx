@@ -255,7 +255,7 @@ export default function MonitoramentoContas({ user }) {
 
             const cpmAtual = conta ? ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000 : 0;
             // Investimento diário vem direto da planilha "ontem meta ads" (amount_spent do dia anterior)
-            const investimentoDiario = conta?.amount_spent || 0;
+            const investimentoDiario = radar.amount_spent_ontem || 0;
 
             // Variações (Ontem vs 7d)
             const variacaoCPL = radar.variacao_cpl || 0;

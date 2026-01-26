@@ -109,6 +109,7 @@ Deno.serve(async (req) => {
             const clicksIdx = getColIndex('clicks (all)');
             const impressionsIdx = getColIndex('impressions');
             const frequencyIdx = getColIndex('frequency');
+            const amountSpentIdx = getColIndex('amount spent');
 
             console.log('Column indices:', {
                 accountName: accountNameIdx,
@@ -116,7 +117,8 @@ Deno.serve(async (req) => {
                 leads: leadsIdx,
                 clicks: clicksIdx,
                 impressions: impressionsIdx,
-                frequency: frequencyIdx
+                frequency: frequencyIdx,
+                amountSpent: amountSpentIdx
             });
 
             const result = {};
@@ -133,6 +135,7 @@ Deno.serve(async (req) => {
                 const clicks = parseNumber(row[clicksIdx]);
                 const impressions = parseNumber(row[impressionsIdx]);
                 const frequency = parseNumber(row[frequencyIdx]);
+                const amountSpent = parseNumber(row[amountSpentIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
                 // Log Votuporanga for debugging
@@ -152,7 +155,8 @@ Deno.serve(async (req) => {
                     cpl,
                     leads,
                     ctr,
-                    frequency
+                    frequency,
+                    amountSpent
                 };
             }
 
@@ -196,6 +200,7 @@ Deno.serve(async (req) => {
                 leads_ontem: ontem.leads,
                 ctr_ontem: ontem.ctr,
                 frequencia_ontem: ontem.frequency,
+                amount_spent_ontem: ontem.amountSpent,
                 cpl_7d: seteDias.cpl,
                 leads_7d: seteDias.leads,
                 leads_7d_media_dia: leads7dMediaDia,
