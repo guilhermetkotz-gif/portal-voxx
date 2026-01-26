@@ -93,9 +93,13 @@ Deno.serve(async (req) => {
         const notaGPTIdx = getColIndex('nota_gpt');
         
         console.log('Column indices:', {
+            accountNameIdx,
+            newMessagingConnectionsIdx,
             messagingConversationsIdx,
             costPerMessagingIdx,
-            header_M: headers[12]
+            amountSpentIdx,
+            frequencyIdx,
+            header_sample: headers.slice(0, 20)
         });
 
         const accounts = [];
@@ -139,16 +143,16 @@ Deno.serve(async (req) => {
             const leadsRepetidos = parsePercentage(row[leadsRepetidosIdx]);
             const costPerMessaging = parseNumber(row[costPerMessagingIdx]);
 
-            // Debug log for São Sebastião
-            if (accountName.includes('SÃO SEBASTIÃO')) {
-                console.log('São Sebastião debug:', {
+            // Debug log for first few accounts
+            if (i <= 3) {
+                console.log(`Account ${i} debug:`, {
                     accountName,
-                    frequency_raw: row[frequencyIdx],
-                    frequency_parsed: frequency,
-                    leadsRepetidos_raw: row[leadsRepetidosIdx],
-                    leadsRepetidos_parsed: leadsRepetidos,
-                    messagingConv_raw: row[messagingConversationsIdx],
-                    messagingConv_parsed: parseNumber(row[messagingConversationsIdx])
+                    new_messaging_connections_raw: row[newMessagingConnectionsIdx],
+                    new_messaging_connections_parsed: parseNumber(row[newMessagingConnectionsIdx]),
+                    messaging_conversations_raw: row[messagingConversationsIdx],
+                    messaging_conversations_parsed: parseNumber(row[messagingConversationsIdx]),
+                    amount_spent_raw: row[amountSpentIdx],
+                    amount_spent_parsed: parseNumber(row[amountSpentIdx])
                 });
             }
 
