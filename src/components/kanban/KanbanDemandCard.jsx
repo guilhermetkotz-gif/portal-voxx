@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { CalendarDays, User } from 'lucide-react';
 import moment from 'moment-timezone';
+import ActiveTimerIndicator from './ActiveTimerIndicator';
 
 const KanbanDemandCard = ({ demanda, onClick, isMinimized }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by } = demanda;
@@ -38,6 +39,12 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized }) => {
             <p className="text-xs text-slate-500 truncate">{cliente_nome}</p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            {demanda.cronometro_ativo && (
+              <ActiveTimerIndicator 
+                cronometro_inicio={demanda.cronometro_inicio}
+                cronometro_usuario_nome={demanda.cronometro_usuario_nome}
+              />
+            )}
             {urgente && <Badge variant="destructive" className="text-xs px-1.5 py-0">!</Badge>}
             <div className={cn(priorityColors[prioridade], 'w-2 h-2 rounded-full')} />
           </div>
@@ -60,6 +67,13 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized }) => {
       </CardHeader>
       <CardContent className="p-3 pt-0 text-xs text-muted-foreground space-y-2">
         <p className="font-medium text-sm text-slate-800 truncate">{cliente_nome}</p>
+        
+        {demanda.cronometro_ativo && (
+          <ActiveTimerIndicator 
+            cronometro_inicio={demanda.cronometro_inicio}
+            cronometro_usuario_nome={demanda.cronometro_usuario_nome}
+          />
+        )}
         
         <div className="flex items-center gap-2 flex-wrap">
           {prioridade && (
