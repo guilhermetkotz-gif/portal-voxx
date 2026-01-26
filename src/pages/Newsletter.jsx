@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReactMarkdown from 'react-markdown';
 import { 
@@ -12,10 +13,12 @@ import {
   Megaphone, 
   Sparkles,
   BookOpen,
-  Calendar
+  Calendar,
+  Plus
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import CriarNewsletterModal from '@/components/newsletter/CriarNewsletterModal';
 
 const categoriaConfig = {
   otimizacao: { label: 'Otimização', icon: TrendingUp, color: 'bg-emerald-100 text-emerald-700' },
@@ -116,12 +119,15 @@ function NewsletterModal({ newsletter, open, onClose }) {
 export default function Newsletter() {
   const [selectedNewsletter, setSelectedNewsletter] = useState(null);
   const [categoriaFilter, setCategoriaFilter] = useState('all');
+  const [criarModalOpen, setCriarModalOpen] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     staleTime: 5 * 60 * 1000
   });
+
+  const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_manager';
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientes', user?.cliente_id],
@@ -164,6 +170,15 @@ export default function Newsletter() {
             Fique por dentro das novidades, otimizações e boas práticas do tráfego pago.
           </p>
         </div>
+        {isAdmin && (
+          <Button 
+            onClick={() => setCriarModalOpen(true)}
+            className="bg-violet-600 hover:bg-violet-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Newsletter
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -196,11 +211,17 @@ export default function Newsletter() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal de Visualização */}
       <NewsletterModal 
         newsletter={selectedNewsletter}
         open={!!selectedNewsletter}
         onClose={() => setSelectedNewsletter(null)}
+      />
+
+      {/* Modal de Criação */}
+      <CriarNewsletterModal
+        open={criarModalOpen}
+        onOpenChange={setCriarModalOpen}
       />
     </div>
   );
