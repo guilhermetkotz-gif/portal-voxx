@@ -33,9 +33,12 @@ export default function ActiveTimerIndicator({ cronometro_inicio, cronometro_usu
   };
 
   return (
-    <div className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-1 rounded">
+    <div className="flex items-center gap-1.5 text-green-600 bg-green-50 px-2 py-1 rounded">
       <Clock className="h-3 w-3 animate-pulse" />
       <span className="text-xs font-mono font-semibold">{formatTime(elapsed)}</span>
+      {cronometro_usuario_nome && (
+        <span className="text-xs text-green-700">• {cronometro_usuario_nome}</span>
+      )}
     </div>
   );
 }
