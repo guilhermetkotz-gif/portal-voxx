@@ -31,10 +31,10 @@ export default function MonitoramentoContas({ user }) {
     const [editingConfig, setEditingConfig] = useState(null);
     const queryClient = useQueryClient();
 
-    // Verificar se é admin
-    const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_manager';
+    // Verificar se é voxx (admin, manager ou operacao)
+    const isVoxx = user?.role === 'admin' || user?.tipo_usuario?.startsWith('voxx_');
 
-    if (!isAdmin) {
+    if (!isVoxx) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <Card className="max-w-md w-full p-8 text-center">
@@ -42,7 +42,7 @@ export default function MonitoramentoContas({ user }) {
                         <AlertTriangle className="w-8 h-8 text-red-600" />
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
-                    <p className="text-slate-600">Esta página é exclusiva para administradores.</p>
+                    <p className="text-slate-600">Esta página é exclusiva para a equipe Voxx.</p>
                 </Card>
             </div>
         );
