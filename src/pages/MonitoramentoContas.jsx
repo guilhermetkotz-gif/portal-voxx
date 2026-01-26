@@ -84,15 +84,26 @@ export default function MonitoramentoContas({ user }) {
 
     const updateClienteMutation = useMutation({
         mutationFn: async ({ clienteId, responsavel }) => {
+            console.log('=== MUTATION START ===');
+            console.log('clienteId:', clienteId);
+            console.log('responsavel value:', responsavel);
+            
             const updateData = { responsavel_voxx_trafego: responsavel === '__NONE__' ? null : responsavel };
-            await base44.entities.Cliente.update(clienteId, updateData);
+            console.log('updateData:', updateData);
+            
+            const result = await base44.entities.Cliente.update(clienteId, updateData);
+            console.log('update result:', result);
+            console.log('=== MUTATION END ===');
+            
             return responsavel;
         },
         onSuccess: (responsavel) => {
+            console.log('SUCCESS callback - invalidating queries');
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
             toast.success(`Responsável ${responsavel && responsavel !== '__NONE__' ? 'atualizado' : 'removido'} com sucesso!`);
         },
         onError: (error) => {
+            console.error('ERROR callback:', error);
             toast.error('Erro ao atualizar responsável: ' + error.message);
         }
     });
@@ -1768,36 +1779,27 @@ export default function MonitoramentoContas({ user }) {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Select
+                                                    <select
                                                         value={cliente.responsavel_voxx_trafego || '__NONE__'}
-                                                        onValueChange={(value) => {
+                                                        onChange={(e) => {
+                                                            console.log('=== SELECT CHANGE ===');
+                                                            console.log('clienteId:', cliente.id);
+                                                            console.log('selected value:', e.target.value);
                                                             updateClienteMutation.mutate({ 
                                                                 clienteId: cliente.id, 
-                                                                responsavel: value
+                                                                responsavel: e.target.value
                                                             });
                                                         }}
+                                                        className="w-64 h-9 px-3 rounded-md border border-input bg-background text-sm"
+                                                        disabled={updateClienteMutation.isPending}
                                                     >
-                                                        <SelectTrigger className="w-64">
-                                                            <SelectValue>
-                                                                {cliente.responsavel_voxx_trafego ? (
-                                                                    (() => {
-                                                                        const user = voxxUsers.find(u => u.email === cliente.responsavel_voxx_trafego);
-                                                                        return user ? `${user.full_name} (${user.email})` : cliente.responsavel_voxx_trafego;
-                                                                    })()
-                                                                ) : (
-                                                                    "Nenhum responsável"
-                                                                )}
-                                                            </SelectValue>
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="__NONE__">Nenhum responsável</SelectItem>
-                                                            {voxxUsers.map((voxxUser) => (
-                                                                <SelectItem key={voxxUser.id} value={voxxUser.email}>
-                                                                    {voxxUser.full_name} ({voxxUser.email})
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
+                                                        <option value="__NONE__">Nenhum responsável</option>
+                                                        {voxxUsers.map((voxxUser) => (
+                                                            <option key={voxxUser.id} value={voxxUser.email}>
+                                                                {voxxUser.full_name} ({voxxUser.email})
+                                                            </option>
+                                                        ))}
+                                                    </select>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
