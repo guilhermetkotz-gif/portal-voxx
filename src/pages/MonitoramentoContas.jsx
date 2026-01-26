@@ -592,7 +592,7 @@ export default function MonitoramentoContas({ user }) {
                                                 <span className="font-medium">
                                                     {sheetConfigs.find(c => c.tipo === 'monitoramento').nome_configuracao}
                                                 </span>
-                                                {' • Aba: '}{sheetConfigs.find(c => c.tipo === 'monitoramento').aba_ontem}
+                                                {' • Aba: '}{sheetConfigs.find(c => c.tipo === 'monitoramento').aba_ontem}{' (Dados do Mês)'}
                                             </>
                                         ) : (
                                             'Nenhuma configuração ativa'
