@@ -112,6 +112,7 @@ Deno.serve(async (req) => {
         
         // First row is headers
         const headers = rows[0];
+        console.log('Sheet Headers:', headers);
         
         // Map column indices
         const nomeIdx = headers.findIndex(h => h && h.toLowerCase() === 'account name');
@@ -139,7 +140,15 @@ Deno.serve(async (req) => {
             const row = rows[i];
             const nome = row[nomeIdx]?.trim();
             
-            if (!nome) continue;
+            if (!nome) {
+                console.log(`Row ${i+1}: Skipping - empty name`);
+                continue;
+            }
+            
+            // Log Terra Boa specifically
+            if (nome.toLowerCase().includes('terra boa')) {
+                console.log(`Row ${i+1}: Found Terra Boa - "${nome}"`);
+            }
             
             // Log clientes de Londrina da planilha de performance
             if (nome.toLowerCase().includes('londrina')) {
@@ -223,13 +232,23 @@ Deno.serve(async (req) => {
             );
 
             if (existingCliente) {
+                if (nome.toLowerCase().includes('terra boa')) {
+                    console.log(`Terra Boa - Updating existing ID ${existingCliente.id}:`, clienteData);
+                }
                 await base44.asServiceRole.entities.Cliente.update(existingCliente.id, clienteData);
                 updatedCount++;
             } else {
+                if (nome.toLowerCase().includes('terra boa')) {
+                    console.log(`Terra Boa - Creating new client:`, clienteData);
+                }
                 await base44.asServiceRole.entities.Cliente.create(clienteData);
                 createdCount++;
             }
         }
+        
+        console.log('=== FIM DA SINCRONIZAÇÃO ===');
+        console.log(`Total processado: ${rows.length - 1} linhas`);
+        console.log(`Criados: ${createdCount}, Atualizados: ${updatedCount}`);
         
         return Response.json({
             success: true,
