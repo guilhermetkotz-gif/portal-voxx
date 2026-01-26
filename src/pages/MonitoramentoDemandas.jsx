@@ -25,6 +25,7 @@ const prioridades = {
 };
 
 const setores = {
+  ATENDIMENTO: 'Atendimento',
   TRAFEGO_META: 'Tráfego Meta',
   TRAFEGO_GOOGLE: 'Tráfego Google',
   TRAFEGO_TIKTOK: 'Tráfego TikTok',
