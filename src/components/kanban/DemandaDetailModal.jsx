@@ -138,7 +138,8 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setComentarioAnexo({ name: file.name, url: file_url });
+      const isImage = file.type.startsWith('image/');
+      setComentarioAnexo({ name: file.name, url: file_url, isImage });
       toast.success('Arquivo anexado ao comentário!');
     } catch (error) {
       toast.error('Erro ao fazer upload');
@@ -174,7 +175,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
         setUploading(true);
         try {
           const { file_url } = await base44.integrations.Core.UploadFile({ file });
-          setComentarioAnexo({ name: file.name || 'Imagem colada', url: file_url });
+          setComentarioAnexo({ name: file.name || 'Imagem colada', url: file_url, isImage: true });
           toast.success('Imagem colada e anexada!');
         } catch (error) {
           toast.error('Erro ao anexar imagem');
@@ -526,19 +527,42 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                     />
                     
                     {comentarioAnexo && (
-                      <div className="flex items-center justify-between bg-violet-50 border border-violet-200 rounded-md p-2">
-                        <div className="flex items-center gap-2">
-                          <Paperclip className="h-4 w-4 text-violet-600" />
-                          <span className="text-sm text-violet-700">{comentarioAnexo.name}</span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => setComentarioAnexo(null)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
+                      <div className="bg-violet-50 border border-violet-200 rounded-md p-3">
+                        {comentarioAnexo.isImage ? (
+                          <div className="space-y-2">
+                            <img 
+                              src={comentarioAnexo.url} 
+                              alt={comentarioAnexo.name}
+                              className="w-full max-w-xs rounded-md border border-violet-300"
+                            />
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-violet-700">{comentarioAnexo.name}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => setComentarioAnexo(null)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Paperclip className="h-4 w-4 text-violet-600" />
+                              <span className="text-sm text-violet-700">{comentarioAnexo.name}</span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => setComentarioAnexo(null)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                     
