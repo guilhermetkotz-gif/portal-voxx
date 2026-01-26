@@ -325,15 +325,26 @@ export default function MonitoramentoContas({ user }) {
             // FREQUÊNCIA NÃO entra aqui
             let tendenciaScore = 50; // Base neutra
             let sinaisTendencia = 0; // Contador de sinais positivos/negativos
+            let gastoSemConversao = false; // Flag para "gasto sem leads"
 
-            // CPL: melhorando vs piorando
-            if (cplAtual < cpl7d * 0.9) {
-                tendenciaScore += 10; // CPL caiu 10%+
-                sinaisTendencia++;
-            } else if (cplAtual > cpl7d * 1.1) {
-                tendenciaScore -= 10; // CPL subiu 10%+
-                sinaisTendencia--;
+            // ========== VALIDAÇÃO DE CPL (com regra de leads) ==========
+            // CPL só é válido quando há leads entregues
+            if (leadsOntem === 0 && investimentoDiario > 0) {
+                // Gasto sem conversão - é NEGATIVO
+                gastoSemConversao = true;
+                tendenciaScore -= 20; // Penalidade forte
+                sinaisTendencia -= 2;
+            } else if (leadsOntem > 0) {
+                // CPL é válido - comparar normalmente
+                if (cplAtual < cpl7d * 0.9) {
+                    tendenciaScore += 10; // CPL caiu 10%+
+                    sinaisTendencia++;
+                } else if (cplAtual > cpl7d * 1.1) {
+                    tendenciaScore -= 10; // CPL subiu 10%+
+                    sinaisTendencia--;
+                }
             }
+            // Se leadsOntem = 0 e gastoOntem = 0, não penaliza (estado neutro)
 
             // CTR: melhorando vs piorando
             if (ctrAtual > ctr7d * 1.1) {
