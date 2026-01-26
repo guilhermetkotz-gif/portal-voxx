@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Search, AlertTriangle, TrendingUp, DollarSign, Target, Activity, TrendingDown, CheckCircle, Clock, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
+import { RefreshCw, Search, AlertTriangle, TrendingUp, DollarSign, Target, Activity, TrendingDown, CheckCircle, Clock, ChevronDown, ChevronRight, Lightbulb, Settings } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineCh
 import ListaHistoricoOtimizacoes from '@/components/metaads/ListaHistoricoOtimizacoes';
 import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoModal';
 import PainelGamificacao from '@/components/gamificacao/PainelGamificacao';
+import ConfigurarPlanilhaModal from '@/components/metaads/ConfigurarPlanilhaModal';
 
 export default function MonitoramentoContas({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -24,6 +25,9 @@ export default function MonitoramentoContas({ user }) {
     const [classificacaoFilter, setClassificacaoFilter] = useState('all');
     const [radarSearchTerm, setRadarSearchTerm] = useState('');
     const [radarPrioridadeFilter, setRadarPrioridadeFilter] = useState('all');
+    const [configModalOpen, setConfigModalOpen] = useState(false);
+    const [configModalTipo, setConfigModalTipo] = useState(null);
+    const [editingConfig, setEditingConfig] = useState(null);
     const queryClient = useQueryClient();
 
     // Verificar se é admin
@@ -58,6 +62,12 @@ export default function MonitoramentoContas({ user }) {
     const { data: clientes = [] } = useQuery({
         queryKey: ['clientes'],
         queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
+        staleTime: 5 * 60 * 1000
+    });
+
+    const { data: sheetConfigs = [] } = useQuery({
+        queryKey: ['metaAdsSheetConfigs'],
+        queryFn: () => base44.entities.MetaAdsSheetConfig.filter({ ativo: true }),
         staleTime: 5 * 60 * 1000
     });
 
@@ -532,14 +542,16 @@ export default function MonitoramentoContas({ user }) {
                     <h1 className="text-3xl font-bold text-slate-900">Monitoramento de Contas Meta Ads</h1>
                     <p className="text-slate-500 mt-1">Dados do mês corrente</p>
                 </div>
-                <Button 
-                    onClick={() => syncMutation.mutate()}
-                    disabled={syncMutation.isPending}
-                    className="bg-violet-600 hover:bg-violet-700"
-                >
-                    <RefreshCw className={cn("w-4 h-4 mr-2", syncMutation.isPending && "animate-spin")} />
-                    Sincronizar Planilha
-                </Button>
+                <div className="flex gap-2">
+                    <Button 
+                        onClick={() => syncMutation.mutate()}
+                        disabled={syncMutation.isPending}
+                        className="bg-violet-600 hover:bg-violet-700"
+                    >
+                        <RefreshCw className={cn("w-4 h-4 mr-2", syncMutation.isPending && "animate-spin")} />
+                        Sincronizar
+                    </Button>
+                </div>
             </div>
 
             {/* Tabs */}
@@ -554,6 +566,42 @@ export default function MonitoramentoContas({ user }) {
 
                 {/* Tab: Monitoramento de Contas */}
                 <TabsContent value="monitoramento" className="space-y-6 mt-6">
+                    
+                    {/* Configuração da Planilha */}
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-700">Configuração da Planilha</p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {sheetConfigs.find(c => c.tipo === 'monitoramento') ? (
+                                            <>
+                                                <span className="font-medium">
+                                                    {sheetConfigs.find(c => c.tipo === 'monitoramento').nome_configuracao}
+                                                </span>
+                                                {' • Aba: '}{sheetConfigs.find(c => c.tipo === 'monitoramento').aba_ontem}
+                                            </>
+                                        ) : (
+                                            'Nenhuma configuração ativa'
+                                        )}
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const existingConfig = sheetConfigs.find(c => c.tipo === 'monitoramento');
+                                        setEditingConfig(existingConfig || null);
+                                        setConfigModalTipo('monitoramento');
+                                        setConfigModalOpen(true);
+                                    }}
+                                >
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Configurar Origem dos Dados
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
 
             {/* KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
@@ -773,6 +821,43 @@ export default function MonitoramentoContas({ user }) {
 
                 {/* Tab: RADAR META */}
                 <TabsContent value="radar" className="space-y-6 mt-6">
+                    
+                    {/* Configuração da Planilha RADAR */}
+                    <Card>
+                        <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-slate-700">Configuração da Planilha RADAR</p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {sheetConfigs.find(c => c.tipo === 'radar') ? (
+                                            <>
+                                                <span className="font-medium">
+                                                    {sheetConfigs.find(c => c.tipo === 'radar').nome_configuracao}
+                                                </span>
+                                                {' • Abas: '}{sheetConfigs.find(c => c.tipo === 'radar').aba_ontem}
+                                                {' e '}{sheetConfigs.find(c => c.tipo === 'radar').aba_7dias}
+                                            </>
+                                        ) : (
+                                            'Nenhuma configuração ativa'
+                                        )}
+                                    </p>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        const existingConfig = sheetConfigs.find(c => c.tipo === 'radar');
+                                        setEditingConfig(existingConfig || null);
+                                        setConfigModalTipo('radar');
+                                        setConfigModalOpen(true);
+                                    }}
+                                >
+                                    <Settings className="w-4 h-4 mr-2" />
+                                    Configurar Origem dos Dados
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                     {/* Dashboard Executivo */}
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                         <Card>
@@ -1737,6 +1822,20 @@ export default function MonitoramentoContas({ user }) {
                     conta={selectedAccountForOtimizacao}
                 />
             )}
+
+            {/* Modal de Configuração */}
+            <ConfigurarPlanilhaModal
+                open={configModalOpen}
+                onOpenChange={(isOpen) => {
+                    setConfigModalOpen(isOpen);
+                    if (!isOpen) {
+                        setEditingConfig(null);
+                        setConfigModalTipo(null);
+                    }
+                }}
+                config={editingConfig}
+                tipo={configModalTipo}
+            />
         </div>
     );
 }

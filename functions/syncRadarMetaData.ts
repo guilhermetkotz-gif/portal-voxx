@@ -9,49 +9,25 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const spreadsheetId = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
-
-        // Get sheet metadata to find "Ontem Meta Ads" and "7 dias Meta Ads" sheets
-        const metaResponse = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        if (!metaResponse.ok) {
-            throw new Error(`Failed to fetch sheet metadata: ${metaResponse.statusText}`);
-        }
-
-        const metadata = await metaResponse.json();
-        const sheets = metadata.sheets;
-
-        // Find the sheets
-        const ontemSheet = sheets.find(s => 
-            s.properties.title.toLowerCase().includes('ontem') && 
-            s.properties.title.toLowerCase().includes('meta')
-        );
-        const seteDiasSheet = sheets.find(s => 
-            s.properties.title.toLowerCase().includes('7') && 
-            s.properties.title.toLowerCase().includes('dia') &&
-            s.properties.title.toLowerCase().includes('meta')
-        );
-
-        if (!ontemSheet || !seteDiasSheet) {
-            return Response.json({ 
-                error: 'Sheets not found',
-                available: sheets.map(s => s.properties.title)
-            }, { status: 404 });
-        }
-
-        console.log('Found sheets:', {
-            ontem: ontemSheet.properties.title,
-            seteDias: seteDiasSheet.properties.title
+        // Get active config for radar
+        const configs = await base44.asServiceRole.entities.MetaAdsSheetConfig.filter({ 
+            tipo: 'radar', 
+            ativo: true 
         });
+
+        if (!configs || configs.length === 0) {
+            return Response.json({ 
+                error: 'Nenhuma configuração ativa encontrada para RADAR META. Configure em Monitoramento de Contas > RADAR META > Configurar Origem dos Dados' 
+            }, { status: 400 });
+        }
+
+        const config = configs[0];
+        const spreadsheetId = config.spreadsheet_id;
+        const ontemSheetName = config.aba_ontem;
+        const seteDiasSheetName = config.aba_7dias;
+        const colMap = config.mapeamento_colunas;
+
+        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
 
         // Fetch data from both sheets
         const fetchSheetData = async (sheetName) => {
@@ -74,8 +50,8 @@ Deno.serve(async (req) => {
             return data.values || [];
         };
 
-        const ontemData = await fetchSheetData(ontemSheet.properties.title);
-        const seteDiasData = await fetchSheetData(seteDiasSheet.properties.title);
+        const ontemData = await fetchSheetData(ontemSheetName);
+        const seteDiasData = await fetchSheetData(seteDiasSheetName);
 
         if (ontemData.length < 2 || seteDiasData.length < 2) {
             return Response.json({ error: 'No data found in sheets' }, { status: 404 });
@@ -91,27 +67,21 @@ Deno.serve(async (req) => {
 
         const processSheet = (rows) => {
             const headers = rows[0];
-            const getColIndex = (name) => headers.findIndex(h => h && h.toLowerCase().includes(name.toLowerCase()));
+            
+            // Find column indices using config mapping
+            const getColIndex = (configKey) => {
+                const columnName = colMap[configKey];
+                if (!columnName) return -1;
+                return headers.findIndex(h => h && h.toLowerCase().includes(columnName.toLowerCase()));
+            };
 
-            const accountNameIdx = getColIndex('account name');
-            
-            // Find "Cost per Messaging Conversations Started" column
-            const cplIdx = headers.findIndex(h => 
-                h && h.toLowerCase().includes('cost per messaging conversations started')
-            );
-            
-            // Find "Messaging Conversations Started" column (not the cost per)
-            const leadsIdx = headers.findIndex(h => 
-                h && h.toLowerCase().includes('messaging conversations started') &&
-                !h.toLowerCase().includes('cost per')
-            );
-            
-            const clicksIdx = getColIndex('clicks (all)');
+            const accountNameIdx = getColIndex('account_name');
+            const cplIdx = getColIndex('cost_per_messaging');
+            const leadsIdx = getColIndex('messaging_conversations');
+            const clicksIdx = getColIndex('clicks_all');
             const impressionsIdx = getColIndex('impressions');
             const frequencyIdx = getColIndex('frequency');
-            
-            // Amount Spent is column 9 (index 9) based on the sheet structure
-            const amountSpentIdx = 9;
+            const amountSpentIdx = getColIndex('amount_spent');
 
             console.log('Column indices:', {
                 accountName: accountNameIdx,

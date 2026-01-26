@@ -9,41 +9,26 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const spreadsheetId = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';
+        // Get active config for monitoramento
+        const configs = await base44.asServiceRole.entities.MetaAdsSheetConfig.filter({ 
+            tipo: 'monitoramento', 
+            ativo: true 
+        });
+
+        if (!configs || configs.length === 0) {
+            return Response.json({ 
+                error: 'Nenhuma configuração ativa encontrada para Monitoramento. Configure em Monitoramento de Contas > Configurar Origem dos Dados' 
+            }, { status: 400 });
+        }
+
+        const config = configs[0];
+        const spreadsheetId = config.spreadsheet_id;
+        const sheetName = config.aba_ontem;
+        const colMap = config.mapeamento_colunas;
 
         // Get access token for Google Sheets
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
 
-        // First, get the sheet metadata to find the correct sheet name
-        const metaResponse = await fetch(
-            `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
-            {
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        if (!metaResponse.ok) {
-            const errorText = await metaResponse.text();
-            console.error('Google Sheets Metadata Error:', errorText);
-            throw new Error(`Failed to fetch sheet metadata: ${metaResponse.statusText}`);
-        }
-
-        const metadata = await metaResponse.json();
-        
-        // Buscar a aba "ontem meta ads" especificamente
-        const ontemSheet = metadata.sheets.find(s => 
-            s.properties.title.toLowerCase().includes('ontem') && 
-            s.properties.title.toLowerCase().includes('meta')
-        );
-        
-        if (!ontemSheet) {
-            throw new Error('Sheet "ontem meta ads" não encontrada');
-        }
-        
-        const sheetName = ontemSheet.properties.title;
         const range = `${sheetName}!A:V`;
 
         console.log('Using sheet name:', sheetName);
@@ -75,33 +60,30 @@ Deno.serve(async (req) => {
         // Header row
         const headers = rows[0];
         
-        // Find column indices
-        const getColIndex = (name) => headers.findIndex(h => h && h.toLowerCase().includes(name.toLowerCase()));
+        // Find column indices using config mapping
+        const getColIndex = (configKey) => {
+            const columnName = colMap[configKey];
+            if (!columnName) return -1;
+            return headers.findIndex(h => h && h.toLowerCase().includes(columnName.toLowerCase()));
+        };
         
-        const accountNameIdx = getColIndex('account name');
+        const accountNameIdx = getColIndex('account_name');
         const impressionsIdx = getColIndex('impressions');
-        const costPerMessagingIdx = getColIndex('cost per messaging conversations started');
+        const costPerMessagingIdx = getColIndex('cost_per_messaging');
         const frequencyIdx = getColIndex('frequency');
-        const costPerUniqueLinkIdx = getColIndex('cost per unique link click');
-        const pageEngagementIdx = getColIndex('page engagement');
-        const pageLikesIdx = getColIndex('page likes');
+        const costPerUniqueLinkIdx = getColIndex('cost_per_unique_link');
+        const pageEngagementIdx = getColIndex('page_engagement');
+        const pageLikesIdx = getColIndex('page_likes');
         const reachIdx = getColIndex('reach');
-        const amountSpentIdx = getColIndex('amount spent');
-        const clicksAllIdx = getColIndex('clicks (all)');
-        const cpcIdx = getColIndex('cpc (cost per link click)');
-        
-        // Find the exact column M (index 12) for messaging conversations
-        // This avoids confusion with cost per messaging
-        const messagingConversationsIdx = headers.findIndex((h, idx) => 
-            h && h.toLowerCase().includes('messaging conversations started') && 
-            !h.toLowerCase().includes('cost')
-        );
-        
-        const costPerNewMessagingIdx = getColIndex('cost per new messaging connection');
-        const newMessagingConnectionsIdx = getColIndex('new messaging connections');
-        const custoEngajamentoIdx = getColIndex('custo por engajamento');
-        const leadsRepetidosIdx = getColIndex('leads repetidos');
-        const notaGPTIdx = getColIndex('nota gpt');
+        const amountSpentIdx = getColIndex('amount_spent');
+        const clicksAllIdx = getColIndex('clicks_all');
+        const cpcIdx = getColIndex('cpc');
+        const messagingConversationsIdx = getColIndex('messaging_conversations');
+        const costPerNewMessagingIdx = getColIndex('cost_per_new_messaging');
+        const newMessagingConnectionsIdx = getColIndex('new_messaging_connections');
+        const custoEngajamentoIdx = getColIndex('custo_engajamento');
+        const leadsRepetidosIdx = getColIndex('leads_repetidos');
+        const notaGPTIdx = getColIndex('nota_gpt');
         
         console.log('Column indices:', {
             messagingConversationsIdx,
