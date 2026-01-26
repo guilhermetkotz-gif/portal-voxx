@@ -32,10 +32,21 @@ Deno.serve(async (req) => {
         }
 
         const metadata = await metaResponse.json();
-        const firstSheet = metadata.sheets[0].properties.title;
-        const range = `${firstSheet}!A:V`;
+        
+        // Buscar a aba "ontem meta ads" especificamente
+        const ontemSheet = metadata.sheets.find(s => 
+            s.properties.title.toLowerCase().includes('ontem') && 
+            s.properties.title.toLowerCase().includes('meta')
+        );
+        
+        if (!ontemSheet) {
+            throw new Error('Sheet "ontem meta ads" não encontrada');
+        }
+        
+        const sheetName = ontemSheet.properties.title;
+        const range = `${sheetName}!A:V`;
 
-        console.log('Using sheet name:', firstSheet);
+        console.log('Using sheet name:', sheetName);
 
         // Fetch data from Google Sheets
         const response = await fetch(
