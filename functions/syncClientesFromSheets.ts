@@ -221,9 +221,9 @@ Deno.serve(async (req) => {
                 cost_per_unique_link: costPerUniqueLinkIdx >= 0 ? parseNumber(row[costPerUniqueLinkIdx]) : null
             };
             
-            // Remove null values
+            // Remove null values but keep legacy_client_key
             Object.keys(clienteData).forEach(key => {
-                if (clienteData[key] === null || clienteData[key] === undefined || clienteData[key] === '') {
+                if (key !== 'legacy_client_key' && (clienteData[key] === null || clienteData[key] === undefined || clienteData[key] === '')) {
                     delete clienteData[key];
                 }
             });
