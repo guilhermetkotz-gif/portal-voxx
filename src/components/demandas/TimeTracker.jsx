@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +8,10 @@ import { Play, Pause, CheckCircle2, RotateCcw, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0 }) => {
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
   const [isRunning, setIsRunning] = useState(false);
   const [totalSeconds, setTotalSeconds] = useState(initialMinutes * 60);
   const [sessionSeconds, setSessionSeconds] = useState(0);
@@ -37,8 +43,35 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0 }) => {
     return `${minutes.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
   };
 
-  const handleStart = () => setIsRunning(true);
-  const handleStop = () => setIsRunning(false);
+  const handleStart = async () => {
+    setIsRunning(true);
+    
+    try {
+      await base44.entities.Demanda.update(demandaId, {
+        cronometro_ativo: true,
+        cronometro_inicio: new Date().toISOString(),
+        cronometro_usuario_id: user?.id,
+        cronometro_usuario_nome: user?.full_name || user?.email
+      });
+    } catch (error) {
+      console.error('Erro ao ativar cronômetro:', error);
+    }
+  };
+  
+  const handleStop = async () => {
+    setIsRunning(false);
+    
+    try {
+      await base44.entities.Demanda.update(demandaId, {
+        cronometro_ativo: false,
+        cronometro_inicio: null,
+        cronometro_usuario_id: null,
+        cronometro_usuario_nome: null
+      });
+    } catch (error) {
+      console.error('Erro ao pausar cronômetro:', error);
+    }
+  };
 
   const handleComplete = async () => {
     setIsRunning(false);
@@ -46,14 +79,36 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0 }) => {
     if (onSaveTime) {
       await onSaveTime(totalMinutes);
     }
-    // Reset para próxima sessão
+    
+    try {
+      await base44.entities.Demanda.update(demandaId, {
+        cronometro_ativo: false,
+        cronometro_inicio: null,
+        cronometro_usuario_id: null,
+        cronometro_usuario_nome: null
+      });
+    } catch (error) {
+      console.error('Erro ao salvar tempo:', error);
+    }
+    
     setSessionSeconds(0);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setIsRunning(false);
     setTotalSeconds(0);
     setSessionSeconds(0);
+    
+    try {
+      await base44.entities.Demanda.update(demandaId, {
+        cronometro_ativo: false,
+        cronometro_inicio: null,
+        cronometro_usuario_id: null,
+        cronometro_usuario_nome: null
+      });
+    } catch (error) {
+      console.error('Erro ao resetar cronômetro:', error);
+    }
   };
 
   const totalMinutes = Math.floor(totalSeconds / 60);
