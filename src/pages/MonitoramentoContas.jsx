@@ -25,6 +25,7 @@ export default function MonitoramentoContas({ user }) {
     const [classificacaoFilter, setClassificacaoFilter] = useState('all');
     const [radarSearchTerm, setRadarSearchTerm] = useState('');
     const [radarPrioridadeFilter, setRadarPrioridadeFilter] = useState('all');
+    const [radarResponsavelFilter, setRadarResponsavelFilter] = useState('all');
     const [configModalOpen, setConfigModalOpen] = useState(false);
     const [configModalTipo, setConfigModalTipo] = useState(null);
     const [editingConfig, setEditingConfig] = useState(null);
@@ -486,6 +487,10 @@ export default function MonitoramentoContas({ user }) {
             filtered = filtered.filter(d => d.prioridade === radarPrioridadeFilter);
         }
 
+        if (radarResponsavelFilter !== 'all') {
+            filtered = filtered.filter(d => d.cliente?.responsavel_voxx_trafego === radarResponsavelFilter);
+        }
+
         return filtered.sort((a, b) => {
             // 1. Prioridade
             const prioridadeOrder = { critica: 0, alta: 1, media: 2, baixa: 3 };
@@ -501,7 +506,7 @@ export default function MonitoramentoContas({ user }) {
             // 4. Investimento diário (descendente)
             return b.investimentoDiario - a.investimentoDiario;
         });
-    }, [radarData, radarSearchTerm, radarPrioridadeFilter]);
+    }, [radarData, radarSearchTerm, radarPrioridadeFilter, radarResponsavelFilter]);
 
     const radarStats = React.useMemo(() => {
         const totalContas = radarData.length;
@@ -1331,8 +1336,8 @@ export default function MonitoramentoContas({ user }) {
                     {/* Filters */}
                     <Card>
                         <CardContent className="p-4">
-                            <div className="flex gap-4">
-                                <div className="flex-1 relative">
+                            <div className="flex gap-4 flex-wrap">
+                                <div className="flex-1 min-w-[200px] relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <Input
                                         value={radarSearchTerm}
@@ -1351,6 +1356,19 @@ export default function MonitoramentoContas({ user }) {
                                         <SelectItem value="alta">🟠 Alta</SelectItem>
                                         <SelectItem value="media">🟡 Média</SelectItem>
                                         <SelectItem value="baixa">🟢 Baixa</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select value={radarResponsavelFilter} onValueChange={setRadarResponsavelFilter}>
+                                    <SelectTrigger className="w-64">
+                                        <SelectValue placeholder="Todos Responsáveis" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Todos Responsáveis</SelectItem>
+                                        {voxxUsers.map((voxxUser) => (
+                                            <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                                                {voxxUser.full_name}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
