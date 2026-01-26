@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,22 +40,54 @@ const setores = {
   SALDOS: 'Saldos'
 };
 
-export default function MonitoramentoDemandas({ selectedClienteId }) {
+export default function MonitoramentoDemandas({ user, selectedClienteId }) {
   const [filterSetor, setFilterSetor] = useState(null);
 
   // Fetch all demandas
-  const { data: demandas = [], isLoading } = useQuery({
-    queryKey: ['demandas', selectedClienteId],
-    queryFn: () => base44.entities.Demanda.filter({ cliente_id: selectedClienteId }, '-created_date', 500),
-    enabled: !!selectedClienteId,
+  const { data: allDemandas = [], isLoading } = useQuery({
+    queryKey: ['demandasMonitoramento', selectedClienteId, user?.id],
+    queryFn: async () => {
+      let queryFilters = {};
+      if (!user || user.role !== 'admin') {
+        if (selectedClienteId) {
+          queryFilters.cliente_id = selectedClienteId;
+        } else {
+          return [];
+        }
+      }
+      return base44.entities.Demanda.filter(queryFilters, '-created_date', 500);
+    },
+    enabled: !!user,
     staleTime: 60 * 1000
   });
 
+  // Filter demandas based on user type
+  const demandas = useMemo(() => {
+    if (!allDemandas) return [];
+    
+    // Voxx Operação users only see their assigned clients
+    if (user?.tipo_usuario === 'voxx_operacao' && user?.clientes_atribuidos?.length > 0) {
+      return allDemandas.filter(d => user.clientes_atribuidos.includes(d.cliente_id));
+    }
+    
+    return allDemandas;
+  }, [allDemandas, user]);
+
   // Fetch timeline events for completion time analysis
   const { data: events = [] } = useQuery({
-    queryKey: ['timelineEvents', selectedClienteId],
-    queryFn: () => base44.entities.TimelineEvent.filter({ cliente_id: selectedClienteId }, '-created_date', 1000),
-    enabled: !!selectedClienteId,
+    queryKey: ['timelineEventsMonitoramento', selectedClienteId, user?.id],
+    queryFn: async () => {
+      let queryFilters = {};
+      if (!user || user.role !== 'admin') {
+        if (selectedClienteId) {
+          queryFilters.cliente_id = selectedClienteId;
+        } else {
+          return [];
+        }
+      }
+      return base44.entities.TimelineEvent.filter(queryFilters, '-created_date', 1000);
+    },
+    enabled: !!user,
     staleTime: 60 * 1000
   });
 
