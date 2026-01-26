@@ -38,7 +38,7 @@ export default function RankingSemanal({ user }) {
     }
   };
 
-  const minhaPos icao = ranking.findIndex(r => r.analista_id === user?.id) + 1;
+  const minhaPosicao = ranking.findIndex(r => r.analista_id === user?.id) + 1;
 
   return (
     <Card>
