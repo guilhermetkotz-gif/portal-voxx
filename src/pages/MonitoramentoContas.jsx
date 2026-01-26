@@ -12,6 +12,7 @@ import { RefreshCw, Search, AlertTriangle, TrendingUp, DollarSign, Target, Activ
 import { createPageUrl } from '@/utils';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, Legend, ScatterChart, Scatter, ZAxis } from 'recharts';
 import ListaHistoricoOtimizacoes from '@/components/metaads/ListaHistoricoOtimizacoes';
 import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoModal';
@@ -72,12 +73,18 @@ export default function MonitoramentoContas({ user }) {
     });
 
     const updateClienteMutation = useMutation({
-        mutationFn: ({ clienteId, responsavel }) => 
-            base44.entities.Cliente.update(clienteId, { 
+        mutationFn: async ({ clienteId, responsavel }) => {
+            await base44.entities.Cliente.update(clienteId, { 
                 responsavel_voxx_trafego: responsavel || null 
-            }),
-        onSuccess: () => {
+            });
+            return responsavel;
+        },
+        onSuccess: (responsavel) => {
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
+            toast.success(`Responsável ${responsavel ? 'atualizado' : 'removido'} com sucesso!`);
+        },
+        onError: (error) => {
+            toast.error('Erro ao atualizar responsável: ' + error.message);
         }
     });
 
