@@ -1774,15 +1774,23 @@ export default function MonitoramentoContas({ user }) {
                                                 <TableCell>
                                                     <Select
                                                         value={cliente.responsavel_voxx_trafego || '__NONE__'}
-                                                        onValueChange={(value) => 
+                                                        onValueChange={(value) => {
+                                                            console.log('Select changed:', { clienteId: cliente.id, value });
                                                             updateClienteMutation.mutate({ 
                                                                 clienteId: cliente.id, 
                                                                 responsavel: value === '__NONE__' ? null : value 
-                                                            })
-                                                        }
+                                                            });
+                                                        }}
+                                                        disabled={updateClienteMutation.isPending}
                                                     >
                                                         <SelectTrigger className="w-64">
-                                                            <SelectValue placeholder="Selecione um responsável" />
+                                                            <SelectValue placeholder="Selecione um responsável">
+                                                                {cliente.responsavel_voxx_trafego ? (
+                                                                    voxxUsers.find(u => u.email === cliente.responsavel_voxx_trafego)?.full_name || cliente.responsavel_voxx_trafego
+                                                                ) : (
+                                                                    "Nenhum responsável"
+                                                                )}
+                                                            </SelectValue>
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="__NONE__">Nenhum responsável</SelectItem>
