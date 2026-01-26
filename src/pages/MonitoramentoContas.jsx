@@ -512,7 +512,7 @@ export default function MonitoramentoContas({ user }) {
                 account_name: radar.account_name,
                 cliente,
                 radarScore,
-                riscoScore,
+                estadoScore,
                 tendenciaScore,
                 impactoScore,
                 prioridade,
