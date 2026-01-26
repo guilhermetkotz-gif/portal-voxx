@@ -84,28 +84,21 @@ export default function MonitoramentoContas({ user }) {
     });
 
     const updateClienteMutation = useMutation({
-        mutationFn: async ({ clienteId, responsavel }) => {
-            // Buscar o cliente atual para preservar todos os campos obrigatórios
-            const clienteAtual = clientes.find(c => c.id === clienteId);
-            
-            const updateData = { 
-                ...clienteAtual,
-                responsavel_voxx_trafego: responsavel === '__NONE__' ? null : responsavel,
-                // Garantir que legacy_client_key existe
-                legacy_client_key: clienteAtual.legacy_client_key || clienteAtual.nome
-            };
-            
-            await base44.entities.Cliente.update(clienteId, updateData);
-            return responsavel;
-        },
-        onSuccess: (responsavel) => {
-            queryClient.invalidateQueries({ queryKey: ['clientes'] });
-            toast.success(`Responsável ${responsavel && responsavel !== '__NONE__' ? 'atualizado' : 'removido'} com sucesso!`);
-        },
-        onError: (error) => {
-            toast.error('Erro ao atualizar responsável: ' + error.message);
-        }
-    });
+            mutationFn: async ({ clienteId, responsavel }) => {
+                const response = await base44.functions.invoke('updateClienteResponsavel', {
+                    clienteId,
+                    responsavel
+                });
+                return responsavel;
+            },
+            onSuccess: (responsavel) => {
+                queryClient.invalidateQueries({ queryKey: ['clientes'] });
+                toast.success(`Responsável ${responsavel && responsavel !== '__NONE__' ? 'atualizado' : 'removido'} com sucesso!`);
+            },
+            onError: (error) => {
+                toast.error('Erro ao atualizar responsável: ' + error.message);
+            }
+        });
 
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [recommendations, setRecommendations] = useState({});
