@@ -280,47 +280,87 @@ export default function MonitoramentoContas({ user }) {
             const variacaoCPL = radar.variacao_cpl || 0;
             const variacaoCTR = radar.variacao_ctr || 0;
 
-            // ========== EIXO 1: RISCO (0-100) ==========
-            let riscoScore = 100;
+            // ========== EIXO 1: ESTADO ESTRUTURAL DA CONTA (baseado 7d) ==========
+            // Avalia a saúde CONSOLIDADA considerando métricas dos últimos 7 dias
+            let estadoScore = 100;
+            let estadoLabel = 'Saudável';
 
             // Penalizar CPL alto
-            if (cplAtual > 50) riscoScore -= 40;
-            else if (cplAtual > 35) riscoScore -= 25;
-            else if (cplAtual > 25) riscoScore -= 15;
+            if (cpl7d > 50) estadoScore -= 40;
+            else if (cpl7d > 35) estadoScore -= 25;
+            else if (cpl7d > 25) estadoScore -= 15;
 
             // Penalizar CTR baixo
-            if (ctrAtual < 0.5) riscoScore -= 30;
-            else if (ctrAtual < 1.0) riscoScore -= 20;
-            else if (ctrAtual < 1.5) riscoScore -= 10;
+            if (ctr7d < 0.5) estadoScore -= 30;
+            else if (ctr7d < 1.0) estadoScore -= 20;
+            else if (ctr7d < 1.5) estadoScore -= 10;
 
-            // Penalizar Frequência
-            if (frequencia7d >= 3.0) riscoScore -= 35;
-            else if (frequencia7d >= 2.5) riscoScore -= 20;
-            else if (frequencia7d >= 1.8) riscoScore -= 5;
-            else riscoScore += 10; // Bonus para < 1.8
+            // Frequência como INDICADOR DE ESTADO ESTRUTURAL (não de tendência)
+            // Classificação por faixas estruturais
+            let frequenciaEstado = 0;
+            if (frequencia7d >= 3.0) {
+                estadoScore -= 35;
+                frequenciaEstado = 'Muito Crítica';
+            } else if (frequencia7d >= 2.5) {
+                estadoScore -= 20;
+                frequenciaEstado = 'Crítica';
+            } else if (frequencia7d >= 1.8) {
+                estadoScore -= 5;
+                frequenciaEstado = 'Atenção';
+            } else {
+                estadoScore += 10; // Bonus para < 1.8
+                frequenciaEstado = 'Saudável';
+            }
 
-            riscoScore = Math.max(0, Math.min(100, riscoScore));
+            estadoScore = Math.max(0, Math.min(100, estadoScore));
 
-            // ========== EIXO 2: TENDÊNCIA (0-100) ==========
+            // Classificar o ESTADO por faixas
+            if (estadoScore < 40) estadoLabel = 'Crítico';
+            else if (estadoScore < 60) estadoLabel = 'Atenção';
+            else if (estadoScore < 80) estadoLabel = 'Operacional';
+            else estadoLabel = 'Saudável';
+
+            // ========== EIXO 2: TENDÊNCIA RECENTE (ontem vs 7d) ==========
+            // Apenas métricas PONTUAIS que fazem sentido em comparação diária
+            // FREQUÊNCIA NÃO entra aqui
             let tendenciaScore = 50; // Base neutra
+            let sinaisTendencia = 0; // Contador de sinais positivos/negativos
 
             // CPL: melhorando vs piorando
-            if (cplAtual < cpl7d * 0.9) tendenciaScore += 10; // CPL caiu 10%+
-            else if (cplAtual > cpl7d * 1.1) tendenciaScore -= 10; // CPL subiu 10%+
+            if (cplAtual < cpl7d * 0.9) {
+                tendenciaScore += 10; // CPL caiu 10%+
+                sinaisTendencia++;
+            } else if (cplAtual > cpl7d * 1.1) {
+                tendenciaScore -= 10; // CPL subiu 10%+
+                sinaisTendencia--;
+            }
 
             // CTR: melhorando vs piorando
-            if (ctrAtual > ctr7d * 1.1) tendenciaScore += 10; // CTR subiu 10%+
-            else if (ctrAtual < ctr7d * 0.9) tendenciaScore -= 10; // CTR caiu 10%+
+            if (ctrAtual > ctr7d * 1.1) {
+                tendenciaScore += 10; // CTR subiu 10%+
+                sinaisTendencia++;
+            } else if (ctrAtual < ctr7d * 0.9) {
+                tendenciaScore -= 10; // CTR caiu 10%+
+                sinaisTendencia--;
+            }
 
             // Leads/dia: melhorando vs piorando
-            if (leadsOntem > leadsDia7d * 1.2) tendenciaScore += 10; // +20% leads
-            else if (leadsOntem < leadsDia7d * 0.7) tendenciaScore -= 10; // -30% leads
+            if (leadsOntem > leadsDia7d * 1.2) {
+                tendenciaScore += 10; // +20% leads
+                sinaisTendencia++;
+            } else if (leadsOntem < leadsDia7d * 0.7) {
+                tendenciaScore -= 10; // -30% leads
+                sinaisTendencia--;
+            }
 
-            // Frequência: melhorando vs piorando
-            if (frequenciaOntem < frequencia7d * 0.9) tendenciaScore += 10; // Freq caiu
-            else if (frequenciaOntem > frequencia7d * 1.1) tendenciaScore -= 10; // Freq subiu
+            // Nota: Frequência NÃO entra na tendência (apenas no estado estrutural)
 
             tendenciaScore = Math.max(0, Math.min(100, tendenciaScore));
+
+            // Classificar tendência
+            let tendenciaLabel = 'Neutra';
+            if (sinaisTendencia >= 2) tendenciaLabel = 'Positiva';
+            else if (sinaisTendencia <= -2) tendenciaLabel = 'Negativa';
 
             // ========== EIXO 3: IMPACTO (0-100) ==========
             let impactoScore = 0;
