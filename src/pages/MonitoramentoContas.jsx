@@ -1684,11 +1684,11 @@ export default function MonitoramentoContas({ user }) {
                                                 </TableCell>
                                                 <TableCell>
                                                     <Select
-                                                        value={cliente.responsavel_voxx_trafego || ''}
+                                                        value={cliente.responsavel_voxx_trafego || '__NONE__'}
                                                         onValueChange={(value) => 
                                                             updateClienteMutation.mutate({ 
                                                                 clienteId: cliente.id, 
-                                                                responsavel: value 
+                                                                responsavel: value === '__NONE__' ? null : value 
                                                             })
                                                         }
                                                     >
