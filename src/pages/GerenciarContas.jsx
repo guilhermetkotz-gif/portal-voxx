@@ -213,7 +213,7 @@ export default function GerenciarContas({ user }) {
             <p className="text-slate-500">Nenhuma conta encontrada</p>
           </Card>
         ) : (
-          clientesFiltrados.map(cliente => (
+          clientesFiltrados.sort((a, b) => (b.updated_date || '').localeCompare(a.updated_date || '')).map(cliente => (
             <Card key={cliente.id} className="p-5 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
