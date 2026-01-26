@@ -491,25 +491,25 @@ export default function MonitoramentoContas({ user }) {
             const leadsPrevisao = leadsOntem * (1 + taxaLeads * 0.5);
             const freqPrevisao = frequencia7d * (1 + taxaFreq * 0.5);
 
-            // Projetar novo Radar Score
-            let riscoPrevisao = 100;
-            if (cplPrevisao > 50) riscoPrevisao -= 40;
-            else if (cplPrevisao > 35) riscoPrevisao -= 25;
-            else if (cplPrevisao > 25) riscoPrevisao -= 15;
+            // Projetar novo ESTADO para os próximos 7 dias
+            let estadoPrevisao = 100;
+            if (cplPrevisao > 50) estadoPrevisao -= 40;
+            else if (cplPrevisao > 35) estadoPrevisao -= 25;
+            else if (cplPrevisao > 25) estadoPrevisao -= 15;
 
-            if (ctrPrevisao < 0.5) riscoPrevisao -= 30;
-            else if (ctrPrevisao < 1.0) riscoPrevisao -= 20;
-            else if (ctrPrevisao < 1.5) riscoPrevisao -= 10;
+            if (ctrPrevisao < 0.5) estadoPrevisao -= 30;
+            else if (ctrPrevisao < 1.0) estadoPrevisao -= 20;
+            else if (ctrPrevisao < 1.5) estadoPrevisao -= 10;
 
-            if (freqPrevisao >= 3.0) riscoPrevisao -= 35;
-            else if (freqPrevisao >= 2.5) riscoPrevisao -= 20;
-            else if (freqPrevisao >= 1.8) riscoPrevisao -= 5;
-            else riscoPrevisao += 10;
+            if (freqPrevisao >= 3.0) estadoPrevisao -= 35;
+            else if (freqPrevisao >= 2.5) estadoPrevisao -= 20;
+            else if (freqPrevisao >= 1.8) estadoPrevisao -= 5;
+            else estadoPrevisao += 10;
 
-            riscoPrevisao = Math.max(0, Math.min(100, riscoPrevisao));
+            estadoPrevisao = Math.max(0, Math.min(100, estadoPrevisao));
 
             const radarScorePrevisao = Math.round(
-                (riscoPrevisao * 0.4) + (tendenciaScore * 0.3) + (impactoScore * 0.3)
+                (estadoPrevisao * 0.4) + (tendenciaScore * 0.3) + (impactoScore * 0.3)
             );
 
             return {
