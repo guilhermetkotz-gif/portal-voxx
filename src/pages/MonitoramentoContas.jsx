@@ -464,30 +464,38 @@ export default function MonitoramentoContas({ user }) {
             // ========== STATUS DESCRITIVO ==========
             let status = '';
 
-            // Textos interpretativos claros baseados em ESTADO + TENDÊNCIA
-            if (estadoScore < 40) {
-                if (tendenciaLabel === 'Negativa') {
-                    status = '🔴 CRÍTICO: Performance crítica e em deterioração - Ação imediata';
-                } else if (tendenciaLabel === 'Positiva') {
-                    status = '🟠 RECUPERAÇÃO: Conta estruturalmente crítica, porém em melhora recente';
-                } else {
-                    status = '🔴 ALERTA: Performance crítica e estável - Requer otimização';
-                }
-            } else if (estadoScore < 60) {
-                if (tendenciaLabel === 'Negativa') {
-                    status = '🟠 ALERTA: Indicadores moderados com sinais iniciais de queda';
-                } else if (tendenciaLabel === 'Positiva') {
-                    status = '🟢 MELHORA: Performance em recuperação - Manter tendência';
-                } else {
-                    status = '🟡 ESTÁVEL: Performance operacional sem grandes variações';
-                }
+            // Primeiro, verificar "gasto sem conversão" que sobrescreve tudo
+            if (gastoSemConversao) {
+                status = '⚠️ ALERTA: Ontem houve gasto sem geração de leads - Revisar campanha';
+            } else if (leadsOntem === 0 && investimentoDiario === 0) {
+                // Nenhum gasto, nenhum lead - estado neutro
+                status = '➡️ NEUTRO: Sem dados relevantes no último dia';
             } else {
-                if (tendenciaLabel === 'Negativa') {
-                    status = '🟡 MONITORAR: Indicadores saudáveis com sinais iniciais de queda';
-                } else if (tendenciaLabel === 'Positiva') {
-                    status = '✅ EXCELENTE: Performance ótima e em contínua melhora';
+                // Textos interpretativos claros baseados em ESTADO + TENDÊNCIA
+                if (estadoScore < 40) {
+                    if (tendenciaLabel === 'Negativa') {
+                        status = '🔴 CRÍTICO: Performance crítica e em deterioração - Ação imediata';
+                    } else if (tendenciaLabel === 'Positiva') {
+                        status = '🟠 RECUPERAÇÃO: Conta estruturalmente crítica, porém em melhora recente';
+                    } else {
+                        status = '🔴 ALERTA: Performance crítica e estável - Requer otimização';
+                    }
+                } else if (estadoScore < 60) {
+                    if (tendenciaLabel === 'Negativa') {
+                        status = '🟠 ALERTA: Indicadores moderados com sinais iniciais de queda';
+                    } else if (tendenciaLabel === 'Positiva') {
+                        status = '🟢 MELHORA: Performance em recuperação - Manter tendência';
+                    } else {
+                        status = '🟡 ESTÁVEL: Performance operacional sem grandes variações';
+                    }
                 } else {
-                    status = '✓ SAUDÁVEL: Performance boa e estável - Manter padrão';
+                    if (tendenciaLabel === 'Negativa') {
+                        status = '🟡 MONITORAR: Indicadores saudáveis com sinais iniciais de queda';
+                    } else if (tendenciaLabel === 'Positiva') {
+                        status = '✅ EXCELENTE: Performance ótima e em contínua melhora';
+                    } else {
+                        status = '✓ SAUDÁVEL: Performance boa e estável - Manter padrão';
+                    }
                 }
             }
 
