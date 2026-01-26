@@ -23,8 +23,15 @@ Deno.serve(async (req) => {
 
         const config = configs[0];
         const spreadsheetId = config.spreadsheet_id;
-        const sheetName = config.aba_ontem;
+        const sheetName = config.aba_ontem; // Para monitoramento, esta aba contém dados mensais
         const colMap = config.mapeamento_colunas;
+
+        console.log('Using config:', {
+            nome: config.nome_configuracao,
+            spreadsheetId,
+            sheetName,
+            tipo: config.tipo
+        });
 
         // Get access token for Google Sheets
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
