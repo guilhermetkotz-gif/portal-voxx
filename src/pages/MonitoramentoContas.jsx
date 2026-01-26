@@ -73,7 +73,9 @@ export default function MonitoramentoContas({ user }) {
 
     const updateClienteMutation = useMutation({
         mutationFn: ({ clienteId, responsavel }) => 
-            base44.entities.Cliente.update(clienteId, { responsavel_voxx_trafego: responsavel }),
+            base44.entities.Cliente.update(clienteId, { 
+                responsavel_voxx_trafego: responsavel || null 
+            }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['clientes'] });
         }
