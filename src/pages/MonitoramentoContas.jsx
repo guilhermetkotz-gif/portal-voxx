@@ -430,6 +430,16 @@ export default function MonitoramentoContas({ user }) {
                 prioridadeRaw = 'alta';
             }
 
+            // Elevar prioridade se houver "gasto sem conversão" (leads=0 mas gasto>0)
+            if (gastoSemConversao) {
+                if (prioridadeRaw === 'baixa') {
+                    prioridadeRaw = 'media'; // Elevar de baixa para média
+                } else if (prioridadeRaw === 'media') {
+                    prioridadeRaw = 'alta'; // Elevar de média para alta
+                }
+                // Se já for alta ou crítica, mantém
+            }
+
             const radarScore = Math.round(
                 (estadoScore * 0.4) + (tendenciaScore * 0.3) + (impactoScore * 0.3)
             );
