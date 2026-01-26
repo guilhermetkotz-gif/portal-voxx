@@ -26,15 +26,15 @@ const prioridades = {
 
 const setores = {
   ATENDIMENTO: 'Atendimento',
-  TRAFEGO_META: 'Tráfego Meta',
-  TRAFEGO_GOOGLE: 'Tráfego Google',
-  TRAFEGO_TIKTOK: 'Tráfego TikTok',
-  CRIACAO: 'Criação',
-  EDICAO: 'Edição',
-  BI_RELATORIO: 'BI & Relatório',
-  IMPLANTACAO: 'Implantação',
-  FINANCEIRO: 'Financeiro',
+  TRAFEGO_META: 'Tráfego Meta Ads',
+  TRAFEGO_GOOGLE: 'Tráfego Google Ads',
+  TRAFEGO_TIKTOK: 'Tráfego TikTok Ads',
   ALTERACAO_CRIACAO: 'Alteração Criação',
+  CRIACAO: 'Criação Artes & Peças',
+  EDICAO: 'Edição de Vídeo',
+  BI_RELATORIO: 'BI & Relatórios',
+  IMPLANTACAO: 'Implantação/Acessos',
+  FINANCEIRO: 'Financeiro/Administrativo',
   AUTOMACAO: 'Automação',
   SALDOS: 'Saldos'
 };
