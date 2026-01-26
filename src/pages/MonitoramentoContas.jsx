@@ -1778,7 +1778,16 @@ export default function MonitoramentoContas({ user }) {
                                                         }}
                                                     >
                                                         <SelectTrigger className="w-64">
-                                                            <SelectValue placeholder="Selecione um responsável" />
+                                                            <SelectValue>
+                                                                {cliente.responsavel_voxx_trafego ? (
+                                                                    (() => {
+                                                                        const user = voxxUsers.find(u => u.email === cliente.responsavel_voxx_trafego);
+                                                                        return user ? `${user.full_name} (${user.email})` : cliente.responsavel_voxx_trafego;
+                                                                    })()
+                                                                ) : (
+                                                                    "Nenhum responsável"
+                                                                )}
+                                                            </SelectValue>
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="__NONE__">Nenhum responsável</SelectItem>
