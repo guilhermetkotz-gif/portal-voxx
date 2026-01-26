@@ -109,7 +109,9 @@ Deno.serve(async (req) => {
             const clicksIdx = getColIndex('clicks (all)');
             const impressionsIdx = getColIndex('impressions');
             const frequencyIdx = getColIndex('frequency');
-            const amountSpentIdx = getColIndex('amount spent');
+            
+            // Amount Spent is column 9 (index 9) based on the sheet structure
+            const amountSpentIdx = 9;
 
             console.log('Column indices:', {
                 accountName: accountNameIdx,
@@ -138,16 +140,16 @@ Deno.serve(async (req) => {
                 const amountSpent = parseNumber(row[amountSpentIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
-                // Log Votuporanga for debugging
-                if (accountName.toLowerCase().includes('votuporanga')) {
-                    console.log('Votuporanga data:', {
+                // Log São Sebastião for debugging
+                if (accountName.toLowerCase().includes('sebastião')) {
+                    console.log('São Sebastião do Paraíso data:', {
                         accountName,
+                        amount_spent_raw: row[amountSpentIdx],
+                        amount_spent_parsed: amountSpent,
                         cpl_raw: row[cplIdx],
-                        cpl_parsed: cpl,
                         leads_raw: row[leadsIdx],
-                        leads_parsed: leads,
-                        ctr_calculated: ctr,
-                        row_length: row.length
+                        row_length: row.length,
+                        full_row: row
                     });
                 }
 
