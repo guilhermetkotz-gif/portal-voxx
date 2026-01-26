@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, Legend, ScatterChart, Scatter, ZAxis } from 'recharts';
 import ListaHistoricoOtimizacoes from '@/components/metaads/ListaHistoricoOtimizacoes';
 import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoModal';
+import PainelGamificacao from '@/components/gamificacao/PainelGamificacao';
 
 export default function MonitoramentoContas({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -533,9 +534,10 @@ export default function MonitoramentoContas({ user }) {
 
             {/* Tabs */}
             <Tabs defaultValue="monitoramento" className="w-full">
-                <TabsList className="grid w-full max-w-3xl grid-cols-4">
+                <TabsList className="grid w-full max-w-5xl grid-cols-5">
                     <TabsTrigger value="monitoramento">Monitoramento de Contas</TabsTrigger>
                     <TabsTrigger value="radar">RADAR META</TabsTrigger>
+                    <TabsTrigger value="gamificacao">Gamificação</TabsTrigger>
                     <TabsTrigger value="operadores">Contas/Operador</TabsTrigger>
                     <TabsTrigger value="otimizacoes">Histórico de Otimizações</TabsTrigger>
                 </TabsList>
@@ -1623,6 +1625,11 @@ export default function MonitoramentoContas({ user }) {
                             </div>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                {/* Tab: Gamificação */}
+                <TabsContent value="gamificacao" className="mt-6">
+                    <PainelGamificacao user={user} />
                 </TabsContent>
 
                 {/* Tab: Contas/Operador */}
