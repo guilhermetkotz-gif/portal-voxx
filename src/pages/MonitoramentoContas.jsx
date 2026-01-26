@@ -382,20 +382,57 @@ export default function MonitoramentoContas({ user }) {
             impactoScore = Math.max(0, Math.min(100, impactoScore));
 
             // ========== RADAR SCORE FINAL ==========
+            // Matriz de decisão: ESTADO x TENDÊNCIA
+            let prioridadeRaw;
+            
+            if (estadoScore < 40) {
+                // ESTADO CRÍTICO
+                if (tendenciaLabel === 'Negativa') {
+                    prioridadeRaw = 'critica'; // Crítica + Piora = CRÍTICA
+                } else if (tendenciaLabel === 'Positiva') {
+                    prioridadeRaw = 'media'; // Crítica + Melhora = MÉDIA
+                } else {
+                    prioridadeRaw = 'alta'; // Crítica + Neutra = ALTA
+                }
+            } else if (estadoScore < 60) {
+                // ESTADO ATENÇÃO
+                if (tendenciaLabel === 'Negativa') {
+                    prioridadeRaw = 'alta'; // Atenção + Piora = ALTA
+                } else if (tendenciaLabel === 'Positiva') {
+                    prioridadeRaw = 'baixa'; // Atenção + Melhora = BAIXA
+                } else {
+                    prioridadeRaw = 'media'; // Atenção + Neutra = MÉDIA
+                }
+            } else {
+                // ESTADO SAUDÁVEL
+                if (tendenciaLabel === 'Negativa') {
+                    prioridadeRaw = 'media'; // Saudável + Piora = MÉDIA (alerta preventivo)
+                } else {
+                    prioridadeRaw = 'baixa'; // Saudável + Melhora/Neutra = BAIXA
+                }
+            }
+
+            // Elevar prioridade se houver eventos críticos
+            if (frequencia7d >= 3.0) {
+                prioridadeRaw = 'critica';
+            } else if (frequencia7d >= 2.5 && prioridadeRaw === 'media') {
+                prioridadeRaw = 'alta';
+            }
+
             const radarScore = Math.round(
-                (riscoScore * 0.4) + (tendenciaScore * 0.3) + (impactoScore * 0.3)
+                (estadoScore * 0.4) + (tendenciaScore * 0.3) + (impactoScore * 0.3)
             );
 
             // ========== PRIORIDADE ==========
             let prioridade, prioridadeLabel;
 
-            if (radarScore <= 30) {
+            if (prioridadeRaw === 'critica') {
                 prioridade = 'critica';
                 prioridadeLabel = '🔴 Crítica';
-            } else if (radarScore <= 50) {
+            } else if (prioridadeRaw === 'alta') {
                 prioridade = 'alta';
                 prioridadeLabel = '🟠 Alta';
-            } else if (radarScore <= 70) {
+            } else if (prioridadeRaw === 'media') {
                 prioridade = 'media';
                 prioridadeLabel = '🟡 Média';
             } else {
@@ -405,40 +442,37 @@ export default function MonitoramentoContas({ user }) {
 
             // ========== STATUS DESCRITIVO ==========
             let status = '';
-            const problemas = [];
 
-            // Identificar problemas principais
-            if (cplAtual > 35) problemas.push('CPL elevado');
-            if (ctrAtual < 1.0) problemas.push('CTR baixo');
-            if (frequencia7d >= 3.0) problemas.push('Saturação crítica');
-            else if (frequencia7d >= 2.5) problemas.push('Saturação moderada');
-            if (leadsOntem < leadsDia7d * 0.7) problemas.push('Queda de leads');
-
-            // Construir status baseado em risco + tendência
-            if (riscoScore < 40) {
-                if (tendenciaScore < 40) {
-                    status = '🔴 CRÍTICO: Alto risco e piorando';
-                } else if (tendenciaScore > 60) {
-                    status = '🟠 RECUPERAÇÃO: Alto risco mas melhorando';
+            // Textos interpretativos claros baseados em ESTADO + TENDÊNCIA
+            if (estadoScore < 40) {
+                if (tendenciaLabel === 'Negativa') {
+                    status = '🔴 CRÍTICO: Performance crítica e em deterioração - Ação imediata';
+                } else if (tendenciaLabel === 'Positiva') {
+                    status = '🟠 RECUPERAÇÃO: Conta estruturalmente crítica, porém em melhora recente';
                 } else {
-                    status = '🔴 ATENÇÃO: Alto risco estável';
+                    status = '🔴 ALERTA: Performance crítica e estável - Requer otimização';
                 }
-            } else if (riscoScore < 60) {
-                if (tendenciaScore < 40) {
-                    status = '🟠 ALERTA: Performance média piorando';
-                } else if (tendenciaScore > 60) {
-                    status = '🟢 MELHORA: Performance média subindo';
+            } else if (estadoScore < 60) {
+                if (tendenciaLabel === 'Negativa') {
+                    status = '🟠 ALERTA: Indicadores moderados com sinais iniciais de queda';
+                } else if (tendenciaLabel === 'Positiva') {
+                    status = '🟢 MELHORA: Performance em recuperação - Manter tendência';
                 } else {
-                    status = '🟡 ESTÁVEL: Performance moderada';
+                    status = '🟡 ESTÁVEL: Performance operacional sem grandes variações';
                 }
             } else {
-                if (tendenciaScore < 40) {
-                    status = '🟡 MONITORAR: Performance boa mas caindo';
-                } else if (tendenciaScore > 60) {
-                    status = '✅ EXCELENTE: Performance ótima e melhorando';
+                if (tendenciaLabel === 'Negativa') {
+                    status = '🟡 MONITORAR: Indicadores saudáveis com sinais iniciais de queda';
+                } else if (tendenciaLabel === 'Positiva') {
+                    status = '✅ EXCELENTE: Performance ótima e em contínua melhora';
                 } else {
-                    status = '✓ SAUDÁVEL: Performance boa e estável';
+                    status = '✓ SAUDÁVEL: Performance boa e estável - Manter padrão';
                 }
+            }
+
+            // Adicionar indicador de frequência se crítico
+            if (frequencia7d >= 3.0) {
+                status += ` [⚠️ Saturação ${frequenciaEstado.toLowerCase()}]`;
             }
 
             if (problemas.length > 0) {
