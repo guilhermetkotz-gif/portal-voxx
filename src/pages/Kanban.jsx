@@ -86,6 +86,7 @@ const Kanban = ({ user, selectedClienteId }) => {
       return base44.entities.Demanda.filter(queryFilters, '-created_date', 500);
     },
     enabled: !!user,
+    refetchInterval: 3000, // Atualiza a cada 3 segundos para mostrar cronômetros ativos
   });
 
   const { data: clientes = [] } = useQuery({
