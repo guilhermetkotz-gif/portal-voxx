@@ -36,6 +36,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [comentarioAnexo, setComentarioAnexo] = useState(null);
   
   const [editData, setEditData] = useState({
     titulo: demanda?.titulo || '',
@@ -130,22 +131,35 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     },
   });
 
-  const handleFileUpload = async (e) => {
+  const handleComentarioFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      await addComentarioMutation.mutateAsync({ 
-        texto: `Novo anexo: ${file.name}`, 
-        anexo: file_url 
-      });
+      setComentarioAnexo({ name: file.name, url: file_url });
+      toast.success('Arquivo anexado ao comentário!');
     } catch (error) {
       toast.error('Erro ao fazer upload');
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleEnviarComentario = async () => {
+    if (!comentario.trim() && !comentarioAnexo) return;
+    
+    const texto = comentarioAnexo 
+      ? `${comentario.trim() || 'Anexo enviado'}\n[Arquivo: ${comentarioAnexo.name}]`
+      : comentario;
+    
+    await addComentarioMutation.mutateAsync({ 
+      texto, 
+      anexo: comentarioAnexo?.url 
+    });
+    
+    setComentarioAnexo(null);
   };
 
   const handleSaveEdit = () => {
@@ -485,10 +499,28 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                       placeholder="Digite seu comentário..."
                       className="min-h-[80px]"
                     />
+                    
+                    {comentarioAnexo && (
+                      <div className="flex items-center justify-between bg-violet-50 border border-violet-200 rounded-md p-2">
+                        <div className="flex items-center gap-2">
+                          <Paperclip className="h-4 w-4 text-violet-600" />
+                          <span className="text-sm text-violet-700">{comentarioAnexo.name}</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setComentarioAnexo(null)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                    
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => addComentarioMutation.mutate({ texto: comentario })}
-                        disabled={!comentario.trim() || addComentarioMutation.isPending}
+                        onClick={handleEnviarComentario}
+                        disabled={(!comentario.trim() && !comentarioAnexo) || addComentarioMutation.isPending}
                       >
                         <Send className="h-4 w-4 mr-2" />
                         Enviar
@@ -498,13 +530,13 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                           {uploading ? (
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           ) : (
-                            <Upload className="h-4 w-4 mr-2" />
+                            <Paperclip className="h-4 w-4 mr-2" />
                           )}
-                          Anexar
+                          Anexar Arquivo
                           <input
                             type="file"
                             className="hidden"
-                            onChange={handleFileUpload}
+                            onChange={handleComentarioFileUpload}
                             disabled={uploading}
                           />
                         </label>
