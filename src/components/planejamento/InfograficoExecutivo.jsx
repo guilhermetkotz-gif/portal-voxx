@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { TrendingUp, DollarSign, Target, Users, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, DollarSign, Target, Users, AlertTriangle, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import html2canvas from 'html2canvas';
+import { toast } from 'sonner';
 
 const formatCurrency = (value) => {
   if (value === null || value === undefined || isNaN(value)) return 'R$ 0,00';
@@ -15,7 +18,42 @@ const formatNumber = (value) => {
 };
 
 export default function InfograficoExecutivo({ planejamento, clienteNome }) {
+  const infograficoRef = useRef(null);
+  const [copiando, setCopiando] = React.useState(false);
+
   if (!planejamento) return null;
+
+  const copiarImagem = async () => {
+    if (!infograficoRef.current) return;
+    
+    setCopiando(true);
+    try {
+      const canvas = await html2canvas(infograficoRef.current, {
+        backgroundColor: '#0f172a',
+        scale: 2,
+        logging: false,
+        useCORS: true
+      });
+      
+      canvas.toBlob(async (blob) => {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ]);
+          toast.success('Imagem copiada para a área de transferência!');
+        } catch (err) {
+          console.error('Erro ao copiar:', err);
+          toast.error('Erro ao copiar imagem');
+        } finally {
+          setCopiando(false);
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      toast.error('Erro ao gerar imagem');
+      setCopiando(false);
+    }
+  };
 
   // Cálculos
   const investimentoTotal = (planejamento.meta_faturamento * planejamento.percentual_investimento_marketing) / 100;
@@ -59,26 +97,48 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
   ].filter(c => c.valor > 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-8 pb-6 border-b border-slate-700">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center">
-                <span className="text-lg font-bold">V</span>
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold">
-                  Planejamento Estratégico — {format(mesReferencia, "MMMM 'de' yyyy", { locale: ptBR }).charAt(0).toUpperCase() + format(mesReferencia, "MMMM 'de' yyyy", { locale: ptBR }).slice(1)}
-                </h1>
-                <p className="text-slate-400 text-sm">Unidade: {clienteNome}</p>
-                <p className="text-slate-500 text-xs mt-1">Data Final do Planejamento: {dataFinalFormatada}</p>
+    <div className="relative">
+      {/* Botão Copiar Imagem - fora do ref */}
+      <div className="absolute top-4 right-4 z-10">
+        <Button
+          onClick={copiarImagem}
+          disabled={copiando}
+          className="bg-violet-600 hover:bg-violet-700 shadow-lg"
+        >
+          {copiando ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+              Copiando...
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4 mr-2" />
+              Copiar Imagem
+            </>
+          )}
+        </Button>
+      </div>
+
+      <div ref={infograficoRef} className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4 md:p-8">
+        {/* Header */}
+        <div className="mb-8 pb-6 border-b border-slate-700">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center">
+                  <span className="text-lg font-bold">V</span>
+                </div>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold">
+                    Planejamento Estratégico — {format(mesReferencia, "MMMM 'de' yyyy", { locale: ptBR }).charAt(0).toUpperCase() + format(mesReferencia, "MMMM 'de' yyyy", { locale: ptBR }).slice(1)}
+                  </h1>
+                  <p className="text-slate-400 text-sm">Unidade: {clienteNome}</p>
+                  <p className="text-slate-500 text-xs mt-1">Data Final do Planejamento: {dataFinalFormatada}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Metas Financeiras */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -354,11 +414,12 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
         </div>
       </div>
 
-      {/* Rodapé */}
-      <div className="mt-8 pt-6 border-t border-slate-700 text-center">
-        <p className="text-xs text-slate-400">
-          Este planejamento é uma projeção estratégica baseada nos dados informados. Os resultados dependem da execução, operação da unidade e contexto de mercado.
-        </p>
+        {/* Rodapé */}
+        <div className="mt-8 pt-6 border-t border-slate-700 text-center">
+          <p className="text-xs text-slate-400">
+            Este planejamento é uma projeção estratégica baseada nos dados informados. Os resultados dependem da execução, operação da unidade e contexto de mercado.
+          </p>
+        </div>
       </div>
     </div>
   );
