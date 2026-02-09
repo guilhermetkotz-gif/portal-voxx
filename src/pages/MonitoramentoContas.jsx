@@ -23,6 +23,7 @@ export default function MonitoramentoContas({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [prioridadeFilter, setPrioridadeFilter] = useState('all');
     const [classificacaoFilter, setClassificacaoFilter] = useState('all');
+    const [responsavelFilter, setResponsavelFilter] = useState('all');
     const [radarSearchTerm, setRadarSearchTerm] = useState('');
     const [radarPrioridadeFilter, setRadarPrioridadeFilter] = useState('all');
     const [radarResponsavelFilter, setRadarResponsavelFilter] = useState('all');
@@ -185,10 +186,12 @@ export default function MonitoramentoContas({ user }) {
     // Filter and sort accounts
     const filteredAccounts = enrichedAccounts
         .filter(acc => {
+            const cliente = clientesMap.get(acc.account_name);
             const matchesSearch = acc.account_name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesPrioridade = prioridadeFilter === 'all' || acc.prioridade === prioridadeFilter;
             const matchesClassificacao = classificacaoFilter === 'all' || acc.classificacao === classificacaoFilter;
-            return matchesSearch && matchesPrioridade && matchesClassificacao;
+            const matchesResponsavel = responsavelFilter === 'all' || cliente?.responsavel_voxx_trafego === responsavelFilter;
+            return matchesSearch && matchesPrioridade && matchesClassificacao && matchesResponsavel;
         })
         .sort((a, b) => {
             // Sort by prioridade first (P1 > P2 > P3)
@@ -838,6 +841,19 @@ export default function MonitoramentoContas({ user }) {
                                 <SelectItem value="OPERACIONAL">OPERACIONAL</SelectItem>
                                 <SelectItem value="ALERTA">ALERTA</SelectItem>
                                 <SelectItem value="CRÍTICO">CRÍTICO</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={responsavelFilter} onValueChange={setResponsavelFilter}>
+                            <SelectTrigger className="w-full md:w-64">
+                                <SelectValue placeholder="Todos Responsáveis" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todos Responsáveis</SelectItem>
+                                {voxxUsers.map((voxxUser) => (
+                                    <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                                        {voxxUser.full_name}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
