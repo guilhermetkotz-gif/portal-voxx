@@ -622,24 +622,24 @@ export default function MonitoramentoContas({ user }) {
     }, [radarData, radarSearchTerm, radarPrioridadeFilter, radarResponsavelFilter]);
 
     const radarStats = React.useMemo(() => {
-        const totalContas = radarData.length;
-        const avgCPL = totalContas > 0 ? radarData.reduce((sum, d) => sum + d.cplAtual, 0) / totalContas : 0;
-        const avgCTR = totalContas > 0 ? radarData.reduce((sum, d) => sum + d.ctrAtual, 0) / totalContas : 0;
-        const avgFreq = totalContas > 0 ? radarData.reduce((sum, d) => sum + d.frequencia7d, 0) / totalContas : 0;
-        const avgRadarScore = totalContas > 0 ? radarData.reduce((sum, d) => sum + d.radarScore, 0) / totalContas : 0;
-        const totalInvestimento = radarData.reduce((sum, d) => sum + d.investimentoDiario, 0);
-        const totalLeads = radarData.reduce((sum, d) => sum + parseFloat(d.leadsDia7d), 0);
+        const totalContas = filteredRadarData.length;
+        const avgCPL = totalContas > 0 ? filteredRadarData.reduce((sum, d) => sum + d.cplAtual, 0) / totalContas : 0;
+        const avgCTR = totalContas > 0 ? filteredRadarData.reduce((sum, d) => sum + d.ctrAtual, 0) / totalContas : 0;
+        const avgFreq = totalContas > 0 ? filteredRadarData.reduce((sum, d) => sum + d.frequencia7d, 0) / totalContas : 0;
+        const avgRadarScore = totalContas > 0 ? filteredRadarData.reduce((sum, d) => sum + d.radarScore, 0) / totalContas : 0;
+        const totalInvestimento = filteredRadarData.reduce((sum, d) => sum + d.investimentoDiario, 0);
+        const totalLeads = filteredRadarData.reduce((sum, d) => sum + parseFloat(d.leadsDia7d), 0);
 
         // Top melhorias e pioras (baseado em tendenciaScore)
-        const sorted = [...radarData].sort((a, b) => b.tendenciaScore - a.tendenciaScore);
+        const sorted = [...filteredRadarData].sort((a, b) => b.tendenciaScore - a.tendenciaScore);
         const topMelhorias = sorted.slice(0, 5);
         const topPioras = sorted.slice(-5).reverse();
 
         return {
-            critica: radarData.filter(d => d.prioridade === 'critica').length,
-            alta: radarData.filter(d => d.prioridade === 'alta').length,
-            media: radarData.filter(d => d.prioridade === 'media').length,
-            baixa: radarData.filter(d => d.prioridade === 'baixa').length,
+            critica: filteredRadarData.filter(d => d.prioridade === 'critica').length,
+            alta: filteredRadarData.filter(d => d.prioridade === 'alta').length,
+            media: filteredRadarData.filter(d => d.prioridade === 'media').length,
+            baixa: filteredRadarData.filter(d => d.prioridade === 'baixa').length,
             avgCPL,
             avgCTR,
             avgFreq,
@@ -649,7 +649,7 @@ export default function MonitoramentoContas({ user }) {
             topMelhorias,
             topPioras
         };
-    }, [radarData]);
+    }, [filteredRadarData]);
 
     const formatCurrency = (value) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
