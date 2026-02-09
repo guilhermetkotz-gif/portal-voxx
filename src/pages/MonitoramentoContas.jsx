@@ -72,13 +72,21 @@ export default function MonitoramentoContas({ user }) {
         staleTime: 5 * 60 * 1000
     });
 
-    const { data: voxxUsers = [] } = useQuery({
+    const { data: voxxUsers = [], isLoading: loadingVoxxUsers } = useQuery({
         queryKey: ['voxxUsers'],
         queryFn: async () => {
-            const response = await base44.functions.invoke('listVoxxUsers', {});
-            return response.data.users || [];
+            try {
+                const response = await base44.functions.invoke('listVoxxUsers', {});
+                console.log('Voxx Users Response:', response.data);
+                return response.data?.users || [];
+            } catch (error) {
+                console.error('Erro ao buscar usuários voxx:', error);
+                return [];
+            }
         },
-        staleTime: 5 * 60 * 1000
+        enabled: !!isVoxx,
+        staleTime: 5 * 60 * 1000,
+        retry: 2
     });
 
     const updateClienteMutation = useMutation({
@@ -1892,15 +1900,21 @@ export default function MonitoramentoContas({ user }) {
                                                             console.log('=== SELECT CHANGE ===');
                                                             console.log('clienteId:', cliente.id);
                                                             console.log('selected value:', e.target.value);
+                                                            console.log('voxxUsers disponíveis:', voxxUsers.length);
                                                             updateClienteMutation.mutate({ 
                                                                 clienteId: cliente.id, 
                                                                 responsavel: e.target.value
                                                             });
                                                         }}
                                                         className="w-64 h-9 px-3 rounded-md border border-input bg-background text-sm"
-                                                        disabled={updateClienteMutation.isPending}
+                                                        disabled={updateClienteMutation.isPending || loadingVoxxUsers}
                                                     >
-                                                        <option value="__NONE__">Nenhum responsável</option>
+                                                        <option value="__NONE__">
+                                                            {loadingVoxxUsers ? 'Carregando...' : 'Nenhum responsável'}
+                                                        </option>
+                                                        {voxxUsers.length === 0 && !loadingVoxxUsers && (
+                                                            <option disabled>Nenhum usuário disponível</option>
+                                                        )}
                                                         {voxxUsers.map((voxxUser) => (
                                                             <option key={voxxUser.id} value={voxxUser.email}>
                                                                 {voxxUser.full_name} ({voxxUser.email})
