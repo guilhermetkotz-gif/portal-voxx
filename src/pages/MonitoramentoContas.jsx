@@ -218,22 +218,22 @@ export default function MonitoramentoContas({ user }) {
             return b.amount_spent - a.amount_spent;
         });
 
-    // Calculate KPIs
-    const totalContas = enrichedAccounts.length;
-    const contasP1 = enrichedAccounts.filter(acc => acc.prioridade === 'P1').length;
-    const contasCritico = enrichedAccounts.filter(acc => acc.classificacao === 'CRÍTICO').length;
-    const mediaNotaGPT = enrichedAccounts.length > 0 
-        ? (enrichedAccounts.reduce((sum, acc) => sum + acc.nota_gpt, 0) / enrichedAccounts.length).toFixed(1)
+    // Calculate KPIs based on filtered accounts
+    const totalContas = filteredAccounts.length;
+    const contasP1 = filteredAccounts.filter(acc => acc.prioridade === 'P1').length;
+    const contasCritico = filteredAccounts.filter(acc => acc.classificacao === 'CRÍTICO').length;
+    const mediaNotaGPT = filteredAccounts.length > 0 
+        ? (filteredAccounts.reduce((sum, acc) => sum + acc.nota_gpt, 0) / filteredAccounts.length).toFixed(1)
         : 0;
-    const totalGasto = enrichedAccounts.reduce((sum, acc) => sum + acc.amount_spent, 0);
+    const totalGasto = filteredAccounts.reduce((sum, acc) => sum + acc.amount_spent, 0);
 
-    // Distribuição por classificação
+    // Distribuição por classificação (based on filtered accounts)
     const distribuicaoClassificacao = [
-        { name: 'CRÍTICO', count: enrichedAccounts.filter(acc => acc.classificacao === 'CRÍTICO').length, color: '#DC2626' },
-        { name: 'ALERTA', count: enrichedAccounts.filter(acc => acc.classificacao === 'ALERTA').length, color: '#F97316' },
-        { name: 'OPERACIONAL', count: enrichedAccounts.filter(acc => acc.classificacao === 'OPERACIONAL').length, color: '#EAB308' },
-        { name: 'SAUDÁVEL', count: enrichedAccounts.filter(acc => acc.classificacao === 'SAUDÁVEL').length, color: '#22C55E' },
-        { name: 'ELITE', count: enrichedAccounts.filter(acc => acc.classificacao === 'ELITE').length, color: '#15803D' }
+        { name: 'CRÍTICO', count: filteredAccounts.filter(acc => acc.classificacao === 'CRÍTICO').length, color: '#DC2626' },
+        { name: 'ALERTA', count: filteredAccounts.filter(acc => acc.classificacao === 'ALERTA').length, color: '#F97316' },
+        { name: 'OPERACIONAL', count: filteredAccounts.filter(acc => acc.classificacao === 'OPERACIONAL').length, color: '#EAB308' },
+        { name: 'SAUDÁVEL', count: filteredAccounts.filter(acc => acc.classificacao === 'SAUDÁVEL').length, color: '#22C55E' },
+        { name: 'ELITE', count: filteredAccounts.filter(acc => acc.classificacao === 'ELITE').length, color: '#15803D' }
     ].filter(item => item.count > 0);
 
     const getNotaColor = (nota) => {
