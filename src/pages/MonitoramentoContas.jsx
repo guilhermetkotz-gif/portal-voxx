@@ -89,10 +89,11 @@ export default function MonitoramentoContas({ user }) {
                     clienteId,
                     responsavel
                 });
-                return responsavel;
+                return { responsavel, clienteId };
             },
-            onSuccess: (responsavel) => {
-                queryClient.invalidateQueries({ queryKey: ['clientes'] });
+            onSuccess: async ({ responsavel, clienteId }) => {
+                await queryClient.invalidateQueries({ queryKey: ['clientes'] });
+                await queryClient.refetchQueries({ queryKey: ['clientes'] });
                 toast.success(`Responsável ${responsavel && responsavel !== '__NONE__' ? 'atualizado' : 'removido'} com sucesso!`);
             },
             onError: (error) => {
