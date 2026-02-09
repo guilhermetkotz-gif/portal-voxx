@@ -75,10 +75,8 @@ export default function MonitoramentoContas({ user }) {
     const { data: voxxUsers = [] } = useQuery({
         queryKey: ['voxxUsers'],
         queryFn: async () => {
-            const allUsers = await base44.entities.User.list('-created_date', 500);
-            return allUsers.filter(u => 
-                u.tipo_usuario?.startsWith('voxx_') || u.role === 'admin'
-            );
+            const response = await base44.functions.invoke('listVoxxUsers', {});
+            return response.data.users || [];
         },
         staleTime: 5 * 60 * 1000
     });
