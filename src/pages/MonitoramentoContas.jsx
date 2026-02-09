@@ -150,6 +150,17 @@ export default function MonitoramentoContas({ user }) {
         return new Map(clientes.map(c => [c.nome, c]));
     }, [clientes]);
 
+    // Lista de responsáveis únicos que estão atribuídos a pelo menos uma unidade
+    const responsaveisAtivos = React.useMemo(() => {
+        const responsaveisSet = new Set();
+        clientes.forEach(cliente => {
+            if (cliente.responsavel_voxx_trafego) {
+                responsaveisSet.add(cliente.responsavel_voxx_trafego);
+            }
+        });
+        return voxxUsers.filter(user => responsaveisSet.has(user.email));
+    }, [clientes, voxxUsers]);
+
     const radarMetaDataMap = React.useMemo(() => {
         return new Map(radarMetaData.map(r => [r.account_name, r]));
     }, [radarMetaData]);
@@ -849,7 +860,7 @@ export default function MonitoramentoContas({ user }) {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Todos Responsáveis</SelectItem>
-                                {voxxUsers.map((voxxUser) => (
+                                {responsaveisAtivos.map((voxxUser) => (
                                     <SelectItem key={voxxUser.id} value={voxxUser.email}>
                                         {voxxUser.full_name}
                                     </SelectItem>
@@ -1479,7 +1490,7 @@ export default function MonitoramentoContas({ user }) {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Todos Responsáveis</SelectItem>
-                                        {voxxUsers.map((voxxUser) => (
+                                        {responsaveisAtivos.map((voxxUser) => (
                                             <SelectItem key={voxxUser.id} value={voxxUser.email}>
                                                 {voxxUser.full_name}
                                             </SelectItem>
