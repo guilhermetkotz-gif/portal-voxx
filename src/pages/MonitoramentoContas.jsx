@@ -158,7 +158,14 @@ export default function MonitoramentoContas({ user }) {
                 responsaveisSet.add(cliente.responsavel_voxx_trafego);
             }
         });
-        return voxxUsers.filter(user => responsaveisSet.has(user.email));
+        console.log('=== DEBUG RESPONSAVEIS ===');
+        console.log('Total clientes:', clientes.length);
+        console.log('Responsáveis atribuídos:', Array.from(responsaveisSet));
+        console.log('Total voxxUsers:', voxxUsers.length);
+        console.log('Emails dos voxxUsers:', voxxUsers.map(u => u.email));
+        const filtrados = voxxUsers.filter(user => responsaveisSet.has(user.email));
+        console.log('Responsáveis ativos filtrados:', filtrados.length);
+        return filtrados;
     }, [clientes, voxxUsers]);
 
     const radarMetaDataMap = React.useMemo(() => {
