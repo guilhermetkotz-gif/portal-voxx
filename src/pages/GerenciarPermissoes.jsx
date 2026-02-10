@@ -35,6 +35,9 @@ const PAGINAS_DISPONIVEIS = [
   { nome: 'Cronograma', descricao: 'Cronograma Oral Sin', categoria: 'Operacional' },
   { nome: 'MonitoramentoContas', descricao: 'Monitoramento de contas', categoria: 'Análise' },
   { nome: 'HistoricoOtimizacoesCliente', descricao: 'Histórico de otimizações', categoria: 'Análise' },
+  { nome: 'CrcCaixaLeads', descricao: 'CRC - Caixa de Leads', categoria: 'CRC' },
+  { nome: 'CrcPerformance', descricao: 'CRC - Performance', categoria: 'CRC' },
+  { nome: 'CrcConfiguracao', descricao: 'CRC - Configuração', categoria: 'CRC' },
   { nome: 'Newsletter', descricao: 'Newsletter e insights', categoria: 'Conteúdo' },
   { nome: 'Ajuda', descricao: 'Central de ajuda', categoria: 'Suporte' },
   { nome: 'Conta', descricao: 'Configurações de conta', categoria: 'Configurações' },
@@ -44,7 +47,9 @@ const PAGINAS_DISPONIVEIS = [
   { nome: 'GerenciarChats', descricao: 'Gerenciar chats', categoria: 'Administração' },
   { nome: 'CadastroCliente', descricao: 'Cadastro de cliente', categoria: 'Administração' },
   { nome: 'OnboardingCliente', descricao: 'Onboarding de cliente', categoria: 'Administração' },
-  { nome: 'ConfiguracaoAlertas', descricao: 'Configuração de alertas', categoria: 'Configurações' }
+  { nome: 'ConfiguracaoAlertas', descricao: 'Configuração de alertas', categoria: 'Configurações' },
+  { nome: 'Chat', descricao: 'Chat & Suporte', categoria: 'Suporte' },
+  { nome: 'MonitoramentoDemandas', descricao: 'Monitoramento de Demandas', categoria: 'Análise' }
 ];
 
 const CATEGORIAS = [...new Set(PAGINAS_DISPONIVEIS.map(p => p.categoria))];

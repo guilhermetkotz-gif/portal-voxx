@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { cn } from "@/lib/utils";
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import {
   LayoutDashboard,
   BarChart3,
@@ -44,9 +46,9 @@ const menuItems = [
   { name: "Saldo Meta Ads", icon: CreditCard, page: "GestaoSaldoMetaAds", adminOnly: true },
   { name: "Abrir Demanda", icon: PlusCircle, page: "AbrirDemanda", highlight: true },
   { divider: true },
-  { name: "CRC - Caixa de Leads", icon: HeadphonesIcon, page: "CrcCaixaLeads", oralSinOnly: true },
-  { name: "CRC - Performance", icon: BarChart3, page: "CrcPerformance", oralSinOnly: true },
-  { name: "CRC - Configuração", icon: Settings, page: "CrcConfiguracao", adminOnly: true, oralSinOnly: true },
+  { name: "CRC - Caixa de Leads", icon: HeadphonesIcon, page: "CrcCaixaLeads" },
+  { name: "CRC - Performance", icon: BarChart3, page: "CrcPerformance" },
+  { name: "CRC - Configuração", icon: Settings, page: "CrcConfiguracao", adminOnly: true },
   { divider: true },
   { name: "Newsletter", icon: Newspaper, page: "Newsletter" },
   { name: "Central de Ajuda", icon: HelpCircle, page: "Ajuda" },
@@ -61,6 +63,33 @@ const menuItems = [
 ];
 
 export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingDemandas = 0, onLogout, user }) {
+  // Fetch user type permissions
+  const { data: userPermissions } = useQuery({
+    queryKey: ['userTypePermissions', user?.tipo_usuario],
+    queryFn: async () => {
+      if (!user?.tipo_usuario) return null;
+      const perms = await base44.entities.UserTypePermissions.filter({ 
+        tipo_usuario: user.tipo_usuario 
+      });
+      return perms[0] || null;
+    },
+    enabled: !!user?.tipo_usuario,
+    staleTime: 5 * 60 * 1000
+  });
+
+  const isPageAllowed = (pageName) => {
+    // Base44 admin has full access
+    if (user?.role === 'admin') return true;
+    
+    // Check UserTypePermissions
+    if (userPermissions?.paginas_permitidas) {
+      return userPermissions.paginas_permitidas.includes(pageName);
+    }
+    
+    // Fallback - allow basic pages
+    return ['Home', 'Performance', 'Demandas', 'Chat', 'Conta', 'Ajuda'].includes(pageName);
+  };
+
   return (
     <aside className={cn(
       "fixed left-0 top-0 h-screen bg-slate-900 text-white transition-all duration-300 z-40 flex flex-col",
@@ -112,9 +141,8 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
             return null;
           }
 
-          // Hide oral-sin-only items for non-oral-sin clients
-          if (item.oralSinOnly && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin') {
-            // Only show for Oral Sin clients (you can check by tipo_cliente or specific flag)
+          // Check UserTypePermissions for page access
+          if (!isPageAllowed(item.page)) {
             return null;
           }
 
