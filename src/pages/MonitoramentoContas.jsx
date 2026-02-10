@@ -275,9 +275,21 @@ export default function MonitoramentoContas({ user }) {
     const radarData = React.useMemo(() => {
         if (!accounts.length || !radarMetaData.length) return [];
 
+        console.log('=== DEBUG RADAR META ===');
+        console.log('Total radarMetaData:', radarMetaData.length);
+        console.log('Total clientes no mapa:', clientesMap.size);
+        console.log('Clientes no mapa:', Array.from(clientesMap.keys()));
+
         return radarMetaData.map(radar => {
             const cliente = clientesMap.get(radar.account_name);
             const conta = accounts.find(a => a.account_name === radar.account_name);
+            
+            if (radar.account_name.includes('Santa Mônica')) {
+                console.log('=== DEBUG SANTA MÔNICA ===');
+                console.log('radar.account_name:', radar.account_name);
+                console.log('cliente encontrado:', cliente);
+                console.log('conta encontrada:', conta);
+            }
             
             // ========== DADOS BASE ==========
             const leadsOntem = radar.leads_ontem || 0;
