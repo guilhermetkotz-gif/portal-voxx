@@ -120,7 +120,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "GerenciarAcessos",
+    mainPage: "Kanban",
     Pages: PAGES,
     Layout: __Layout,
 };
