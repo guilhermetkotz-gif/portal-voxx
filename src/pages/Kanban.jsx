@@ -49,6 +49,7 @@ const Kanban = ({ user, selectedClienteId }) => {
   const navigate = useNavigate();
   const [selectedDemanda, setSelectedDemanda] = useState(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
+  const [viewMode, setViewMode] = useState('ativas'); // 'ativas' ou 'concluidas'
   const [filters, setFilters] = useState({
     cliente_id: 'all',
     status: [],
@@ -131,6 +132,13 @@ const Kanban = ({ user, selectedClienteId }) => {
         filteredDemandas = demandas.filter(d => user.clientes_atribuidos.includes(d.cliente_id));
       }
 
+      // Filtrar por modo de visualização
+      if (viewMode === 'ativas') {
+        filteredDemandas = filteredDemandas.filter(d => d.status !== 'concluida');
+      } else {
+        filteredDemandas = filteredDemandas.filter(d => d.status === 'concluida');
+      }
+
       // Aplicar filtros
       if (filters.cliente_id !== 'all') {
         filteredDemandas = filteredDemandas.filter(d => d.cliente_id === filters.cliente_id);
@@ -181,7 +189,7 @@ const Kanban = ({ user, selectedClienteId }) => {
       
       setColumns(newColumns);
     }
-  }, [demandas, selectedClienteId, user, filters, allColumnDefinitions]);
+  }, [demandas, selectedClienteId, user, filters, allColumnDefinitions, viewMode]);
 
   const updateDemandaMutation = useMutation({
     mutationFn: ({ id, setor }) => base44.entities.Demanda.update(id, { setor }),
@@ -323,8 +331,36 @@ const Kanban = ({ user, selectedClienteId }) => {
     <div className="h-full">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Kanban de Demandas</h1>
-          <p className="text-sm text-slate-600 mt-1">Arraste e solte para reorganizar ou mover entre setores</p>
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-slate-900">Kanban de Demandas</h1>
+            <div className="flex bg-slate-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('ativas')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'ativas'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Demandas Ativas
+              </button>
+              <button
+                onClick={() => setViewMode('concluidas')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'concluidas'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Demandas Concluídas
+              </button>
+            </div>
+          </div>
+          <p className="text-sm text-slate-600 mt-1">
+            {viewMode === 'ativas' 
+              ? 'Arraste e solte para reorganizar ou mover entre setores'
+              : 'Visualização de demandas concluídas organizadas por setor'}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setShowColumnManager(true)}>
