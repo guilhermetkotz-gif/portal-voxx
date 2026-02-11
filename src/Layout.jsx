@@ -91,6 +91,7 @@ export default function Layout({ children, currentPageName }) {
         if (user.clientes_atribuidos?.length > 0) {
           return user.clientes_atribuidos.map(id => ({ cliente_id: id, status: 'ativo' }));
         }
+        return [];
       }
       
       // For client users, get from UserClientAccess
