@@ -7,11 +7,12 @@ import KanbanFilters from '@/components/kanban/KanbanFilters';
 import DemandaDetailModal from '@/components/kanban/DemandaDetailModal';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 import moment from 'moment-timezone';
+import ColumnManagerModal from '@/components/kanban/ColumnManagerModal';
 
 const DEFAULT_COLUMN_ORDER = [
   'ATENDIMENTO',
@@ -47,6 +48,7 @@ const Kanban = ({ user, selectedClienteId }) => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [selectedDemanda, setSelectedDemanda] = useState(null);
+  const [showColumnManager, setShowColumnManager] = useState(false);
   const [filters, setFilters] = useState({
     cliente_id: 'all',
     status: [],
@@ -71,6 +73,27 @@ const Kanban = ({ user, selectedClienteId }) => {
     });
     return cols;
   });
+
+  // Fetch custom columns
+  const { data: customColumns = [] } = useQuery({
+    queryKey: ['kanbanColumns'],
+    queryFn: () => base44.entities.KanbanColumn.filter({ active: true }, 'order'),
+    enabled: !!user,
+  });
+
+  // Merge default and custom columns
+  const allColumnDefinitions = React.useMemo(() => {
+    const merged = { ...COLUMN_DEFINITIONS };
+    customColumns.forEach(col => {
+      merged[col.column_id] = { name: col.name, is_custom: col.is_custom };
+    });
+    return merged;
+  }, [customColumns]);
+
+  const allColumnOrder = React.useMemo(() => {
+    if (customColumns.length === 0) return columnOrder;
+    return customColumns.map(col => col.column_id);
+  }, [customColumns, columnOrder]);
 
   const { data: demandas, isLoading, error } = useQuery({
     queryKey: ['demandasKanban', selectedClienteId, user?.id],
@@ -98,8 +121,8 @@ const Kanban = ({ user, selectedClienteId }) => {
   useEffect(() => {
     if (demandas) {
       const newColumns = {};
-      Object.keys(COLUMN_DEFINITIONS).forEach(key => {
-        newColumns[key] = { name: COLUMN_DEFINITIONS[key].name, items: [] };
+      Object.keys(allColumnDefinitions).forEach(key => {
+        newColumns[key] = { name: allColumnDefinitions[key].name, items: [] };
       });
 
       let filteredDemandas = demandas;
@@ -158,7 +181,7 @@ const Kanban = ({ user, selectedClienteId }) => {
       
       setColumns(newColumns);
     }
-  }, [demandas, selectedClienteId, user, filters]);
+  }, [demandas, selectedClienteId, user, filters, allColumnDefinitions]);
 
   const updateDemandaMutation = useMutation({
     mutationFn: ({ id, setor }) => base44.entities.Demanda.update(id, { setor }),
@@ -176,6 +199,52 @@ const Kanban = ({ user, selectedClienteId }) => {
     setMinimizedColumns(newMinimized);
     localStorage.setItem('kanban_minimized_columns', JSON.stringify(newMinimized));
   };
+
+  const handleSaveColumns = async (editedColumns) => {
+    try {
+      // Delete removed custom columns
+      const editedIds = editedColumns.map(c => c.column_id);
+      const removedColumns = customColumns.filter(c => !editedIds.includes(c.column_id));
+      
+      for (const col of removedColumns) {
+        await base44.entities.KanbanColumn.delete(col.id);
+      }
+
+      // Update or create columns
+      for (const col of editedColumns) {
+        const existingCol = customColumns.find(c => c.column_id === col.column_id);
+        
+        const data = {
+          column_id: col.column_id,
+          name: col.name,
+          order: col.order,
+          is_custom: col.is_custom !== false,
+          active: true
+        };
+
+        if (existingCol) {
+          await base44.entities.KanbanColumn.update(existingCol.id, data);
+        } else {
+          await base44.entities.KanbanColumn.create(data);
+        }
+      }
+
+      queryClient.invalidateQueries(['kanbanColumns']);
+      toast.success('Colunas atualizadas com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao atualizar colunas: ' + error.message);
+    }
+  };
+
+  const columnsForManager = React.useMemo(() => {
+    return allColumnOrder.map((colId, index) => ({
+      column_id: colId,
+      name: allColumnDefinitions[colId]?.name || colId,
+      order: index,
+      is_custom: allColumnDefinitions[colId]?.is_custom || false,
+      active: true
+    }));
+  }, [allColumnOrder, allColumnDefinitions]);
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -257,9 +326,14 @@ const Kanban = ({ user, selectedClienteId }) => {
           <h1 className="text-2xl font-bold text-slate-900">Kanban de Demandas</h1>
           <p className="text-sm text-slate-600 mt-1">Arraste e solte para reorganizar ou mover entre setores</p>
         </div>
-        <Button onClick={() => navigate(createPageUrl('AbrirDemanda'))}>
-          <Plus className="mr-2 h-4 w-4" /> Nova Demanda
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowColumnManager(true)}>
+            <Settings className="mr-2 h-4 w-4" /> Gerenciar Colunas
+          </Button>
+          <Button onClick={() => navigate(createPageUrl('AbrirDemanda'))}>
+            <Plus className="mr-2 h-4 w-4" /> Nova Demanda
+          </Button>
+        </div>
       </div>
 
       <KanbanFilters filters={filters} setFilters={setFilters} clientes={clientes} />
@@ -272,7 +346,7 @@ const Kanban = ({ user, selectedClienteId }) => {
               {...provided.droppableProps}
               ref={provided.innerRef}
             >
-              {columnOrder.map((columnId, index) => {
+              {allColumnOrder.map((columnId, index) => {
                 const column = columns[columnId];
                 if (!column) return null;
                 
@@ -307,6 +381,13 @@ const Kanban = ({ user, selectedClienteId }) => {
         demanda={selectedDemanda} 
         open={!!selectedDemanda} 
         onClose={() => setSelectedDemanda(null)} 
+      />
+
+      <ColumnManagerModal
+        open={showColumnManager}
+        onClose={() => setShowColumnManager(false)}
+        columns={columnsForManager}
+        onSave={handleSaveColumns}
       />
     </div>
   );
