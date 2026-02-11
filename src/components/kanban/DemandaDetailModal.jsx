@@ -412,7 +412,15 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                         <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
                         <div className="flex-1">
                           <p className="font-medium text-slate-700">Descrição</p>
-                          <p className="text-slate-600 whitespace-pre-wrap">{currentDemanda.descricao}</p>
+                          <p 
+                            className="text-slate-600 whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{
+                              __html: currentDemanda.descricao?.replace(
+                                /(https?:\/\/[^\s]+)/g, 
+                                '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-violet-600 hover:text-violet-700 underline">$1</a>'
+                              )
+                            }}
+                          />
                         </div>
                       </div>
                     )}
