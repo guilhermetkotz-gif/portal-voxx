@@ -189,6 +189,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const [descricao, setDescricao] = useState('');
   const [urgente, setUrgente] = useState(false);
   const [prioridade, setPrioridade] = useState('media');
+  const [previsaoEntrega, setPrevisaoEntrega] = useState('');
   const [camposAdicionais, setCamposAdicionais] = useState({});
   const [anexos, setAnexos] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -282,6 +283,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       status: 'recebida',
       prioridade,
       urgente,
+      previsao_entrega: previsaoEntrega || null,
       anexos,
       campos_adicionais: camposAdicionais
     };
@@ -326,6 +328,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
             setTitulo('');
             setDescricao('');
             setUrgente(false);
+            setPrevisaoEntrega('');
             setCamposAdicionais({});
             setAnexos([]);
           }}>
@@ -494,6 +497,16 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
               </div>
             </div>
           )}
+
+          {/* Previsão de Entrega */}
+          <div className="space-y-2">
+            <Label>Prazo/Data de Entrega Desejada</Label>
+            <Input
+              type="date"
+              value={previsaoEntrega}
+              onChange={(e) => setPrevisaoEntrega(e.target.value)}
+            />
+          </div>
 
           {/* Prioridade & Urgente */}
           <div className="grid grid-cols-2 gap-4">
