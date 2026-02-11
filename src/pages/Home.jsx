@@ -70,9 +70,24 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     return <AguardandoAprovacao user={user} />;
   }
 
-  // 2. User has no access (no cliente) and is not admin → show BoasVindas
-  if (!currentCliente && user?.tipo_usuario !== 'voxx_admin') {
-    return <BoasVindas />;
+  // 2. User has no access (no cliente) and is not admin → show message
+  if (!currentCliente && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin') {
+    return (
+      <div className="max-w-2xl mx-auto mt-12">
+        <Card className="p-8 text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Loader2 className="w-8 h-8 text-amber-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Carregando seus dados...</h2>
+          <p className="text-slate-600 mb-6">
+            Se esta mensagem persistir, entre em contato com o suporte.
+          </p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Recarregar Página
+          </Button>
+        </Card>
+      </div>
+    );
   }
   const { data: demandas = [] } = useQuery({
     queryKey: ['demandas', selectedClienteId],
@@ -138,13 +153,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   const healthScoreData = calcularPercentil();
 
-  if (!user || !currentCliente) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
-      </div>
-    );
-  }
+  // Removed unnecessary check - handled above
 
   const cliente = currentCliente;
   const demandasAbertas = demandas;
