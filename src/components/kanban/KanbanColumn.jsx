@@ -1,4 +1,7 @@
 import React from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import KanbanDemandCard from './KanbanDemandCard';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';

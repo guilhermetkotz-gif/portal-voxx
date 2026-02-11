@@ -8,9 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 
-const KanbanFilters = ({ filters, setFilters, clientes }) => {
+const KanbanFilters = ({ filters, setFilters, clientes, availableTags = [] }) => {
   const [searchCliente, setSearchCliente] = useState('');
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
+  const [tagsPopoverOpen, setTagsPopoverOpen] = useState(false);
   
   const statusOptions = [
     { value: 'recebida', label: 'Recebida' },
@@ -26,7 +27,8 @@ const KanbanFilters = ({ filters, setFilters, clientes }) => {
       cliente_id: 'all',
       status: [],
       prioridade: 'all',
-      prazo: 'all'
+      prazo: 'all',
+      tags: []
     });
     setSearchCliente('');
   };
@@ -39,10 +41,19 @@ const KanbanFilters = ({ filters, setFilters, clientes }) => {
     setFilters({ ...filters, status: newStatus });
   };
 
+  const toggleTag = (tag) => {
+    const currentTags = Array.isArray(filters.tags) ? filters.tags : [];
+    const newTags = currentTags.includes(tag)
+      ? currentTags.filter(t => t !== tag)
+      : [...currentTags, tag];
+    setFilters({ ...filters, tags: newTags });
+  };
+
   const hasActiveFilters = filters.cliente_id !== 'all' || 
                            (Array.isArray(filters.status) && filters.status.length > 0) || 
                            filters.prioridade !== 'all' || 
-                           filters.prazo !== 'all';
+                           filters.prazo !== 'all' ||
+                           (Array.isArray(filters.tags) && filters.tags.length > 0);
 
   const filteredClientes = clientes.filter(c => 
     c.nome.toLowerCase().includes(searchCliente.toLowerCase()) ||
@@ -161,6 +172,57 @@ const KanbanFilters = ({ filters, setFilters, clientes }) => {
               <SelectItem value="sem_prazo">Sem prazo</SelectItem>
             </SelectContent>
           </Select>
+
+          {availableTags.length > 0 && (
+            <Popover open={tagsPopoverOpen} onOpenChange={setTagsPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[180px] justify-start">
+                  {Array.isArray(filters.tags) && filters.tags.length > 0 ? (
+                    <>
+                      <Badge variant="secondary" className="mr-1">
+                        {filters.tags.length}
+                      </Badge>
+                      Tags selecionadas
+                    </>
+                  ) : (
+                    'Todas as tags'
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[250px] p-0">
+                <div className="p-2 space-y-1">
+                  {availableTags.map((tag) => {
+                    const isSelected = Array.isArray(filters.tags) && filters.tags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        onClick={() => toggleTag(tag)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 text-sm rounded-md hover:bg-slate-100 transition-colors",
+                          isSelected && "bg-slate-100"
+                        )}
+                      >
+                        <span>{tag}</span>
+                        {isSelected && <Check className="h-4 w-4 text-violet-600" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {Array.isArray(filters.tags) && filters.tags.length > 0 && (
+                  <div className="border-t p-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => setFilters({ ...filters, tags: [] })}
+                    >
+                      Limpar seleção
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
 
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={handleClearFilters}>

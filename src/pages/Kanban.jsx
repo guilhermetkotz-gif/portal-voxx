@@ -54,7 +54,8 @@ const Kanban = ({ user, selectedClienteId }) => {
     cliente_id: 'all',
     status: [],
     prioridade: 'all',
-    prazo: 'all'
+    prazo: 'all',
+    tags: []
   });
 
   const [columnOrder, setColumnOrder] = useState(() => {
@@ -173,6 +174,13 @@ const Kanban = ({ user, selectedClienteId }) => {
           return true;
         });
       }
+
+      if (Array.isArray(filters.tags) && filters.tags.length > 0) {
+        filteredDemandas = filteredDemandas.filter(d => {
+          const demandaTags = d.tags || [];
+          return filters.tags.some(tag => demandaTags.includes(tag));
+        });
+      }
       
       filteredDemandas.sort((a, b) => {
         if (a.urgente && !b.urgente) return -1;
@@ -253,6 +261,27 @@ const Kanban = ({ user, selectedClienteId }) => {
       active: true
     }));
   }, [allColumnOrder, allColumnDefinitions]);
+
+  // Get all unique tags from demandas
+  const allTags = React.useMemo(() => {
+    if (!demandas) return [];
+    const tagsSet = new Set();
+    demandas.forEach(d => {
+      (d.tags || []).forEach(tag => tagsSet.add(tag));
+    });
+    return Array.from(tagsSet).sort();
+  }, [demandas]);
+
+  const handleUpdateTags = (demandaId, newTags) => {
+    base44.entities.Demanda.update(demandaId, { tags: newTags })
+      .then(() => {
+        queryClient.invalidateQueries(['demandasKanban']);
+        toast.success('Tags atualizadas!');
+      })
+      .catch((error) => {
+        toast.error('Erro ao atualizar tags: ' + error.message);
+      });
+  };
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -372,7 +401,7 @@ const Kanban = ({ user, selectedClienteId }) => {
         </div>
       </div>
 
-      <KanbanFilters filters={filters} setFilters={setFilters} clientes={clientes} />
+      <KanbanFilters filters={filters} setFilters={setFilters} clientes={clientes} availableTags={allTags} />
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="all-columns" direction="horizontal" type="COLUMN">
@@ -401,6 +430,7 @@ const Kanban = ({ user, selectedClienteId }) => {
                           dragHandleProps={provided.dragHandleProps}
                           isMinimized={minimizedColumns[columnId]}
                           onToggleMinimize={() => toggleMinimize(columnId)}
+                          allTags={allTags}
                         />
                       </div>
                     )}

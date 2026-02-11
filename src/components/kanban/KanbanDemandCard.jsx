@@ -2,12 +2,13 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { CalendarDays, User } from 'lucide-react';
+import { CalendarDays, User, Tag } from 'lucide-react';
 import moment from 'moment-timezone';
 import ActiveTimerIndicator from './ActiveTimerIndicator';
+import TagManagerPopover from './TagManagerPopover';
 
-const KanbanDemandCard = ({ demanda, onClick, isMinimized }) => {
-  const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by } = demanda;
+const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags }) => {
+  const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by, tags = [] } = demanda;
 
   const priorityColors = {
     alta: 'bg-red-500',
@@ -86,6 +87,17 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized }) => {
           </Badge>
         </div>
 
+        {tags.length > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Tag className="w-3 h-3 text-slate-400" />
+            {tags.map((tag, idx) => (
+              <Badge key={tag} variant="outline" className="text-xs bg-slate-50">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+
         {previsao_entrega && (
           <div className="flex items-center gap-1 text-slate-600">
             <CalendarDays className="h-3 w-3" />
@@ -98,6 +110,14 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized }) => {
             <User className="h-3 w-3" />
             <span className="truncate">{created_by}</span>
           </div>
+        )}
+
+        {onUpdateTags && (
+          <TagManagerPopover 
+            demanda={demanda}
+            onUpdateTags={onUpdateTags}
+            availableTags={allTags}
+          />
         )}
       </CardContent>
     </Card>
