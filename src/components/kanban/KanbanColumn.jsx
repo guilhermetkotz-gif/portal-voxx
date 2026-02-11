@@ -9,7 +9,20 @@ import { cn } from '@/lib/utils';
 import { GripVertical, Minimize2, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps, isMinimized, onToggleMinimize }) => {
+const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps, isMinimized, onToggleMinimize, allTags }) => {
+  const queryClient = useQueryClient();
+
+  const handleUpdateTags = (demandaId, newTags) => {
+    base44.entities.Demanda.update(demandaId, { tags: newTags })
+      .then(() => {
+        queryClient.invalidateQueries(['demandasKanban']);
+        toast.success('Tags atualizadas!');
+      })
+      .catch((error) => {
+        toast.error('Erro ao atualizar tags: ' + error.message);
+      });
+  };
+
   return (
     <Card className={cn(
       "flex flex-col flex-shrink-0 max-h-[calc(100vh-200px)]",
@@ -52,7 +65,13 @@ const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps, isMini
                     {...providedDraggable.dragHandleProps}
                     className={cn(snapshotDraggable.isDragging && "opacity-50")}
                   >
-                    <KanbanDemandCard demanda={demanda} onClick={onCardClick} isMinimized={isMinimized} />
+                    <KanbanDemandCard 
+                      demanda={demanda} 
+                      onClick={onCardClick} 
+                      isMinimized={isMinimized}
+                      onUpdateTags={(tags) => handleUpdateTags(demanda.id, tags)}
+                      allTags={allTags}
+                    />
                   </div>
                 )}
               </Draggable>
