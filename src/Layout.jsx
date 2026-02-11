@@ -81,12 +81,12 @@ export default function Layout({ children, currentPageName }) {
         return 'all';
       }
       
-      // Voxx users might not have UserClientAccess, they use clientes_atribuidos
-      if (isVoxxAdmin(user)) {
+      // Voxx users might not have UserClientAccess, they use clientes_atribuidos or tipo_acesso
+      if (user.tipo_acesso === 'voxx_admin') {
         return 'all'; // Admin sees all
       }
       
-      if (isVoxxOperacao(user)) {
+      if (user.tipo_acesso === 'voxx_operacao') {
         // Get clientes from clientes_atribuidos
         if (user.clientes_atribuidos?.length > 0) {
           return user.clientes_atribuidos.map(id => ({ cliente_id: id, status: 'ativo' }));
@@ -167,12 +167,12 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const { data: pendingDemandas = [] } = useQuery({
-    queryKey: ['pendingDemandas', selectedClienteId, user?.tipo_usuario],
+    queryKey: ['pendingDemandas', selectedClienteId, user?.tipo_acesso],
     queryFn: async () => {
-      if (isVoxxAdmin(user)) {
+      if (user?.tipo_acesso === 'voxx_admin') {
         return base44.entities.Demanda.filter({ status: 'aguardando_cliente' }, '-created_date', 50);
       }
-      if (isVoxxOperacao(user)) {
+      if (user?.tipo_acesso === 'voxx_operacao') {
         const all = await base44.entities.Demanda.filter({ status: 'aguardando_cliente' }, '-created_date', 50);
         return all.filter(d => user?.clientes_atribuidos?.includes(d.cliente_id));
       }
@@ -199,7 +199,7 @@ export default function Layout({ children, currentPageName }) {
   const pageInfo = pageTitles[currentPageName] || { title: currentPageName, subtitle: "" };
 
   // Show cliente selector for Voxx users without selected cliente
-  if (user && (isVoxxAdmin(user) || isVoxxOperacao(user)) && clientes.length > 0 && !selectedClienteId) {
+  if (user && (user.tipo_acesso === 'voxx_admin' || user.tipo_acesso === 'voxx_operacao') && clientes.length > 0 && !selectedClienteId) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full p-6">
