@@ -211,6 +211,31 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
+  // Users with no clients but status 'ativo' - allow access but will show message in Home
+  if (user?.status === 'ativo' && (!clientes || clientes.length === 0)) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Header 
+          title="Resumo Executivo"
+          subtitle="Visão geral da sua conta"
+          user={user}
+          cliente={null}
+          clientes={[]}
+          onChangeCliente={() => {}}
+          notificacoes={[]}
+          onMobileMenuClick={() => setMobileMenuOpen(true)}
+        />
+        <div className="p-4 lg:p-8">
+          {React.cloneElement(children, { 
+            currentCliente: null,
+            selectedClienteId: null,
+            user
+          })}
+        </div>
+      </div>
+    );
+  }
+
   // Show loading state while checking authentication
   if (loadingUser) {
     return (
