@@ -35,27 +35,30 @@ export default function GerenciarAcessos({ user }) {
 
   const { data: usuarios = [], refetch: refetchUsuarios } = useQuery({
     queryKey: ['todosUsuarios'],
-    queryFn: () => base44.entities.User.list('-created_date', 500),
+    queryFn: async () => {
+      const users = await base44.asServiceRole.entities.User.list('-created_date', 500);
+      return users;
+    },
     staleTime: 10 * 1000,
     refetchInterval: 10 * 1000
   });
 
   const { data: solicitacoes = [], refetch: refetchSolicitacoes } = useQuery({
     queryKey: ['solicitacoesAcesso'],
-    queryFn: () => base44.entities.AccessRequest.filter({ status: 'pendente' }, '-created_date', 100),
+    queryFn: () => base44.asServiceRole.entities.AccessRequest.filter({ status: 'pendente' }, '-created_date', 100),
     staleTime: 5 * 1000,
     refetchInterval: 5 * 1000
   });
 
   const { data: acessos = [] } = useQuery({
     queryKey: ['todosAcessos'],
-    queryFn: () => base44.entities.UserClientAccess.list('-created_date', 1000),
+    queryFn: () => base44.asServiceRole.entities.UserClientAccess.list('-created_date', 1000),
     staleTime: 30 * 1000
   });
 
   const { data: logs = [] } = useQuery({
     queryKey: ['auditLogs'],
-    queryFn: () => base44.entities.LogAuditoria.filter({ 
+    queryFn: () => base44.asServiceRole.entities.LogAuditoria.filter({ 
       acao: { $in: ['ASSIGN_ACCESS', 'REVOKE_ACCESS', 'APPROVE_REQUEST', 'REJECT_REQUEST'] }
     }, '-created_date', 100),
     staleTime: 60 * 1000
