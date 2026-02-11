@@ -487,7 +487,15 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                       timeline.map((event) => (
                         <div key={event.id} className="flex gap-3 text-sm border-l-2 border-slate-200 pl-3 py-1">
                           <div className="flex-1">
-                            <p className="font-medium text-slate-800">{event.descricao}</p>
+                            <p 
+                              className="font-medium text-slate-800 whitespace-pre-wrap"
+                              dangerouslySetInnerHTML={{
+                                __html: event.descricao?.replace(
+                                  /(https?:\/\/[^\s]+)/g, 
+                                  '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-violet-600 hover:text-violet-700 underline">$1</a>'
+                                )
+                              }}
+                            />
                             <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
                               <User className="h-3 w-3" />
                               <span>{event.autor}</span>
