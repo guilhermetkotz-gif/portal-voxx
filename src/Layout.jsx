@@ -71,7 +71,7 @@ export default function Layout({ children, currentPageName }) {
   });
 
   // Fetch user's client access (UserClientAccess)
-  const { data: userAccess = [], isLoading: loadingAccess } = useQuery({
+  const { data: userAccess, isLoading: loadingAccess, error: accessError } = useQuery({
     queryKey: ['userAccess', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -100,14 +100,15 @@ export default function Layout({ children, currentPageName }) {
         status: 'ativo'
       });
       
-      return access;
+      return access || [];
     },
     enabled: !!user,
-    staleTime: 2 * 60 * 1000
+    staleTime: 2 * 60 * 1000,
+    retry: 2
   });
 
   // Fetch all accessible clientes based on UserClientAccess
-  const { data: clientes = [], isLoading: loadingClientes } = useQuery({
+  const { data: clientes = [], isLoading: loadingClientes, error: clientesError } = useQuery({
     queryKey: ['clientes', user?.tipo_usuario, userAccess],
     queryFn: async () => {
       if (!user) return [];
@@ -124,8 +125,9 @@ export default function Layout({ children, currentPageName }) {
       
       return [];
     },
-    enabled: !!user && !!userAccess,
-    staleTime: 2 * 60 * 1000
+    enabled: !!user && userAccess !== undefined,
+    staleTime: 2 * 60 * 1000,
+    retry: 2
   });
 
   // Set initial selected cliente
@@ -254,7 +256,28 @@ export default function Layout({ children, currentPageName }) {
   if (loadingClientes || loadingAccess) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-violet-600 mx-auto mb-4" />
+          <p className="text-sm text-slate-500">Carregando seus dados...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if failed to load
+  if (clientesError) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full p-6 text-center">
+          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Erro ao carregar dados</h2>
+          <p className="text-slate-600 mb-4">
+            {clientesError.message || 'Não foi possível carregar suas informações.'}
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Recarregar Página
+          </Button>
+        </Card>
       </div>
     );
   }
