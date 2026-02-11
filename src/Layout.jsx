@@ -142,7 +142,7 @@ export default function Layout({ children, currentPageName }) {
         setSelectedClienteId(clientes[0].id);
       }
     }
-  }, [clientes, selectedClienteId]);
+  }, [clientes.length]);
 
   // Save selected cliente to localStorage
   useEffect(() => {
