@@ -98,9 +98,8 @@ export default function GerenciarAcessos({ user }) {
       }
 
       // Mark user as deleted
-      await base44.entities.User.update(userId, {
-        status: 'excluido',
-        tipo_usuario: 'excluido'
+      await base44.asServiceRole.entities.User.update(userId, {
+        status: 'excluido'
       });
     },
     onSuccess: () => {
