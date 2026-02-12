@@ -128,12 +128,24 @@ export default function CadastroCliente() {
       
       return base44.entities.Cliente.create(clientData);
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       queryClient.invalidateQueries(['clientes']);
       queryClient.invalidateQueries(['allClientes']);
+      
+      // Se novo cliente, atribuir a todos os usuários Voxx
+      if (!editingClienteId) {
+        try {
+          await base44.functions.invoke('assignClienteToAllVoxxUsers', {
+            cliente_id: response.id
+          });
+        } catch (error) {
+          console.error('Erro ao atribuir cliente a usuários Voxx:', error);
+        }
+      }
+      
       toast({
         title: 'Sucesso!',
-        description: editingClienteId ? 'Cliente atualizado com sucesso.' : 'Cliente cadastrado com sucesso.',
+        description: editingClienteId ? 'Cliente atualizado com sucesso.' : 'Cliente cadastrado e atribuído aos usuários Voxx.',
       });
       
       // Redirecionar para onboarding se novo cliente
