@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
         const voxxUsers = allUsers.filter(u => 
             u.tipo_acesso === 'voxx_admin' || 
             u.tipo_acesso === 'voxx_operacao' ||
+            u.tipo_acesso === 'voxx_manager' ||
             u.role === 'admin'
         );
 
