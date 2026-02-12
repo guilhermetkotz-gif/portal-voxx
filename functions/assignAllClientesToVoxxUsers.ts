@@ -25,22 +25,25 @@ Deno.serve(async (req) => {
             u.role === 'admin'
         );
 
-        let created = 0;
-        let skipped = 0;
+        // Buscar todos os acessos existentes de uma vez
+        const allAccess = await base44.entities.UserClientAccess.filter({
+            status: 'ativo'
+        }, '', 10000);
+        
+        // Criar mapa de acessos existentes para verificação rápida
+        const existingAccessMap = new Set(
+            allAccess.map(a => `${a.usuario_id}_${a.cliente_id}`)
+        );
 
-        // Para cada cliente, criar acesso para cada usuário Voxx
+        // Criar lista de novos acessos
+        const newAccess = [];
+        
         for (const cliente of clientes) {
             for (const voxxUser of voxxUsers) {
-                // Verificar se já existe acesso
-                const existing = await base44.entities.UserClientAccess.filter({
-                    usuario_id: voxxUser.id,
-                    cliente_id: cliente.id,
-                    status: 'ativo'
-                });
-
-                if (existing.length === 0) {
-                    // Criar novo acesso
-                    await base44.entities.UserClientAccess.create({
+                const key = `${voxxUser.id}_${cliente.id}`;
+                
+                if (!existingAccessMap.has(key)) {
+                    newAccess.push({
                         usuario_id: voxxUser.id,
                         usuario_email: voxxUser.email,
                         cliente_id: cliente.id,
@@ -51,12 +54,18 @@ Deno.serve(async (req) => {
                         atribuido_por_usuario_id: user.id,
                         atribuido_por_nome: user.full_name
                     });
-                    created++;
-                } else {
-                    skipped++;
                 }
             }
         }
+
+        // Criar todos de uma vez usando bulkCreate
+        let created = 0;
+        if (newAccess.length > 0) {
+            await base44.entities.UserClientAccess.bulkCreate(newAccess);
+            created = newAccess.length;
+        }
+        
+        const skipped = (clientes.length * voxxUsers.length) - created;
 
         return Response.json({ 
             success: true, 
