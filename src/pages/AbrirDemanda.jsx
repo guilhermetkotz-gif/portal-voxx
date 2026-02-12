@@ -183,6 +183,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
+  const [clienteId, setClienteId] = useState(selectedClienteId || '');
+  const [searchCliente, setSearchCliente] = useState('');
   const [setor, setSetor] = useState('');
   const [subcategoria, setSubcategoria] = useState('');
   const [titulo, setTitulo] = useState('');
@@ -216,16 +218,50 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     staleTime: 5 * 60 * 1000
   });
 
-  const cliente = currentCliente;
+  const { data: clientes = [] } = useQuery({
+    queryKey: ['clientesDisponiveis', user?.id, user?.tipo_acesso],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      // Usuários Voxx veem TODOS os clientes
+      if (user.role === 'admin' || user.tipo_acesso === 'voxx_admin' || user.tipo_acesso === 'voxx_operacao' || user.tipo_acesso === 'voxx_manager') {
+        return base44.entities.Cliente.list('-updated_date', 500);
+      }
+      
+      // Clientes veem apenas os clientes atribuídos via UserClientAccess
+      const access = await base44.entities.UserClientAccess.filter({
+        usuario_id: user.id,
+        status: 'ativo'
+      });
+      
+      if (access.length > 0) {
+        const clienteIds = access.map(a => a.cliente_id);
+        const allClientes = await base44.entities.Cliente.list('-updated_date', 500);
+        return allClientes.filter(c => clienteIds.includes(c.id));
+      }
+      
+      return [];
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000
+  });
+
+  const clienteSelecionado = clientes.find(c => c.id === clienteId);
+  
+  const clientesFiltrados = clientes.filter(c => 
+    c.nome?.toLowerCase().includes(searchCliente.toLowerCase()) ||
+    c.marca?.toLowerCase().includes(searchCliente.toLowerCase()) ||
+    c.cidade?.toLowerCase().includes(searchCliente.toLowerCase())
+  );
 
   const { data: demandasExistentes = [] } = useQuery({
-    queryKey: ['demandasExistentes', selectedClienteId, setor],
+    queryKey: ['demandasExistentes', clienteId, setor],
     queryFn: () => base44.entities.Demanda.filter({
-      cliente_id: selectedClienteId,
+      cliente_id: clienteId,
       setor: setor,
       status: { $ne: 'concluida' }
     }),
-    enabled: !!selectedClienteId && !!setor,
+    enabled: !!clienteId && !!setor,
     staleTime: 30 * 1000
   });
 
@@ -271,11 +307,11 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!setor || !titulo) return;
+    if (!clienteId || !setor || !titulo) return;
 
     const data = {
-      cliente_id: selectedClienteId,
-      cliente_nome: cliente?.nome,
+      cliente_id: clienteId,
+      cliente_nome: clienteSelecionado?.nome,
       setor,
       subcategoria,
       titulo,
@@ -323,6 +359,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           </Button>
           <Button onClick={() => {
             setSuccess(false);
+            setClienteId('');
+            setSearchCliente('');
             setSetor('');
             setSubcategoria('');
             setTitulo('');
@@ -367,6 +405,47 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
 
       <form onSubmit={handleSubmit}>
         <Card className="p-6 space-y-6">
+          {/* Cliente */}
+          <div className="space-y-2">
+            <Label>Cliente *</Label>
+            <div className="space-y-2">
+              <Input
+                placeholder="Buscar cliente por nome, marca ou cidade..."
+                value={searchCliente}
+                onChange={(e) => setSearchCliente(e.target.value)}
+                className="mb-2"
+              />
+              {searchCliente && clientesFiltrados.length > 0 && (
+                <div className="border rounded-lg max-h-48 overflow-y-auto">
+                  {clientesFiltrados.slice(0, 10).map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setClienteId(c.id);
+                        setSearchCliente(c.nome);
+                      }}
+                      className={`w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors border-b last:border-b-0 ${
+                        clienteId === c.id ? 'bg-violet-50' : ''
+                      }`}
+                    >
+                      <div className="font-medium text-slate-900">{c.nome}</div>
+                      {c.marca && <div className="text-xs text-slate-500">{c.marca}</div>}
+                      <div className="text-xs text-slate-400">{c.cidade} - {c.estado}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {clienteSelecionado && !searchCliente && (
+                <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
+                  <div className="font-medium text-slate-900">{clienteSelecionado.nome}</div>
+                  {clienteSelecionado.marca && <div className="text-xs text-slate-500">{clienteSelecionado.marca}</div>}
+                  <div className="text-xs text-slate-400">{clienteSelecionado.cidade} - {clienteSelecionado.estado}</div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Setor */}
           <div className="space-y-2">
             <Label>Tipo de Demanda *</Label>
@@ -576,7 +655,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           <Button 
             type="submit" 
             className="w-full bg-violet-600 hover:bg-violet-700"
-            disabled={!setor || !titulo || createDemanda.isPending}
+            disabled={!clienteId || !setor || !titulo || createDemanda.isPending}
           >
             {createDemanda.isPending ? (
               <>
