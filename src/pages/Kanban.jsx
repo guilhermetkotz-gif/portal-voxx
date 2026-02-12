@@ -129,10 +129,6 @@ const Kanban = ({ user, selectedClienteId }) => {
 
       let filteredDemandas = demandas;
 
-      if (isVoxxOperacao(user) && user.clientes_atribuidos?.length > 0) {
-        filteredDemandas = demandas.filter(d => user.clientes_atribuidos.includes(d.cliente_id));
-      }
-
       // Filtrar por modo de visualização
       if (viewMode === 'ativas') {
         filteredDemandas = filteredDemandas.filter(d => d.status !== 'concluida');
