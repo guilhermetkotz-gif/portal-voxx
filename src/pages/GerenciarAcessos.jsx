@@ -129,7 +129,7 @@ export default function GerenciarAcessos({ user }) {
     cliente_usuario: 'Cliente Usuário'
   };
 
-  if (!user || (user.role !== 'admin' && user.tipo_usuario !== 'voxx_admin' && user.tipo_usuario !== 'voxx_manager')) {
+  if (!user || (user.role !== 'admin' && user.tipo_acesso !== 'voxx_admin' && user.tipo_acesso !== 'voxx_manager')) {
     return (
       <Card className="p-8 text-center">
         <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
