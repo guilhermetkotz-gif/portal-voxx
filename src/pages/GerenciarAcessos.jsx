@@ -217,7 +217,7 @@ export default function GerenciarAcessos({ user }) {
                         {usuario.status || 'pendente'}
                       </Badge>
                       <Badge variant="outline">
-                        {tipoUsuarioLabels[usuario.tipo_usuario] || usuario.tipo_usuario}
+                        {tipoAcessoLabels[usuario.tipo_acesso] || usuario.tipo_acesso || 'N/A'}
                       </Badge>
                     </div>
                     <p className="text-sm text-slate-500 mb-2">{usuario.email}</p>
