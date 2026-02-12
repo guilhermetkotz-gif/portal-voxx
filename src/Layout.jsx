@@ -70,62 +70,34 @@ export default function Layout({ children, currentPageName }) {
     staleTime: 30 * 1000
   });
 
-  // Fetch user's client access (UserClientAccess)
-  const { data: userAccess, isLoading: loadingAccess, error: accessError } = useQuery({
-    queryKey: ['userAccess', user?.id],
+
+
+  // Fetch all accessible clientes
+  const { data: clientes = [], isLoading: loadingClientes, error: clientesError } = useQuery({
+    queryKey: ['clientes', user?.tipo_acesso, user?.role],
     queryFn: async () => {
       if (!user) return [];
       
-      // Base44 admin (role === 'admin') has full access
-      if (user.role === 'admin') {
-        return 'all';
+      // Usuários Voxx veem TODOS os clientes automaticamente
+      if (user.role === 'admin' || user.tipo_acesso === 'voxx_admin' || user.tipo_acesso === 'voxx_operacao') {
+        return base44.entities.Cliente.list('-updated_date', 500);
       }
       
-      // Voxx users might not have UserClientAccess, they use clientes_atribuidos or tipo_acesso
-      if (user.tipo_acesso === 'voxx_admin') {
-        return 'all'; // Admin sees all
-      }
-      
-      if (user.tipo_acesso === 'voxx_operacao') {
-        // Get clientes from clientes_atribuidos
-        if (user.clientes_atribuidos?.length > 0) {
-          return user.clientes_atribuidos.map(id => ({ cliente_id: id, status: 'ativo' }));
-        }
-        return [];
-      }
-      
-      // For client users, get from UserClientAccess
+      // Clientes veem apenas os clientes atribuídos via UserClientAccess
       const access = await base44.entities.UserClientAccess.filter({
         usuario_id: user.id,
         status: 'ativo'
       });
       
-      return access || [];
-    },
-    enabled: !!user,
-    staleTime: 2 * 60 * 1000,
-    retry: 2
-  });
-
-  // Fetch all accessible clientes based on UserClientAccess
-  const { data: clientes = [], isLoading: loadingClientes, error: clientesError } = useQuery({
-    queryKey: ['clientes', user?.tipo_usuario, userAccess],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      if (userAccess === 'all') {
-        return base44.entities.Cliente.list('-updated_date', 500);
-      }
-      
-      if (Array.isArray(userAccess) && userAccess.length > 0) {
-        const clienteIds = userAccess.map(a => a.cliente_id);
+      if (access.length > 0) {
+        const clienteIds = access.map(a => a.cliente_id);
         const allClientes = await base44.entities.Cliente.list('-updated_date', 500);
         return allClientes.filter(c => clienteIds.includes(c.id));
       }
       
       return [];
     },
-    enabled: !!user && userAccess !== undefined,
+    enabled: !!user,
     staleTime: 2 * 60 * 1000,
     retry: 2
   });
@@ -253,7 +225,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // Show loading state for user data
-  if (loadingClientes || loadingAccess) {
+  if (loadingClientes) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
