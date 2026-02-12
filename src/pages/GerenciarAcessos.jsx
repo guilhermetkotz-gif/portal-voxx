@@ -122,11 +122,10 @@ export default function GerenciarAcessos({ user }) {
     bloqueado: 'bg-red-100 text-red-700'
   };
 
-  const tipoUsuarioLabels = {
+  const tipoAcessoLabels = {
     voxx_admin: 'Voxx Admin',
-    voxx_manager: 'Voxx Manager',
-    cliente_admin: 'Cliente Admin',
-    cliente_usuario: 'Cliente Usuário'
+    voxx_operacao: 'Voxx Operação',
+    cliente: 'Cliente'
   };
 
   if (!user || (user.role !== 'admin' && user.tipo_acesso !== 'voxx_admin' && user.tipo_acesso !== 'voxx_manager')) {
