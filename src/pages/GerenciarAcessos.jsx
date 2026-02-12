@@ -33,10 +33,11 @@ export default function GerenciarAcessos({ user }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [deleteUserId, setDeleteUserId] = useState(null);
 
-  const { data: usuarios = [], refetch: refetchUsuarios } = useQuery({
+  const { data: usuarios = [], isLoading: loadingUsuarios, error: errorUsuarios, refetch: refetchUsuarios } = useQuery({
     queryKey: ['todosUsuarios'],
     queryFn: async () => {
       const users = await base44.asServiceRole.entities.User.list('-created_date', 500);
+      console.log('Usuários carregados:', users.length, users);
       return users;
     },
     staleTime: 10 * 1000,
@@ -64,11 +65,15 @@ export default function GerenciarAcessos({ user }) {
     staleTime: 60 * 1000
   });
 
-  const filteredUsuarios = usuarios.filter(u => 
-    (u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase())) &&
-    u.status !== 'excluido'
-  );
+  const filteredUsuarios = usuarios.filter(u => {
+    const matchesSearch = search === '' || 
+      u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase());
+    const notDeleted = u.status !== 'excluido';
+    return matchesSearch && notDeleted;
+  });
+
+  console.log('Total usuarios:', usuarios.length, 'Filtrados:', filteredUsuarios.length);
 
   const getUsuarioAcessos = (usuarioId) => {
     return acessos.filter(a => a.usuario_id === usuarioId && a.status === 'ativo');
@@ -204,7 +209,21 @@ export default function GerenciarAcessos({ user }) {
 
         {/* Aba Usuários */}
         <TabsContent value="usuarios" className="space-y-4">
-          {filteredUsuarios.map(usuario => {
+          {loadingUsuarios && (
+            <Card className="p-8 text-center">
+              <p className="text-slate-500">Carregando usuários...</p>
+            </Card>
+          )}
+          
+          {errorUsuarios && (
+            <Card className="p-8 text-center">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 font-semibold">Erro ao carregar usuários</p>
+              <p className="text-slate-500 mt-2">{errorUsuarios.message}</p>
+            </Card>
+          )}
+
+          {!loadingUsuarios && !errorUsuarios && filteredUsuarios.map(usuario => {
             const acessosUsuario = getUsuarioAcessos(usuario.id);
             return (
               <Card key={usuario.id} className="p-4 hover:shadow-md transition-shadow">
@@ -250,9 +269,10 @@ export default function GerenciarAcessos({ user }) {
             );
           })}
 
-          {filteredUsuarios.length === 0 && (
+          {!loadingUsuarios && !errorUsuarios && filteredUsuarios.length === 0 && (
             <Card className="p-8 text-center">
               <p className="text-slate-500">Nenhum usuário encontrado</p>
+              <p className="text-xs text-slate-400 mt-2">Total no banco: {usuarios.length}</p>
             </Card>
           )}
         </TabsContent>
