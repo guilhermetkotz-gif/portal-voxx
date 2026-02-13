@@ -271,13 +271,14 @@ export default function MonitoramentoContas({ user }) {
         return colors[prioridade] || 'bg-slate-500 text-white';
     };
 
-    // RADAR META Logic - Recriado do Zero
+    // RADAR META Logic
     const radarData = React.useMemo(() => {
-        if (!accounts.length || !radarMetaData.length) return [];
+        if (!radarMetaData.length) return [];
 
         console.log('=== DEBUG RADAR META ===');
         console.log('Total radarMetaData:', radarMetaData.length);
         console.log('Total clientes no mapa:', clientesMap.size);
+        console.log('RadarMetaData samples:', radarMetaData.slice(0, 3).map(r => r.account_name));
 
         return radarMetaData.map(radar => {
             const cliente = clientesMap.get(radar.account_name);
