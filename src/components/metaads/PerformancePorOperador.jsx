@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import RankingOperadoresRadar from './RankingOperadoresRadar';
 
 export default function PerformancePorOperador({ radarData, clientes }) {
   const [periodo, setPeriodo] = useState('7d');
@@ -542,6 +543,9 @@ export default function PerformancePorOperador({ radarData, clientes }) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Ranking Gamificado */}
+      <RankingOperadoresRadar radarData={radarData} periodo={periodo} />
     </div>
   );
 }
