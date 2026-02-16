@@ -610,6 +610,12 @@ export default function MonitoramentoContas({ user }) {
     }, [radarMetaData, accounts, clientesMap]);
 
     const filteredRadarData = React.useMemo(() => {
+        console.log('=== FILTROS RADAR META ===');
+        console.log('radarData.length (antes dos filtros):', radarData.length);
+        console.log('radarSearchTerm:', radarSearchTerm);
+        console.log('radarPrioridadeFilter:', radarPrioridadeFilter);
+        console.log('radarResponsavelFilter:', radarResponsavelFilter);
+        
         let filtered = radarData;
 
         if (radarSearchTerm) {
@@ -618,15 +624,21 @@ export default function MonitoramentoContas({ user }) {
                 d.account_name?.toLowerCase().includes(search) ||
                 d.cliente?.cidade?.toLowerCase().includes(search)
             );
+            console.log('Após filtro de busca:', filtered.length);
         }
 
         if (radarPrioridadeFilter !== 'all') {
             filtered = filtered.filter(d => d.prioridade === radarPrioridadeFilter);
+            console.log('Após filtro de prioridade:', filtered.length);
         }
 
         if (radarResponsavelFilter !== 'all') {
+            const antes = filtered.length;
             filtered = filtered.filter(d => d.cliente?.responsavel_voxx_trafego === radarResponsavelFilter);
+            console.log(`Após filtro de responsável (${radarResponsavelFilter}):`, filtered.length, '(era', antes, ')');
         }
+        
+        console.log('filteredRadarData.length (final):', filtered.length);
 
         return filtered.sort((a, b) => {
             // 1. Prioridade
