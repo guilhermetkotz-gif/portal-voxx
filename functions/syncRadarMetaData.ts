@@ -110,16 +110,15 @@ Deno.serve(async (req) => {
                 const amountSpent = parseNumber(row[amountSpentIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
-                // Log São Sebastião for debugging
-                if (accountName.toLowerCase().includes('sebastião')) {
-                    console.log('São Sebastião do Paraíso data:', {
-                        accountName,
-                        amount_spent_raw: row[amountSpentIdx],
-                        amount_spent_parsed: amountSpent,
+                // Log for debugging - First 3 rows
+                if (i <= 3) {
+                    console.log(`Row ${i} - ${accountName}:`, {
                         cpl_raw: row[cplIdx],
+                        cpl_parsed: cpl,
                         leads_raw: row[leadsIdx],
-                        row_length: row.length,
-                        full_row: row
+                        leads_parsed: leads,
+                        cplIdx,
+                        leadsIdx
                     });
                 }
 
