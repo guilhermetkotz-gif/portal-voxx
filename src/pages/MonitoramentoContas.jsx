@@ -688,7 +688,8 @@ export default function MonitoramentoContas({ user }) {
 
     const radarStats = React.useMemo(() => {
         const totalContas = filteredRadarData.length;
-        const avgCPL = totalContas > 0 ? filteredRadarData.reduce((sum, d) => sum + d.cplAtual, 0) / totalContas : 0;
+        const contasComCPL = filteredRadarData.filter(d => d.cplAtual > 0);
+        const avgCPL = contasComCPL.length > 0 ? contasComCPL.reduce((sum, d) => sum + d.cplAtual, 0) / contasComCPL.length : 0;
         const avgCTR = totalContas > 0 ? filteredRadarData.reduce((sum, d) => sum + d.ctrAtual, 0) / totalContas : 0;
         const avgFreq = totalContas > 0 ? filteredRadarData.reduce((sum, d) => sum + d.frequencia7d, 0) / totalContas : 0;
         const avgRadarScore = totalContas > 0 ? filteredRadarData.reduce((sum, d) => sum + d.radarScore, 0) / totalContas : 0;
