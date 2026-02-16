@@ -59,23 +59,28 @@ export default function PerformancePorOperador({ radarData, clientes }) {
       operador.totalContas++;
 
       // Selecionar campos baseado no período
-      let cpl, ctr, leads, investimento;
+      let cpl, ctr, leads, investimento, frequencia;
       
       if (periodo === 'ontem') {
         cpl = conta.cplAtual || 0;
         ctr = conta.ctrAtual || 0;
         leads = conta.leadsOntem || 0;
-        investimento = conta.investimentoDiario || 0;
-      } else {
-        // '7d' e 'mes' usam dados de 7 dias
+        investimento = conta.investimentoDiario || 0; // Valor de ontem
+        frequencia = conta.frequenciaOntem || conta.frequencia7d || 0;
+      } else if (periodo === '7d') {
         cpl = conta.cpl7d || 0;
         ctr = conta.ctr7d || 0;
         leads = parseFloat(conta.leadsDia7d) || 0;
-        investimento = conta.investimentoDiario || 0;
+        investimento = (conta.investimentoDiario || 0) * 7; // Total 7 dias
+        frequencia = conta.frequencia7d || 0;
+      } else {
+        // 'mes' - estimativa baseada em 30 dias
+        cpl = conta.cpl7d || 0;
+        ctr = conta.ctr7d || 0;
+        leads = parseFloat(conta.leadsDia7d) || 0;
+        investimento = (conta.investimentoDiario || 0) * 30; // Total mensal estimado
+        frequencia = conta.frequencia7d || 0;
       }
-      
-      // Frequência só tem dados de 7d disponível
-      const frequencia = conta.frequencia7d || 0;
 
       // Somar métricas
       operador.radarScoreTotal += conta.radarScore || 0;
