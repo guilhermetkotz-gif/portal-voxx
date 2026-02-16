@@ -10,17 +10,19 @@ Deno.serve(async (req) => {
         }
 
         // Apenas voxx pode listar usuários voxx
-        if (user.role !== 'admin' && !user.tipo_usuario?.startsWith('voxx_')) {
+        const tipoAcesso = user.tipo_acesso || user.tipo_usuario;
+        if (user.role !== 'admin' && !tipoAcesso?.startsWith('voxx_')) {
             return Response.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         // Usar service role para listar todos os usuários
         const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 500);
         
-        // Filtrar apenas usuários voxx
-        const voxxUsers = allUsers.filter(u => 
-            u.tipo_usuario?.startsWith('voxx_') || u.role === 'admin'
-        );
+        // Filtrar apenas usuários voxx (tipo_acesso ou tipo_usuario)
+        const voxxUsers = allUsers.filter(u => {
+            const tipoAcesso = u.tipo_acesso || u.tipo_usuario;
+            return tipoAcesso?.startsWith('voxx_') || u.role === 'admin';
+        });
 
         return Response.json({ users: voxxUsers });
     } catch (error) {
