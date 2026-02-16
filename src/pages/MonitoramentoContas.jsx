@@ -53,9 +53,8 @@ export default function MonitoramentoContas({ user }) {
         queryKey: ['radarMetaData'],
         queryFn: async () => {
             const data = await base44.entities.RadarMetaData.list('-created_date', 500);
-            console.log('=== RADAR META DATA QUERY ===');
-            console.log('Total registros RadarMetaData:', data.length);
-            console.log('Contas no RadarMetaData:', data.map(r => r.account_name));
+            console.log('🔥🔥🔥 RADAR META - TOTAL DE REGISTROS:', data.length);
+            console.log('🔥🔥🔥 RADAR META - ACCOUNT NAMES:', data.map(r => r.account_name));
             return data;
         },
         staleTime: 2 * 60 * 1000
@@ -279,24 +278,20 @@ export default function MonitoramentoContas({ user }) {
 
     // RADAR META Logic
     const radarData = React.useMemo(() => {
-        console.log('=== DEBUG RADAR META MEMO ===');
-        console.log('radarMetaData.length:', radarMetaData.length);
-        console.log('clientes.length:', clientes.length);
-        console.log('clientesMap.size:', clientesMap.size);
+        console.log('🟢🟢🟢 PROCESSANDO RADAR DATA');
+        console.log('🟢 RadarMetaData tem', radarMetaData.length, 'registros');
+        console.log('🟢 Clientes tem', clientes.length, 'registros');
+        console.log('🟢 ClientesMap tem', clientesMap.size, 'registros');
         
         if (!radarMetaData.length) {
-            console.log('⚠️ Nenhum dado em RadarMetaData - retornando array vazio');
+            console.log('❌ NENHUM DADO EM RADARMETA');
             return [];
         }
-
-        console.log('RadarMetaData account_names:', radarMetaData.map(r => r.account_name));
-        console.log('Clientes no mapa (keys):', Array.from(clientesMap.keys()));
         
         const resultado = radarMetaData.map(radar => {
             const cliente = clientesMap.get(radar.account_name);
-            console.log(`Processando ${radar.account_name}: cliente encontrado?`, !!cliente);
             if (!cliente) {
-                console.log(`⚠️ Cliente não encontrado no mapa para: ${radar.account_name}`);
+                console.log('❌ SEM MATCH:', radar.account_name);
             }
             const conta = accounts.find(a => a.account_name === radar.account_name);
             
@@ -612,9 +607,7 @@ export default function MonitoramentoContas({ user }) {
             };
         });
         
-        console.log('=== RESULTADO RADAR DATA ===');
-        console.log('Total de contas processadas:', resultado.length);
-        console.log('Contas processadas:', resultado.map(r => r.account_name));
+        console.log('✅✅✅ RESULTADO FINAL:', resultado.length, 'contas processadas');
         
         return resultado;
     }, [radarMetaData, accounts, clientesMap]);
