@@ -17,6 +17,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineCh
 import ListaHistoricoOtimizacoes from '@/components/metaads/ListaHistoricoOtimizacoes';
 import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoModal';
 import PainelGamificacao from '@/components/gamificacao/PainelGamificacao';
+import GamificacaoRadarV2 from '@/components/gamificacao/GamificacaoRadarV2';
 import ConfigurarPlanilhaModal from '@/components/metaads/ConfigurarPlanilhaModal';
 
 export default function MonitoramentoContas({ user }) {
@@ -1911,7 +1912,7 @@ export default function MonitoramentoContas({ user }) {
 
                 {/* Tab: Gamificação */}
                 <TabsContent value="gamificacao" className="mt-6">
-                    <PainelGamificacao user={user} />
+                    <GamificacaoRadarV2 user={user} />
                 </TabsContent>
 
                 {/* Tab: Contas/Operador */}
