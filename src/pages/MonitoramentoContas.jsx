@@ -332,147 +332,148 @@ export default function MonitoramentoContas({ user }) {
             const variacaoCPL = radar.variacao_cpl || 0;
             const variacaoCTR = radar.variacao_ctr || 0;
 
-            // ========== EIXO 1: ESTADO ESTRUTURAL DA CONTA (baseado 7d) ==========
-            // Avalia a saúde CONSOLIDADA considerando métricas dos últimos 7 dias
-            let estadoScore = 100;
-            let estadoLabel = 'Saudável';
+            // ========== NOVO MODELO DE RADAR SCORE ==========
+            let radarScore = 0;
+            let gastoSemConversao = false;
+            let sinaisTendencia = 0;
 
-            // Penalizar CPL alto
-            if (cpl7d > 50) estadoScore -= 40;
-            else if (cpl7d > 35) estadoScore -= 25;
-            else if (cpl7d > 25) estadoScore -= 15;
-
-            // Penalizar CTR baixo
-            if (ctr7d < 0.5) estadoScore -= 30;
-            else if (ctr7d < 1.0) estadoScore -= 20;
-            else if (ctr7d < 1.5) estadoScore -= 10;
-
-            // Frequência como INDICADOR DE ESTADO ESTRUTURAL (não de tendência)
-            // Classificação por faixas estruturais
-            let frequenciaEstado = 0;
-            if (frequencia7d >= 3.0) {
-                estadoScore -= 35;
-                frequenciaEstado = 'Muito Crítica';
-            } else if (frequencia7d >= 2.5) {
-                estadoScore -= 20;
-                frequenciaEstado = 'Crítica';
-            } else if (frequencia7d >= 1.8) {
-                estadoScore -= 5;
-                frequenciaEstado = 'Atenção';
-            } else {
-                estadoScore += 10; // Bonus para < 1.8
-                frequenciaEstado = 'Saudável';
+            // ========== 1. PERFORMANCE ABSOLUTA (60 pontos) ==========
+            
+            // 1.1 CPL (30 pontos) - Faixas absolutas
+            let scoreCPL = 0;
+            if (cpl7d > 0) {
+                if (cpl7d <= 20) scoreCPL = 30;
+                else if (cpl7d <= 25) scoreCPL = 27;
+                else if (cpl7d <= 30) scoreCPL = 24;
+                else if (cpl7d <= 35) scoreCPL = 20;
+                else if (cpl7d <= 40) scoreCPL = 15;
+                else if (cpl7d <= 50) scoreCPL = 10;
+                else if (cpl7d <= 60) scoreCPL = 5;
+                else scoreCPL = 0;
             }
+            radarScore += scoreCPL;
 
-            estadoScore = Math.max(0, Math.min(100, estadoScore));
+            // 1.2 Frequência (15 pontos) - Menor é melhor
+            let scoreFrequencia = 0;
+            if (frequencia7d > 0) {
+                if (frequencia7d < 1.5) scoreFrequencia = 15;
+                else if (frequencia7d < 1.8) scoreFrequencia = 13;
+                else if (frequencia7d < 2.0) scoreFrequencia = 11;
+                else if (frequencia7d < 2.5) scoreFrequencia = 8;
+                else if (frequencia7d < 3.0) scoreFrequencia = 4;
+                else scoreFrequencia = 0;
+            }
+            radarScore += scoreFrequencia;
 
-            // Classificar o ESTADO por faixas
-            if (estadoScore < 40) estadoLabel = 'Crítico';
-            else if (estadoScore < 60) estadoLabel = 'Atenção';
-            else if (estadoScore < 80) estadoLabel = 'Operacional';
-            else estadoLabel = 'Saudável';
+            // 1.3 CTR (15 pontos)
+            let scoreCTR = 0;
+            if (ctr7d > 0) {
+                if (ctr7d >= 2.5) scoreCTR = 15;
+                else if (ctr7d >= 2.0) scoreCTR = 13;
+                else if (ctr7d >= 1.5) scoreCTR = 11;
+                else if (ctr7d >= 1.0) scoreCTR = 8;
+                else if (ctr7d >= 0.7) scoreCTR = 5;
+                else scoreCTR = 2;
+            }
+            radarScore += scoreCTR;
 
-            // ========== EIXO 2: TENDÊNCIA RECENTE (ontem vs 7d) ==========
-            // Apenas métricas PONTUAIS que fazem sentido em comparação diária
-            // FREQUÊNCIA NÃO entra aqui
-            let tendenciaScore = 50; // Base neutra
-            let sinaisTendencia = 0; // Contador de sinais positivos/negativos
-            let gastoSemConversao = false; // Flag para "gasto sem leads"
+            // ========== 2. TENDÊNCIA (25 pontos) ==========
+            let scoreTendencia = 12.5; // Base neutra
 
-            // ========== VALIDAÇÃO DE CPL (com regra de leads) ==========
-            // CPL só é válido quando há leads entregues
+            // 2.1 Δ CPL (validado com leads)
             if (leadsOntem === 0 && investimentoDiario > 0) {
-                // Gasto sem conversão - é NEGATIVO
                 gastoSemConversao = true;
-                tendenciaScore -= 20; // Penalidade forte
+                scoreTendencia -= 8;
                 sinaisTendencia -= 2;
-            } else if (leadsOntem > 0) {
-                // CPL é válido - comparar normalmente
-                if (cplAtual < cpl7d * 0.9) {
-                    tendenciaScore += 10; // CPL caiu 10%+
+            } else if (leadsOntem > 0 && cplAtual > 0 && cpl7d > 0) {
+                if (cplAtual < cpl7d * 0.85) {
+                    scoreTendencia += 8;
                     sinaisTendencia++;
-                } else if (cplAtual > cpl7d * 1.1) {
-                    tendenciaScore -= 10; // CPL subiu 10%+
+                } else if (cplAtual > cpl7d * 1.15) {
+                    scoreTendencia -= 8;
                     sinaisTendencia--;
                 }
             }
-            // Se leadsOntem = 0 e gastoOntem = 0, não penaliza (estado neutro)
 
-            // CTR: melhorando vs piorando
-            if (ctrAtual > ctr7d * 1.1) {
-                tendenciaScore += 10; // CTR subiu 10%+
-                sinaisTendencia++;
-            } else if (ctrAtual < ctr7d * 0.9) {
-                tendenciaScore -= 10; // CTR caiu 10%+
-                sinaisTendencia--;
+            // 2.2 Δ CTR
+            if (ctrAtual > 0 && ctr7d > 0) {
+                if (ctrAtual > ctr7d * 1.15) {
+                    scoreTendencia += 6;
+                    sinaisTendencia++;
+                } else if (ctrAtual < ctr7d * 0.85) {
+                    scoreTendencia -= 6;
+                    sinaisTendencia--;
+                }
             }
 
-            // Leads/dia: melhorando vs piorando
-            if (leadsOntem > leadsDia7d * 1.2) {
-                tendenciaScore += 10; // +20% leads
-                sinaisTendencia++;
-            } else if (leadsOntem < leadsDia7d * 0.7) {
-                tendenciaScore -= 10; // -30% leads
-                sinaisTendencia--;
+            // 2.3 Leads ontem vs média 7d
+            if (leadsOntem > 0 && leadsDia7d > 0) {
+                if (leadsOntem > leadsDia7d * 1.3) {
+                    scoreTendencia += 6;
+                    sinaisTendencia++;
+                } else if (leadsOntem < leadsDia7d * 0.7) {
+                    scoreTendencia -= 6;
+                    sinaisTendencia--;
+                }
             }
 
-            // Nota: Frequência NÃO entra na tendência (apenas no estado estrutural)
+            radarScore += Math.max(0, Math.min(25, scoreTendencia));
 
-            tendenciaScore = Math.max(0, Math.min(100, tendenciaScore));
+            // ========== 3. ESTABILIDADE (15 pontos) ==========
+            let scoreEstabilidade = 0;
 
-            // Classificar tendência
+            // 3.1 Gasto sem lead (penalidade já aplicada em tendência, mas reforçar)
+            if (!gastoSemConversao && investimentoDiario > 0 && leadsOntem > 0) {
+                scoreEstabilidade += 5;
+            }
+
+            // 3.2 Frequência saudável
+            if (frequencia7d > 0) {
+                if (frequencia7d < 2.0) scoreEstabilidade += 5;
+                else if (frequencia7d < 2.5) scoreEstabilidade += 3;
+                else if (frequencia7d >= 3.0) scoreEstabilidade -= 5;
+            }
+
+            // 3.3 % Leads repetidos (buscar do conta se disponível)
+            const leadsRepetidosPercent = conta?.leads_repetidos_percent || 0;
+            if (leadsRepetidosPercent < 15) scoreEstabilidade += 5;
+            else if (leadsRepetidosPercent < 22) scoreEstabilidade += 3;
+            else if (leadsRepetidosPercent >= 30) scoreEstabilidade -= 3;
+
+            radarScore += Math.max(0, Math.min(15, scoreEstabilidade));
+
+            // ========== SCORE FINAL ==========
+            radarScore = Math.round(Math.max(0, Math.min(100, radarScore)));
+
+            // ========== CLASSIFICAÇÃO DE ESTADO E TENDÊNCIA (para UI) ==========
+            let estadoLabel = 'Saudável';
+            if (radarScore < 40) estadoLabel = 'Crítico';
+            else if (radarScore < 60) estadoLabel = 'Atenção';
+            else if (radarScore < 75) estadoLabel = 'Operacional';
+            else estadoLabel = 'Saudável';
+
             let tendenciaLabel = 'Neutra';
             if (sinaisTendencia >= 2) tendenciaLabel = 'Positiva';
             else if (sinaisTendencia <= -2) tendenciaLabel = 'Negativa';
 
-            // ========== EIXO 3: IMPACTO (0-100) ==========
-            let impactoScore = 0;
+            const estadoScore = radarScore;
+            const tendenciaScore = 50 + (sinaisTendencia * 10);
+            const impactoScore = 0;
 
-            // Componente 1: Leads/dia (peso maior)
-            if (leadsDia7d >= 30) impactoScore += 50;
-            else if (leadsDia7d >= 20) impactoScore += 40;
-            else if (leadsDia7d >= 10) impactoScore += 30;
-            else if (leadsDia7d >= 5) impactoScore += 20;
-            else impactoScore += 10;
-
-            // Componente 2: Investimento diário
-            if (investimentoDiario >= 500) impactoScore += 50;
-            else if (investimentoDiario >= 300) impactoScore += 40;
-            else if (investimentoDiario >= 200) impactoScore += 30;
-            else if (investimentoDiario >= 100) impactoScore += 20;
-            else impactoScore += 10;
-
-            impactoScore = Math.max(0, Math.min(100, impactoScore));
-
-            // ========== RADAR SCORE FINAL ==========
-            // Matriz de decisão: ESTADO x TENDÊNCIA
+            // ========== PRIORIZAÇÃO (matriz ESTADO x TENDÊNCIA) ==========
             let prioridadeRaw;
             
-            if (estadoScore < 40) {
-                // ESTADO CRÍTICO
-                if (tendenciaLabel === 'Negativa') {
-                    prioridadeRaw = 'critica'; // Crítica + Piora = CRÍTICA
-                } else if (tendenciaLabel === 'Positiva') {
-                    prioridadeRaw = 'media'; // Crítica + Melhora = MÉDIA
-                } else {
-                    prioridadeRaw = 'alta'; // Crítica + Neutra = ALTA
-                }
-            } else if (estadoScore < 60) {
-                // ESTADO ATENÇÃO
-                if (tendenciaLabel === 'Negativa') {
-                    prioridadeRaw = 'alta'; // Atenção + Piora = ALTA
-                } else if (tendenciaLabel === 'Positiva') {
-                    prioridadeRaw = 'baixa'; // Atenção + Melhora = BAIXA
-                } else {
-                    prioridadeRaw = 'media'; // Atenção + Neutra = MÉDIA
-                }
+            if (radarScore < 40) {
+                if (tendenciaLabel === 'Negativa') prioridadeRaw = 'critica';
+                else if (tendenciaLabel === 'Positiva') prioridadeRaw = 'media';
+                else prioridadeRaw = 'alta';
+            } else if (radarScore < 60) {
+                if (tendenciaLabel === 'Negativa') prioridadeRaw = 'alta';
+                else if (tendenciaLabel === 'Positiva') prioridadeRaw = 'baixa';
+                else prioridadeRaw = 'media';
             } else {
-                // ESTADO SAUDÁVEL
-                if (tendenciaLabel === 'Negativa') {
-                    prioridadeRaw = 'media'; // Saudável + Piora = MÉDIA (alerta preventivo)
-                } else {
-                    prioridadeRaw = 'baixa'; // Saudável + Melhora/Neutra = BAIXA
-                }
+                if (tendenciaLabel === 'Negativa') prioridadeRaw = 'media';
+                else prioridadeRaw = 'baixa';
             }
 
             // Elevar prioridade se houver eventos críticos
@@ -482,19 +483,10 @@ export default function MonitoramentoContas({ user }) {
                 prioridadeRaw = 'alta';
             }
 
-            // Elevar prioridade se houver "gasto sem conversão" (leads=0 mas gasto>0)
             if (gastoSemConversao) {
-                if (prioridadeRaw === 'baixa') {
-                    prioridadeRaw = 'media'; // Elevar de baixa para média
-                } else if (prioridadeRaw === 'media') {
-                    prioridadeRaw = 'alta'; // Elevar de média para alta
-                }
-                // Se já for alta ou crítica, mantém
+                if (prioridadeRaw === 'baixa') prioridadeRaw = 'media';
+                else if (prioridadeRaw === 'media') prioridadeRaw = 'alta';
             }
-
-            const radarScore = Math.round(
-                (estadoScore * 0.4) + (tendenciaScore * 0.3) + (impactoScore * 0.3)
-            );
 
             // ========== PRIORIDADE ==========
             let prioridade, prioridadeLabel;
@@ -516,78 +508,91 @@ export default function MonitoramentoContas({ user }) {
             // ========== STATUS DESCRITIVO ==========
             let status = '';
 
-            // Primeiro, verificar "gasto sem conversão" que sobrescreve tudo
             if (gastoSemConversao) {
                 status = '⚠️ ALERTA: Ontem houve gasto sem geração de leads - Revisar campanha';
             } else if (leadsOntem === 0 && investimentoDiario === 0) {
-                // Nenhum gasto, nenhum lead - estado neutro
                 status = '➡️ NEUTRO: Sem dados relevantes no último dia';
             } else {
-                // Textos interpretativos claros baseados em ESTADO + TENDÊNCIA
-                if (estadoScore < 40) {
-                    if (tendenciaLabel === 'Negativa') {
-                        status = '🔴 CRÍTICO: Performance crítica e em deterioração - Ação imediata';
-                    } else if (tendenciaLabel === 'Positiva') {
-                        status = '🟠 RECUPERAÇÃO: Conta estruturalmente crítica, porém em melhora recente';
+                if (radarScore >= 85) {
+                    status = '✅ EXCELENTE: Performance de elite - Manter padrão';
+                } else if (radarScore >= 75) {
+                    status = '✓ SAUDÁVEL: Performance boa e estável';
+                } else if (radarScore >= 60) {
+                    if (tendenciaLabel === 'Positiva') {
+                        status = '🟢 MELHORA: Performance em recuperação';
                     } else {
-                        status = '🔴 ALERTA: Performance crítica e estável - Requer otimização';
+                        status = '🟡 OPERACIONAL: Performance moderada';
                     }
-                } else if (estadoScore < 60) {
+                } else if (radarScore >= 40) {
                     if (tendenciaLabel === 'Negativa') {
-                        status = '🟠 ALERTA: Indicadores moderados com sinais iniciais de queda';
-                    } else if (tendenciaLabel === 'Positiva') {
-                        status = '🟢 MELHORA: Performance em recuperação - Manter tendência';
+                        status = '🟠 ALERTA: Indicadores com sinais de queda';
                     } else {
-                        status = '🟡 ESTÁVEL: Performance operacional sem grandes variações';
+                        status = '🟡 ATENÇÃO: Performance abaixo do ideal';
                     }
                 } else {
                     if (tendenciaLabel === 'Negativa') {
-                        status = '🟡 MONITORAR: Indicadores saudáveis com sinais iniciais de queda';
+                        status = '🔴 CRÍTICO: Performance crítica e em deterioração - Ação imediata';
                     } else if (tendenciaLabel === 'Positiva') {
-                        status = '✅ EXCELENTE: Performance ótima e em contínua melhora';
+                        status = '🟠 RECUPERAÇÃO: Conta crítica, porém em melhora';
                     } else {
-                        status = '✓ SAUDÁVEL: Performance boa e estável - Manter padrão';
+                        status = '🔴 CRÍTICO: Performance crítica - Requer otimização urgente';
                     }
                 }
             }
 
-            // Adicionar indicador de frequência se crítico
             if (frequencia7d >= 3.0) {
-                status += ` [⚠️ Saturação ${frequenciaEstado.toLowerCase()}]`;
+                status += ' [⚠️ Saturação crítica]';
+            } else if (frequencia7d >= 2.5) {
+                status += ' [⚠️ Saturação elevada]';
             }
 
             // ========== PREVISÃO 7 DIAS ==========
-            // Projeções lineares baseadas na tendência atual
-            const taxaCPL = cpl7d > 0 ? (cplAtual - cpl7d) / cpl7d : 0;
-            const taxaCTR = ctr7d > 0 ? (ctrAtual - ctr7d) / ctr7d : 0;
-            const taxaLeads = leadsDia7d > 0 ? (leadsOntem - leadsDia7d) / leadsDia7d : 0;
-            const taxaFreq = frequencia7d > 0 ? (frequenciaOntem - frequencia7d) / frequencia7d : 0;
+            const taxaCPL = (cpl7d > 0 && cplAtual > 0) ? (cplAtual - cpl7d) / cpl7d : 0;
+            const taxaCTR = (ctr7d > 0 && ctrAtual > 0) ? (ctrAtual - ctr7d) / ctr7d : 0;
+            const taxaLeads = (leadsDia7d > 0 && leadsOntem > 0) ? (leadsOntem - leadsDia7d) / leadsDia7d : 0;
 
-            const cplPrevisao = cplAtual * (1 + taxaCPL * 0.5); // Amortizado
-            const ctrPrevisao = ctrAtual * (1 + taxaCTR * 0.5);
-            const leadsPrevisao = leadsOntem * (1 + taxaLeads * 0.5);
-            const freqPrevisao = frequencia7d * (1 + taxaFreq * 0.5);
+            const cplPrevisao = cplAtual > 0 ? cplAtual * (1 + taxaCPL * 0.5) : cpl7d;
+            const ctrPrevisao = ctrAtual > 0 ? ctrAtual * (1 + taxaCTR * 0.5) : ctr7d;
+            const leadsPrevisao = leadsOntem > 0 ? leadsOntem * (1 + taxaLeads * 0.5) : leadsDia7d;
+            const freqPrevisao = frequencia7d;
 
-            // Projetar novo ESTADO para os próximos 7 dias
-            let estadoPrevisao = 100;
-            if (cplPrevisao > 50) estadoPrevisao -= 40;
-            else if (cplPrevisao > 35) estadoPrevisao -= 25;
-            else if (cplPrevisao > 25) estadoPrevisao -= 15;
+            // Calcular radar score projetado usando o novo modelo
+            let radarScorePrevisao = 0;
 
-            if (ctrPrevisao < 0.5) estadoPrevisao -= 30;
-            else if (ctrPrevisao < 1.0) estadoPrevisao -= 20;
-            else if (ctrPrevisao < 1.5) estadoPrevisao -= 10;
+            // CPL projetado
+            if (cplPrevisao > 0) {
+                if (cplPrevisao <= 20) radarScorePrevisao += 30;
+                else if (cplPrevisao <= 25) radarScorePrevisao += 27;
+                else if (cplPrevisao <= 30) radarScorePrevisao += 24;
+                else if (cplPrevisao <= 35) radarScorePrevisao += 20;
+                else if (cplPrevisao <= 40) radarScorePrevisao += 15;
+                else if (cplPrevisao <= 50) radarScorePrevisao += 10;
+                else if (cplPrevisao <= 60) radarScorePrevisao += 5;
+            }
 
-            if (freqPrevisao >= 3.0) estadoPrevisao -= 35;
-            else if (freqPrevisao >= 2.5) estadoPrevisao -= 20;
-            else if (freqPrevisao >= 1.8) estadoPrevisao -= 5;
-            else estadoPrevisao += 10;
+            // Frequência projetada
+            if (freqPrevisao > 0) {
+                if (freqPrevisao < 1.5) radarScorePrevisao += 15;
+                else if (freqPrevisao < 1.8) radarScorePrevisao += 13;
+                else if (freqPrevisao < 2.0) radarScorePrevisao += 11;
+                else if (freqPrevisao < 2.5) radarScorePrevisao += 8;
+                else if (freqPrevisao < 3.0) radarScorePrevisao += 4;
+            }
 
-            estadoPrevisao = Math.max(0, Math.min(100, estadoPrevisao));
+            // CTR projetado
+            if (ctrPrevisao > 0) {
+                if (ctrPrevisao >= 2.5) radarScorePrevisao += 15;
+                else if (ctrPrevisao >= 2.0) radarScorePrevisao += 13;
+                else if (ctrPrevisao >= 1.5) radarScorePrevisao += 11;
+                else if (ctrPrevisao >= 1.0) radarScorePrevisao += 8;
+                else if (ctrPrevisao >= 0.7) radarScorePrevisao += 5;
+                else radarScorePrevisao += 2;
+            }
 
-            const radarScorePrevisao = Math.round(
-                (estadoPrevisao * 0.4) + (tendenciaScore * 0.3) + (impactoScore * 0.3)
-            );
+            // Tendência mantém contribuição
+            radarScorePrevisao += Math.max(0, Math.min(25, scoreTendencia));
+
+            radarScorePrevisao = Math.round(Math.max(0, Math.min(100, radarScorePrevisao)));
 
             return {
                 account_name: radar.account_name,
