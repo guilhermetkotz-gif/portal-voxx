@@ -19,6 +19,7 @@ import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoMo
 import PainelGamificacao from '@/components/gamificacao/PainelGamificacao';
 import GamificacaoRadarV2 from '@/components/gamificacao/GamificacaoRadarV2';
 import ConfigurarPlanilhaModal from '@/components/metaads/ConfigurarPlanilhaModal';
+import PerformancePorOperador from '@/components/metaads/PerformancePorOperador';
 
 export default function MonitoramentoContas({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
@@ -1917,6 +1918,10 @@ export default function MonitoramentoContas({ user }) {
 
                 {/* Tab: Contas/Operador */}
                 <TabsContent value="operadores" className="space-y-6 mt-6">
+                    {/* Performance por Operador */}
+                    <PerformancePorOperador radarData={radarData} clientes={clientes} />
+
+                    {/* Gerenciar Responsáveis */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Gerenciar Responsáveis de Tráfego</CardTitle>
