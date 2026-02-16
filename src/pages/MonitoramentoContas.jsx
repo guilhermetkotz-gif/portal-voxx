@@ -30,6 +30,7 @@ export default function MonitoramentoContas({ user }) {
     const [configModalOpen, setConfigModalOpen] = useState(false);
     const [configModalTipo, setConfigModalTipo] = useState(null);
     const [editingConfig, setEditingConfig] = useState(null);
+    const [activeTab, setActiveTab] = useState('monitoramento');
     const queryClient = useQueryClient();
 
     // Verificar se é voxx (admin, manager ou operacao)
@@ -199,12 +200,19 @@ export default function MonitoramentoContas({ user }) {
         }
     });
 
-    // Auto-sync on mount if no data
+    // Auto-sync on mount and tab changes
     useEffect(() => {
         if (!isLoading && accounts.length === 0) {
             syncMutation.mutate();
         }
     }, [isLoading, accounts.length]);
+
+    // Auto-sync when switching tabs
+    useEffect(() => {
+        if (activeTab === 'monitoramento' || activeTab === 'radar') {
+            syncMutation.mutate();
+        }
+    }, [activeTab]);
 
     // Filter and sort accounts
     const filteredAccounts = enrichedAccounts
@@ -708,7 +716,7 @@ export default function MonitoramentoContas({ user }) {
             </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="monitoramento" className="w-full">
+            <Tabs defaultValue="monitoramento" className="w-full" onValueChange={setActiveTab}>
                 <TabsList className="grid w-full max-w-5xl grid-cols-5">
                     <TabsTrigger value="monitoramento">Monitoramento de Contas</TabsTrigger>
                     <TabsTrigger value="radar">RADAR META</TabsTrigger>
