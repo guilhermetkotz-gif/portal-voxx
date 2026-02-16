@@ -196,6 +196,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const [anexos, setAnexos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [novaSubcategoria, setNovaSubcategoria] = useState('');
+  const [mostrarNovaSubcategoria, setMostrarNovaSubcategoria] = useState(false);
 
   // Check URL params for pre-fill
   useEffect(() => {
@@ -245,6 +247,28 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     enabled: !!user,
     staleTime: 2 * 60 * 1000
   });
+
+  // Buscar colunas customizadas do Kanban
+  const { data: kanbanColumns = [] } = useQuery({
+    queryKey: ['kanbanColumns'],
+    queryFn: () => base44.entities.KanbanColumn.list('-created_date', 100),
+    staleTime: 5 * 60 * 1000
+  });
+
+  // Mesclar setores pré-definidos com colunas customizadas do Kanban
+  const todosSetores = React.useMemo(() => {
+    const setoresCustomizados = kanbanColumns
+      .filter(col => !setores.some(s => s.value === col.column_id))
+      .map(col => ({
+        value: col.column_id,
+        label: col.display_name || col.column_id,
+        icon: Settings,
+        subcategorias: ['Geral', 'Outro'],
+        campos: []
+      }));
+    
+    return [...setores, ...setoresCustomizados];
+  }, [kanbanColumns]);
 
   const clienteSelecionado = clientes.find(c => c.id === clienteId);
   
@@ -309,11 +333,13 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     
     if (!clienteId || !setor || !titulo) return;
 
+    const subcategoriaFinal = mostrarNovaSubcategoria ? novaSubcategoria : subcategoria;
+
     const data = {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
       setor,
-      subcategoria,
+      subcategoria: subcategoriaFinal,
       titulo,
       descricao,
       status: 'recebida',
@@ -327,8 +353,9 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     await createDemanda.mutateAsync(data);
   };
 
-  const setorSelecionado = setores.find(s => s.value === setor);
+  const setorSelecionado = todosSetores.find(s => s.value === setor);
   const canViewerCreate = user?.tipo_acesso !== 'cliente_viewer';
+  const isVoxx = user?.role === 'admin' || user?.tipo_acesso?.startsWith('voxx_');
 
   if (!canViewerCreate) {
     return (
@@ -363,6 +390,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
             setSearchCliente('');
             setSetor('');
             setSubcategoria('');
+            setNovaSubcategoria('');
+            setMostrarNovaSubcategoria(false);
             setTitulo('');
             setDescricao('');
             setUrgente(false);
@@ -449,12 +478,12 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           {/* Setor */}
           <div className="space-y-2">
             <Label>Tipo de Demanda *</Label>
-            <Select value={setor} onValueChange={(v) => { setSetor(v); setSubcategoria(''); }}>
+            <Select value={setor} onValueChange={(v) => { setSetor(v); setSubcategoria(''); setMostrarNovaSubcategoria(false); setNovaSubcategoria(''); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o setor" />
               </SelectTrigger>
               <SelectContent>
-                {setores.map(s => (
+                {todosSetores.map(s => (
                   <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                 ))}
               </SelectContent>
@@ -465,16 +494,51 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           {setorSelecionado && (
             <div className="space-y-2">
               <Label>Subcategoria *</Label>
-              <Select value={subcategoria} onValueChange={setSubcategoria}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {setorSelecionado.subcategorias.map(sub => (
-                    <SelectItem key={sub} value={sub}>{sub}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {!mostrarNovaSubcategoria ? (
+                <Select 
+                  value={subcategoria} 
+                  onValueChange={(v) => {
+                    if (v === '__NOVA__') {
+                      setMostrarNovaSubcategoria(true);
+                      setSubcategoria('');
+                    } else {
+                      setSubcategoria(v);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {setorSelecionado.subcategorias.map(sub => (
+                      <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                    ))}
+                    {isVoxx && (
+                      <SelectItem value="__NOVA__">➕ Adicionar nova subcategoria</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    value={novaSubcategoria}
+                    onChange={(e) => setNovaSubcategoria(e.target.value)}
+                    placeholder="Digite a nova subcategoria"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setMostrarNovaSubcategoria(false);
+                      setNovaSubcategoria('');
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -655,7 +719,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           <Button 
             type="submit" 
             className="w-full bg-violet-600 hover:bg-violet-700"
-            disabled={!clienteId || !setor || !titulo || createDemanda.isPending}
+            disabled={!clienteId || !setor || !titulo || createDemanda.isPending || (mostrarNovaSubcategoria && !novaSubcategoria)}
           >
             {createDemanda.isPending ? (
               <>
