@@ -456,9 +456,27 @@ export default function MonitoramentoContas({ user }) {
             if (sinaisTendencia >= 2) tendenciaLabel = 'Positiva';
             else if (sinaisTendencia <= -2) tendenciaLabel = 'Negativa';
 
+            // ========== SCORE DE IMPACTO (para mapa de risco) ==========
+            let impactoScore = 0;
+
+            // Componente 1: Leads/dia (peso maior)
+            if (leadsDia7d >= 30) impactoScore += 50;
+            else if (leadsDia7d >= 20) impactoScore += 40;
+            else if (leadsDia7d >= 10) impactoScore += 30;
+            else if (leadsDia7d >= 5) impactoScore += 20;
+            else impactoScore += 10;
+
+            // Componente 2: Investimento diário
+            if (investimentoDiario >= 500) impactoScore += 50;
+            else if (investimentoDiario >= 300) impactoScore += 40;
+            else if (investimentoDiario >= 200) impactoScore += 30;
+            else if (investimentoDiario >= 100) impactoScore += 20;
+            else impactoScore += 10;
+
+            impactoScore = Math.max(0, Math.min(100, impactoScore));
+
             const estadoScore = radarScore;
             const tendenciaScore = 50 + (sinaisTendencia * 10);
-            const impactoScore = 0;
 
             // ========== PRIORIZAÇÃO (matriz ESTADO x TENDÊNCIA) ==========
             let prioridadeRaw;
