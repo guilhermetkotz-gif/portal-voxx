@@ -83,6 +83,9 @@ Deno.serve(async (req) => {
             const frequencyIdx = getColIndex('frequency');
             const amountSpentIdx = getColIndex('amount_spent');
 
+            console.log('=== MAPEAMENTO DE COLUNAS ===');
+            console.log('Headers encontrados:', headers);
+            console.log('Mapeamento do config:', colMap);
             console.log('Column indices:', {
                 accountName: accountNameIdx,
                 cpl: cplIdx,
@@ -92,6 +95,9 @@ Deno.serve(async (req) => {
                 frequency: frequencyIdx,
                 amountSpent: amountSpentIdx
             });
+            console.log('Nomes das colunas reais:');
+            console.log('  CPL (col', cplIdx, '):', headers[cplIdx]);
+            console.log('  Leads (col', leadsIdx, '):', headers[leadsIdx]);
 
             const result = {};
 
@@ -112,14 +118,10 @@ Deno.serve(async (req) => {
 
                 // Log for debugging - First 3 rows
                 if (i <= 3) {
-                    console.log(`Row ${i} - ${accountName}:`, {
-                        cpl_raw: row[cplIdx],
-                        cpl_parsed: cpl,
-                        leads_raw: row[leadsIdx],
-                        leads_parsed: leads,
-                        cplIdx,
-                        leadsIdx
-                    });
+                    console.log(`=== ROW ${i} - ${accountName} ===`);
+                    console.log('  CPL: col', cplIdx, '=', row[cplIdx], '→ parsed:', cpl);
+                    console.log('  Leads: col', leadsIdx, '=', row[leadsIdx], '→ parsed:', leads);
+                    console.log('  Row completa:', row);
                 }
 
                 result[accountName] = {
