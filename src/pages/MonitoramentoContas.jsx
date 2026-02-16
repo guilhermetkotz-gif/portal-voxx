@@ -51,7 +51,13 @@ export default function MonitoramentoContas({ user }) {
 
     const { data: radarMetaData = [] } = useQuery({
         queryKey: ['radarMetaData'],
-        queryFn: () => base44.entities.RadarMetaData.list('-created_date', 500),
+        queryFn: async () => {
+            const data = await base44.entities.RadarMetaData.list('-created_date', 500);
+            console.log('=== RADAR META DATA QUERY ===');
+            console.log('Total registros RadarMetaData:', data.length);
+            console.log('Contas no RadarMetaData:', data.map(r => r.account_name));
+            return data;
+        },
         staleTime: 2 * 60 * 1000
     });
 
@@ -273,12 +279,18 @@ export default function MonitoramentoContas({ user }) {
 
     // RADAR META Logic
     const radarData = React.useMemo(() => {
-        if (!radarMetaData.length) return [];
+        console.log('=== DEBUG RADAR META MEMO ===');
+        console.log('radarMetaData.length:', radarMetaData.length);
+        console.log('clientes.length:', clientes.length);
+        console.log('clientesMap.size:', clientesMap.size);
+        
+        if (!radarMetaData.length) {
+            console.log('⚠️ Nenhum dado em RadarMetaData - retornando array vazio');
+            return [];
+        }
 
-        console.log('=== DEBUG RADAR META ===');
-        console.log('Total radarMetaData:', radarMetaData.length);
-        console.log('Total clientes no mapa:', clientesMap.size);
-        console.log('RadarMetaData samples:', radarMetaData.slice(0, 3).map(r => r.account_name));
+        console.log('RadarMetaData account_names:', radarMetaData.map(r => r.account_name));
+        console.log('Clientes no mapa:', Array.from(clientesMap.keys()));
 
         return radarMetaData.map(radar => {
             const cliente = clientesMap.get(radar.account_name);
