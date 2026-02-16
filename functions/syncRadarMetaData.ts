@@ -53,8 +53,15 @@ Deno.serve(async (req) => {
         const ontemData = await fetchSheetData(ontemSheetName);
         const seteDiasData = await fetchSheetData(seteDiasSheetName);
 
-        if (ontemData.length < 2 || seteDiasData.length < 2) {
-            return Response.json({ error: 'No data found in sheets' }, { status: 404 });
+        console.log('Aba Ontem:', ontemSheetName, '- Linhas:', ontemData.length);
+        console.log('Aba 7 Dias:', seteDiasSheetName, '- Linhas:', seteDiasData.length);
+
+        if (ontemData.length < 2) {
+            return Response.json({ error: `Aba "${ontemSheetName}" vazia ou sem dados` }, { status: 404 });
+        }
+        
+        if (seteDiasData.length < 2) {
+            return Response.json({ error: `Aba "${seteDiasSheetName}" vazia ou sem dados` }, { status: 404 });
         }
 
         // Process data
@@ -141,11 +148,16 @@ Deno.serve(async (req) => {
         // Calculate deltas for each account
         const radarData = [];
         
-        for (const accountName in ontemProcessed) {
-            const ontem = ontemProcessed[accountName];
+        // Usar todas as contas da aba 7 dias como base (estado estrutural)
+        for (const accountName in seteDiasProcessed) {
             const seteDias = seteDiasProcessed[accountName];
-
-            if (!seteDias) continue; // Skip if account not in 7-day data
+            const ontem = ontemProcessed[accountName] || { 
+                cpl: 0, 
+                leads: 0, 
+                ctr: 0, 
+                frequency: 0, 
+                amountSpent: 0 
+            };
 
             // Calculate 7-day daily average
             const leads7dMediaDia = seteDias.leads / 7;
