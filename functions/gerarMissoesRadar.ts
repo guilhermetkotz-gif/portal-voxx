@@ -44,45 +44,6 @@ Deno.serve(async (req) => {
             const radar = radarMap.get(accountName);
             if (!radar) continue;
 
-            // ========== VERIFICAR STATUS DE VEICULAÇÃO ==========
-            const statusVeiculacao = radar.status_veiculacao || (radar.amount_spent_7d > 0 ? 'ATIVA' : 'SEM_VEICULACAO');
-            
-            // Contas sem veiculação geram missão operacional leve
-            if (statusVeiculacao === 'SEM_VEICULACAO') {
-                const missao = {
-                    data_missao: hoje,
-                    responsavel_user_id: cliente.responsavel_voxx_trafego,
-                    responsavel_nome: cliente.responsavel_voxx_trafego,
-                    responsavel_email: cliente.responsavel_voxx_trafego,
-                    unidade_id: cliente.id,
-                    unidade_nome: accountName,
-                    prioridade_radar: 'baixa',
-                    estado_estrutural: 'sem_dados',
-                    tendencia_recente: 'neutra',
-                    radar_score: 0,
-                    motivo: '⚪ Verificar: Conta sem veiculação no período - Confirmar orçamento ou pausa planejada',
-                    alertas_especiais: ['Sem veiculação'],
-                    metricas_radar: {
-                        cpl_atual: 0,
-                        cpl_7d: 0,
-                        ctr_atual: 0,
-                        frequencia_7d: 0,
-                        leads_ontem: 0,
-                        investimento_diario: 0
-                    },
-                    previsao_7d: {
-                        radar_score: 0,
-                        delta: 0,
-                        confianca: 'baixa'
-                    },
-                    status: 'pendente'
-                };
-                
-                await base44.asServiceRole.entities.GamificacaoMissaoRadar.create(missao);
-                missoesCriadas.push(accountName);
-                continue; // Pular lógica de performance
-            }
-
             // ========== LÓGICA DO RADAR (simplificada) ==========
             const leadsOntem = radar.leads_ontem || 0;
             const leads7d = radar.leads_7d || 0;
