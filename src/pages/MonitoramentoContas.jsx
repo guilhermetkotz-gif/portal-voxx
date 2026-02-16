@@ -319,7 +319,12 @@ export default function MonitoramentoContas({ user }) {
             const frequenciaOntem = radar.frequencia_ontem || 0;
             const frequencia7d = radar.frequencia_7d || 0;
 
-            const cpmAtual = conta ? ((conta.amount_spent || 0) / (conta.impressions || 1)) * 1000 : 0;
+            // CPM calculado dos dados do radar (ontem)
+            const impressionsOntem = radar.impressions_ontem || 0;
+            const cpmAtual = (impressionsOntem > 0 && radar.amount_spent_ontem > 0) 
+                ? (radar.amount_spent_ontem / impressionsOntem) * 1000 
+                : 0;
+            
             // Investimento diário vem direto da planilha "ontem meta ads" (amount_spent do dia anterior)
             const investimentoDiario = radar.amount_spent_ontem || 0;
 

@@ -177,11 +177,13 @@ Deno.serve(async (req) => {
                 ctr_ontem: ontem.ctr,
                 frequencia_ontem: ontem.frequency,
                 amount_spent_ontem: ontem.amountSpent,
+                impressions_ontem: ontem.impressions,
                 cpl_7d: seteDias.cpl,
                 leads_7d: seteDias.leads,
                 leads_7d_media_dia: leads7dMediaDia,
                 ctr_7d: seteDias.ctr,
                 frequencia_7d: seteDias.frequency,
+                impressions_7d: seteDias.impressions,
                 variacao_cpl: variacaoCPL,
                 variacao_ctr: variacaoCTR,
                 variacao_frequencia: variacaoFrequencia
