@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Gamepad2, User, TrendingUp } from 'lucide-react';
 import moment from 'moment';
 
-import MinhasMissoesRadar from './MinhasMissoesRadar';
-import HistoricoMissoesRadar from './HistoricoMissoesRadar';
-import LeaderboardRadar from './LeaderboardRadar';
-import ScoreProgresso from './ScoreProgresso';
+import MinhasMissoesRadar from '@/components/gamificacao/MinhasMissoesRadar';
+import HistoricoMissoesRadar from '@/components/gamificacao/HistoricoMissoesRadar';
+import LeaderboardRadar from '@/components/gamificacao/LeaderboardRadar';
+import ScoreProgresso from '@/components/gamificacao/ScoreProgresso';
 
 export default function GamificacaoRadarV2({ user }) {
   const [periodo, setPeriodo] = useState('dia');
