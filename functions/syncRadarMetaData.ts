@@ -128,7 +128,8 @@ Deno.serve(async (req) => {
                     leads,
                     ctr,
                     frequency,
-                    amountSpent
+                    amountSpent,
+                    impressions
                 };
             }
 
@@ -148,8 +149,8 @@ Deno.serve(async (req) => {
         const radarData = [];
         
         for (const accountName of allAccountNames) {
-            const ontem = ontemProcessed[accountName] || { cpl: null, leads: null, ctr: null, frequency: null, amountSpent: null };
-            const seteDias = seteDiasProcessed[accountName] || { cpl: null, leads: null, ctr: null, frequency: null, amountSpent: null };
+            const ontem = ontemProcessed[accountName] || { cpl: null, leads: null, ctr: null, frequency: null, amountSpent: null, impressions: null };
+            const seteDias = seteDiasProcessed[accountName] || { cpl: null, leads: null, ctr: null, frequency: null, amountSpent: null, impressions: null };
 
             // Calculate 7-day daily average (null-safe)
             const leads7dMediaDia = seteDias.leads != null && seteDias.leads > 0 ? seteDias.leads / 7 : null;
