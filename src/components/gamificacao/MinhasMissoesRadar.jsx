@@ -124,6 +124,7 @@ export default function MinhasMissoesRadar({ user, responsavelEmail, visualizarC
   };
 
   const atualizarProgresso = async (pontosNovos, missao) => {
+    const agora = moment().format('YYYY-MM-DD');
     const progressos = await base44.entities.GamificacaoProgresso.filter({
       analista_id: user?.id
     });
@@ -137,10 +138,10 @@ export default function MinhasMissoesRadar({ user, responsavelEmail, visualizarC
         pontos_semana: progresso.pontos_semana + pontosNovos,
         pontos_mes: progresso.pontos_mes + pontosNovos,
         pontos_total: progresso.pontos_total + pontosNovos,
-        ultima_atualizacao: hoje,
+        ultima_atualizacao: agora,
         semana_atual: semanaAtual,
-        missoes_concluidas_dia: progresso.missoes_concluidas_dia + 1,
-        missoes_concluidas_semana: progresso.missoes_concluidas_semana + 1
+        missoes_concluidas_dia: (progresso.missoes_concluidas_dia || 0) + 1,
+        missoes_concluidas_semana: (progresso.missoes_concluidas_semana || 0) + 1
       };
 
       // Bônus para missões críticas
@@ -162,7 +163,7 @@ export default function MinhasMissoesRadar({ user, responsavelEmail, visualizarC
         missoes_criticas_concluidas: missao.prioridade_radar === 'critica' ? 1 : 0,
         acoes_registradas_dia: 0,
         acoes_registradas_semana: 0,
-        ultima_atualizacao: hoje,
+        ultima_atualizacao: agora,
         semana_atual: semanaAtual
       });
     }
