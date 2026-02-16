@@ -59,10 +59,10 @@ Deno.serve(async (req) => {
 
         // Process data
         const parseNumber = (val) => {
-            if (!val) return 0;
+            if (!val || val === '') return null; // NUNCA retornar 0 por ausência
             const str = typeof val === 'string' ? val.replace(/[^\d.,-]/g, '').replace(',', '.') : val;
             const num = parseFloat(str);
-            return isNaN(num) ? 0 : num;
+            return isNaN(num) ? null : num;
         };
 
         const processSheet = (rows) => {
@@ -138,31 +138,35 @@ Deno.serve(async (req) => {
         const ontemProcessed = processSheet(ontemData);
         const seteDiasProcessed = processSheet(seteDiasData);
 
+        // Get all unique account names from BOTH sheets (LEFT JOIN)
+        const allAccountNames = new Set([
+            ...Object.keys(ontemProcessed),
+            ...Object.keys(seteDiasProcessed)
+        ]);
+
         // Calculate deltas for each account
         const radarData = [];
         
-        for (const accountName in ontemProcessed) {
-            const ontem = ontemProcessed[accountName];
-            const seteDias = seteDiasProcessed[accountName];
+        for (const accountName of allAccountNames) {
+            const ontem = ontemProcessed[accountName] || { cpl: null, leads: null, ctr: null, frequency: null, amountSpent: null };
+            const seteDias = seteDiasProcessed[accountName] || { cpl: null, leads: null, ctr: null, frequency: null, amountSpent: null };
 
-            if (!seteDias) continue; // Skip if account not in 7-day data
+            // Calculate 7-day daily average (null-safe)
+            const leads7dMediaDia = seteDias.leads != null && seteDias.leads > 0 ? seteDias.leads / 7 : null;
 
-            // Calculate 7-day daily average
-            const leads7dMediaDia = seteDias.leads / 7;
-
-            // Calculate deltas
-            let variacaoCPL = 0;
-            if (seteDias.cpl > 0) {
+            // Calculate deltas (null-safe)
+            let variacaoCPL = null;
+            if (ontem.cpl != null && seteDias.cpl != null && seteDias.cpl > 0) {
                 variacaoCPL = ((ontem.cpl - seteDias.cpl) / seteDias.cpl) * 100;
             }
 
-            let variacaoCTR = 0;
-            if (seteDias.ctr > 0) {
+            let variacaoCTR = null;
+            if (ontem.ctr != null && seteDias.ctr != null && seteDias.ctr > 0) {
                 variacaoCTR = ((ontem.ctr - seteDias.ctr) / seteDias.ctr) * 100;
             }
 
-            let variacaoFrequencia = 0;
-            if (seteDias.frequency > 0) {
+            let variacaoFrequencia = null;
+            if (ontem.frequency != null && seteDias.frequency != null && seteDias.frequency > 0) {
                 variacaoFrequencia = ((ontem.frequency - seteDias.frequency) / seteDias.frequency) * 100;
             }
 
