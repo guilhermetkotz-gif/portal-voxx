@@ -37,7 +37,7 @@ export default function PerformancePorOperador({ radarData, clientes }) {
       if (!operadoresMap.has(responsavel)) {
         operadoresMap.set(responsavel, {
           responsavel,
-          responsavel_nome: responsavel, // Pode ser melhorado com lookup de nome
+          responsavel_nome: responsavel,
           contas: [],
           totalContas: 0,
           radarScoreTotal: 0,
@@ -58,26 +58,45 @@ export default function PerformancePorOperador({ radarData, clientes }) {
       operador.contas.push(conta);
       operador.totalContas++;
 
+      // Selecionar campos baseado no período
+      let cpl, ctr, frequencia, leads, investimento;
+      
+      if (periodo === 'ontem') {
+        cpl = conta.cplAtual || 0;
+        ctr = conta.ctrAtual || 0;
+        frequencia = conta.frequenciaOntem || 0;
+        leads = conta.leadsOntem || 0;
+        investimento = conta.investimentoDiario || 0;
+      } else if (periodo === '7d') {
+        cpl = conta.cpl7d || 0;
+        ctr = conta.ctr7d || 0;
+        frequencia = conta.frequencia7d || 0;
+        leads = parseFloat(conta.leadsDia7d) || 0;
+        investimento = conta.investimentoDiario || 0;
+      } else {
+        // 'mes' - usar 7d como proxy
+        cpl = conta.cpl7d || 0;
+        ctr = conta.ctr7d || 0;
+        frequencia = conta.frequencia7d || 0;
+        leads = parseFloat(conta.leadsDia7d) || 0;
+        investimento = conta.investimentoDiario || 0;
+      }
+
       // Somar métricas
       operador.radarScoreTotal += conta.radarScore || 0;
-      operador.investimentoTotal += conta.investimentoDiario || 0;
-      
-      // Para CPL, CTR e Frequência - preparar para média ponderada
-      const leads = parseFloat(conta.leadsDia7d) || 0;
-      const investimento = conta.investimentoDiario || 0;
-      
+      operador.investimentoTotal += investimento;
       operador.leadsTotal += leads;
       operador.pesoLeads += leads;
       operador.pesoInvestimento += investimento;
 
       // Acumular valores ponderados
       if (leads > 0) {
-        operador.cplPonderado += (conta.cplAtual || 0) * leads;
+        operador.cplPonderado += cpl * leads;
       }
       if (investimento > 0) {
-        operador.ctrPonderado += (conta.ctrAtual || 0) * investimento;
+        operador.ctrPonderado += ctr * investimento;
       }
-      operador.frequenciaTotal += conta.frequencia7d || 0;
+      operador.frequenciaTotal += frequencia;
     });
 
     // Calcular médias
@@ -122,7 +141,10 @@ export default function PerformancePorOperador({ radarData, clientes }) {
     });
 
     // Ordenar
-    return operadores.sort((a, b) => {
+    // Filtrar operadores sem contas
+    const operadoresFiltrados = operadores.filter(op => op.totalContas > 0);
+
+    return operadoresFiltrados.sort((a, b) => {
       let comparison = 0;
       
       switch (sortBy) {
@@ -153,7 +175,7 @@ export default function PerformancePorOperador({ radarData, clientes }) {
 
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-  }, [radarData, sortBy, sortOrder]);
+  }, [radarData, sortBy, sortOrder, periodo]);
 
   const formatCurrency = (value) => {
     if (value === 0 || !value) return '—';
