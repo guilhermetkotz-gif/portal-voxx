@@ -305,6 +305,44 @@ export default function MonitoramentoContas({ user }) {
             }
             const conta = accounts.find(a => a.account_name === radar.account_name);
             
+            // Status de veiculação
+            const statusVeiculacao = radar.status_veiculacao || (radar.amount_spent_7d > 0 ? 'ATIVA' : 'SEM_VEICULACAO');
+            
+            // Se sem veiculação, retornar dados básicos sem cálculo de performance
+            if (statusVeiculacao === 'SEM_VEICULACAO') {
+                return {
+                    account_name: radar.account_name,
+                    cliente,
+                    radarScore: 0,
+                    estadoScore: 0,
+                    tendenciaScore: 0,
+                    impactoScore: 0,
+                    prioridade: 'sem_veiculacao',
+                    prioridadeLabel: '⚪ Sem Veiculação',
+                    statusVeiculacao,
+                    leadsOntem: 0,
+                    leadsDia7d: '0.0',
+                    cplAtual: 0,
+                    cpl7d: 0,
+                    variacaoCPL: 0,
+                    ctrAtual: 0,
+                    ctr7d: 0,
+                    variacaoCTR: 0,
+                    cpmAtual: 0,
+                    frequencia7d: 0,
+                    investimentoDiario: 0,
+                    status: '⚪ SEM VEICULAÇÃO: Sem investimento no período selecionado',
+                    forecast: {
+                        radarScore: 0,
+                        cpl: 0,
+                        ctr: 0,
+                        leads: 0,
+                        frequencia: 0,
+                        delta: 0
+                    }
+                };
+            }
+            
             // ========== DADOS BASE ==========
             const leadsOntem = radar.leads_ontem || 0;
             const leads7d = radar.leads_7d || 0;
@@ -593,6 +631,7 @@ export default function MonitoramentoContas({ user }) {
                 impactoScore,
                 prioridade,
                 prioridadeLabel,
+                statusVeiculacao,
                 leadsOntem,
                 leadsDia7d: leadsDia7d.toFixed(1),
                 cplAtual,
@@ -642,18 +681,30 @@ export default function MonitoramentoContas({ user }) {
         }
 
         return filtered.sort((a, b) => {
-            // 1. Prioridade
+            // 1º BLOCO: Contas sem veiculação vão para o final
+            const aAtiva = a.statusVeiculacao === 'ATIVA';
+            const bAtiva = b.statusVeiculacao === 'ATIVA';
+            
+            if (aAtiva && !bAtiva) return -1;
+            if (!aAtiva && bAtiva) return 1;
+            
+            // Se ambas sem veiculação, ordenar por nome
+            if (!aAtiva && !bAtiva) {
+                return a.account_name.localeCompare(b.account_name);
+            }
+            
+            // 2º BLOCO: Contas ativas ordenadas por prioridade/score
             const prioridadeOrder = { critica: 0, alta: 1, media: 2, baixa: 3 };
             const prioCompare = prioridadeOrder[a.prioridade] - prioridadeOrder[b.prioridade];
             if (prioCompare !== 0) return prioCompare;
 
-            // 2. Radar Score (ascendente - piores primeiro)
+            // Radar Score (ascendente - piores primeiro)
             if (a.radarScore !== b.radarScore) return a.radarScore - b.radarScore;
 
-            // 3. Impacto (descendente - maior impacto primeiro)
+            // Impacto (descendente - maior impacto primeiro)
             if (a.impactoScore !== b.impactoScore) return b.impactoScore - a.impactoScore;
 
-            // 4. Investimento diário (descendente)
+            // Investimento diário (descendente)
             return b.investimentoDiario - a.investimentoDiario;
         });
     }, [radarData, radarSearchTerm, radarPrioridadeFilter, radarResponsavelFilter]);
@@ -1549,6 +1600,7 @@ export default function MonitoramentoContas({ user }) {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="w-[200px]">Unidade</TableHead>
+                                            <TableHead className="text-center w-[100px]">Status</TableHead>
                                             <TableHead className="text-center w-[100px]">Radar Score</TableHead>
                                             <TableHead className="text-center w-[120px]">Prioridade</TableHead>
                                             <TableHead className="text-right">Leads Ontem</TableHead>
@@ -1587,23 +1639,34 @@ export default function MonitoramentoContas({ user }) {
                                                            )}
                                                        </div>
                                                    </div>
-                                               </TableCell>
-                                                <TableCell className="text-center">
+                                                   </TableCell>
+                                                   <TableCell className="text-center">
+                                                   <Badge className={cn(
+                                                       row.statusVeiculacao === 'ATIVA' 
+                                                           ? "bg-green-100 text-green-800" 
+                                                           : "bg-slate-100 text-slate-600"
+                                                   )}>
+                                                       {row.statusVeiculacao === 'ATIVA' ? 'Ativa' : 'Sem veiculação'}
+                                                   </Badge>
+                                                   </TableCell>
+                                                   <TableCell className="text-center">
                                                     <div className="flex items-center justify-center">
                                                         <div className={cn(
                                                             "w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg",
+                                                            row.statusVeiculacao !== 'ATIVA' ? "bg-slate-100 text-slate-400" :
                                                             row.radarScore < 40 ? "bg-red-100 text-red-700" :
                                                             row.radarScore < 60 ? "bg-orange-100 text-orange-700" :
                                                             row.radarScore < 80 ? "bg-yellow-100 text-yellow-700" :
                                                             "bg-green-100 text-green-700"
                                                         )}>
-                                                            {row.radarScore}
+                                                            {row.statusVeiculacao === 'ATIVA' ? row.radarScore : '—'}
                                                         </div>
                                                     </div>
-                                                </TableCell>
+                                                   </TableCell>
                                                 <TableCell className="text-center">
                                                     <Badge className={cn(
                                                         "text-sm font-semibold",
+                                                        row.prioridade === 'sem_veiculacao' ? "bg-slate-100 text-slate-600" :
                                                         row.prioridade === 'critica' ? "bg-red-100 text-red-800" :
                                                         row.prioridade === 'alta' ? "bg-orange-100 text-orange-800" :
                                                         row.prioridade === 'media' ? "bg-yellow-100 text-yellow-800" :

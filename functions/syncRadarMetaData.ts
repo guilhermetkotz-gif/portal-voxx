@@ -166,13 +166,15 @@ Deno.serve(async (req) => {
                 variacaoFrequencia = ((ontem.frequency - seteDias.frequency) / seteDias.frequency) * 100;
             }
 
-            // ========== VALIDAR SE HÁ VEICULAÇÃO ==========
-            const semVeiculacao = seteDias.amountSpent === 0;
+            // ========== STATUS DE VEICULAÇÃO ==========
+            const gastoSemanal = seteDias.amountSpent;
+            const statusVeiculacao = gastoSemanal > 0 ? 'ATIVA' : 'SEM_VEICULACAO';
             
-            let radarScore = null;
-            let classificacao = 'SEM_VEICULACAO';
+            let radarScore = 0;
+            let classificacao = 'SEM_DADOS';
             
-            if (!semVeiculacao) {
+            // Só calcular score se houver veiculação
+            if (statusVeiculacao === 'ATIVA') {
                 // ========== NOVO RADAR SCORE (0-100) ==========
                 
                 // 2.1 SAÚDE ESTRUTURAL (0-50) — Aba 7 dias
@@ -304,7 +306,7 @@ Deno.serve(async (req) => {
                 variacao_frequencia: variacaoFrequencia,
                 radar_score: radarScore,
                 classificacao: classificacao,
-                sem_veiculacao: semVeiculacao
+                status_veiculacao: statusVeiculacao
             });
         }
 
