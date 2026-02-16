@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
             const getColIndex = (configKey) => {
                 const columnName = colMap[configKey];
                 if (!columnName) return -1;
-                return headers.findIndex(h => h && h.toLowerCase().includes(columnName.toLowerCase()));
+                return headers.findIndex(h => h && h.trim().toLowerCase() === columnName.trim().toLowerCase());
             };
 
             const accountNameIdx = getColIndex('account_name');
