@@ -34,7 +34,7 @@ export default function MonitoramentoContas({ user }) {
     const queryClient = useQueryClient();
 
     // Verificar se é voxx (admin, manager ou operacao)
-    const isVoxx = user?.role === 'admin' || user?.tipo_usuario?.startsWith('voxx_');
+    const isVoxx = user?.role === 'admin' || user?.tipo_acesso?.startsWith('voxx_');
 
     if (!isVoxx) {
         return (
