@@ -166,6 +166,126 @@ Deno.serve(async (req) => {
                 variacaoFrequencia = ((ontem.frequency - seteDias.frequency) / seteDias.frequency) * 100;
             }
 
+            // ========== VALIDAR SE HÁ VEICULAÇÃO ==========
+            const semVeiculacao = seteDias.amountSpent === 0;
+            
+            let radarScore = null;
+            let classificacao = 'SEM_VEICULACAO';
+            
+            if (!semVeiculacao) {
+                // ========== NOVO RADAR SCORE (0-100) ==========
+                
+                // 2.1 SAÚDE ESTRUTURAL (0-50) — Aba 7 dias
+                let saudeEstrutural = 0;
+                
+                // A) CPL (0-25 pts) — FAIXAS FIXAS
+                const cpl7d = seteDias.cpl;
+                let scoreCPL = 0;
+                if (cpl7d <= 25) scoreCPL = 1.0;
+                else if (cpl7d <= 30) scoreCPL = 0.85;
+                else if (cpl7d <= 36) scoreCPL = 0.70;
+                else if (cpl7d <= 39) scoreCPL = 0.50;
+                else if (cpl7d <= 45) scoreCPL = 0.25;
+                else scoreCPL = 0.0;
+                saudeEstrutural += scoreCPL * 25;
+                
+                // B) Frequência (0-10 pts) — SOMENTE estrutural
+                const freq7d = seteDias.frequency;
+                let scoreFreq = 0;
+                if (freq7d <= 2.5) scoreFreq = 1.0;
+                else if (freq7d <= 3.0) scoreFreq = 0.90;
+                else if (freq7d <= 4.5) scoreFreq = 0.70;
+                else if (freq7d <= 4.8) scoreFreq = 0.40;
+                else if (freq7d <= 6.0) scoreFreq = 0.20;
+                else scoreFreq = 0.0;
+                saudeEstrutural += scoreFreq * 10;
+                
+                // C) % Leads repetidos (0-10 pts) - assumir 0 por enquanto (sem dados)
+                // Pode ser implementado futuramente
+                saudeEstrutural += 5; // neutro
+                
+                // D) CTR médio (0-5 pts) - neutro por enquanto
+                saudeEstrutural += 2.5;
+                
+                // 2.2 TENDÊNCIA RECENTE (0-30) — Ontem vs 7 dias
+                let tendenciaRecente = 0;
+                
+                // A) CPL Tendência (0-10 pts)
+                const leadsOntem = ontem.leads;
+                const gastoOntem = ontem.amountSpent;
+                const cplOntem = ontem.cpl;
+                
+                if (leadsOntem === 0 && gastoOntem > 0) {
+                    // Gasto sem conversão = 0 pontos
+                    tendenciaRecente += 0;
+                } else if (leadsOntem > 0) {
+                    const variacao = ((cplOntem - cpl7d) / cpl7d) * 100;
+                    if (variacao < -10) tendenciaRecente += 10; // Melhorou
+                    else if (variacao > 10) tendenciaRecente += 0; // Piorou
+                    else tendenciaRecente += 5; // Estável
+                } else {
+                    tendenciaRecente += 5; // Neutro
+                }
+                
+                // B) CTR Tendência (0-10)
+                const ctrOntem = ontem.ctr;
+                const ctr7d = seteDias.ctr;
+                if (ctr7d > 0) {
+                    const variacaoCTR = ((ctrOntem - ctr7d) / ctr7d) * 100;
+                    if (variacaoCTR > 10) tendenciaRecente += 10;
+                    else if (variacaoCTR < -10) tendenciaRecente += 0;
+                    else tendenciaRecente += 5;
+                } else {
+                    tendenciaRecente += 5;
+                }
+                
+                // C) Leads Tendência (0-10)
+                const mediaLeadsDia = leads7dMediaDia;
+                if (mediaLeadsDia > 0) {
+                    if (leadsOntem > mediaLeadsDia * 1.2) tendenciaRecente += 10;
+                    else if (leadsOntem < mediaLeadsDia * 0.7) tendenciaRecente += 0;
+                    else tendenciaRecente += 5;
+                } else {
+                    tendenciaRecente += 5;
+                }
+                
+                // 2.3 ESTABILIDADE & CONSISTÊNCIA (0-20)
+                let estabilidade = 10; // Base
+                
+                // Penalizar gasto sem conversão
+                if (leadsOntem === 0 && gastoOntem > 0) {
+                    estabilidade -= 10;
+                }
+                
+                // Penalizar frequência alta
+                if (freq7d >= 3.0) estabilidade -= 5;
+                
+                // Bonificar conta saudável
+                if (cpl7d <= 30 && freq7d < 2.5) estabilidade += 5;
+                
+                estabilidade = Math.max(0, Math.min(20, estabilidade));
+                
+                // Radar Score Base
+                radarScore = Math.round(saudeEstrutural + tendenciaRecente + estabilidade);
+                
+                // 2.4 BÔNUS DE EXCELÊNCIA (+0 a +10)
+                if (cpl7d <= 25 && freq7d < 2.0 && tendenciaRecente >= 20) {
+                    radarScore += 10;
+                } else if (cpl7d <= 30 && freq7d < 2.5 && tendenciaRecente >= 15) {
+                    radarScore += 5;
+                }
+                
+                radarScore = Math.min(100, radarScore);
+                
+                // Classificação
+                if (radarScore >= 90) classificacao = 'ELITE';
+                else if (radarScore >= 80) classificacao = 'FORTE';
+                else if (radarScore >= 70) classificacao = 'BOA';
+                else if (radarScore >= 60) classificacao = 'OPERACIONAL';
+                else if (radarScore >= 40) classificacao = 'ATENCAO';
+                else classificacao = 'CRITICA';
+            }
+
             radarData.push({
                 account_name: accountName,
                 cpl_ontem: ontem.cpl,
@@ -178,9 +298,13 @@ Deno.serve(async (req) => {
                 leads_7d_media_dia: leads7dMediaDia,
                 ctr_7d: seteDias.ctr,
                 frequencia_7d: seteDias.frequency,
+                amount_spent_7d: seteDias.amountSpent,
                 variacao_cpl: variacaoCPL,
                 variacao_ctr: variacaoCTR,
-                variacao_frequencia: variacaoFrequencia
+                variacao_frequencia: variacaoFrequencia,
+                radar_score: radarScore,
+                classificacao: classificacao,
+                sem_veiculacao: semVeiculacao
             });
         }
 
