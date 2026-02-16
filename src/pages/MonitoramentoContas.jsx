@@ -218,12 +218,6 @@ export default function MonitoramentoContas({ user }) {
     const filteredAccounts = enrichedAccounts
         .filter(acc => {
             const cliente = clientesMap.get(acc.account_name);
-            
-            // Se for voxx_operacao, filtrar por responsável
-            if (user?.tipo_acesso === 'voxx_operacao' && cliente?.responsavel_voxx_trafego !== user?.email) {
-                return false;
-            }
-            
             const matchesSearch = acc.account_name.toLowerCase().includes(searchTerm.toLowerCase());
             const matchesPrioridade = prioridadeFilter === 'all' || acc.prioridade === prioridadeFilter;
             const matchesClassificacao = classificacaoFilter === 'all' || acc.classificacao === classificacaoFilter;
@@ -628,11 +622,6 @@ export default function MonitoramentoContas({ user }) {
 
     const filteredRadarData = React.useMemo(() => {
         let filtered = radarData;
-
-        // Filtrar por responsável se for voxx_operacao
-        if (user?.tipo_acesso === 'voxx_operacao') {
-            filtered = filtered.filter(d => d.cliente?.responsavel_voxx_trafego === user?.email);
-        }
 
         if (radarSearchTerm) {
             const search = radarSearchTerm.toLowerCase();
