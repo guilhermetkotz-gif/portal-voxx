@@ -18,6 +18,7 @@ Deno.serve(async (req) => {
         const radarMap = new Map(radarData.map(r => [r.account_name, r]));
 
         const missoesAtualizadas = [];
+        const updates = [];
 
         for (const missao of missoes) {
             // Verificar se a missão tem dados zerados ou null
@@ -102,26 +103,43 @@ Deno.serve(async (req) => {
                     if (frequencia7d >= 3.0 || gastoSemConversao) confiancaPrevisao = 'baixa';
                     else if (frequencia7d >= 2.5) confiancaPrevisao = 'media';
 
-                    // Atualizar missão
-                    await base44.asServiceRole.entities.GamificacaoMissaoRadar.update(missao.id, {
-                        radar_score: radarScore,
-                        metricas_radar: {
-                            cpl_atual: cplAtual,
-                            cpl_7d: cpl7d,
-                            ctr_atual: ctrAtual,
-                            frequencia_7d: frequencia7d,
-                            leads_ontem: leadsOntem,
-                            investimento_diario: investimentoDiario
-                        },
-                        previsao_7d: {
-                            radar_score: radarScorePrevisao,
-                            delta,
-                            confianca: confiancaPrevisao
+                    // Preparar atualização
+                    updates.push({
+                        id: missao.id,
+                        data: {
+                            radar_score: radarScore,
+                            metricas_radar: {
+                                cpl_atual: cplAtual,
+                                cpl_7d: cpl7d,
+                                ctr_atual: ctrAtual,
+                                frequencia_7d: frequencia7d,
+                                leads_ontem: leadsOntem,
+                                investimento_diario: investimentoDiario
+                            },
+                            previsao_7d: {
+                                radar_score: radarScorePrevisao,
+                                delta,
+                                confianca: confiancaPrevisao
+                            }
                         }
                     });
 
                     missoesAtualizadas.push(missao.unidade_nome);
                 }
+            }
+        }
+
+        // Executar updates em lotes de 10 para evitar rate limit
+        for (let i = 0; i < updates.length; i += 10) {
+            const batch = updates.slice(i, i + 10);
+            await Promise.all(
+                batch.map(update => 
+                    base44.asServiceRole.entities.GamificacaoMissaoRadar.update(update.id, update.data)
+                )
+            );
+            // Pequeno delay entre lotes
+            if (i + 10 < updates.length) {
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
 
