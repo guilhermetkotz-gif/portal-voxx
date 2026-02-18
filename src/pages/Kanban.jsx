@@ -290,12 +290,20 @@ const Kanban = ({ user, selectedClienteId }) => {
 
     // Arrastar coluna
     if (type === 'COLUMN') {
-      const newColumnOrder = Array.from(columnOrder);
+      const newColumnOrder = Array.from(allColumnOrder);
       const [removed] = newColumnOrder.splice(source.index, 1);
       newColumnOrder.splice(destination.index, 0, removed);
       
-      setColumnOrder(newColumnOrder);
-      localStorage.setItem('kanban_column_order', JSON.stringify(newColumnOrder));
+      // Update KanbanColumn entities with new order
+      newColumnOrder.forEach((colId, index) => {
+        const existingCol = customColumns.find(c => c.column_id === colId);
+        if (existingCol) {
+          base44.entities.KanbanColumn.update(existingCol.id, { order: index });
+        }
+      });
+
+      queryClient.invalidateQueries(['kanbanColumns']);
+      toast.success('Ordem das colunas atualizada!');
       return;
     }
 
