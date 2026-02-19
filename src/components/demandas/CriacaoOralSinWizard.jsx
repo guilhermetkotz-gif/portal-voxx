@@ -31,6 +31,7 @@ export default function CriacaoOralSinWizard({ cliente, onComplete, onCancel }) 
   const [etapaAtual, setEtapaAtual] = useState(1);
   const [dados, setDados] = useState({
     formato_peca: '',
+    canal_uso: '',
     tema_principal: '',
     tema_principal_outro: '',
     objetivo_peca: '',
@@ -42,6 +43,7 @@ export default function CriacaoOralSinWizard({ cliente, onComplete, onCancel }) 
     motivo_urgencia: '',
     mensagem_chave: '',
     objecao_dominante: '',
+    diferencial_unidade: '',
     observacoes_extras: ''
   });
   const [anexos, setAnexos] = useState([]);
@@ -99,6 +101,7 @@ export default function CriacaoOralSinWizard({ cliente, onComplete, onCancel }) 
       
       const camposAdicionais = {
         formato_peca: dados.formato_peca,
+        canal_uso: dados.canal_uso || 'Meta Ads',
         tema_principal: temaFinal,
         objetivo_peca: dados.objetivo_peca,
         estilo_comunicacao: dados.estilo_comunicacao,
@@ -109,6 +112,7 @@ export default function CriacaoOralSinWizard({ cliente, onComplete, onCancel }) 
         motivo_urgencia: dados.motivo_urgencia || null,
         mensagem_chave: dados.mensagem_chave || null,
         objecao_dominante: dados.objecao_dominante || null,
+        diferencial_unidade: dados.diferencial_unidade || null,
         observacoes_extras: dados.observacoes_extras || null
       };
 
@@ -215,6 +219,19 @@ Urgência: ${dados.urgencia_agenda}${dados.motivo_urgencia ? ` - ${dados.motivo_
                   <span className="font-medium text-slate-900">{formato}</span>
                 </label>
               ))}
+            </div>
+            <div className="pt-4">
+              <Label>Canal de uso</Label>
+              <Select value={dados.canal_uso || 'Meta Ads'} onValueChange={(v) => setDados({...dados, canal_uso: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Meta Ads" />
+                </SelectTrigger>
+                <SelectContent>
+                  {['Meta Ads', 'Google Ads', 'TikTok Ads', 'Múltiplos canais'].map(canal => (
+                    <SelectItem key={canal} value={canal}>{canal}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}
@@ -509,6 +526,15 @@ Urgência: ${dados.urgencia_agenda}${dados.motivo_urgencia ? ` - ${dados.motivo_
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div>
+                  <Label>Diferencial da unidade</Label>
+                  <Input
+                    value={dados.diferencial_unidade}
+                    onChange={(e) => setDados({...dados, diferencial_unidade: e.target.value})}
+                    placeholder="Ex: Especialista em prótese protocolo, Atendimento 24h..."
+                  />
                 </div>
 
                 <div>

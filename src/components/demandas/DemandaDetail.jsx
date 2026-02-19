@@ -92,6 +92,7 @@ WhatsApp: ${val('whatsapp_unidade')}
 
 🎨 ESPECIFICAÇÕES CRIATIVAS
 Formato: ${val('formato_peca')}
+Canal de Uso: ${val('canal_uso')}
 Tema Principal: ${val('tema_principal')}
 Objetivo: ${val('objetivo_peca')}
 Estilo: ${val('estilo_comunicacao')}
@@ -108,6 +109,7 @@ ${campos.motivo_urgencia ? `Motivo: ${campos.motivo_urgencia}` : ''}
 💬 ESTRATÉGIA DE MENSAGEM
 Mensagem-chave: ${val('mensagem_chave')}
 Objeção Dominante: ${val('objecao_dominante')}
+Diferencial da Unidade: ${val('diferencial_unidade')}
 
 ══════════════════════════════════════════════════════
 
@@ -123,10 +125,109 @@ Status: ${demanda.status}
 `.trim();
   };
 
+  // Função para gerar JSON completo para agente
+  const gerarJSONAgente = () => {
+    if (!demanda.campos_adicionais) return '';
+
+    const campos = demanda.campos_adicionais;
+    const val = (campo) => campos[campo] || 'Não informado';
+
+    // Derivações automáticas
+    const derivarTipoCampanha = () => {
+      const obj = val('objetivo_peca').toLowerCase();
+      if (obj.includes('comercial') || obj.includes('conversão') || obj.includes('whatsapp') || obj.includes('reativação')) {
+        return 'Comercial';
+      }
+      if (obj.includes('autoridade') || obj.includes('educativo') || obj.includes('institucional')) {
+        return 'Institucional';
+      }
+      return 'Não informado';
+    };
+
+    const derivarFocoCriativo = () => {
+      const estilo = val('estilo_comunicacao').toLowerCase();
+      if (estilo.includes('comercial direto')) return 'Comercial';
+      if (estilo.includes('técnico clínico')) return 'Técnico';
+      if (estilo.includes('emocional humanizado')) return 'Emocional';
+      if (estilo.includes('híbrido')) return 'Híbrido';
+      return 'Não informado';
+    };
+
+    const derivarNivelFunil = () => {
+      const obj = val('objetivo_peca').toLowerCase();
+      if (obj.includes('comercial') || obj.includes('whatsapp') || obj.includes('reativação')) {
+        return 'BOFU';
+      }
+      if (obj.includes('autoridade') || obj.includes('educativo')) {
+        return 'TOFU/MOFU';
+      }
+      return 'Não informado';
+    };
+
+    // Verificar anexos obrigatórios
+    const tipoImagem = val('tipo_imagem').toLowerCase();
+    const precisaAnexo = tipoImagem.includes('dra da unidade') || tipoImagem.includes('paciente real');
+    const temAnexo = demanda.anexos && demanda.anexos.length > 0;
+    const anexosOk = !precisaAnexo || temAnexo;
+
+    const jsonObj = {
+      agent: "VOXX | Image Performance Engine™ – Oral Sin",
+      version: "VOXX_BRIEFING_ORALSIN_v1",
+      demanda_id: demanda.id,
+      created_at: demanda.created_date,
+      cliente: {
+        nome: demanda.cliente_nome || 'Não informado',
+        unidade: demanda.cliente_nome || 'Não informado',
+        cidade: val('cidade_unidade'),
+        whatsapp: val('whatsapp_unidade')
+      },
+      peca: {
+        formato: val('formato_peca'),
+        canal_uso: val('canal_uso'),
+        subcategoria: demanda.subcategoria || 'Não informado',
+        tema_principal: val('tema_principal'),
+        objetivo: val('objetivo_peca'),
+        tipo_campanha: derivarTipoCampanha(),
+        foco_criativo: derivarFocoCriativo(),
+        nivel_funil: derivarNivelFunil(),
+        estilo_comunicacao: val('estilo_comunicacao')
+      },
+      imagem: {
+        tipo: val('tipo_imagem'),
+        anexos_obrigatorios_ok: anexosOk,
+        assets: demanda.anexos || []
+      },
+      agenda: {
+        urgencia_real: val('urgencia_agenda'),
+        motivo_urgencia: val('motivo_urgencia'),
+        data_desejada_entrega: demanda.previsao_entrega || 'Não informado'
+      },
+      mensagem: {
+        mensagem_chave: val('mensagem_chave'),
+        objecao_dominante: val('objecao_dominante'),
+        diferencial_unidade: val('diferencial_unidade'),
+        observacoes_extras: val('observacoes_extras')
+      }
+    };
+
+    // Adicionar pendências se necessário
+    if (!anexosOk) {
+      jsonObj.pendencias = ['Enviar foto em boa qualidade'];
+    }
+
+    return JSON.stringify(jsonObj, null, 2);
+  };
+
   const handleCopiarBriefing = () => {
     const briefing = gerarBriefingVOXX();
     navigator.clipboard.writeText(briefing);
     toast.success('Briefing copiado para área de transferência!');
+  };
+
+  const handleCopiarJSON = () => {
+    const json = gerarJSONAgente();
+    navigator.clipboard.writeText(json);
+    toast.success('JSON copiado para área de transferência!');
   };
 
   // Verificar se é demanda CRIACAO + Oral Sin
@@ -217,31 +318,59 @@ Status: ${demanda.status}
 
           {/* Briefing VOXX */}
           {mostrarBriefingVOXX && (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-violet-600" />
-                  <p className="text-xs text-slate-500">📦 Briefing para Agente VOXX</p>
+            <>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-violet-600" />
+                    <p className="text-xs text-slate-500">📦 Briefing para Agente VOXX</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopiarBriefing}
+                    className="h-7 text-xs"
+                  >
+                    <Copy className="w-3 h-3 mr-1" />
+                    Copiar
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCopiarBriefing}
-                  className="h-7 text-xs"
-                >
-                  <Copy className="w-3 h-3 mr-1" />
-                  Copiar
-                </Button>
+                <Textarea
+                  value={gerarBriefingVOXX()}
+                  readOnly
+                  className="min-h-[300px] font-mono text-xs bg-slate-900 text-emerald-400 border-slate-700"
+                />
+                <p className="text-xs text-slate-400 mt-2">
+                  Este briefing é gerado automaticamente e otimizado para o VOXX | Image Performance Engine™
+                </p>
               </div>
-              <Textarea
-                value={gerarBriefingVOXX()}
-                readOnly
-                className="min-h-[300px] font-mono text-xs bg-slate-900 text-emerald-400 border-slate-700"
-              />
-              <p className="text-xs text-slate-400 mt-2">
-                Este briefing é gerado automaticamente e otimizado para o VOXX | Image Performance Engine™
-              </p>
-            </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-amber-600" />
+                    <p className="text-xs text-slate-500">🤖 INPUT COMPLETO PARA O AGENTE (JSON)</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopiarJSON}
+                    className="h-7 text-xs"
+                  >
+                    <Copy className="w-3 h-3 mr-1" />
+                    Copiar JSON
+                  </Button>
+                </div>
+                <Textarea
+                  value={gerarJSONAgente()}
+                  readOnly
+                  className="min-h-[400px] font-mono text-xs bg-slate-950 text-amber-300 border-slate-800"
+                />
+                <p className="text-xs text-slate-400 mt-2">
+                  ⚡ Cole este JSON no agente para pular a coleta e ir direto para geração das peças
+                </p>
+              </div>
+            </>
           )}
 
           {/* Anexos */}
