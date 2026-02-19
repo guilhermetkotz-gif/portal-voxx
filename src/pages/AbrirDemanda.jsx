@@ -24,6 +24,7 @@ import {
   Upload
 } from 'lucide-react';
 import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
+import EdicaoVideoWizard from '@/components/demandas/EdicaoVideoWizard';
 
 const setores = [
   { 
@@ -200,6 +201,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const [novaSubcategoria, setNovaSubcategoria] = useState('');
   const [mostrarNovaSubcategoria, setMostrarNovaSubcategoria] = useState(false);
   const [mostrarWizardOralSin, setMostrarWizardOralSin] = useState(false);
+  const [mostrarWizardEdicao, setMostrarWizardEdicao] = useState(false);
 
   // Check URL params for pre-fill
   useEffect(() => {
@@ -380,6 +382,25 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     await createDemanda.mutateAsync(data);
   };
 
+  const handleWizardEdicaoComplete = async (wizardData) => {
+    const data = {
+      cliente_id: clienteId,
+      cliente_nome: clienteSelecionado?.nome,
+      setor: 'EDICAO',
+      subcategoria: subcategoria,
+      titulo: wizardData.titulo,
+      descricao: wizardData.descricao,
+      status: 'recebida',
+      prioridade: wizardData.urgente ? 'alta' : 'media',
+      urgente: wizardData.urgente,
+      previsao_entrega: wizardData.camposAdicionais.prazo_desejado || null,
+      anexos: wizardData.anexos,
+      campos_adicionais: wizardData.camposAdicionais
+    };
+
+    await createDemanda.mutateAsync(data);
+  };
+
   const setorSelecionado = todosSetores.find(s => s.value === setor);
   const canViewerCreate = user?.tipo_acesso !== 'cliente_viewer';
   const isVoxx = user?.role === 'admin' || user?.tipo_acesso?.startsWith('voxx_');
@@ -463,6 +484,38 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     );
   }
 
+  // Mostrar wizard de Edição de Vídeo
+  if (setor === 'EDICAO' && mostrarWizardEdicao && clienteId && subcategoria) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <Card className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Video className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Briefing de Edição de Vídeo</h3>
+              <p className="text-sm text-slate-600 mt-1">
+                Vamos coletar todas as informações necessárias em 7 etapas. Tempo estimado: 2 minutos.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <EdicaoVideoWizard
+          cliente={clienteSelecionado}
+          subcategoria={subcategoria}
+          onComplete={handleWizardEdicaoComplete}
+          onCancel={() => {
+            setMostrarWizardEdicao(false);
+            setSubcategoria('');
+            setSetor('');
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Banner Oral Sin */}
@@ -481,6 +534,28 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
                 onClick={() => setMostrarWizardOralSin(true)}
               >
                 Usar Briefing Guiado
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Banner Edição de Vídeo */}
+      {setor === 'EDICAO' && subcategoria && !mostrarWizardEdicao && (
+        <Card className="p-4 bg-blue-50 border-blue-200">
+          <div className="flex items-start gap-3">
+            <Video className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-blue-900">Briefing guiado de edição</p>
+              <p className="text-sm text-blue-700 mt-1">
+                Use nosso formulário step-by-step para garantir um briefing completo e evitar retrabalho.
+              </p>
+              <Button
+                size="sm"
+                className="mt-3 bg-blue-600 hover:bg-blue-700"
+                onClick={() => setMostrarWizardEdicao(true)}
+              >
+                Usar Briefing Guiado (Recomendado)
               </Button>
             </div>
           </div>
