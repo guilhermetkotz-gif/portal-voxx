@@ -488,17 +488,19 @@ ${statusValidacao}`.trim();
             </div>
           )}
 
-          {/* Campos Adicionais */}
-          {demanda.campos_adicionais && Object.keys(demanda.campos_adicionais).length > 0 && (
+          {/* Campos Adicionais - apenas valores primitivos */}
+          {demanda.campos_adicionais && Object.keys(demanda.campos_adicionais).length > 0 && !mostrarBriefingVOXX && !mostrarBriefingEdicao && (
             <div>
               <p className="text-xs text-slate-500 mb-2">Informações adicionais</p>
               <div className="bg-slate-50 p-3 rounded-lg space-y-2">
-                {Object.entries(demanda.campos_adicionais).map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-sm">
-                    <span className="text-slate-500">{key.replace(/_/g, ' ')}</span>
-                    <span className="font-medium">{value}</span>
-                  </div>
-                ))}
+                {Object.entries(demanda.campos_adicionais)
+                  .filter(([key, value]) => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
+                  .map(([key, value]) => (
+                    <div key={key} className="flex justify-between text-sm">
+                      <span className="text-slate-500">{key.replace(/_/g, ' ')}</span>
+                      <span className="font-medium">{String(value)}</span>
+                    </div>
+                  ))}
               </div>
             </div>
           )}
