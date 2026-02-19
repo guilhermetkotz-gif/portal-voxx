@@ -95,22 +95,24 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       
       const nomeCliente = cliente.nome?.trim();
       
-      // Normalizar nome para comparação (remover espaços extras, hífens, tornar minúsculo)
+      // Normalizar nome para comparação (remover espaços extras, hífens, números, tornar minúsculo)
       const normalizeNome = (nome) => {
         return nome?.toLowerCase()
+          .replace(/^\d+\s*-\s*/, '') // Remove números no início (ex: "275 - ")
           .replace(/\s+/g, ' ')
-          .replace(/\s*-\s*/g, '')
+          .replace(/\s*-\s*/g, ' ')
           .trim() || '';
       };
       
       const clienteNormalizado = normalizeNome(nomeCliente);
       
-      // Buscar correspondência exata primeiro
+      // 1. Buscar correspondência exata primeiro
       if (nomeCliente && amountSpentByAccount[nomeCliente] !== undefined) {
         valorInvestido = amountSpentByAccount[nomeCliente];
         diarioD1 = diarioD1ByAccount[nomeCliente] || 0;
-      } else {
-        // Buscar por correspondência normalizada
+      } 
+      // 2. Buscar por correspondência normalizada
+      else {
         const matchingKey = Object.keys(amountSpentByAccount).find(key => 
           normalizeNome(key) === clienteNormalizado
         );
@@ -118,6 +120,19 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         if (matchingKey) {
           valorInvestido = amountSpentByAccount[matchingKey];
           diarioD1 = diarioD1ByAccount[matchingKey] || 0;
+        }
+      }
+      
+      // 3. Se ainda não encontrou, tentar match parcial (contém o nome)
+      if (valorInvestido === 0 && diarioD1 === 0) {
+        const partialMatchKey = Object.keys(amountSpentByAccount).find(key => 
+          normalizeNome(key).includes(clienteNormalizado) || 
+          clienteNormalizado.includes(normalizeNome(key))
+        );
+        
+        if (partialMatchKey) {
+          valorInvestido = amountSpentByAccount[partialMatchKey];
+          diarioD1 = diarioD1ByAccount[partialMatchKey] || 0;
         }
       }
 
