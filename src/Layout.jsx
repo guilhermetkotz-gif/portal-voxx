@@ -171,21 +171,8 @@ export default function Layout({ children, currentPageName }) {
 
   const pageInfo = pageTitles[currentPageName] || { title: currentPageName, subtitle: "" };
 
-  // Show cliente selector for Voxx users without selected cliente
-  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
-  if (user && (tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager') && clientes.length > 0 && !selectedClienteId) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="max-w-2xl w-full p-6">
-          <h1 className="text-2xl font-bold text-slate-900 mb-4">Selecione um Cliente</h1>
-          <ClienteSelector 
-            clientes={clientes}
-            onSelectCliente={handleChangeCliente}
-          />
-        </Card>
-      </div>
-    );
-  }
+  // Don't show cliente selector - auto-select first cliente for Voxx users
+  // The useEffect above (line 107) will handle the auto-selection
 
   // Users with no clients but status 'ativo' - allow access but will show message in Home
   const tipoUsuarioAccess = user?.tipo_usuario || user?.tipo_acesso;
