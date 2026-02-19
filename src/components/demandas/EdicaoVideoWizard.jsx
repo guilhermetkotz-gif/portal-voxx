@@ -125,17 +125,8 @@ export default function EdicaoVideoWizard({ cliente, subcategoria: subcategoriaI
         // Pelo menos um componente deve estar marcado
         return Object.values(dados.componentes).some(v => v);
       case 4:
-        // Validar campos conforme componentes marcados
-        if (dados.componentes.capa && !dados.texto_capa) return false;
-        if (dados.componentes.legenda && (!dados.estilo_legenda || !dados.linguagem_legenda)) return false;
-        if (dados.componentes.vinheta && dados.vinheta_tipo === 'propria' && !anexos.some(a => a.includes('vinheta'))) return false;
-        if (dados.componentes.etiqueta && (!dados.nome_dra || !dados.cro_dra)) return false;
-        if (dados.componentes.lettering && !dados.lettering_modo) return false;
-        if (dados.componentes.lettering && dados.lettering_modo === 'fornecer' && !dados.lettering_frases) return false;
-        return true;
-      case 4:
-        // Validar campos conforme componentes marcados
-        if (dados.componentes.capa && !dados.texto_capa) return false;
+        // Validar campos conforme componentes marcados  
+        if (dados.componentes.capa && (!dados.modelo_capa || !dados.texto_capa)) return false;
         if (dados.componentes.legenda && (!dados.estilo_legenda || !dados.linguagem_legenda)) return false;
         if (dados.componentes.vinheta && dados.vinheta_tipo === 'propria' && !anexos.some(a => a.includes('vinheta'))) return false;
         if (dados.componentes.etiqueta && (!dados.nome_dra || !dados.cro_dra)) return false;
@@ -407,21 +398,39 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">Modelo de Edição</h3>
-              <p className="text-sm text-slate-500">Escolha o modelo de referência (1 a 8)</p>
+              <p className="text-sm text-slate-500">Escolha o estilo de edição desejado</p>
             </div>
 
-            <div>
-              <Label>Modelo de Edição *</Label>
-              <Select value={dados.modelo_edicao} onValueChange={(v) => setDados({...dados, modelo_edicao: v})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o modelo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1,2,3,4,5,6,7,8].map(n => (
-                    <SelectItem key={n} value={`Modelo ${n}`}>Modelo {n}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-slate-700">Modelo de edição *</Label>
+              {['Modelo 01', 'Modelo 02', 'Modelo 03'].map(modelo => (
+                <label
+                  key={modelo}
+                  className={cn(
+                    "flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all",
+                    dados.modelo_edicao === modelo 
+                      ? "border-blue-600 bg-blue-50" 
+                      : "border-slate-200 hover:border-blue-300"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="modelo_edicao"
+                    value={modelo}
+                    checked={dados.modelo_edicao === modelo}
+                    onChange={(e) => setDados({...dados, modelo_edicao: e.target.value})}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <div>
+                    <span className="font-medium text-slate-900">{modelo}</span>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {modelo === 'Modelo 01' && 'Edição simples com cortes básicos'}
+                      {modelo === 'Modelo 02' && 'Edição intermediária com efeitos'}
+                      {modelo === 'Modelo 03' && 'Edição completa com recursos avançados'}
+                    </p>
+                  </div>
+                </label>
+              ))}
             </div>
 
             <div>
@@ -495,18 +504,57 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
 
             {/* CAPA */}
             {dados.componentes.capa && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
-                <h4 className="font-medium text-blue-900 text-sm">📸 CAPA</h4>
+              <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <h4 className="font-medium text-red-900 text-sm">📸 CAPA (Obrigatório)</h4>
+                </div>
+                
                 <div>
-                  <Label>Texto da capa *</Label>
+                  <Label className="text-sm font-medium text-red-900">Modelo de capa *</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {['Modelo 01', 'Modelo 02', 'Modelo 03', 'Modelo 04'].map(modelo => (
+                      <label
+                        key={modelo}
+                        className={cn(
+                          "flex items-center gap-2 p-3 border-2 rounded cursor-pointer transition-all bg-white",
+                          dados.modelo_capa === modelo 
+                            ? "border-red-600 bg-red-50" 
+                            : "border-red-200 hover:border-red-400"
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name="modelo_capa"
+                          value={modelo}
+                          checked={dados.modelo_capa === modelo}
+                          onChange={(e) => setDados({...dados, modelo_capa: e.target.value})}
+                          className="w-4 h-4 text-red-600"
+                        />
+                        <span className="text-sm font-medium text-slate-900">{modelo}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {!dados.modelo_capa && (
+                    <p className="text-xs text-red-600 mt-1">⚠️ Selecione o modelo de capa</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-red-900">Texto da capa *</Label>
                   <Input
                     value={dados.texto_capa}
                     onChange={(e) => setDados({...dados, texto_capa: e.target.value})}
                     placeholder="Texto principal da capa"
+                    className={cn(!dados.texto_capa && "border-red-300")}
                   />
+                  {!dados.texto_capa && (
+                    <p className="text-xs text-red-600 mt-1">⚠️ Preencha o texto da capa</p>
+                  )}
                 </div>
+                
                 <div>
-                  <Label>Cidade / Unidade (opcional)</Label>
+                  <Label className="text-sm">Cidade / Unidade (opcional)</Label>
                   <Input
                     value={dados.cidade_capa}
                     onChange={(e) => setDados({...dados, cidade_capa: e.target.value})}
@@ -514,7 +562,7 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
                   />
                 </div>
                 <div>
-                  <Label>CTA curto (opcional)</Label>
+                  <Label className="text-sm">CTA curto (opcional)</Label>
                   <Input
                     value={dados.cta_capa}
                     onChange={(e) => setDados({...dados, cta_capa: e.target.value})}
@@ -606,31 +654,45 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
 
             {/* ETIQUETA */}
             {dados.componentes.etiqueta && (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
-                <h4 className="font-medium text-amber-900 text-sm">🏷️ ETIQUETA (CRO e Dra)</h4>
+              <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <h4 className="font-medium text-red-900 text-sm">🏷️ ETIQUETA (Obrigatório)</h4>
+                </div>
                 <div>
-                  <Label>Nome da Dra *</Label>
+                  <Label className="text-sm font-medium text-red-900">Nome da Dra *</Label>
                   <Input
                     value={dados.nome_dra}
                     onChange={(e) => setDados({...dados, nome_dra: e.target.value})}
                     placeholder="Dra. Maria Silva"
+                    className={cn(!dados.nome_dra && "border-red-300")}
                   />
+                  {!dados.nome_dra && (
+                    <p className="text-xs text-red-600 mt-1">⚠️ Preencha o nome da Dra</p>
+                  )}
                 </div>
                 <div>
-                  <Label>CRO *</Label>
+                  <Label className="text-sm font-medium text-red-900">CRO *</Label>
                   <Input
                     value={dados.cro_dra}
                     onChange={(e) => setDados({...dados, cro_dra: e.target.value})}
                     placeholder="CRO-SP 12345"
+                    className={cn(!dados.cro_dra && "border-red-300")}
                   />
+                  {!dados.cro_dra && (
+                    <p className="text-xs text-red-600 mt-1">⚠️ Preencha o CRO</p>
+                  )}
                 </div>
               </div>
             )}
 
             {/* LETTERING */}
             {dados.componentes.lettering && (
-              <div className="p-4 bg-pink-50 border border-pink-200 rounded-lg space-y-3">
-                <h4 className="font-medium text-pink-900 text-sm">✍️ LETTERING</h4>
+              <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                  <h4 className="font-medium text-red-900 text-sm">✍️ LETTERING (Obrigatório)</h4>
+                </div>
                 <div className="space-y-2">
                   {[
                     { value: 'fornecer', label: 'Fornecer frases' },
@@ -639,10 +701,10 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
                     <label
                       key={opt.value}
                       className={cn(
-                        "flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all",
+                        "flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all bg-white",
                         dados.lettering_modo === opt.value 
-                          ? "border-pink-600 bg-white" 
-                          : "border-pink-200 hover:border-pink-400"
+                          ? "border-red-600 bg-red-50" 
+                          : "border-red-200 hover:border-red-400"
                       )}
                     >
                       <input
@@ -651,21 +713,27 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
                         value={opt.value}
                         checked={dados.lettering_modo === opt.value}
                         onChange={(e) => setDados({...dados, lettering_modo: e.target.value})}
-                        className="w-4 h-4 text-pink-600"
+                        className="w-4 h-4 text-red-600"
                       />
                       <span className="text-sm font-medium text-slate-900">{opt.label}</span>
                     </label>
                   ))}
                 </div>
+                {!dados.lettering_modo && (
+                  <p className="text-xs text-red-600">⚠️ Informe as frases ou selecione "Editor sugere"</p>
+                )}
                 {dados.lettering_modo === 'fornecer' && (
                   <div>
-                    <Label>Frase(s) chave *</Label>
+                    <Label className="text-sm font-medium text-red-900">Frase(s) chave *</Label>
                     <Textarea
                       value={dados.lettering_frases}
                       onChange={(e) => setDados({...dados, lettering_frases: e.target.value})}
                       placeholder="Digite as frases que devem aparecer no lettering"
-                      className="min-h-[80px]"
+                      className={cn("min-h-[80px]", !dados.lettering_frases && "border-red-300")}
                     />
+                    {!dados.lettering_frases && (
+                      <p className="text-xs text-red-600 mt-1">⚠️ Forneça as frases para o lettering</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -965,22 +1033,45 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
 
               {/* Componentes */}
               <div className="p-3 bg-green-50 rounded-lg">
-                <p className="text-xs text-green-600 mb-2 font-medium">✅ COMPONENTES</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.keys(dados.componentes).filter(k => dados.componentes[k]).map(k => (
-                    <span key={k} className="px-2 py-1 bg-green-200 text-green-800 text-xs rounded-full font-medium">
-                      {k.toUpperCase()}
-                    </span>
-                  ))}
+                <p className="text-xs text-green-600 mb-2 font-medium">✅ COMPONENTES ATIVOS</p>
+                <div className="space-y-1">
+                  {dados.componentes.capa && (
+                    <div className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+                      📋 CAPA - {dados.modelo_capa || 'Modelo não definido'}
+                    </div>
+                  )}
+                  {dados.componentes.legenda && (
+                    <div className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+                      💬 LEGENDA - {dados.estilo_legenda}
+                    </div>
+                  )}
+                  {dados.componentes.vinheta && (
+                    <div className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+                      🎥 VINHETA - {dados.vinheta_tipo === 'padrao' ? 'Padrão' : 'Cliente própria'}
+                    </div>
+                  )}
+                  {dados.componentes.etiqueta && (
+                    <div className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+                      🏷️ ETIQUETA - {dados.nome_dra || 'Não informado'}
+                    </div>
+                  )}
+                  {dados.componentes.lettering && (
+                    <div className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded">
+                      ✍️ LETTERING - {dados.lettering_modo === 'fornecer' ? 'Frases fornecidas' : 'Editor sugere'}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Textos */}
               <div className="p-3 bg-amber-50 rounded-lg">
-                <p className="text-xs text-amber-600 mb-2 font-medium">💬 TEXTOS</p>
+                <p className="text-xs text-amber-600 mb-2 font-medium">💬 DETALHES</p>
                 <div className="space-y-1 text-xs text-slate-700">
-                  {dados.componentes.capa && dados.texto_capa && (
-                    <p><strong>Capa:</strong> {dados.texto_capa}</p>
+                  {dados.componentes.capa && (
+                    <p><strong>Capa ({dados.modelo_capa}):</strong> {dados.texto_capa}</p>
+                  )}
+                  {dados.componentes.legenda && (
+                    <p><strong>Legenda:</strong> {dados.estilo_legenda} - {dados.linguagem_legenda}</p>
                   )}
                   {dados.componentes.etiqueta && dados.nome_dra && (
                     <p><strong>Etiqueta:</strong> {dados.nome_dra} - {dados.cro_dra}</p>
