@@ -266,12 +266,12 @@ Status: ${demanda.status}
     }
     
     const qualityCheck = ca.video_quality_check || {};
-    if (!qualityCheck.melhor_qualidade && !qualityCheck.posicao_correta && !qualityCheck.audio_compreensivel) {
+    if (qualityCheck.melhor_qualidade !== true && qualityCheck.posicao_correta !== true && qualityCheck.audio_compreensivel !== true) {
       score -= 10;
     }
     
     // Validar capa
-    if (componentes.capa) {
+    if (componentes.capa === true) {
       if (!ca.modelo_capa) {
         score -= 15;
         motivos.push('Modelo de capa não selecionado');
