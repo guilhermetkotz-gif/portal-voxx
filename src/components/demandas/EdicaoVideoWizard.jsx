@@ -66,7 +66,14 @@ export default function EdicaoVideoWizard({ cliente, subcategoria, onComplete, o
     lettering_frases: '',
     
     // Etapa 4
-    // anexos gerenciados separadamente
+    video_source_type: 'upload',
+    video_link: '',
+    video_quality_check: {
+      melhor_qualidade: false,
+      posicao_correta: false,
+      audio_compreensivel: false,
+      acesso_liberado: false
+    },
     
     // Etapa 5
     prazo_desejado: '',
@@ -114,13 +121,17 @@ export default function EdicaoVideoWizard({ cliente, subcategoria, onComplete, o
         if (dados.componentes.lettering && dados.lettering_modo === 'fornecer' && !dados.lettering_frases) return false;
         return true;
       case 4:
-        // Deve ter pelo menos 1 vídeo bruto
-        const temVideoBruto = anexos.length > 0;
-        if (!temVideoBruto) return false;
-        // Se vinheta própria, deve ter arquivo
-        if (dados.componentes.vinheta && dados.vinheta_tipo === 'propria') {
-          // Assumir que está nos anexos
-          return true; // validado na etapa 3
+        // Validação: deve ter vídeo (upload OU link)
+        if (dados.video_source_type === 'upload') {
+          if (anexos.length === 0) return false;
+        } else if (dados.video_source_type === 'link') {
+          if (!dados.video_link.trim()) return false;
+          // Validar formato de URL
+          try {
+            new URL(dados.video_link);
+          } catch {
+            return false;
+          }
         }
         return true;
       case 5:
@@ -158,6 +169,9 @@ export default function EdicaoVideoWizard({ cliente, subcategoria, onComplete, o
         cro_dra: dados.componentes.etiqueta ? dados.cro_dra : null,
         lettering_modo: dados.componentes.lettering ? dados.lettering_modo : null,
         lettering_frases: dados.componentes.lettering && dados.lettering_modo === 'fornecer' ? dados.lettering_frases : null,
+        video_source_type: dados.video_source_type,
+        video_link: dados.video_source_type === 'link' ? dados.video_link : null,
+        video_quality_check: dados.video_quality_check,
         prazo_desejado: dados.prazo_desejado || null,
         obs_prazo: dados.obs_prazo || null,
         urgente: dados.urgente,
@@ -605,53 +619,127 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
         {etapaAtual === 4 && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-1">Assets e Anexos</h3>
-              <p className="text-sm text-slate-500">Envie os arquivos necessários</p>
+              <h3 className="text-lg font-semibold text-slate-900 mb-1">Vídeo Bruto e Assets</h3>
+              <p className="text-sm text-slate-500">Envie o vídeo para edição</p>
             </div>
 
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex items-start gap-2 mb-3">
+            {/* Escolha de fonte do vídeo */}
+            <div className="p-4 bg-red-50 border-2 border-red-200 rounded-lg space-y-3">
+              <div className="flex items-start gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-red-900">Obrigatório: Vídeo bruto</p>
-                  <p className="text-xs text-red-700">Envie pelo menos 1 arquivo de vídeo para edição</p>
+                  <p className="text-sm font-medium text-red-900">Obrigatório: Vídeo para edição</p>
+                  <p className="text-xs text-red-700">Escolha como enviar o vídeo bruto</p>
                 </div>
               </div>
-              
-              <div className="border-2 border-dashed border-red-300 rounded-lg p-6 text-center bg-white">
-                <input
-                  type="file"
-                  multiple
-                  accept="video/*,image/*,.zip,.pdf"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="upload-assets"
-                />
-                <label htmlFor="upload-assets" className="cursor-pointer">
-                  {uploading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                      <span className="text-sm text-slate-500">Enviando...</span>
+
+              <div className="space-y-2">
+                {['upload', 'link'].map(tipo => (
+                  <label
+                    key={tipo}
+                    className={cn(
+                      "flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all bg-white",
+                      dados.video_source_type === tipo 
+                        ? "border-red-600 bg-red-50" 
+                        : "border-red-200 hover:border-red-400"
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="video_source"
+                      value={tipo}
+                      checked={dados.video_source_type === tipo}
+                      onChange={(e) => setDados({...dados, video_source_type: e.target.value})}
+                      className="w-4 h-4 text-red-600"
+                    />
+                    <div>
+                      <span className="font-medium text-slate-900">
+                        {tipo === 'upload' ? 'Upload do vídeo' : 'Link do vídeo'}
+                      </span>
+                      <p className="text-xs text-slate-500">
+                        {tipo === 'upload' ? 'Envie arquivos diretamente (MP4, MOV, AVI)' : 'Google Drive, WeTransfer, Dropbox, etc.'}
+                      </p>
                     </div>
-                  ) : (
-                    <>
-                      <Upload className="w-10 h-10 text-red-600 mx-auto mb-2" />
-                      <p className="text-sm text-red-700 font-medium mb-1">Clique para enviar arquivos</p>
-                      <p className="text-xs text-slate-500">Vídeos, imagens, logos, vinheta, etc.</p>
-                    </>
-                  )}
-                </label>
+                  </label>
+                ))}
               </div>
 
-              {anexos.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs font-medium text-green-700">Arquivos enviados:</p>
+              {/* Upload de vídeo */}
+              {dados.video_source_type === 'upload' && (
+                <div className="border-2 border-dashed border-red-300 rounded-lg p-6 text-center bg-white">
+                  <input
+                    type="file"
+                    multiple
+                    accept="video/mp4,video/quicktime,video/x-msvideo,video/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="upload-video"
+                  />
+                  <label htmlFor="upload-video" className="cursor-pointer">
+                    {uploading ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                        <span className="text-sm text-slate-500">Enviando...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-10 h-10 text-red-600 mx-auto mb-2" />
+                        <p className="text-sm text-red-700 font-medium mb-1">Clique para enviar vídeo(s)</p>
+                        <p className="text-xs text-slate-500">Formatos: MP4, MOV, AVI</p>
+                      </>
+                    )}
+                  </label>
+                </div>
+              )}
+
+              {/* Link do vídeo */}
+              {dados.video_source_type === 'link' && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-red-900">Link do vídeo *</Label>
+                  <Input
+                    type="url"
+                    value={dados.video_link}
+                    onChange={(e) => setDados({...dados, video_link: e.target.value})}
+                    placeholder="https://drive.google.com/... ou https://wetransfer.com/..."
+                    className="border-red-300 focus:border-red-500"
+                  />
+                  {dados.video_link && (() => {
+                    try {
+                      new URL(dados.video_link);
+                      return (
+                        <div className="flex items-start gap-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
+                          <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <span>Link válido</span>
+                        </div>
+                      );
+                    } catch {
+                      return (
+                        <div className="flex items-start gap-2 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-700">
+                          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                          <span>URL inválida - verifique o formato</span>
+                        </div>
+                      );
+                    }
+                  })()}
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-xs text-amber-800">
+                      <AlertTriangle className="w-3 h-3 inline mr-1" />
+                      Verifique se o link tem acesso liberado para download
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Vídeos enviados */}
+              {dados.video_source_type === 'upload' && anexos.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-green-700">Vídeos enviados:</p>
                   <div className="space-y-1">
                     {anexos.map((url, index) => (
                       <div key={index} className="flex items-center gap-2 bg-green-100 text-green-700 px-3 py-2 rounded text-xs">
                         <CheckCircle className="w-4 h-4" />
                         <FileVideo className="w-4 h-4" />
-                        Arquivo {index + 1}
+                        Vídeo {index + 1}
                       </div>
                     ))}
                   </div>
@@ -659,7 +747,58 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
               )}
             </div>
 
-            {dados.componentes.vinheta && dados.vinheta_tipo === 'propria' && (
+            {/* Checklist de qualidade */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
+              <p className="text-sm font-medium text-slate-700">Check de qualidade (recomendado)</p>
+              <div className="space-y-2">
+                {[
+                  { key: 'melhor_qualidade', label: 'Vídeo na melhor qualidade disponível' },
+                  { key: 'posicao_correta', label: 'Vídeo na posição correta (vertical/horizontal)' },
+                  { key: 'audio_compreensivel', label: 'Áudio compreensível' },
+                  { key: 'acesso_liberado', label: 'Link com acesso liberado (se aplicável)' }
+                ].map(item => (
+                  <label
+                    key={item.key}
+                    className="flex items-start gap-3 p-2 hover:bg-slate-100 rounded cursor-pointer transition-colors"
+                  >
+                    <Checkbox
+                      checked={dados.video_quality_check[item.key]}
+                      onCheckedChange={(checked) => setDados({
+                        ...dados,
+                        video_quality_check: {
+                          ...dados.video_quality_check,
+                          [item.key]: checked
+                        }
+                      })}
+                      className="mt-0.5"
+                    />
+                    <span className="text-sm text-slate-700">{item.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Outros assets */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-xs font-medium text-blue-800 mb-2">Outros arquivos (opcional)</p>
+              <p className="text-xs text-blue-700 mb-3">Logo, vinheta própria, referências, etc.</p>
+              <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 text-center bg-white">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,video/*,.zip,.pdf"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="upload-outros"
+                />
+                <label htmlFor="upload-outros" className="cursor-pointer">
+                  <Upload className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                  <p className="text-xs text-blue-700">Clique para enviar</p>
+                </label>
+              </div>
+            </div>
+
+            {dados.componentes.vinheta && dados.vinheta_tipo === 'propria' && !anexos.some(a => a.includes('vinheta')) && (
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-xs text-amber-800">
                   <AlertCircle className="w-4 h-4 inline mr-1" />
@@ -796,8 +935,16 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
 
               {/* Assets */}
               <div className="p-3 bg-red-50 rounded-lg">
-                <p className="text-xs text-red-600 mb-2 font-medium">📁 ASSETS</p>
-                <p className="text-sm text-slate-900">{anexos.length} arquivo(s) anexado(s)</p>
+                <p className="text-xs text-red-600 mb-2 font-medium">📁 VÍDEO E ASSETS</p>
+                <div className="space-y-1 text-sm text-slate-900">
+                  <p><strong>Origem:</strong> {dados.video_source_type === 'upload' ? 'Upload direto' : 'Link'}</p>
+                  {dados.video_source_type === 'upload' && (
+                    <p><strong>Vídeos:</strong> {anexos.length} arquivo(s)</p>
+                  )}
+                  {dados.video_source_type === 'link' && dados.video_link && (
+                    <p className="break-all"><strong>Link:</strong> {dados.video_link}</p>
+                  )}
+                </div>
               </div>
 
               {/* Prazo */}
