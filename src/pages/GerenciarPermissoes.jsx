@@ -64,17 +64,6 @@ export default function GerenciarPermissoes({ user }) {
   const [confirmAction, setConfirmAction] = useState(null);
   const [temAlteracoes, setTemAlteracoes] = useState(false);
 
-  // Verificar se usuário tem permissão
-  if (!user || (user.role !== 'admin' && user.tipo_usuario !== 'voxx_admin')) {
-    return (
-      <Card className="p-8 text-center">
-        <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h2 className="text-xl font-bold">Acesso Negado</h2>
-        <p className="text-slate-500 mt-2">Apenas administradores podem gerenciar permissões.</p>
-      </Card>
-    );
-  }
-
   const { data: permissoesExistentes = [], isLoading } = useQuery({
     queryKey: ['userTypePermissions'],
     queryFn: () => base44.entities.UserTypePermissions.list('-updated_date', 100),
@@ -245,6 +234,18 @@ export default function GerenciarPermissoes({ user }) {
   const categoriasFiltradas = busca 
     ? [...new Set(paginasFiltradas.map(p => p.categoria))]
     : CATEGORIAS;
+
+  // Verificar se usuário tem permissão (APÓS todos os hooks)
+  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
+  if (!user || (user.role !== 'admin' && tipoUsuario !== 'voxx_admin')) {
+    return (
+      <Card className="p-8 text-center">
+        <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-bold">Acesso Negado</h2>
+        <p className="text-slate-500 mt-2">Apenas administradores podem gerenciar permissões.</p>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (
