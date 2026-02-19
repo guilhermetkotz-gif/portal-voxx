@@ -262,9 +262,9 @@ export default function Layout({ children, currentPageName }) {
   // Base44 admin bypass - skip all checks
   if (user?.role === 'admin') {
     // Admin has full access, skip to main app
-  } else {
+  } else if (user?.status === 'pendente') {
     // 2. User is pendente WITH request → redirect to AguardandoAprovacao
-    if (user?.status === 'pendente' && userRequest && userRequest.length > 0) {
+    if (userRequest && userRequest.length > 0) {
       if (currentPageName !== 'AguardandoAprovacao') {
         navigate(createPageUrl('AguardandoAprovacao'));
         return null;
@@ -273,17 +273,15 @@ export default function Layout({ children, currentPageName }) {
     }
 
     // 3. User is pendente WITHOUT request → redirect to BoasVindas
-    if (user?.status === 'pendente' && (!userRequest || userRequest.length === 0)) {
+    if (!userRequest || userRequest.length === 0) {
       if (currentPageName !== 'BoasVindas') {
         navigate(createPageUrl('BoasVindas'));
         return null;
       }
       return React.cloneElement(children, { user });
     }
-
-    // 4. Users with status 'ativo' can access the app even without clients
-    // They will see an appropriate message on the Home page
   }
+  // Users with status 'ativo' proceed to main app below
 
   return (
     <div className="min-h-screen bg-slate-50">
