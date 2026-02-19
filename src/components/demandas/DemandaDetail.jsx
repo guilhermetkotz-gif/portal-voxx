@@ -487,21 +487,29 @@ ${statusValidacao}`.trim();
           )}
 
           {/* Campos Adicionais - apenas valores primitivos */}
-          {demanda.campos_adicionais && Object.keys(demanda.campos_adicionais).length > 0 && !mostrarBriefingVOXX && !mostrarBriefingEdicao && (
-            <div>
-              <p className="text-xs text-slate-500 mb-2">Informações adicionais</p>
-              <div className="bg-slate-50 p-3 rounded-lg space-y-2">
-                {Object.entries(demanda.campos_adicionais)
-                  .filter(([key, value]) => typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')
-                  .map(([key, value]) => (
+          {demanda.campos_adicionais && Object.keys(demanda.campos_adicionais).length > 0 && !mostrarBriefingVOXX && !mostrarBriefingEdicao && (() => {
+            const primitiveFields = Object.entries(demanda.campos_adicionais)
+              .filter(([key, value]) => {
+                const type = typeof value;
+                return (type === 'string' || type === 'number' || type === 'boolean') && value !== null && value !== undefined;
+              });
+            
+            if (primitiveFields.length === 0) return null;
+            
+            return (
+              <div>
+                <p className="text-xs text-slate-500 mb-2">Informações adicionais</p>
+                <div className="bg-slate-50 p-3 rounded-lg space-y-2">
+                  {primitiveFields.map(([key, value]) => (
                     <div key={key} className="flex justify-between text-sm">
                       <span className="text-slate-500">{key.replace(/_/g, ' ')}</span>
                       <span className="font-medium">{String(value)}</span>
                     </div>
                   ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Briefing VOXX */}
           {mostrarBriefingVOXX && (
