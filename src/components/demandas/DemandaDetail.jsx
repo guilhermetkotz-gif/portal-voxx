@@ -246,12 +246,12 @@ Status: ${demanda.status}
     );
     const qtdVideos = ca.video_source_type === 'upload' ? anexosVideo.length : (ca.video_link ? 1 : 0);
     
-    // Status dos componentes
-    const statusCapa = componentes.capa ? 'ATIVO' : 'NÃO SOLICITADO';
-    const statusLegenda = componentes.legenda ? 'ATIVO' : 'NÃO SOLICITADO';
-    const statusLettering = componentes.lettering ? 'ATIVO' : 'NÃO SOLICITADO';
-    const statusVinheta = componentes.vinheta ? 'ATIVO' : 'NÃO SOLICITADO';
-    const statusEtiqueta = componentes.etiqueta ? 'ATIVO' : 'NÃO SOLICITADO';
+    // Status dos componentes - verificar se é true (boolean)
+    const statusCapa = componentes.capa === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    const statusLegenda = componentes.legenda === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    const statusLettering = componentes.lettering === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    const statusVinheta = componentes.vinheta === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    const statusEtiqueta = componentes.etiqueta === true ? 'ATIVO' : 'NÃO SOLICITADO';
     
     // Calcular risco de retrabalho
     let score = 100;
