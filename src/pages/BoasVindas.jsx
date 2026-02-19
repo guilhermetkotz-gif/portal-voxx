@@ -19,10 +19,17 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
-export default function BoasVindas() {
+export default function BoasVindas({ user }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [etapa, setEtapa] = useState('boas-vindas'); // 'boas-vindas' | 'cadastro' | 'obrigado'
+
+  // Se usuário já está ativo, redirecionar para Home
+  React.useEffect(() => {
+    if (user && user.status === 'ativo') {
+      navigate(createPageUrl('Home'));
+    }
+  }, [user, navigate]);
   
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');

@@ -185,12 +185,8 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Users with no clients but status 'ativo' - redirect to Home if on BoasVindas
+  // Users with no clients but status 'ativo' - allow access but will show message in Home
   if (user?.status === 'ativo' && (!clientes || clientes.length === 0)) {
-    if (currentPageName === 'BoasVindas') {
-      navigate(createPageUrl('Home'));
-      return null;
-    }
     return (
       <div className="min-h-screen bg-slate-50">
         <Header 
@@ -282,12 +278,6 @@ export default function Layout({ children, currentPageName }) {
 
     // 4. Users with status 'ativo' can access the app even without clients
     // They will see an appropriate message on the Home page
-    
-    // If active user is on BoasVindas, redirect to Home
-    if (user?.status === 'ativo' && currentPageName === 'BoasVindas') {
-      navigate(createPageUrl('Home'));
-      return null;
-    }
   }
 
   return (
