@@ -178,18 +178,6 @@ export default function Layout({ children, currentPageName }) {
   const tipoUsuarioAccess = user?.tipo_usuario || user?.tipo_acesso;
   const isVoxxUser = tipoUsuarioAccess === 'voxx_admin' || tipoUsuarioAccess === 'voxx_operacao' || tipoUsuarioAccess === 'voxx_manager';
   
-  // For Voxx users with clients but no selectedClienteId yet, wait for useEffect to set it
-  if (isVoxxUser && clientes.length > 0 && !selectedClienteId && !loadingClientes) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-violet-600 mx-auto mb-4" />
-          <p className="text-sm text-slate-500">Carregando seus dados...</p>
-        </div>
-      </div>
-    );
-  }
-  
   if (user?.status === 'ativo' && (!clientes || clientes.length === 0) && !isVoxxUser) {
     return (
       <div className="min-h-screen bg-slate-50">
