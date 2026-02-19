@@ -74,12 +74,13 @@ export default function Layout({ children, currentPageName }) {
 
   // Fetch all accessible clientes
   const { data: clientes = [], isLoading: loadingClientes, error: clientesError } = useQuery({
-    queryKey: ['clientes', user?.tipo_acesso, user?.role],
+    queryKey: ['clientes', user?.tipo_usuario, user?.tipo_acesso, user?.role],
     queryFn: async () => {
       if (!user) return [];
       
-      // Usuários Voxx veem TODOS os clientes automaticamente
-      if (user.role === 'admin' || user.tipo_acesso === 'voxx_admin' || user.tipo_acesso === 'voxx_operacao' || user.tipo_acesso === 'voxx_manager') {
+      // Usuários Voxx veem TODOS os clientes automaticamente (verificar ambos tipo_usuario e tipo_acesso)
+      const tipoUsuario = user.tipo_usuario || user.tipo_acesso;
+      if (user.role === 'admin' || tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager') {
         return base44.entities.Cliente.list('-updated_date', 500);
       }
       
@@ -171,7 +172,8 @@ export default function Layout({ children, currentPageName }) {
   const pageInfo = pageTitles[currentPageName] || { title: currentPageName, subtitle: "" };
 
   // Show cliente selector for Voxx users without selected cliente
-  if (user && (user.tipo_acesso === 'voxx_admin' || user.tipo_acesso === 'voxx_operacao' || user.tipo_acesso === 'voxx_manager') && clientes.length > 0 && !selectedClienteId) {
+  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
+  if (user && (tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager') && clientes.length > 0 && !selectedClienteId) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full p-6">
