@@ -358,34 +358,34 @@ Link (se houver): ${v('video_link')}
 
 [CAPA]
 Status: ${statusCapa}
-${componentes.capa ? `Modelo: ${v('modelo_capa')}
+${componentes.capa === true ? `Modelo: ${v('modelo_capa')}
 Texto da capa: "${v('texto_capa')}"` : ''}
 
 --------------------------------------------
 
 [LEGENDA]
 Status: ${statusLegenda}
-${componentes.legenda ? `Estilo: ${v('estilo_legenda')}
+${componentes.legenda === true ? `Estilo: ${v('estilo_legenda')}
 Linguagem: ${v('linguagem_legenda')}` : ''}
 
 --------------------------------------------
 
 [LETTERING]
 Status: ${statusLettering}
-${componentes.lettering ? `Modo: ${v('lettering_modo')}
+${componentes.lettering === true ? `Modo: ${v('lettering_modo')}
 ${ca.lettering_modo === 'fornecer' ? `Frases: ${v('lettering_frases')}` : 'Editor sugere baseado no vídeo'}` : ''}
 
 --------------------------------------------
 
 [VINHETA]
 Status: ${statusVinheta}
-${componentes.vinheta ? `Tipo: ${ca.vinheta_tipo === 'padrao' ? 'Padrão Voxx' : 'Cliente própria'}` : ''}
+${componentes.vinheta === true ? `Tipo: ${ca.vinheta_tipo === 'padrao' ? 'Padrão Voxx' : 'Cliente própria'}` : ''}
 
 --------------------------------------------
 
 [ETIQUETA]
 Status: ${statusEtiqueta}
-${componentes.etiqueta ? `Nome Dra: ${v('nome_dra')}
+${componentes.etiqueta === true ? `Nome Dra: ${v('nome_dra')}
 CRO: ${v('cro_dra')}` : ''}
 
 ==================================================
