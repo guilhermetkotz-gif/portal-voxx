@@ -488,11 +488,14 @@ ${statusValidacao}`.trim();
 
           {/* Campos Adicionais - apenas valores primitivos */}
           {!mostrarBriefingVOXX && !mostrarBriefingEdicao && demanda.campos_adicionais && (() => {
+            const isPrimitive = (value) => {
+              if (value === null || value === undefined) return false;
+              const type = typeof value;
+              return type === 'string' || type === 'number' || type === 'boolean';
+            };
+            
             const primitiveFields = Object.entries(demanda.campos_adicionais)
-              .filter(([key, value]) => {
-                const type = typeof value;
-                return (type === 'string' || type === 'number' || type === 'boolean') && value !== null && value !== undefined;
-              });
+              .filter(([key, value]) => isPrimitive(value));
             
             if (primitiveFields.length === 0) return null;
             
