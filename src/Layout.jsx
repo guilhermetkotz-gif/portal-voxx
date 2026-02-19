@@ -314,11 +314,11 @@ export default function Layout({ children, currentPageName }) {
           onMobileMenuClick={() => setMobileMenuOpen(true)}
         />
         <div className="p-4 lg:p-8">
-          {currentCliente ? React.cloneElement(children, { 
-            currentCliente,
-            selectedClienteId,
+          {React.cloneElement(children, { 
+            currentCliente: currentCliente || null,
+            selectedClienteId: selectedClienteId || null,
             user
-          }) : children}
+          })}
         </div>
         </main>
 
