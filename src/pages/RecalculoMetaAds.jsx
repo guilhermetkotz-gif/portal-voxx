@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calculator, Calendar, TrendingUp, AlertTriangle, DollarSign, Target, ChevronDown, ChevronUp, Lock } from 'lucide-react';
+import { Calculator, Calendar, TrendingUp, AlertTriangle, DollarSign, Target, ChevronDown, ChevronUp, Lock, Activity, CheckCircle, XCircle, Zap } from 'lucide-react';
 import { format, differenceInDays, getDaysInMonth, startOfMonth, endOfMonth, startOfDay } from 'date-fns';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 
@@ -247,6 +247,40 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     return diferencaB - diferencaA;
   });
 
+  // Métricas de Monitoramento
+  const metricas = useMemo(() => {
+    const totalD1 = dadosOrdenados.reduce((acc, d) => acc + d.diarioD1, 0);
+    const totalRecalculado = dadosOrdenados.reduce((acc, d) => acc + d.investimentoDiarioRecalculado, 0);
+    const diferenca = totalRecalculado - totalD1;
+    
+    const semD1 = dadosOrdenados.filter(d => d.diarioD1 === 0).length;
+    const abaixoSugerido = dadosOrdenados.filter(d => d.diarioD1 > 0 && d.diarioD1 < d.investimentoDiarioRecalculado * 0.85).length;
+    const dentroFaixa = dadosOrdenados.filter(d => {
+      if (d.diarioD1 === 0) return false;
+      const percentual = (d.diarioD1 / d.investimentoDiarioRecalculado) * 100;
+      return percentual >= 85 && percentual <= 115;
+    }).length;
+    const acimaSugerido = dadosOrdenados.filter(d => d.diarioD1 > d.investimentoDiarioRecalculado * 1.15).length;
+    
+    const mediaVariacao = dadosOrdenados.length > 0
+      ? dadosOrdenados.reduce((acc, d) => {
+          if (d.investimentoDiarioRecalculado === 0) return acc;
+          return acc + Math.abs(((d.diarioD1 - d.investimentoDiarioRecalculado) / d.investimentoDiarioRecalculado) * 100);
+        }, 0) / dadosOrdenados.length
+      : 0;
+
+    return {
+      totalD1,
+      totalRecalculado,
+      diferenca,
+      semD1,
+      abaixoSugerido,
+      dentroFaixa,
+      acimaSugerido,
+      mediaVariacao
+    };
+  }, [dadosOrdenados]);
+
   const toggleCard = (clienteId) => {
     const newSet = new Set(expandedCards);
     if (newSet.has(clienteId)) {
@@ -342,6 +376,91 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dashboard de Monitoramento */}
+      <Card className="border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-violet-600" />
+            <CardTitle className="text-lg">Monitoramento de Investimento Diário (D-1)</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-4 gap-4 mb-6">
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <XCircle className="w-5 h-5 text-red-600" />
+                  <span className="text-2xl font-bold text-red-700">{metricas.semD1}</span>
+                </div>
+                <p className="text-xs text-red-700 font-medium">Sem Investimento D-1</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-amber-200 bg-amber-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  <span className="text-2xl font-bold text-amber-700">{metricas.abaixoSugerido}</span>
+                </div>
+                <p className="text-xs text-amber-700 font-medium">Abaixo do Sugerido (&lt;85%)</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-emerald-200 bg-emerald-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  <span className="text-2xl font-bold text-emerald-700">{metricas.dentroFaixa}</span>
+                </div>
+                <p className="text-xs text-emerald-700 font-medium">Dentro da Faixa (85-115%)</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Zap className="w-5 h-5 text-blue-600" />
+                  <span className="text-2xl font-bold text-blue-700">{metricas.acimaSugerido}</span>
+                </div>
+                <p className="text-xs text-blue-700 font-medium">Acima do Sugerido (&gt;115%)</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-4">
+            <Card className="bg-slate-50">
+              <CardContent className="pt-4">
+                <p className="text-xs text-slate-600 mb-1">Total Investido D-1</p>
+                <p className="text-xl font-bold text-slate-900">{formatCurrency(metricas.totalD1)}</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-violet-50">
+              <CardContent className="pt-4">
+                <p className="text-xs text-slate-600 mb-1">Total Diário Recalculado</p>
+                <p className="text-xl font-bold text-violet-700">{formatCurrency(metricas.totalRecalculado)}</p>
+              </CardContent>
+            </Card>
+
+            <Card className={metricas.diferenca >= 0 ? 'bg-green-50' : 'bg-red-50'}>
+              <CardContent className="pt-4">
+                <p className="text-xs text-slate-600 mb-1">Diferença (Recalc. - D-1)</p>
+                <p className={`text-xl font-bold ${metricas.diferenca >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  {metricas.diferenca >= 0 ? '+' : ''}{formatCurrency(metricas.diferenca)}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-slate-50">
+              <CardContent className="pt-4">
+                <p className="text-xs text-slate-600 mb-1">Variação Média</p>
+                <p className="text-xl font-bold text-slate-900">{metricas.mediaVariacao.toFixed(1)}%</p>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Lista de Unidades */}
       <div className="space-y-4">
