@@ -71,7 +71,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   }
 
   // 2. User has no access (no cliente) and is not admin → show message
-  if (!currentCliente && user?.role !== 'admin' && user?.tipo_acesso !== 'voxx_admin' && user?.tipo_acesso !== 'voxx_operacao' && user?.tipo_acesso !== 'voxx_manager') {
+  const userType = user?.tipo_usuario || user?.tipo_acesso;
+  if (!currentCliente && user?.role !== 'admin' && userType !== 'voxx_admin' && userType !== 'voxx_operacao' && userType !== 'voxx_manager') {
     return (
       <div className="max-w-2xl mx-auto mt-12">
         <Card className="p-8 text-center">
