@@ -285,7 +285,7 @@ Status: ${demanda.status}
     }
     
     // Validar etiqueta
-    if (componentes.etiqueta) {
+    if (componentes.etiqueta === true) {
       if (!ca.nome_dra) {
         score -= 10;
         motivos.push('Nome da Dra não informado');
@@ -299,7 +299,7 @@ Status: ${demanda.status}
     }
     
     // Validar vinheta
-    if (componentes.vinheta && ca.vinheta_tipo === 'propria') {
+    if (componentes.vinheta === true && ca.vinheta_tipo === 'propria') {
       const temVinheta = (demanda.anexos || []).some(a => a.toLowerCase().includes('vinheta'));
       if (!temVinheta) {
         score -= 15;
@@ -309,7 +309,7 @@ Status: ${demanda.status}
     }
     
     // Validar lettering
-    if (componentes.lettering) {
+    if (componentes.lettering === true) {
       if (ca.lettering_modo === 'fornecer' && !ca.lettering_frases) {
         score -= 15;
         motivos.push('Frases de lettering não fornecidas');
