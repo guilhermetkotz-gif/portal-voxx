@@ -276,7 +276,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   
   // Verificar se deve mostrar wizard Oral Sin
   const isOralSin = clienteSelecionado?.tipo_cliente === 'oral_sin' || 
-                    clienteSelecionado?.marca?.toLowerCase().includes('oral sin');
+                    clienteSelecionado?.marca?.toLowerCase().includes('oral sin') ||
+                    clienteSelecionado?.nome?.toLowerCase().includes('oral sin');
   const deveMostrarWizard = setor === 'CRIACAO' && isOralSin && !mostrarWizardOralSin;
   
   const clientesFiltrados = clientes.filter(c => 
