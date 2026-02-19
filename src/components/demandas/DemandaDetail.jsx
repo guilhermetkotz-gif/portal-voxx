@@ -496,7 +496,10 @@ ${statusValidacao}`.trim();
           )}
 
           {/* Campos Adicionais - apenas valores primitivos, excluindo objetos aninhados */}
-          {!mostrarBriefingVOXX && !mostrarBriefingEdicao && demanda.campos_adicionais && (() => {
+          {demanda.campos_adicionais && (() => {
+            // Se tem briefing específico, não mostrar campos adicionais
+            if (mostrarBriefingVOXX || mostrarBriefingEdicao) return null;
+            
             const isPrimitive = (value) => {
               if (value === null || value === undefined) return false;
               const type = typeof value;
