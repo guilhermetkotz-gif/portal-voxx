@@ -78,13 +78,15 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       if (!user) return [];
       
-      // Usuários Voxx veem TODOS os clientes automaticamente (verificar ambos tipo_usuario e tipo_acesso)
-      const tipoUsuario = user.tipo_usuario || user.tipo_acesso;
-      if (user.role === 'admin' || tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager') {
+      // Check both tipo_usuario (new field) and tipo_acesso (legacy field)
+      const userType = user.tipo_usuario || user.tipo_acesso;
+      
+      // Voxx users see ALL clients automatically
+      if (user.role === 'admin' || userType === 'voxx_admin' || userType === 'voxx_operacao' || userType === 'voxx_manager') {
         return base44.entities.Cliente.list('-updated_date', 500);
       }
       
-      // Clientes veem apenas os clientes atribuídos via UserClientAccess
+      // Cliente users only see assigned clients via UserClientAccess
       const access = await base44.entities.UserClientAccess.filter({
         usuario_id: user.id,
         status: 'ativo'
