@@ -52,6 +52,7 @@ export default function EdicaoVideoWizard({ cliente, subcategoria: subcategoriaI
     // Etapa 1
     modelo_edicao: '',
     modelo_observacao: '',
+    modelo_capa: '',
     
     // Etapa 2
     componentes: {
@@ -179,6 +180,7 @@ export default function EdicaoVideoWizard({ cliente, subcategoria: subcategoriaI
         modelo_edicao: dados.modelo_edicao,
         modelo_observacao: dados.modelo_observacao || null,
         componentes: dados.componentes,
+        modelo_capa: dados.componentes.capa ? dados.modelo_capa : null,
         texto_capa: dados.componentes.capa ? dados.texto_capa : null,
         cidade_capa: dados.componentes.capa ? dados.cidade_capa : null,
         cta_capa: dados.componentes.capa ? dados.cta_capa : null,
@@ -990,16 +992,55 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
               </div>
 
               {/* Assets */}
-              <div className="p-3 bg-red-50 rounded-lg">
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-xs text-red-600 mb-2 font-medium">📁 VÍDEO E ASSETS</p>
-                <div className="space-y-1 text-sm text-slate-900">
-                  <p><strong>Origem:</strong> {dados.video_source_type === 'upload' ? 'Upload direto' : 'Link'}</p>
+                <div className="space-y-2 text-sm">
+                  <div>
+                    <span className="text-slate-600">Origem:</span>
+                    <span className="ml-2 font-medium text-slate-900">
+                      {dados.video_source_type === 'upload' ? '📤 Upload direto' : '🔗 Link'}
+                    </span>
+                  </div>
+                  
                   {dados.video_source_type === 'upload' && (
-                    <p><strong>Vídeos:</strong> {anexos.length} arquivo(s)</p>
+                    <div>
+                      <span className="text-slate-600">Quantidade:</span>
+                      <span className="ml-2 font-medium text-slate-900">{anexos.length} arquivo(s)</span>
+                    </div>
                   )}
+                  
                   {dados.video_source_type === 'link' && dados.video_link && (
-                    <p className="break-all"><strong>Link:</strong> {dados.video_link}</p>
+                    <div>
+                      <span className="text-slate-600">Link:</span>
+                      <p className="text-xs text-slate-900 break-all mt-1 bg-white p-2 rounded border border-slate-200">
+                        {dados.video_link}
+                      </p>
+                    </div>
                   )}
+
+                  {/* Checklist status */}
+                  <div className="pt-2 border-t border-red-300">
+                    <p className="text-xs text-slate-600 mb-1">Checklist de qualidade:</p>
+                    <div className="space-y-0.5">
+                      {[
+                        { key: 'melhor_qualidade', label: 'Melhor qualidade' },
+                        { key: 'posicao_correta', label: 'Posição correta' },
+                        { key: 'audio_compreensivel', label: 'Áudio OK' },
+                        { key: 'acesso_liberado', label: 'Acesso liberado' }
+                      ].map(item => (
+                        <div key={item.key} className="flex items-center gap-1 text-xs">
+                          {dados.video_quality_check[item.key] ? (
+                            <CheckCircle className="w-3 h-3 text-green-600" />
+                          ) : (
+                            <AlertCircle className="w-3 h-3 text-amber-500" />
+                          )}
+                          <span className={dados.video_quality_check[item.key] ? 'text-green-700' : 'text-amber-700'}>
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
