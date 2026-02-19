@@ -71,16 +71,16 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   }
 
   // 2. User has no access (no cliente) and is not admin → show message
-  if (!currentCliente && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin') {
+  if (!currentCliente && user?.role !== 'admin' && user?.tipo_acesso !== 'voxx_admin' && user?.tipo_acesso !== 'voxx_operacao' && user?.tipo_acesso !== 'voxx_manager') {
     return (
       <div className="max-w-2xl mx-auto mt-12">
         <Card className="p-8 text-center">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Loader2 className="w-8 h-8 text-amber-600" />
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-blue-600" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Carregando seus dados...</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Aprovado!</h2>
           <p className="text-slate-600 mb-6">
-            Se esta mensagem persistir, entre em contato com o suporte.
+            Seu acesso foi aprovado. Aguarde enquanto carregamos seus clientes atribuídos...
           </p>
           <Button onClick={() => window.location.reload()} variant="outline">
             Recarregar Página
