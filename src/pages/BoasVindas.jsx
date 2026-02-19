@@ -260,7 +260,7 @@ export default function BoasVindas() {
               <Label>Tipo de Usuário *</Label>
               <Select value={tipoUsuario} onValueChange={setTipoUsuario}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o tipo de usuário" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cliente_admin">Cliente Admin (gerencia usuários)</SelectItem>
