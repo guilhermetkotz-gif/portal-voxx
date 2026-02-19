@@ -64,16 +64,17 @@ const menuItems = [
 
 export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingDemandas = 0, onLogout, user }) {
   // Fetch user type permissions
+  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
   const { data: userPermissions } = useQuery({
-    queryKey: ['userTypePermissions', user?.tipo_usuario],
+    queryKey: ['userTypePermissions', tipoUsuario],
     queryFn: async () => {
-      if (!user?.tipo_usuario) return null;
+      if (!tipoUsuario) return null;
       const perms = await base44.entities.UserTypePermissions.filter({ 
-        tipo_usuario: user.tipo_usuario 
+        tipo_usuario: tipoUsuario 
       });
       return perms[0] || null;
     },
-    enabled: !!user?.tipo_usuario,
+    enabled: !!tipoUsuario,
     staleTime: 5 * 60 * 1000
   });
 
@@ -132,12 +133,13 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
           }
 
           // Hide admin-only items for non-admin users
-          if (item.adminOnly && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin' && user?.tipo_usuario !== 'voxx_manager') {
+          const userType = user?.tipo_usuario || user?.tipo_acesso;
+          if (item.adminOnly && user?.role !== 'admin' && userType !== 'voxx_admin' && userType !== 'voxx_manager') {
             return null;
           }
 
           // Hide voxx-only items for non-voxx users
-          if (item.voxxOnly && user?.role !== 'admin' && user?.tipo_usuario !== 'voxx_admin' && user?.tipo_usuario !== 'voxx_operacao' && user?.tipo_usuario !== 'voxx_manager') {
+          if (item.voxxOnly && user?.role !== 'admin' && userType !== 'voxx_admin' && userType !== 'voxx_operacao' && userType !== 'voxx_manager') {
             return null;
           }
 
