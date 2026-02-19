@@ -83,8 +83,8 @@ export default function GerenciarPermissoes({ user }) {
       });
       setPermissoesPorTipo(permissoesMap);
       setPermissoesOriginais(JSON.parse(JSON.stringify(permissoesMap)));
-    } else {
-      // Inicializar com permissões padrão
+    } else if (permissoesExistentes.length === 0 && Object.keys(permissoesPorTipo).length === 0) {
+      // Inicializar com permissões padrão apenas se ainda não foi inicializado
       const permissoesDefault = {};
       TIPOS_USUARIO.forEach(tipo => {
         permissoesDefault[tipo.value] = {
@@ -96,7 +96,7 @@ export default function GerenciarPermissoes({ user }) {
       setPermissoesPorTipo(permissoesDefault);
       setPermissoesOriginais(JSON.parse(JSON.stringify(permissoesDefault)));
     }
-  }, [permissoesExistentes]);
+  }, [permissoesExistentes.length]);
 
   // Detectar alterações
   useEffect(() => {
