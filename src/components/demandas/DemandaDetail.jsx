@@ -15,8 +15,11 @@ import {
   ArrowRight,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Copy,
+  FileText
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -68,6 +71,67 @@ export default function DemandaDetail({ demanda, events = [], open, onClose, use
   if (!demanda) return null;
 
   const isAguardando = demanda.status === 'aguardando_cliente';
+
+  // Função para gerar briefing formatado para VOXX
+  const gerarBriefingVOXX = () => {
+    if (!demanda.campos_adicionais) return '';
+
+    const campos = demanda.campos_adicionais;
+    const val = (campo) => campos[campo] || 'Não informado';
+
+    return `BRIEFING VOXX | Image Performance Engine™ – Oral Sin
+
+══════════════════════════════════════════════════════
+
+📋 DADOS GERAIS
+Cliente: ${demanda.cliente_nome || 'Não informado'}
+Unidade: ${val('cidade_unidade')}
+WhatsApp: ${val('whatsapp_unidade')}
+
+══════════════════════════════════════════════════════
+
+🎨 ESPECIFICAÇÕES CRIATIVAS
+Formato: ${val('formato_peca')}
+Tema Principal: ${val('tema_principal')}
+Objetivo: ${val('objetivo_peca')}
+Estilo: ${val('estilo_comunicacao')}
+Tipo de Imagem: ${val('tipo_imagem')}
+
+══════════════════════════════════════════════════════
+
+⚡ URGÊNCIA & TIMING
+Urgência de Agenda: ${val('urgencia_agenda')}
+${campos.motivo_urgencia ? `Motivo: ${campos.motivo_urgencia}` : ''}
+
+══════════════════════════════════════════════════════
+
+💬 ESTRATÉGIA DE MENSAGEM
+Mensagem-chave: ${val('mensagem_chave')}
+Objeção Dominante: ${val('objecao_dominante')}
+
+══════════════════════════════════════════════════════
+
+📝 OBSERVAÇÕES ADICIONAIS
+${val('observacoes_extras')}
+
+══════════════════════════════════════════════════════
+
+⚙️ METADATA
+ID Demanda: ${demanda.id}
+Data Criação: ${format(new Date(demanda.created_date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+Status: ${demanda.status}
+`.trim();
+  };
+
+  const handleCopiarBriefing = () => {
+    const briefing = gerarBriefingVOXX();
+    navigator.clipboard.writeText(briefing);
+    toast.success('Briefing copiado para área de transferência!');
+  };
+
+  // Verificar se é demanda CRIACAO + Oral Sin
+  const isOralSin = demanda.cliente_nome?.toLowerCase().includes('oral sin');
+  const mostrarBriefingVOXX = demanda.setor === 'CRIACAO' && isOralSin && demanda.campos_adicionais;
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -148,6 +212,35 @@ export default function DemandaDetail({ demanda, events = [], open, onClose, use
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Briefing VOXX */}
+          {mostrarBriefingVOXX && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-violet-600" />
+                  <p className="text-xs text-slate-500">📦 Briefing para Agente VOXX</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopiarBriefing}
+                  className="h-7 text-xs"
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copiar
+                </Button>
+              </div>
+              <Textarea
+                value={gerarBriefingVOXX()}
+                readOnly
+                className="min-h-[300px] font-mono text-xs bg-slate-900 text-emerald-400 border-slate-700"
+              />
+              <p className="text-xs text-slate-400 mt-2">
+                Este briefing é gerado automaticamente e otimizado para o VOXX | Image Performance Engine™
+              </p>
             </div>
           )}
 
