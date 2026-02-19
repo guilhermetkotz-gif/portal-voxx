@@ -221,7 +221,7 @@ export default function Layout({ children, currentPageName }) {
 
   // User not authenticated → show content (will be BoasVindas in Home page)
   if (!user) {
-    return React.cloneElement(children, { user: null });
+    return children;
   }
 
   // Show loading state for user data
