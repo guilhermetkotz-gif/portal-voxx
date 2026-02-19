@@ -486,16 +486,21 @@ ${statusValidacao}`.trim();
             </div>
           )}
 
-          {/* Campos Adicionais - apenas valores primitivos */}
+          {/* Campos Adicionais - apenas valores primitivos, excluindo objetos aninhados */}
           {!mostrarBriefingVOXX && !mostrarBriefingEdicao && demanda.campos_adicionais && (() => {
             const isPrimitive = (value) => {
               if (value === null || value === undefined) return false;
               const type = typeof value;
+              // Garantir que não é objeto nem array
+              if (type === 'object' || Array.isArray(value)) return false;
               return type === 'string' || type === 'number' || type === 'boolean';
             };
             
+            // Excluir explicitamente campos conhecidos que são objetos
+            const excludedKeys = ['componentes', 'video_quality_check'];
+            
             const primitiveFields = Object.entries(demanda.campos_adicionais)
-              .filter(([key, value]) => isPrimitive(value));
+              .filter(([key, value]) => !excludedKeys.includes(key) && isPrimitive(value));
             
             if (primitiveFields.length === 0) return null;
             
