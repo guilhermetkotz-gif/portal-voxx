@@ -417,7 +417,16 @@ ${statusValidacao}`.trim();
 
   // Verificar se é demanda EDICAO e gerar briefing
   const mostrarBriefingEdicao = demanda.setor === 'EDICAO' && demanda.campos_adicionais;
-  const dadosBriefingEdicao = mostrarBriefingEdicao ? gerarBriefingEdicao() : null;
+  let dadosBriefingEdicao = null;
+  
+  if (mostrarBriefingEdicao) {
+    try {
+      dadosBriefingEdicao = gerarBriefingEdicao();
+    } catch (error) {
+      console.error('Erro ao gerar briefing de edição:', error);
+      dadosBriefingEdicao = null;
+    }
+  }
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
