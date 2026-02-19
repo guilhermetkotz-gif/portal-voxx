@@ -188,7 +188,10 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // Users with no clients but status 'ativo' - allow access but will show message in Home
-  if (user?.status === 'ativo' && (!clientes || clientes.length === 0)) {
+  const tipoUsuarioAccess = user?.tipo_usuario || user?.tipo_acesso;
+  const isVoxxUser = tipoUsuarioAccess === 'voxx_admin' || tipoUsuarioAccess === 'voxx_operacao' || tipoUsuarioAccess === 'voxx_manager';
+  
+  if (user?.status === 'ativo' && (!clientes || clientes.length === 0) && !isVoxxUser) {
     return (
       <div className="min-h-screen bg-slate-50">
         <Header 
