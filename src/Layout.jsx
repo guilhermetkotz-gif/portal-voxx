@@ -115,7 +115,7 @@ export default function Layout({ children, currentPageName }) {
         setSelectedClienteId(clientes[0].id);
       }
     }
-  }, [clientes.length]);
+  }, [clientes.length, selectedClienteId]);
 
   // Save selected cliente to localStorage
   useEffect(() => {
