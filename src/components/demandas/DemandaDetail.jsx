@@ -234,6 +234,103 @@ Status: ${demanda.status}
   const isOralSin = demanda.cliente_nome?.toLowerCase().includes('oral sin');
   const mostrarBriefingVOXX = demanda.setor === 'CRIACAO' && isOralSin && demanda.campos_adicionais;
 
+  // Verificar se é demanda EDICAO
+  const mostrarBriefingEdicao = demanda.setor === 'EDICAO' && demanda.campos_adicionais;
+
+  // Função para gerar briefing de edição
+  const gerarBriefingEdicao = () => {
+    if (!demanda.campos_adicionais) return '';
+
+    const campos = demanda.campos_adicionais;
+    const val = (campo) => campos[campo] || 'Não informado';
+
+    const componentesAtivos = campos.componentes 
+      ? Object.keys(campos.componentes).filter(k => campos.componentes[k]).join(', ')
+      : 'Não informado';
+
+    return `📦 BRIEFING DE EDIÇÃO – ${demanda.cliente_nome}
+
+══════════════════════════════════════════════════════
+
+🎯 CONTEXTO DO VÍDEO
+Objetivo: ${val('video_objetivo')}
+Plataforma: ${val('plataforma')}
+Formato: ${val('formato')}
+Duração: ${val('duracao')}
+
+══════════════════════════════════════════════════════
+
+🎨 MODELO E ESTILO
+Modelo de Edição: ${val('modelo_edicao')}
+${campos.modelo_observacao ? `Observações: ${campos.modelo_observacao}` : ''}
+
+══════════════════════════════════════════════════════
+
+✅ COMPONENTES INCLUÍDOS
+${componentesAtivos}
+
+══════════════════════════════════════════════════════
+
+💬 DADOS DE TEXTO
+
+${campos.componentes?.capa ? `
+📸 CAPA
+Texto: ${val('texto_capa')}
+${campos.cidade_capa ? `Cidade: ${campos.cidade_capa}` : ''}
+${campos.cta_capa ? `CTA: ${campos.cta_capa}` : ''}
+` : ''}
+
+${campos.componentes?.legenda ? `
+💬 LEGENDA
+Estilo: ${val('estilo_legenda')}
+Linguagem: ${val('linguagem_legenda')}
+${campos.obs_legenda ? `Obs: ${campos.obs_legenda}` : ''}
+` : ''}
+
+${campos.componentes?.vinheta ? `
+🎬 VINHETA
+Tipo: ${val('vinheta_tipo') === 'padrao' ? 'Vinheta padrão Voxx' : 'Vinheta própria do cliente'}
+` : ''}
+
+${campos.componentes?.etiqueta ? `
+🏷️ ETIQUETA
+Nome: ${val('nome_dra')}
+CRO: ${val('cro_dra')}
+` : ''}
+
+${campos.componentes?.lettering ? `
+✍️ LETTERING
+Modo: ${val('lettering_modo') === 'editor_sugere' ? 'Editor sugere' : 'Frases fornecidas'}
+${campos.lettering_frases ? `Frases: ${campos.lettering_frases}` : ''}
+` : ''}
+
+══════════════════════════════════════════════════════
+
+⏰ PRAZO E URGÊNCIA
+${demanda.urgente ? `⚠️ URGENTE: ${val('motivo_urgencia')}` : 'Prazo padrão: até 5 dias'}
+${campos.prazo_desejado ? `Prazo desejado: ${campos.prazo_desejado}` : ''}
+${campos.obs_prazo ? `Obs: ${campos.obs_prazo}` : ''}
+
+══════════════════════════════════════════════════════
+
+📁 ASSETS
+Total de arquivos: ${demanda.anexos?.length || 0}
+
+══════════════════════════════════════════════════════
+
+⚙️ METADATA
+ID Demanda: ${demanda.id}
+Data Criação: ${format(new Date(demanda.created_date), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+Status: ${demanda.status}
+`.trim();
+  };
+
+  const handleCopiarBriefingEdicao = () => {
+    const briefing = gerarBriefingEdicao();
+    navigator.clipboard.writeText(briefing);
+    toast.success('Briefing de edição copiado!');
+  };
+
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
@@ -371,6 +468,35 @@ Status: ${demanda.status}
                 </p>
               </div>
             </>
+          )}
+
+          {/* Briefing de Edição */}
+          {mostrarBriefingEdicao && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-600" />
+                  <p className="text-xs text-slate-500">📦 Briefing de Edição (Resumo)</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopiarBriefingEdicao}
+                  className="h-7 text-xs"
+                >
+                  <Copy className="w-3 h-3 mr-1" />
+                  Copiar briefing
+                </Button>
+              </div>
+              <Textarea
+                value={gerarBriefingEdicao()}
+                readOnly
+                className="min-h-[400px] font-mono text-xs bg-slate-900 text-blue-300 border-slate-700"
+              />
+              <p className="text-xs text-slate-400 mt-2">
+                Briefing gerado automaticamente com todas as informações coletadas
+              </p>
+            </div>
           )}
 
           {/* Anexos */}
