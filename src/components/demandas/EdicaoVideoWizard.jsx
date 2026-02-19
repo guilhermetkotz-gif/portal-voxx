@@ -20,17 +20,27 @@ import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
 
 const ETAPAS = [
-  { id: 0, titulo: "Contexto", descricao: "Objetivo e formato" },
-  { id: 1, titulo: "Modelo", descricao: "Modelo de edição" },
-  { id: 2, titulo: "Componentes", descricao: "O que incluir" },
-  { id: 3, titulo: "Textos", descricao: "Dados de texto" },
-  { id: 4, titulo: "Assets", descricao: "Arquivos" },
-  { id: 5, titulo: "Prazo", descricao: "Urgência e prazo" },
-  { id: 6, titulo: "Revisão", descricao: "Confirmar" }
+  { id: 0, titulo: "Tipo", descricao: "Tipo de edição" },
+  { id: 1, titulo: "Contexto", descricao: "Objetivo e formato" },
+  { id: 2, titulo: "Modelo", descricao: "Modelo de edição" },
+  { id: 3, titulo: "Componentes", descricao: "O que incluir" },
+  { id: 4, titulo: "Textos", descricao: "Dados de texto" },
+  { id: 5, titulo: "Assets", descricao: "Arquivos" },
+  { id: 6, titulo: "Prazo", descricao: "Urgência e prazo" },
+  { id: 7, titulo: "Revisão", descricao: "Confirmar" }
 ];
 
-export default function EdicaoVideoWizard({ cliente, subcategoria, onComplete, onCancel }) {
+const SUBCATEGORIAS_EDICAO = [
+  'Edição de vídeo para Ads',
+  'Reels / Shorts',
+  'Corte de vídeo longo',
+  'Legendas',
+  'Outro'
+];
+
+export default function EdicaoVideoWizard({ cliente, subcategoria: subcategoriaInicial, onComplete, onCancel }) {
   const [etapaAtual, setEtapaAtual] = useState(0);
+  const [subcategoria, setSubcategoria] = useState(subcategoriaInicial || '');
   const [dados, setDados] = useState({
     // Etapa 0
     video_objetivo: '',
@@ -104,14 +114,16 @@ export default function EdicaoVideoWizard({ cliente, subcategoria, onComplete, o
   const validarEtapa = (etapa) => {
     switch (etapa) {
       case 0:
+        return subcategoria;
+      case 1:
         return dados.video_objetivo && dados.plataforma && dados.formato && 
                (dados.duracao && (dados.duracao !== 'Outro' || dados.duracao_outro));
-      case 1:
-        return dados.modelo_edicao;
       case 2:
+        return dados.modelo_edicao;
+      case 3:
         // Pelo menos um componente deve estar marcado
         return Object.values(dados.componentes).some(v => v);
-      case 3:
+      case 4:
         // Validar campos conforme componentes marcados
         if (dados.componentes.capa && !dados.texto_capa) return false;
         if (dados.componentes.legenda && (!dados.estilo_legenda || !dados.linguagem_legenda)) return false;
@@ -121,6 +133,15 @@ export default function EdicaoVideoWizard({ cliente, subcategoria, onComplete, o
         if (dados.componentes.lettering && dados.lettering_modo === 'fornecer' && !dados.lettering_frases) return false;
         return true;
       case 4:
+        // Validar campos conforme componentes marcados
+        if (dados.componentes.capa && !dados.texto_capa) return false;
+        if (dados.componentes.legenda && (!dados.estilo_legenda || !dados.linguagem_legenda)) return false;
+        if (dados.componentes.vinheta && dados.vinheta_tipo === 'propria' && !anexos.some(a => a.includes('vinheta'))) return false;
+        if (dados.componentes.etiqueta && (!dados.nome_dra || !dados.cro_dra)) return false;
+        if (dados.componentes.lettering && !dados.lettering_modo) return false;
+        if (dados.componentes.lettering && dados.lettering_modo === 'fornecer' && !dados.lettering_frases) return false;
+        return true;
+      case 5:
         // Validação: deve ter vídeo (upload OU link)
         if (dados.video_source_type === 'upload') {
           if (anexos.length === 0) return false;
@@ -134,10 +155,10 @@ export default function EdicaoVideoWizard({ cliente, subcategoria, onComplete, o
           }
         }
         return true;
-      case 5:
+      case 6:
         if (dados.urgente && !dados.motivo_urgencia) return false;
         return true;
-      case 6:
+      case 7:
         return true;
       default:
         return true;
@@ -146,7 +167,7 @@ export default function EdicaoVideoWizard({ cliente, subcategoria, onComplete, o
 
   const proximaEtapa = () => {
     if (!validarEtapa(etapaAtual)) return;
-    if (etapaAtual < 6) {
+    if (etapaAtual < 7) {
       setEtapaAtual(etapaAtual + 1);
     } else {
       // Montar objeto final
@@ -195,7 +216,8 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
         descricao: descricaoAuto,
         anexos,
         titulo: `[Edição] ${subcategoria} - ${dados.plataforma}`,
-        urgente: dados.urgente
+        urgente: dados.urgente,
+        subcategoria
       });
     }
   };
@@ -206,7 +228,7 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
     }
   };
 
-  const progresso = ((etapaAtual + 1) / 7) * 100;
+  const progresso = ((etapaAtual + 1) / 8) * 100;
   const etapaInfo = ETAPAS[etapaAtual];
 
   const toggleComponente = (key) => {
@@ -227,7 +249,7 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span className="font-medium text-slate-700">
-            Etapa {etapaAtual + 1} de 7: {etapaInfo.descricao}
+            Etapa {etapaAtual + 1} de 8: {etapaInfo.descricao}
           </span>
           <span className="text-slate-500">{Math.round(progresso)}%</span>
         </div>
@@ -263,8 +285,42 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
 
       {/* Conteúdo da etapa */}
       <Card className="p-6 min-h-[350px]">
-        {/* ETAPA 0 - Contexto */}
+        {/* ETAPA 0 - Tipo de Edição */}
         {etapaAtual === 0 && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-1">Tipo de Edição</h3>
+              <p className="text-sm text-slate-500">Selecione o tipo de edição necessária</p>
+            </div>
+            
+            <div className="space-y-3">
+              {SUBCATEGORIAS_EDICAO.map(tipo => (
+                <label
+                  key={tipo}
+                  className={cn(
+                    "flex items-center gap-3 p-4 border-2 rounded-lg cursor-pointer transition-all",
+                    subcategoria === tipo 
+                      ? "border-blue-600 bg-blue-50" 
+                      : "border-slate-200 hover:border-blue-300"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="subcategoria"
+                    value={tipo}
+                    checked={subcategoria === tipo}
+                    onChange={(e) => setSubcategoria(e.target.value)}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="font-medium text-slate-900">{tipo}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ETAPA 1 - Contexto */}
+        {etapaAtual === 1 && (
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">Contexto do Vídeo</h3>
@@ -344,8 +400,8 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
           </div>
         )}
 
-        {/* ETAPA 1 - Modelo de Edição */}
-        {etapaAtual === 1 && (
+        {/* ETAPA 2 - Modelo de Edição */}
+        {etapaAtual === 2 && (
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">Modelo de Edição</h3>
@@ -378,8 +434,8 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
           </div>
         )}
 
-        {/* ETAPA 2 - Componentes */}
-        {etapaAtual === 2 && (
+        {/* ETAPA 3 - Componentes */}
+        {etapaAtual === 3 && (
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">Componentes do Vídeo</h3>
@@ -427,8 +483,8 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
           </div>
         )}
 
-        {/* ETAPA 3 - Dados de Texto */}
-        {etapaAtual === 3 && (
+        {/* ETAPA 4 - Dados de Texto */}
+        {etapaAtual === 4 && (
           <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">Dados de Texto</h3>
@@ -615,8 +671,8 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
           </div>
         )}
 
-        {/* ETAPA 4 - Assets */}
-        {etapaAtual === 4 && (
+        {/* ETAPA 5 - Assets */}
+        {etapaAtual === 5 && (
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">Vídeo Bruto e Assets</h3>
@@ -809,8 +865,8 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
           </div>
         )}
 
-        {/* ETAPA 5 - Prazo */}
-        {etapaAtual === 5 && (
+        {/* ETAPA 6 - Prazo */}
+        {etapaAtual === 6 && (
           <div className="space-y-4">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">Prazo e Urgência</h3>
@@ -869,8 +925,8 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
           </div>
         )}
 
-        {/* ETAPA 6 - Revisão Final */}
-        {etapaAtual === 6 && (
+        {/* ETAPA 7 - Revisão Final */}
+        {etapaAtual === 7 && (
           <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2">
             <div>
               <h3 className="text-lg font-semibold text-slate-900 mb-1">Revisão Final</h3>
@@ -992,7 +1048,7 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
           disabled={!validarEtapa(etapaAtual)}
           className="flex-1 bg-blue-600 hover:bg-blue-700"
         >
-          {etapaAtual === 6 ? (
+          {etapaAtual === 7 ? (
             <>
               <CheckCircle className="w-4 h-4 mr-2" />
               Confirmar e Enviar

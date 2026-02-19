@@ -387,7 +387,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
       setor: 'EDICAO',
-      subcategoria: subcategoria,
+      subcategoria: wizardData.subcategoria,
       titulo: wizardData.titulo,
       descricao: wizardData.descricao,
       status: 'recebida',
@@ -484,8 +484,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     );
   }
 
-  // Mostrar wizard de Edição de Vídeo
-  if (setor === 'EDICAO' && mostrarWizardEdicao && clienteId && subcategoria) {
+  // Mostrar wizard de Edição de Vídeo - ativa automaticamente quando escolher EDICAO
+  if (setor === 'EDICAO' && clienteId) {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
         <Card className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
@@ -507,9 +507,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           subcategoria={subcategoria}
           onComplete={handleWizardEdicaoComplete}
           onCancel={() => {
-            setMostrarWizardEdicao(false);
-            setSubcategoria('');
             setSetor('');
+            setSubcategoria('');
           }}
         />
       </div>
