@@ -487,7 +487,7 @@ ${statusValidacao}`.trim();
           )}
 
           {/* Campos Adicionais - apenas valores primitivos */}
-          {demanda.campos_adicionais && Object.keys(demanda.campos_adicionais).length > 0 && !mostrarBriefingVOXX && !mostrarBriefingEdicao && (() => {
+          {!mostrarBriefingVOXX && !mostrarBriefingEdicao && demanda.campos_adicionais && (() => {
             const primitiveFields = Object.entries(demanda.campos_adicionais)
               .filter(([key, value]) => {
                 const type = typeof value;
