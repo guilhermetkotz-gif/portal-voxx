@@ -232,14 +232,6 @@ Status: ${demanda.status}
     toast.success('JSON copiado para área de transferência!');
   };
 
-  // Verificar se é demanda CRIACAO + Oral Sin
-  const isOralSin = demanda.cliente_nome?.toLowerCase().includes('oral sin');
-  const mostrarBriefingVOXX = demanda.setor === 'CRIACAO' && isOralSin && demanda.campos_adicionais;
-
-  // Verificar se é demanda EDICAO e gerar briefing
-  const mostrarBriefingEdicao = demanda.setor === 'EDICAO' && demanda.campos_adicionais;
-  const dadosBriefingEdicao = mostrarBriefingEdicao ? gerarBriefingEdicao() : null;
-
   // Função para gerar briefing de edição com score de risco
   const gerarBriefingEdicao = () => {
     if (!demanda.campos_adicionais) return { briefing: '', score: 0, nivel: '', pendencias: [] };
@@ -419,7 +411,13 @@ ${statusValidacao}`.trim();
     return { briefing, score, nivelRisco, pendencias, statusValidacao };
   };
 
+  // Verificar se é demanda CRIACAO + Oral Sin
+  const isOralSin = demanda.cliente_nome?.toLowerCase().includes('oral sin');
+  const mostrarBriefingVOXX = demanda.setor === 'CRIACAO' && isOralSin && demanda.campos_adicionais;
 
+  // Verificar se é demanda EDICAO e gerar briefing
+  const mostrarBriefingEdicao = demanda.setor === 'EDICAO' && demanda.campos_adicionais;
+  const dadosBriefingEdicao = mostrarBriefingEdicao ? gerarBriefingEdicao() : null;
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
