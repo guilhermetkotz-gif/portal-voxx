@@ -23,6 +23,7 @@ import {
   DollarSign,
   Upload
 } from 'lucide-react';
+import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
 
 const setores = [
   { 
@@ -198,6 +199,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const [success, setSuccess] = useState(false);
   const [novaSubcategoria, setNovaSubcategoria] = useState('');
   const [mostrarNovaSubcategoria, setMostrarNovaSubcategoria] = useState(false);
+  const [mostrarWizardOralSin, setMostrarWizardOralSin] = useState(false);
 
   // Check URL params for pre-fill
   useEffect(() => {
@@ -271,6 +273,11 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   }, [kanbanColumns]);
 
   const clienteSelecionado = clientes.find(c => c.id === clienteId);
+  
+  // Verificar se deve mostrar wizard Oral Sin
+  const isOralSin = clienteSelecionado?.tipo_cliente === 'oral_sin' || 
+                    clienteSelecionado?.marca?.toLowerCase().includes('oral sin');
+  const deveMostrarWizard = setor === 'CRIACAO' && isOralSin && !mostrarWizardOralSin;
   
   const clientesFiltrados = clientes.filter(c => 
     c.nome?.toLowerCase().includes(searchCliente.toLowerCase()) ||
@@ -353,6 +360,25 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     await createDemanda.mutateAsync(data);
   };
 
+  const handleWizardComplete = async (wizardData) => {
+    const data = {
+      cliente_id: clienteId,
+      cliente_nome: clienteSelecionado?.nome,
+      setor: 'CRIACAO',
+      subcategoria: 'Briefing Oral Sin',
+      titulo: wizardData.titulo,
+      descricao: wizardData.descricao,
+      status: 'recebida',
+      prioridade: wizardData.camposAdicionais.urgencia_agenda === 'Sim' ? 'alta' : 'media',
+      urgente: wizardData.camposAdicionais.urgencia_agenda === 'Sim',
+      previsao_entrega: wizardData.camposAdicionais.data_desejada || null,
+      anexos: wizardData.anexos,
+      campos_adicionais: wizardData.camposAdicionais
+    };
+
+    await createDemanda.mutateAsync(data);
+  };
+
   const setorSelecionado = todosSetores.find(s => s.value === setor);
   const canViewerCreate = user?.tipo_acesso !== 'cliente_viewer';
   const isVoxx = user?.role === 'admin' || user?.tipo_acesso?.startsWith('voxx_');
@@ -406,8 +432,60 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     );
   }
 
+  // Mostrar wizard se for Oral Sin + Criação
+  if (deveMostrarWizard && clienteId) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <Card className="p-6 bg-gradient-to-r from-violet-50 to-blue-50 border-violet-200">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Palette className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Briefing Oral Sin</h3>
+              <p className="text-sm text-slate-600 mt-1">
+                Vamos criar um briefing completo em 8 etapas rápidas. Tempo estimado: 90 segundos.
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <CriacaoOralSinWizard
+          cliente={clienteSelecionado}
+          onComplete={handleWizardComplete}
+          onCancel={() => {
+            setMostrarWizardOralSin(false);
+            setSetor('');
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      {/* Banner Oral Sin */}
+      {setor === 'CRIACAO' && isOralSin && (
+        <Card className="p-4 bg-violet-50 border-violet-200">
+          <div className="flex items-start gap-3">
+            <Zap className="w-5 h-5 text-violet-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-violet-900">Briefing rápido disponível!</p>
+              <p className="text-sm text-violet-700 mt-1">
+                Para Oral Sin, temos um formulário guiado que facilita o briefing.
+              </p>
+              <Button
+                size="sm"
+                className="mt-3 bg-violet-600 hover:bg-violet-700"
+                onClick={() => setMostrarWizardOralSin(true)}
+              >
+                Usar Briefing Guiado
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Demanda similar warning */}
       {demandasExistentes.length > 0 && (
         <Card className="p-4 bg-amber-50 border-amber-200">
