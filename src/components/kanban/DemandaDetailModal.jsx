@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import 'moment-timezone';
 import TimeTracker from '@/components/demandas/TimeTracker';
+import { Copy, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const queryClient = useQueryClient();
@@ -209,6 +210,235 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     
     queryClient.invalidateQueries(['timeline']);
   };
+
+  // Funções de briefing (mesma lógica do DemandaDetail)
+  const gerarBriefingVOXX = () => {
+    if (!currentDemanda.campos_adicionais) return '';
+    const campos = currentDemanda.campos_adicionais;
+    const val = (campo) => campos[campo] || 'Não informado';
+    return `BRIEFING VOXX | Image Performance Engine™ – Oral Sin
+
+══════════════════════════════════════════════════════
+
+📋 DADOS GERAIS
+Cliente: ${currentDemanda.cliente_nome || 'Não informado'}
+Unidade: ${val('cidade_unidade')}
+WhatsApp: ${val('whatsapp_unidade')}
+
+══════════════════════════════════════════════════════
+
+🎨 ESPECIFICAÇÕES CRIATIVAS
+Formato: ${val('formato_peca')}
+Canal de Uso: ${val('canal_uso')}
+Tema Principal: ${val('tema_principal')}
+Objetivo: ${val('objetivo_peca')}
+Estilo: ${val('estilo_comunicacao')}
+Tipo de Imagem: ${val('tipo_imagem')}
+
+══════════════════════════════════════════════════════
+
+⚡ URGÊNCIA & TIMING
+Urgência de Agenda: ${val('urgencia_agenda')}
+${campos.motivo_urgencia ? `Motivo: ${campos.motivo_urgencia}` : ''}
+
+══════════════════════════════════════════════════════
+
+💬 ESTRATÉGIA DE MENSAGEM
+Mensagem-chave: ${val('mensagem_chave')}
+Objeção Dominante: ${val('objecao_dominante')}
+Diferencial da Unidade: ${val('diferencial_unidade')}
+
+══════════════════════════════════════════════════════
+
+📝 OBSERVAÇÕES ADICIONAIS
+${val('observacoes_extras')}
+
+══════════════════════════════════════════════════════
+
+⚙️ METADATA
+ID Demanda: ${currentDemanda.id}
+Data Criação: ${moment(currentDemanda.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}
+Status: ${currentDemanda.status}
+`.trim();
+  };
+
+  const gerarBriefingEdicao = () => {
+    if (!currentDemanda.campos_adicionais) return { briefing: '', score: 0, nivel: '', pendencias: [] };
+    const ca = currentDemanda.campos_adicionais;
+    const componentes = ca.componentes || {};
+    const v = (campo) => ca[campo] || 'Não informado';
+    
+    const anexosVideo = (currentDemanda.anexos || []).filter(a => 
+      a.includes('.mp4') || a.includes('.mov') || a.includes('.avi') || a.includes('video')
+    );
+    const qtdVideos = ca.video_source_type === 'upload' ? anexosVideo.length : (ca.video_link ? 1 : 0);
+    
+    const statusCapa = componentes.capa === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    const statusLegenda = componentes.legenda === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    const statusLettering = componentes.lettering === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    const statusVinheta = componentes.vinheta === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    const statusEtiqueta = componentes.etiqueta === true ? 'ATIVO' : 'NÃO SOLICITADO';
+    
+    let score = 100;
+    const motivos = [];
+    const pendencias = [];
+    
+    if (!ca.video_link && qtdVideos === 0) {
+      score -= 60;
+      motivos.push('Vídeo não enviado');
+      pendencias.push('🔴 VÍDEO AUSENTE - Nenhum vídeo ou link foi fornecido');
+    }
+    
+    const qualityCheck = ca.video_quality_check || {};
+    if (qualityCheck.melhor_qualidade !== true && qualityCheck.posicao_correta !== true && qualityCheck.audio_compreensivel !== true) {
+      score -= 10;
+    }
+    
+    if (componentes.capa === true) {
+      if (!ca.modelo_capa) {
+        score -= 15;
+        motivos.push('Modelo de capa não selecionado');
+        pendencias.push('🔴 CAPA INCOMPLETA - Modelo de capa não selecionado');
+      }
+      if (!ca.texto_capa) {
+        score -= 15;
+        motivos.push('Texto de capa ausente');
+        pendencias.push('🔴 CAPA INCOMPLETA - Texto da capa não informado');
+      }
+    }
+    
+    if (componentes.etiqueta === true) {
+      if (!ca.nome_dra) {
+        score -= 10;
+        motivos.push('Nome da Dra não informado');
+        pendencias.push('🔴 ETIQUETA INCOMPLETA - Nome da Dra não informado');
+      }
+      if (!ca.cro_dra) {
+        score -= 15;
+        motivos.push('CRO não informado');
+        pendencias.push('🔴 ETIQUETA INCOMPLETA - CRO não informado');
+      }
+    }
+    
+    if (componentes.vinheta === true && ca.vinheta_tipo === 'propria') {
+      const temVinheta = (currentDemanda.anexos || []).some(a => a.toLowerCase().includes('vinheta'));
+      if (!temVinheta) {
+        score -= 15;
+        motivos.push('Vinheta própria sem arquivo');
+        pendencias.push('🔴 VINHETA PRÓPRIA SEM ARQUIVO - Arquivo de vinheta não anexado');
+      }
+    }
+    
+    if (componentes.lettering === true) {
+      if (ca.lettering_modo === 'fornecer' && !ca.lettering_frases) {
+        score -= 15;
+        motivos.push('Frases de lettering não fornecidas');
+        pendencias.push('🔴 LETTERING INCOMPLETO - Frases não fornecidas');
+      }
+    }
+    
+    score = Math.max(0, Math.min(100, score));
+    
+    let nivelRisco = '';
+    if (score >= 85) nivelRisco = 'BAIXO RISCO';
+    else if (score >= 70) nivelRisco = 'MÉDIO RISCO';
+    else if (score >= 50) nivelRisco = 'ALTO RISCO';
+    else nivelRisco = 'CRÍTICO';
+    
+    const statusValidacao = pendencias.length > 0 ? 'REVISAR INFORMAÇÕES' : 'APTO PARA EDIÇÃO';
+    
+    const briefing = `📦 BRIEFING DE EDIÇÃO — RESUMO OPERACIONAL
+==================================================
+
+🏢 CLIENTE: ${currentDemanda.cliente_nome}
+📁 DEMANDA ID: ${currentDemanda.id}
+📅 PRAZO: ${currentDemanda.previsao_entrega ? moment(currentDemanda.previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY') : 'Não informado'}
+
+--------------------------------------------------
+🎬 MODELO DE EDIÇÃO
+--------------------------------------------------
+
+🎞️ Modelo selecionado: ${v('modelo_edicao')}
+
+--------------------------------------------------
+📥 VÍDEO BASE
+--------------------------------------------------
+
+Origem: ${ca.video_source_type === 'upload' ? '📤 Upload direto' : '🔗 Link'}
+Qtd. vídeos: ${qtdVideos}
+Link (se houver): ${v('video_link')}
+
+==================================================
+🧩 COMPONENTES SOLICITADOS
+==================================================
+
+[CAPA]
+Status: ${statusCapa}
+${componentes.capa === true ? `Modelo: ${v('modelo_capa')}
+Texto da capa: "${v('texto_capa')}"` : ''}
+
+--------------------------------------------
+
+[LEGENDA]
+Status: ${statusLegenda}
+${componentes.legenda === true ? `Estilo: ${v('estilo_legenda')}
+Linguagem: ${v('linguagem_legenda')}` : ''}
+
+--------------------------------------------
+
+[LETTERING]
+Status: ${statusLettering}
+${componentes.lettering === true ? `Modo: ${v('lettering_modo')}
+${ca.lettering_modo === 'fornecer' ? `Frases: ${v('lettering_frases')}` : 'Editor sugere baseado no vídeo'}` : ''}
+
+--------------------------------------------
+
+[VINHETA]
+Status: ${statusVinheta}
+${componentes.vinheta === true ? `Tipo: ${ca.vinheta_tipo === 'padrao' ? 'Padrão Voxx' : 'Cliente própria'}` : ''}
+
+--------------------------------------------
+
+[ETIQUETA]
+Status: ${statusEtiqueta}
+${componentes.etiqueta === true ? `Nome Dra: ${v('nome_dra')}
+CRO: ${v('cro_dra')}` : ''}
+
+==================================================
+⚠️ ALERTAS AUTOMÁTICOS
+==================================================
+
+${pendencias.length > 0 ? pendencias.join('\n') : '✅ Nenhuma pendência detectada'}
+
+==================================================
+🎯 SCORE DE RISCO DE RETRABALHO
+==================================================
+
+Nível: ${nivelRisco}
+Pontuação: ${score}/100
+${motivos.length > 0 ? `Motivos críticos:\n${motivos.map(m => `• ${m}`).join('\n')}` : '✅ Briefing completo e bem estruturado'}
+
+==================================================
+✅ STATUS DE VALIDAÇÃO
+==================================================
+
+${statusValidacao}`.trim();
+    
+    return { briefing, score, nivelRisco, pendencias, statusValidacao };
+  };
+
+  const isOralSin = currentDemanda.cliente_nome?.toLowerCase().includes('oral sin');
+  const mostrarBriefingVOXX = currentDemanda.setor === 'CRIACAO' && isOralSin && currentDemanda.campos_adicionais;
+  const mostrarBriefingEdicao = currentDemanda.setor === 'EDICAO' && currentDemanda.campos_adicionais;
+  
+  let dadosBriefingEdicao = null;
+  if (mostrarBriefingEdicao) {
+    try {
+      dadosBriefingEdicao = gerarBriefingEdicao();
+    } catch (error) {
+      console.error('Erro ao gerar briefing de edição:', error);
+    }
+  }
 
   if (!demanda) return null;
 
@@ -466,8 +696,145 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                   </Card>
                 )}
 
-                {/* Campos Adicionais */}
-                {currentDemanda.campos_adicionais && Object.keys(currentDemanda.campos_adicionais).length > 0 && (() => {
+                {/* Briefing VOXX para Criação Oral Sin */}
+                {mostrarBriefingVOXX && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-violet-600" />
+                          <CardTitle className="text-base">📦 Briefing para Agente VOXX</CardTitle>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(gerarBriefingVOXX());
+                            toast.success('Briefing copiado!');
+                          }}
+                        >
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copiar
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <Textarea
+                        value={gerarBriefingVOXX()}
+                        readOnly
+                        className="min-h-[300px] font-mono text-xs bg-slate-900 text-emerald-400 border-slate-700"
+                      />
+                      <p className="text-xs text-slate-400 mt-2">
+                        Briefing otimizado para o VOXX | Image Performance Engine™
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Briefing de Edição */}
+                {mostrarBriefingEdicao && dadosBriefingEdicao && (
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-amber-600" />
+                          <CardTitle className="text-base">📦 Briefing de Edição</CardTitle>
+                          <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", 
+                            dadosBriefingEdicao.score >= 85 ? "bg-green-100 text-green-700" :
+                            dadosBriefingEdicao.score >= 70 ? "bg-yellow-100 text-yellow-700" :
+                            dadosBriefingEdicao.score >= 50 ? "bg-orange-100 text-orange-700" :
+                            "bg-red-100 text-red-700"
+                          )}>
+                            {dadosBriefingEdicao.nivelRisco}
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(dadosBriefingEdicao.briefing);
+                            toast.success('Briefing copiado!');
+                          }}
+                        >
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copiar
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Score visual */}
+                      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-slate-700">Score de Qualidade</span>
+                          <span className={cn("text-lg font-bold",
+                            dadosBriefingEdicao.score >= 85 ? "text-green-600" :
+                            dadosBriefingEdicao.score >= 70 ? "text-yellow-600" :
+                            dadosBriefingEdicao.score >= 50 ? "text-orange-600" :
+                            "text-red-600"
+                          )}>
+                            {dadosBriefingEdicao.score}/100
+                          </span>
+                        </div>
+                        <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className={cn("h-full transition-all",
+                              dadosBriefingEdicao.score >= 85 ? "bg-green-500" :
+                              dadosBriefingEdicao.score >= 70 ? "bg-yellow-500" :
+                              dadosBriefingEdicao.score >= 50 ? "bg-orange-500" :
+                              "bg-red-500"
+                            )}
+                            style={{ width: `${dadosBriefingEdicao.score}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Alertas */}
+                      {dadosBriefingEdicao.pendencias.length > 0 && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="text-sm font-medium text-red-900 mb-2 flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            Pendências Detectadas
+                          </p>
+                          <div className="space-y-1 text-xs text-red-700">
+                            {dadosBriefingEdicao.pendencias.map((p, idx) => (
+                              <div key={idx}>{p}</div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Status */}
+                      <div className={cn("p-3 rounded-lg",
+                        dadosBriefingEdicao.statusValidacao === 'APTO PARA EDIÇÃO' 
+                          ? "bg-green-50 border border-green-200" 
+                          : "bg-amber-50 border border-amber-200"
+                      )}>
+                        <p className={cn("text-sm font-medium flex items-center gap-2",
+                          dadosBriefingEdicao.statusValidacao === 'APTO PARA EDIÇÃO' 
+                            ? "text-green-900" 
+                            : "text-amber-900"
+                        )}>
+                          {dadosBriefingEdicao.statusValidacao === 'APTO PARA EDIÇÃO' ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4" />
+                          )}
+                          {dadosBriefingEdicao.statusValidacao}
+                        </p>
+                      </div>
+                      
+                      {/* Briefing completo */}
+                      <Textarea
+                        value={dadosBriefingEdicao.briefing}
+                        readOnly
+                        className="min-h-[400px] font-mono text-xs bg-slate-900 text-slate-100 border-slate-700"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Campos Adicionais - somente se não tiver briefing específico */}
+                {!mostrarBriefingVOXX && !mostrarBriefingEdicao && currentDemanda.campos_adicionais && Object.keys(currentDemanda.campos_adicionais).length > 0 && (() => {
                   const isPrimitive = (value) => {
                     if (value === null || value === undefined) return false;
                     const type = typeof value;
