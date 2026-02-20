@@ -22,14 +22,15 @@ import {
   Edit,
   X,
   AlertTriangle,
-  Loader2
+  Loader2,
+  Copy,
+  CheckCircle
 } from 'lucide-react';
 import moment from 'moment';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import 'moment-timezone';
 import TimeTracker from '@/components/demandas/TimeTracker';
-import { Copy, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const queryClient = useQueryClient();
