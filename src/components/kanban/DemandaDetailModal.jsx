@@ -24,7 +24,8 @@ import {
   AlertTriangle,
   Loader2,
   Copy,
-  CheckCircle
+  CheckCircle,
+  Zap
 } from 'lucide-react';
 import moment from 'moment';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const [editMode, setEditMode] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [comentarioAnexo, setComentarioAnexo] = useState(null);
+  const [enviandoN8n, setEnviandoN8n] = useState(false);
   
   const [editData, setEditData] = useState({
     titulo: demanda?.titulo || '',
@@ -210,6 +212,28 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     });
     
     queryClient.invalidateQueries(['timeline']);
+  };
+
+  const handleEnviarParaN8n = async () => {
+    setEnviandoN8n(true);
+    try {
+      const jsonData = gerarJSONAgente();
+      const response = await base44.functions.invoke('enviarBriefingParaN8n', {
+        demanda_id: currentDemanda.id,
+        briefing_json: jsonData
+      });
+      
+      if (response.data.success) {
+        toast.success('Briefing enviado com sucesso! IA está gerando o conteúdo.');
+      } else {
+        toast.error(response.data.error || 'Erro ao enviar para n8n');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar para n8n:', error);
+      toast.error('Erro ao processar solicitação');
+    } finally {
+      setEnviandoN8n(false);
+    }
   };
 
   // Funções de briefing (mesma lógica do DemandaDetail)
