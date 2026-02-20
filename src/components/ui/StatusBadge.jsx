@@ -32,8 +32,10 @@ const setorConfig = {
 };
 
 export default function StatusBadge({ type = "status", value, size = "sm", className }) {
+  if (!value) return null;
+  
   const config = type === "status" ? statusConfig : type === "prioridade" ? prioridadeConfig : setorConfig;
-  const item = config[value] || { label: value?.replace(/_/g, ' ') || 'Desconhecido', color: "bg-slate-100 text-slate-600 border-slate-200" };
+  const item = config[value] || { label: String(value).replace(/_/g, ' '), color: "bg-slate-100 text-slate-600 border-slate-200" };
   
   const sizeStyles = {
     xs: "text-[10px] px-1.5 py-0.5",
