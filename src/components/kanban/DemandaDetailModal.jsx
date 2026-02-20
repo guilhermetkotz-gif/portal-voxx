@@ -854,6 +854,39 @@ ${statusValidacao}`.trim();
                   </>
                 )}
 
+                {/* Botão para enviar ao n8n */}
+                {mostrarBriefingVOXX && (
+                  <Card className="border-violet-200 bg-violet-50/50">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-slate-900 mb-1">🤖 Geração Automática com IA</h4>
+                          <p className="text-sm text-slate-600">
+                            Envie o briefing completo para o n8n gerar imagem e briefing otimizado via GPT
+                          </p>
+                        </div>
+                        <Button
+                          onClick={handleEnviarParaN8n}
+                          disabled={enviandoN8n}
+                          className="ml-4 bg-violet-600 hover:bg-violet-700"
+                        >
+                          {enviandoN8n ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Processando...
+                            </>
+                          ) : (
+                            <>
+                              <Zap className="w-4 h-4 mr-2" />
+                              Gerar com IA
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Briefing de Edição */}
                 {mostrarBriefingEdicao && dadosBriefingEdicao && (
                   <Card>
