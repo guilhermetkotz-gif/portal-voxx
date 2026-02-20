@@ -487,12 +487,28 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                         <CardTitle className="text-base">Informações Adicionais</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-2 text-sm">
-                        {primitiveFields.map(([key, value]) => (
-                          <div key={key}>
-                            <p className="font-medium text-slate-700">{key.replace(/_/g, ' ')}</p>
-                            <p className="text-slate-600">{String(value)}</p>
-                          </div>
-                        ))}
+                        {primitiveFields.map(([key, value]) => {
+                          const strValue = String(value);
+                          const isUrl = /^https?:\/\/.+/i.test(strValue);
+                          
+                          return (
+                            <div key={key}>
+                              <p className="font-medium text-slate-700">{key.replace(/_/g, ' ')}</p>
+                              {isUrl ? (
+                                <a 
+                                  href={strValue} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-violet-600 hover:text-violet-700 underline break-all"
+                                >
+                                  {strValue}
+                                </a>
+                              ) : (
+                                <p className="text-slate-600">{strValue}</p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </CardContent>
                     </Card>
                   );
