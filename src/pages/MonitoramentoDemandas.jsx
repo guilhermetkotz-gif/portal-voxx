@@ -25,7 +25,7 @@ const prioridades = {
   baixa: { color: '#10b981', label: 'Baixa' }
 };
 
-const setores = {
+const DEFAULT_SETORES = {
   ATENDIMENTO: 'Atendimento',
   TRAFEGO_META: 'Tráfego Meta Ads',
   TRAFEGO_GOOGLE: 'Tráfego Google Ads',
@@ -42,6 +42,23 @@ const setores = {
 
 export default function MonitoramentoDemandas({ user, selectedClienteId }) {
   const [filterSetor, setFilterSetor] = useState(null);
+
+  // Fetch custom columns for mapping
+  const { data: customColumns = [] } = useQuery({
+    queryKey: ['kanbanColumns'],
+    queryFn: () => base44.entities.KanbanColumn.filter({ active: true }),
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000
+  });
+
+  // Merge default and custom setores
+  const setores = React.useMemo(() => {
+    const merged = { ...DEFAULT_SETORES };
+    customColumns.forEach(col => {
+      merged[col.column_id] = col.name;
+    });
+    return merged;
+  }, [customColumns]);
 
   // Fetch all demandas
   const { data: allDemandas = [], isLoading } = useQuery({
