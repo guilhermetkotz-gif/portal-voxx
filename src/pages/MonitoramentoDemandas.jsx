@@ -138,6 +138,34 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
       value: demandas.filter(d => d.status === status).length
     })).filter(s => s.value > 0);
 
+    // Demandas concluídas por setor
+    const concluidasBySetor = {};
+    demandas.forEach(d => {
+      if (d.status === 'concluida') {
+        const setorName = setores[d.setor] || d.setor;
+        concluidasBySetor[setorName] = (concluidasBySetor[setorName] || 0) + 1;
+      }
+    });
+
+    const concluidasSetorChart = Object.entries(concluidasBySetor).map(([setor, count]) => ({
+      name: setor,
+      value: count
+    }));
+
+    // Demandas não concluídas por setor
+    const naoConcluidasBySetor = {};
+    demandas.forEach(d => {
+      if (d.status !== 'concluida') {
+        const setorName = setores[d.setor] || d.setor;
+        naoConcluidasBySetor[setorName] = (naoConcluidasBySetor[setorName] || 0) + 1;
+      }
+    });
+
+    const naoConcluidasSetorChart = Object.entries(naoConcluidasBySetor).map(([setor, count]) => ({
+      name: setor,
+      value: count
+    }));
+
     return {
       total,
       abertas,
@@ -145,7 +173,9 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
       altaPrioridade,
       avgCompletionBySetor: avgCompletionBySetor.sort((a, b) => a.avgDias - b.avgDias),
       setorChart,
-      statusChart
+      statusChart,
+      concluidasSetorChart,
+      naoConcluidasSetorChart
     };
   }, [demandas]);
 
@@ -281,6 +311,42 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
                 </Pie>
                 <Tooltip />
               </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Demandas Concluídas por Setor */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Demandas Concluídas por Setor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats.concluidasSetorChart}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} tick={{ fontSize: 12 }} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#10b981" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Demandas Não Concluídas por Setor */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Demandas Não Concluídas por Setor</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={stats.naoConcluidasSetorChart}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} tick={{ fontSize: 12 }} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="value" fill="#f59e0b" />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
