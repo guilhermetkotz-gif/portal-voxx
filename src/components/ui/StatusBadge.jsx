@@ -17,19 +17,23 @@ const prioridadeConfig = {
 };
 
 const setorConfig = {
+  ATENDIMENTO: { label: "Atendimento", color: "bg-cyan-100 text-cyan-700" },
   TRAFEGO_META: { label: "Tráfego Meta", color: "bg-blue-100 text-blue-700" },
   TRAFEGO_GOOGLE: { label: "Tráfego Google", color: "bg-red-100 text-red-700" },
   TRAFEGO_TIKTOK: { label: "Tráfego TikTok", color: "bg-slate-900 text-white" },
+  ALTERACAO_CRIACAO: { label: "Alteração Criação", color: "bg-fuchsia-100 text-fuchsia-700" },
   CRIACAO: { label: "Criação", color: "bg-pink-100 text-pink-700" },
   EDICAO: { label: "Edição", color: "bg-purple-100 text-purple-700" },
   BI_RELATORIO: { label: "BI / Relatório", color: "bg-emerald-100 text-emerald-700" },
   IMPLANTACAO: { label: "Implantação", color: "bg-orange-100 text-orange-700" },
-  FINANCEIRO: { label: "Financeiro", color: "bg-lime-100 text-lime-700" }
+  FINANCEIRO: { label: "Financeiro", color: "bg-lime-100 text-lime-700" },
+  AUTOMACAO: { label: "Automação", color: "bg-indigo-100 text-indigo-700" },
+  SALDOS: { label: "Saldos", color: "bg-yellow-100 text-yellow-700" }
 };
 
 export default function StatusBadge({ type = "status", value, size = "sm", className }) {
   const config = type === "status" ? statusConfig : type === "prioridade" ? prioridadeConfig : setorConfig;
-  const item = config[value] || { label: value, color: "bg-slate-100 text-slate-600" };
+  const item = config[value] || { label: value?.replace(/_/g, ' ') || 'Desconhecido', color: "bg-slate-100 text-slate-600 border-slate-200" };
   
   const sizeStyles = {
     xs: "text-[10px] px-1.5 py-0.5",
