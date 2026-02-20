@@ -110,6 +110,20 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
 
   // Calculate statistics
   const stats = useMemo(() => {
+    if (!demandas || demandas.length === 0) {
+      return {
+        total: 0,
+        abertas: 0,
+        concluidas: 0,
+        altaPrioridade: 0,
+        avgCompletionBySetor: [],
+        setorChart: [],
+        statusChart: [],
+        concluidasSetorChart: [],
+        naoConcluidasSetorChart: []
+      };
+    }
+
     const total = demandas.length;
     const abertas = demandas.filter(d => ['recebida', 'em_triagem', 'em_execucao', 'aguardando_cliente', 'em_revisao'].includes(d.status)).length;
     const concluidas = demandas.filter(d => d.status === 'concluida').length;
@@ -194,7 +208,7 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
       concluidasSetorChart,
       naoConcluidasSetorChart
     };
-  }, [demandas]);
+  }, [demandas, setores]);
 
   // Demandas críticas (prazo vencendo em 3 dias)
   const demandasCriticas = useMemo(() => {
