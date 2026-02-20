@@ -428,12 +428,12 @@ ${statusValidacao}`.trim();
     return { briefing, score, nivelRisco, pendencias, statusValidacao };
   };
 
-  const isOralSin = currentDemanda.cliente_nome?.toLowerCase().includes('oral sin');
-  const mostrarBriefingVOXX = currentDemanda.setor === 'CRIACAO' && isOralSin && currentDemanda.campos_adicionais;
-  const mostrarBriefingEdicao = currentDemanda.setor === 'EDICAO' && currentDemanda.campos_adicionais;
+  const isOralSin = currentDemanda?.cliente_nome?.toLowerCase().includes('oral sin');
+  const mostrarBriefingVOXX = currentDemanda?.setor === 'CRIACAO' && isOralSin && currentDemanda?.campos_adicionais;
+  const mostrarBriefingEdicao = currentDemanda?.setor === 'EDICAO' && currentDemanda?.campos_adicionais;
   
   let dadosBriefingEdicao = null;
-  if (mostrarBriefingEdicao) {
+  if (mostrarBriefingEdicao && currentDemanda) {
     try {
       dadosBriefingEdicao = gerarBriefingEdicao();
     } catch (error) {
