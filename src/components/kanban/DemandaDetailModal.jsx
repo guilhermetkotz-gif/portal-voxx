@@ -467,21 +467,36 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
                 )}
 
                 {/* Campos Adicionais */}
-                {currentDemanda.campos_adicionais && Object.keys(currentDemanda.campos_adicionais).length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Informações Adicionais</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      {Object.entries(currentDemanda.campos_adicionais).map(([key, value]) => (
-                        <div key={key}>
-                          <p className="font-medium text-slate-700">{key.replace(/_/g, ' ')}</p>
-                          <p className="text-slate-600">{value}</p>
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                )}
+                {currentDemanda.campos_adicionais && Object.keys(currentDemanda.campos_adicionais).length > 0 && (() => {
+                  const isPrimitive = (value) => {
+                    if (value === null || value === undefined) return false;
+                    const type = typeof value;
+                    if (type === 'object' || Array.isArray(value)) return false;
+                    return type === 'string' || type === 'number' || type === 'boolean';
+                  };
+                  
+                  const excludedKeys = ['componentes', 'video_quality_check'];
+                  const primitiveFields = Object.entries(currentDemanda.campos_adicionais)
+                    .filter(([key, value]) => !excludedKeys.includes(key) && isPrimitive(value));
+                  
+                  if (primitiveFields.length === 0) return null;
+                  
+                  return (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Informações Adicionais</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2 text-sm">
+                        {primitiveFields.map(([key, value]) => (
+                          <div key={key}>
+                            <p className="font-medium text-slate-700">{key.replace(/_/g, ' ')}</p>
+                            <p className="text-slate-600">{String(value)}</p>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* Timeline */}
                 <Card>
