@@ -193,10 +193,8 @@ export default function MonitoramentoGoogleAds() {
         closeDialog();
       }
       
-      // Recarregar dados após delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      // Recarregar dados
+      refetchClientes();
     } catch (error) {
       console.error('Erro completo ao atribuir:', error);
       toast.error('Erro ao atribuir responsável: ' + error.message);
