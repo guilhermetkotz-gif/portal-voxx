@@ -62,6 +62,7 @@ export default function CadastroCliente() {
     responsavel_cliente_email: '',
     responsavel_voxx_cs: '',
     responsavel_voxx_trafego: '',
+    responsavel_google_ads: '',
     
     // Seção D - Contas de Anúncio
     contas_anuncio: [],
@@ -303,6 +304,7 @@ export default function CadastroCliente() {
       responsavel_cliente_email: '',
       responsavel_voxx_cs: '',
       responsavel_voxx_trafego: '',
+      responsavel_google_ads: '',
       contas_anuncio: [],
       briefing: '',
       restrictions: '',
@@ -342,6 +344,7 @@ export default function CadastroCliente() {
       responsavel_cliente_email: cliente.responsavel_cliente_email || '',
       responsavel_voxx_cs: cliente.responsavel_voxx_cs || '',
       responsavel_voxx_trafego: cliente.responsavel_voxx_trafego || '',
+      responsavel_google_ads: cliente.responsavel_google_ads || '',
       contas_anuncio: cliente.contas_anuncio || [],
       briefing: cliente.briefing || '',
       restrictions: cliente.restrictions || '',
@@ -836,7 +839,7 @@ export default function CadastroCliente() {
                   <div className="space-y-4 p-4 bg-violet-50 rounded-lg mt-4">
                     <h4 className="font-semibold text-slate-700 text-sm">Responsáveis Voxx</h4>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="responsavel_voxx_cs">Responsável CS / Atendimento</Label>
                         <Input
@@ -853,6 +856,16 @@ export default function CadastroCliente() {
                           id="responsavel_voxx_trafego"
                           value={formData.responsavel_voxx_trafego}
                           onChange={(e) => handleInputChange('responsavel_voxx_trafego', e.target.value)}
+                          placeholder="Email do usuário Voxx"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="responsavel_google_ads">Responsável Google Ads</Label>
+                        <Input
+                          id="responsavel_google_ads"
+                          value={formData.responsavel_google_ads}
+                          onChange={(e) => handleInputChange('responsavel_google_ads', e.target.value)}
                           placeholder="Email do usuário Voxx"
                         />
                       </div>

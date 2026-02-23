@@ -21,8 +21,11 @@ import {
   AlertCircle,
   CheckCircle,
   Pause,
-  RefreshCw
+  RefreshCw,
+  UserCheck
 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import GoogleAdsAccountCard from '../components/GoogleAdsAccountCard';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -31,6 +34,8 @@ export default function MonitoramentoGoogleAds() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -101,6 +106,18 @@ export default function MonitoramentoGoogleAds() {
     enabled: !!user,
   });
 
+  const { data: clientes = [] } = useQuery({
+    queryKey: ['clientes-for-google-ads'],
+    queryFn: () => base44.entities.Cliente.list(),
+    enabled: !!user,
+  });
+
+  const voxxUsers = users.filter(u => 
+    u.tipo_usuario === 'voxx_admin' || 
+    u.tipo_usuario === 'voxx_operacao' || 
+    u.tipo_usuario === 'voxx_manager'
+  );
+
   const kpis = useMemo(() => {
     if (!accounts.length) return null;
 
@@ -147,6 +164,41 @@ export default function MonitoramentoGoogleAds() {
   const getUserName = (userId) => {
     const user = users.find(u => u.id === userId);
     return user?.full_name || 'Não atribuído';
+  };
+
+  const handleAssignResponsavel = async (accountId, accountName, userId) => {
+    try {
+      // Encontrar o cliente correspondente
+      const cliente = clientes.find(c => 
+        c.google_ads_account_name?.trim().toLowerCase() === accountName?.trim().toLowerCase()
+      );
+
+      if (!cliente) {
+        toast.error('Cliente não encontrado para esta conta');
+        return;
+      }
+
+      // Atualizar o campo responsavel_google_ads do cliente
+      await base44.entities.Cliente.update(cliente.id, {
+        responsavel_google_ads: userId
+      });
+
+      toast.success('Responsável atribuído com sucesso!');
+      setAssignDialogOpen(false);
+      setSelectedAccount(null);
+      
+      // Recarregar dados
+      window.location.reload();
+    } catch (error) {
+      toast.error('Erro ao atribuir responsável: ' + error.message);
+    }
+  };
+
+  const getResponsavelGoogleAds = (accountName) => {
+    const cliente = clientes.find(c => 
+      c.google_ads_account_name?.trim().toLowerCase() === accountName?.trim().toLowerCase()
+    );
+    return cliente?.responsavel_google_ads;
   };
 
   const getStatusIcon = (account) => {
@@ -346,7 +398,42 @@ export default function MonitoramentoGoogleAds() {
                         <TableCell className="font-medium">{account.account_name}</TableCell>
                         <TableCell>{account.unidade_nome}</TableCell>
                         <TableCell className="text-sm text-gray-600">
-                          {getUserName(account.responsavel_voxx)}
+                          <Dialog open={assignDialogOpen && selectedAccount?.id === account.id} onOpenChange={(open) => {
+                            setAssignDialogOpen(open);
+                            if (!open) setSelectedAccount(null);
+                          }}>
+                            <DialogTrigger asChild>
+                              <button
+                                onClick={() => setSelectedAccount(account)}
+                                className="flex items-center gap-1 hover:text-violet-600 transition-colors"
+                              >
+                                <UserCheck className="w-3 h-3" />
+                                <span>{getUserName(getResponsavelGoogleAds(account.account_name) || account.responsavel_voxx)}</span>
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Atribuir Responsável Google Ads</DialogTitle>
+                                <p className="text-sm text-slate-500">
+                                  {account.account_name}
+                                </p>
+                              </DialogHeader>
+                              <ScrollArea className="max-h-[400px]">
+                                <div className="space-y-2">
+                                  {voxxUsers.map(u => (
+                                    <button
+                                      key={u.id}
+                                      onClick={() => handleAssignResponsavel(account.id, account.account_name, u.id)}
+                                      className="w-full text-left px-4 py-3 rounded-lg border hover:border-violet-600 hover:bg-violet-50 transition-colors"
+                                    >
+                                      <div className="font-medium text-slate-900">{u.full_name}</div>
+                                      <div className="text-xs text-slate-500">{u.email}</div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </ScrollArea>
+                            </DialogContent>
+                          </Dialog>
                         </TableCell>
                         <TableCell className="text-right">{account.clicks.toLocaleString('pt-BR')}</TableCell>
                         <TableCell className="text-right font-semibold">{account.conversions}</TableCell>
