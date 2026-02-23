@@ -373,19 +373,20 @@ export default function MonitoramentoGoogleAds() {
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Conta</TableHead>
-                    <TableHead>Unidade</TableHead>
-                    <TableHead>Responsável VOXX</TableHead>
-                    <TableHead className="text-right">Clicks</TableHead>
-                    <TableHead className="text-right">Conversões</TableHead>
-                    <TableHead className="text-right">Custo</TableHead>
-                    <TableHead className="text-right">CPC</TableHead>
-                    <TableHead className="text-right">CPM</TableHead>
-                    <TableHead>Opt. Score</TableHead>
-                    <TableHead>Alertas</TableHead>
-                  </TableRow>
+                <TableRow>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Conta</TableHead>
+                  <TableHead>Unidade</TableHead>
+                  <TableHead>Responsável VOXX</TableHead>
+                  <TableHead className="text-right">Clicks</TableHead>
+                  <TableHead className="text-right">Conversões</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Cost/Conv.</TableHead>
+                  <TableHead className="text-right">CPC</TableHead>
+                  <TableHead className="text-right">CPM</TableHead>
+                  <TableHead>Opt. Score</TableHead>
+                  <TableHead>Alertas</TableHead>
+                </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAccounts.map(account => {
@@ -406,6 +407,9 @@ export default function MonitoramentoGoogleAds() {
                         <TableCell className="text-right">{account.clicks.toLocaleString('pt-BR')}</TableCell>
                         <TableCell className="text-right font-semibold">{account.conversions}</TableCell>
                         <TableCell className="text-right">R$ {account.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-semibold text-violet-600">
+                          {account.cost_per_conversion > 0 ? `R$ ${account.cost_per_conversion.toFixed(2)}` : '-'}
+                        </TableCell>
                         <TableCell className="text-right">R$ {account.avg_cpc.toFixed(2)}</TableCell>
                         <TableCell className="text-right font-semibold">R$ {account.avg_cpm.toFixed(2)}</TableCell>
                         <TableCell>
