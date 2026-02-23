@@ -62,9 +62,13 @@ export default function MonitoramentoGoogleAds() {
           const accountNameNormalized = c.google_ads_account_name.trim().toLowerCase();
           const googleAdsData = googleAdsMap.get(accountNameNormalized);
           
-          // Se tiver dados da planilha, mescla; senão, usa dados do cliente
+          // Se tiver dados da planilha, usar o ID dela; senão, usar cliente_${id}
+          const id = googleAdsData ? googleAdsData.id : `cliente_${c.id}`;
+          
           return {
-            id: `cliente_${c.id}`,
+            id,
+            googleAdsId: googleAdsData?.id,
+            clienteId: c.id,
             account_name: c.google_ads_account_name.trim(),
             unidade_nome: c.nome,
             cliente_nome: c.nome,
