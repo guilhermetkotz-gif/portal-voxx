@@ -188,7 +188,17 @@ export default function MonitoramentoGoogleAds() {
         responsavel_voxx: userId
       });
 
-      console.log('Conta Google Ads atualizada com sucesso!');
+      // Também atualizar o Cliente com responsavel_google_ads
+      const cliente = clientes.find(c => 
+        c.google_ads_account_name?.trim().toLowerCase() === accountName?.trim().toLowerCase()
+      );
+      if (cliente) {
+        await base44.entities.Cliente.update(cliente.id, {
+          responsavel_google_ads: userId
+        });
+      }
+
+      console.log('Conta Google Ads e Cliente atualizados com sucesso!');
       toast.success('Responsável atribuído com sucesso!');
       
       // Fechar dialog
