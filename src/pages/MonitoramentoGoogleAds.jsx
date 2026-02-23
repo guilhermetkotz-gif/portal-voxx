@@ -73,11 +73,15 @@ export default function MonitoramentoGoogleAds() {
             conversions: googleAdsData?.conversions || (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
             all_conversions: googleAdsData?.all_conversions || (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
             cost: googleAdsData?.cost || c.investimento_google_mes || 0,
+            cost_per_conversion: googleAdsData?.cost_per_conversion || 0,
             avg_cpc: googleAdsData?.avg_cpc || c.cpc_google || 0,
             avg_cpm: googleAdsData?.avg_cpm || 0,
             optimization_score: googleAdsData?.optimization_score || 0,
+            health_score: googleAdsData?.health_score || 0,
+            health_status: googleAdsData?.health_status || 'Sem dados',
             account_status: googleAdsData?.account_status || (c.status === 'ativo' ? 'Ativa' : 'Pausada'),
             conta_sem_dados: googleAdsData?.conta_sem_dados || false,
+            alertas: googleAdsData?.alertas || [],
             fonte_dados: googleAdsData ? 'Planilha Google Ads' : 'Cadastro Cliente'
           };
         });
