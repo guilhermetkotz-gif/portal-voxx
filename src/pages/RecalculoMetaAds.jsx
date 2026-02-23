@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calculator, Calendar, TrendingUp, AlertTriangle, DollarSign, Target, ChevronDown, ChevronUp, Lock, Activity, CheckCircle, XCircle, Zap } from 'lucide-react';
 import { format, differenceInDays, getDaysInMonth, startOfMonth, endOfMonth, startOfDay } from 'date-fns';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
@@ -42,6 +43,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
   
   const [expandedCards, setExpandedCards] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('todos');
   const [customConfigs, setCustomConfigs] = useState({}); // { clienteId: { enabled, percentage, cutoffDate, endDate } }
 
   // Buscar todos os clientes
@@ -234,11 +236,43 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     }).filter(Boolean);
   }, [clientes, planejamentos, amountSpentByAccount, customConfigs, currentMonth]);
 
-  // Filtrar por busca
-  const dadosFiltrados = dadosRecalculo.filter(d => 
-    d.cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.cliente.cidade?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar por busca e status
+  const dadosFiltrados = useMemo(() => {
+    let filtered = dadosRecalculo;
+    
+    // Filtro de busca
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(d => 
+        d.cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.cliente.cidade?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Filtro de status
+    if (statusFilter !== 'todos') {
+      filtered = filtered.filter(d => {
+        const diarioD1 = d.diarioD1 || 0;
+        const recalculado = d.investimentoDiarioRecalculado || 0;
+        const minimo = recalculado * 0.85;
+        const maximo = recalculado * 1.15;
+        
+        switch (statusFilter) {
+          case 'sem_investimento':
+            return diarioD1 === 0;
+          case 'abaixo':
+            return diarioD1 > 0 && diarioD1 < minimo;
+          case 'dentro':
+            return diarioD1 >= minimo && diarioD1 <= maximo;
+          case 'acima':
+            return diarioD1 > maximo;
+          default:
+            return true;
+        }
+      });
+    }
+    
+    return filtered;
+  }, [dadosRecalculo, searchTerm, statusFilter]);
 
   // Ordenar por impacto (maior diferença entre D-1 e recalculado)
   const dadosOrdenados = [...dadosFiltrados].sort((a, b) => {
