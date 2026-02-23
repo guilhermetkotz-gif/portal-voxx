@@ -387,7 +387,7 @@ export default function PerformancePorOperadorGoogleAds({ googleAdsAccounts, vox
             <DialogTitle className="flex items-center justify-between">
               <div>
                 <p className="text-xl font-bold">
-                  {voxxUsers?.find(u => u.email === selectedOperador?.responsavel)?.full_name || selectedOperador?.responsavel_nome}
+                  {voxxUsers?.find(u => u.id === selectedOperador?.responsavel)?.full_name || selectedOperador?.responsavel_nome}
                 </p>
                 <p className="text-sm text-slate-500 font-normal mt-1">
                   {selectedOperador?.totalContas} contas sob responsabilidade
