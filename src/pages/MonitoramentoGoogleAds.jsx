@@ -28,6 +28,11 @@ export default function MonitoramentoGoogleAds() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' ou 'table'
 
+  const { data: user } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => base44.auth.me(),
+  });
+
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['google-ads-accounts'],
     queryFn: async () => {
@@ -57,11 +62,13 @@ export default function MonitoramentoGoogleAds() {
       
       return [...googleAdsAccounts, ...contasClientes];
     },
+    enabled: !!user,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
+    enabled: !!user,
   });
 
   // Calcular KPIs
