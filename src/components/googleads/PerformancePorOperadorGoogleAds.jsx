@@ -316,9 +316,8 @@ export default function PerformancePorOperadorGoogleAds({ googleAdsAccounts, vox
                       <TableCell className="font-medium">
                         <div>
                           <p className="font-semibold text-slate-900">
-                            {voxxUsers?.find(u => u.email === operador.responsavel)?.full_name || operador.responsavel_nome}
+                            {voxxUsers?.find(u => u.id === operador.responsavel)?.full_name || operador.responsavel_nome}
                           </p>
-                          <p className="text-xs text-slate-500">{operador.responsavel}</p>
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
