@@ -167,27 +167,12 @@ export default function MonitoramentoGoogleAds() {
     try {
       console.log('Atribuindo responsável:', { accountId, accountName, userId });
       
-      // Encontrar o cliente correspondente
-      const cliente = clientes.find(c => 
-        c.google_ads_account_name?.trim().toLowerCase() === accountName?.trim().toLowerCase()
-      );
-
-      console.log('Cliente encontrado:', cliente);
-
-      if (!cliente) {
-        toast.error('Cliente não encontrado para esta conta');
-        console.error('Cliente não encontrado. Account name:', accountName);
-        return;
-      }
-
-      console.log('Atualizando cliente ID:', cliente.id, 'com user ID:', userId);
-
-      // Atualizar o campo responsavel_google_ads do cliente
-      await base44.entities.Cliente.update(cliente.id, {
-        responsavel_google_ads: userId
+      // Atualizar diretamente a conta GoogleAdsAccount
+      await base44.entities.GoogleAdsAccount.update(accountId, {
+        responsavel_voxx: userId
       });
 
-      console.log('Cliente atualizado com sucesso!');
+      console.log('Conta Google Ads atualizada com sucesso!');
       toast.success('Responsável atribuído com sucesso!');
       
       // Fechar dialog
@@ -199,7 +184,7 @@ export default function MonitoramentoGoogleAds() {
       // Recarregar dados após delay
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 500);
     } catch (error) {
       console.error('Erro completo ao atribuir:', error);
       toast.error('Erro ao atribuir responsável: ' + error.message);
