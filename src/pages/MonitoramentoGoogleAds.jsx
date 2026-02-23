@@ -132,11 +132,15 @@ export default function MonitoramentoGoogleAds() {
         })
       : accounts;
     
-    // Ordenar: contas ativas primeiro, inativas por último
+    // Ordenar: contas com atenção (sem dados) por último, depois pausadas, ativas primeiro
     return filtered.sort((a, b) => {
-      const statusA = a.account_status === 'Pausada' ? 1 : 0;
-      const statusB = b.account_status === 'Pausada' ? 1 : 0;
-      return statusA - statusB;
+      const getPriority = (acc) => {
+        if (acc.conta_sem_dados) return 2; // Atenção - por último
+        if (acc.account_status === 'Pausada') return 1; // Pausada - meio
+        return 0; // Ativa - primeiro
+      };
+      
+      return getPriority(a) - getPriority(b);
     });
   }, [accounts, searchTerm]);
 
