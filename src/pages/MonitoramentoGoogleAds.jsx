@@ -194,7 +194,8 @@ export default function MonitoramentoGoogleAds() {
       }
       
       // Recarregar dados
-      refetchClientes();
+      await refetchClientes();
+      await refetchAccounts();
     } catch (error) {
       console.error('Erro completo ao atribuir:', error);
       toast.error('Erro ao atribuir responsável: ' + error.message);
