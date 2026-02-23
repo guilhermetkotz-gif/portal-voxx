@@ -51,8 +51,10 @@ export default function GoogleAdsAccountCard({ account }) {
             <p className="text-lg font-semibold">R$ {account.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">CPA</p>
-            <p className="text-lg font-semibold">R$ {cpa}</p>
+            <p className="text-xs text-gray-500">Cost/Conv.</p>
+            <p className="text-lg font-semibold text-violet-600">
+              {account.cost_per_conversion > 0 ? `R$ ${account.cost_per_conversion.toFixed(2)}` : '-'}
+            </p>
           </div>
         </div>
         
