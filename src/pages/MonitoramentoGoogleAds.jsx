@@ -107,7 +107,21 @@ export default function MonitoramentoGoogleAds() {
 
   const { data: clientes = [], refetch: refetchClientes } = useQuery({
     queryKey: ['clientes-for-google-ads'],
-    queryFn: () => base44.entities.Cliente.list(),
+    queryFn: async () => {
+      const data = await base44.entities.Cliente.list();
+      console.log('=== DEBUG CLIENTES ===');
+      data.forEach(c => {
+        if (c.google_ads_account_name) {
+          console.log(`${c.nome}:`, {
+            google_ads_account_name: c.google_ads_account_name,
+            responsavel_google_ads: c.responsavel_google_ads,
+            responsavel_voxx_trafego: c.responsavel_voxx_trafego,
+            responsavel_voxx: c.responsavel_voxx
+          });
+        }
+      });
+      return data;
+    },
     enabled: !!user,
   });
 
