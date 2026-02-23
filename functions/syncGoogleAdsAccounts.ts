@@ -86,6 +86,10 @@ Deno.serve(async (req) => {
             clicksIdx,
             conversionsIdx,
             costIdx,
+            costPerConversionIdx,
+            avgCpcIdx,
+            avgCpmIdx,
+            optimizationScoreIdx,
             header_sample: headers.slice(0, 15)
         });
 
@@ -141,6 +145,8 @@ Deno.serve(async (req) => {
                     clicks,
                     conversions,
                     cost,
+                    costPerConversion,
+                    rawValue: row[costPerConversionIdx],
                     avgCpc
                 });
             }
