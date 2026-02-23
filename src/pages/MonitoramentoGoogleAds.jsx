@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Table, 
   TableBody, 
@@ -26,6 +27,7 @@ import {
 } from 'lucide-react';
 import GoogleAdsAccountCard from '../components/GoogleAdsAccountCard';
 import ResponsavelCell from '../components/googleads/ResponsavelCell';
+import PerformancePorOperadorGoogleAds from '../components/googleads/PerformancePorOperadorGoogleAds';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -247,30 +249,39 @@ export default function MonitoramentoGoogleAds() {
             <h1 className="text-3xl font-bold text-gray-900">Monitoramento Google Ads</h1>
             <p className="text-gray-600 mt-1">Visão geral das contas Google Ads - VOXX</p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleRefreshData}
-              disabled={isRefreshing}
-              variant="outline"
-              className="gap-2"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Atualizando...' : 'Atualizar Dados'}
-            </Button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`px-4 py-2 rounded-lg ${viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
-            >
-              Cards
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-4 py-2 rounded-lg ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
-            >
-              Tabela
-            </button>
-          </div>
+          <Button
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Atualizando...' : 'Atualizar Dados'}
+          </Button>
         </div>
+
+        <Tabs defaultValue="monitoramento" className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-2">
+            <TabsTrigger value="monitoramento">Monitoramento de Contas</TabsTrigger>
+            <TabsTrigger value="operadores">Contas/Operador</TabsTrigger>
+          </TabsList>
+
+          {/* Tab: Monitoramento de Contas */}
+          <TabsContent value="monitoramento" className="space-y-6 mt-6">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`px-4 py-2 rounded-lg ${viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
+              >
+                Cards
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`px-4 py-2 rounded-lg ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
+              >
+                Tabela
+              </button>
+            </div>
 
         {kpis && (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -432,11 +443,22 @@ export default function MonitoramentoGoogleAds() {
           </Card>
         )}
 
-        {filteredAccounts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">Nenhuma conta encontrada</p>
-          </div>
-        )}
+            {filteredAccounts.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Nenhuma conta encontrada</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Tab: Contas/Operador */}
+          <TabsContent value="operadores" className="space-y-6 mt-6">
+            <PerformancePorOperadorGoogleAds 
+              googleAdsAccounts={accounts} 
+              voxxUsers={voxxUsers}
+              clientes={clientes}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

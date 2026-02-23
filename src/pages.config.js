@@ -72,7 +72,6 @@ import Home from './pages/Home';
 import Kanban from './pages/Kanban';
 import MonitoramentoContas from './pages/MonitoramentoContas';
 import MonitoramentoDemandas from './pages/MonitoramentoDemandas';
-import MonitoramentoGoogleAds from './pages/MonitoramentoGoogleAds';
 import Newsletter from './pages/Newsletter';
 import OnboardingCliente from './pages/OnboardingCliente';
 import Performance from './pages/Performance';
@@ -81,6 +80,7 @@ import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
+import MonitoramentoGoogleAds from './pages/MonitoramentoGoogleAds';
 import __Layout from './Layout.jsx';
 
 
@@ -110,7 +110,6 @@ export const PAGES = {
     "Kanban": Kanban,
     "MonitoramentoContas": MonitoramentoContas,
     "MonitoramentoDemandas": MonitoramentoDemandas,
-    "MonitoramentoGoogleAds": MonitoramentoGoogleAds,
     "Newsletter": Newsletter,
     "OnboardingCliente": OnboardingCliente,
     "Performance": Performance,
@@ -119,6 +118,7 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
+    "MonitoramentoGoogleAds": MonitoramentoGoogleAds,
 }
 
 export const pagesConfig = {
