@@ -26,7 +26,7 @@ import GoogleAdsAccountCard from '../components/GoogleAdsAccountCard';
 
 export default function MonitoramentoGoogleAds() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' ou 'table'
+  const [viewMode, setViewMode] = useState('cards');
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -39,7 +39,6 @@ export default function MonitoramentoGoogleAds() {
       const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score');
       const clientes = await base44.entities.Cliente.filter({ google_ads_account_name: { $exists: true } });
       
-      // Mescla contas dos clientes que têm google_ads_account_name
       const contasClientes = clientes
         .filter(c => c.google_ads_account_name)
         .map(c => ({
@@ -71,7 +70,6 @@ export default function MonitoramentoGoogleAds() {
     enabled: !!user,
   });
 
-  // Calcular KPIs
   const kpis = useMemo(() => {
     if (!accounts.length) return null;
 
@@ -93,7 +91,6 @@ export default function MonitoramentoGoogleAds() {
     };
   }, [accounts]);
 
-  // Filtrar contas
   const filteredAccounts = useMemo(() => {
     if (!searchTerm) return accounts;
     const term = searchTerm.toLowerCase();
@@ -139,7 +136,6 @@ export default function MonitoramentoGoogleAds() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Monitoramento Google Ads</h1>
@@ -161,7 +157,6 @@ export default function MonitoramentoGoogleAds() {
           </div>
         </div>
 
-        {/* KPIs */}
         {kpis && (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <Card>
@@ -240,7 +235,6 @@ export default function MonitoramentoGoogleAds() {
           </div>
         )}
 
-        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
@@ -251,7 +245,6 @@ export default function MonitoramentoGoogleAds() {
           />
         </div>
 
-        {/* View: Cards */}
         {viewMode === 'cards' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredAccounts.map(account => (
@@ -260,7 +253,6 @@ export default function MonitoramentoGoogleAds() {
           </div>
         )}
 
-        {/* View: Table */}
         {viewMode === 'table' && (
           <Card>
             <CardContent className="p-0">
