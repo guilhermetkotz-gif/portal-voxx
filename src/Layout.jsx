@@ -78,15 +78,13 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       if (!user) return [];
       
-      // Check both tipo_usuario (new field) and tipo_acesso (legacy field)
-      const userType = user.tipo_usuario || user.tipo_acesso;
-      
-      // Voxx users see ALL clients automatically
-      if (user.role === 'admin' || userType === 'voxx_admin' || userType === 'voxx_operacao' || userType === 'voxx_manager') {
+      // Only Base44 admin (role === 'admin') sees ALL clients automatically
+      // All other users (Voxx and Cliente) must have explicit UserClientAccess records
+      if (user.role === 'admin') {
         return base44.entities.Cliente.list('-updated_date', 500);
       }
       
-      // Cliente users only see assigned clients via UserClientAccess
+      // All users (Voxx and Cliente) see only assigned clients via UserClientAccess
       const access = await base44.entities.UserClientAccess.filter({
         usuario_id: user.id,
         status: 'ativo'
