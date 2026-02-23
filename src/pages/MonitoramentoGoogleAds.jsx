@@ -156,7 +156,7 @@ export default function MonitoramentoGoogleAds() {
   const handleRefreshData = async () => {
     setIsRefreshing(true);
     try {
-      await base44.functions.invoke('syncMetaAdsAccounts');
+      await base44.functions.invoke('syncGoogleAdsAccounts');
       toast.success('Dados atualizados com sucesso!');
       // Refetch accounts data
       window.location.reload();
