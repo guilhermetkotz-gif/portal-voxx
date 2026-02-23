@@ -104,7 +104,7 @@ export default function MonitoramentoGoogleAds() {
     enabled: !!user,
   });
 
-  const { data: clientes = [] } = useQuery({
+  const { data: clientes = [], refetch: refetchClientes } = useQuery({
     queryKey: ['clientes-for-google-ads'],
     queryFn: () => base44.entities.Cliente.list(),
     enabled: !!user,
@@ -164,7 +164,7 @@ export default function MonitoramentoGoogleAds() {
     return user?.full_name || 'Não atribuído';
   };
 
-  const handleAssignResponsavel = async (accountId, accountName, userId) => {
+  const handleAssignResponsavel = async (accountId, accountName, userId, closeDialog) => {
     try {
       // Encontrar o cliente correspondente
       const cliente = clientes.find(c => 
@@ -183,11 +183,14 @@ export default function MonitoramentoGoogleAds() {
 
       toast.success('Responsável atribuído com sucesso!');
       
+      // Fechar dialog
+      if (closeDialog) closeDialog();
+      
       // Recarregar dados
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      await refetchClientes();
+      window.location.reload();
     } catch (error) {
+      console.error('Erro completo:', error);
       toast.error('Erro ao atribuir responsável: ' + error.message);
     }
   };
@@ -396,38 +399,43 @@ export default function MonitoramentoGoogleAds() {
                         <TableCell className="font-medium">{account.account_name}</TableCell>
                         <TableCell>{account.unidade_nome}</TableCell>
                         <TableCell className="text-sm text-gray-600">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <button
-                                className="flex items-center gap-1 hover:text-violet-600 transition-colors"
-                              >
-                                <UserCheck className="w-3 h-3" />
-                                <span>{getUserName(getResponsavelGoogleAds(account.account_name) || account.responsavel_voxx)}</span>
-                              </button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Atribuir Responsável Google Ads</DialogTitle>
-                                <p className="text-sm text-slate-500">
-                                  {account.account_name}
-                                </p>
-                              </DialogHeader>
-                              <ScrollArea className="max-h-[400px] pr-4">
-                                <div className="space-y-2">
-                                  {voxxUsers.map(u => (
-                                    <button
-                                      key={u.id}
-                                      onClick={() => handleAssignResponsavel(account.id, account.account_name, u.id)}
-                                      className="w-full text-left px-4 py-3 rounded-lg border hover:border-violet-600 hover:bg-violet-50 transition-colors"
-                                    >
-                                      <div className="font-medium text-slate-900">{u.full_name}</div>
-                                      <div className="text-xs text-slate-500">{u.email}</div>
-                                    </button>
-                                  ))}
-                                </div>
-                              </ScrollArea>
-                            </DialogContent>
-                          </Dialog>
+                          {(() => {
+                            const [open, setOpen] = React.useState(false);
+                            return (
+                              <Dialog open={open} onOpenChange={setOpen}>
+                                <DialogTrigger asChild>
+                                  <button
+                                    className="flex items-center gap-1 hover:text-violet-600 transition-colors"
+                                  >
+                                    <UserCheck className="w-3 h-3" />
+                                    <span>{getUserName(getResponsavelGoogleAds(account.account_name) || account.responsavel_voxx)}</span>
+                                  </button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Atribuir Responsável Google Ads</DialogTitle>
+                                    <p className="text-sm text-slate-500">
+                                      {account.account_name}
+                                    </p>
+                                  </DialogHeader>
+                                  <ScrollArea className="max-h-[400px] pr-4">
+                                    <div className="space-y-2">
+                                      {voxxUsers.map(u => (
+                                        <button
+                                          key={u.id}
+                                          onClick={() => handleAssignResponsavel(account.id, account.account_name, u.id, () => setOpen(false))}
+                                          className="w-full text-left px-4 py-3 rounded-lg border hover:border-violet-600 hover:bg-violet-50 transition-colors"
+                                        >
+                                          <div className="font-medium text-slate-900">{u.full_name}</div>
+                                          <div className="text-xs text-slate-500">{u.email}</div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </ScrollArea>
+                                </DialogContent>
+                              </Dialog>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell className="text-right">{account.clicks.toLocaleString('pt-BR')}</TableCell>
                         <TableCell className="text-right font-semibold">{account.conversions}</TableCell>
