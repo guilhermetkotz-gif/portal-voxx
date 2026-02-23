@@ -76,6 +76,7 @@ Deno.serve(async (req) => {
         const conversionsIdx = getColIndex('conversions');
         const allConversionsIdx = getColIndex('all_conversions');
         const costIdx = getColIndex('cost');
+        const costPerConversionIdx = getColIndex('cost_per_conversion');
         const avgCpcIdx = getColIndex('avg_cpc');
         const avgCpmIdx = getColIndex('avg_cpm');
         const optimizationScoreIdx = getColIndex('optimization_score');
@@ -118,6 +119,7 @@ Deno.serve(async (req) => {
             const conversions = parseNumber(row[conversionsIdx]);
             const allConversions = parseNumber(row[allConversionsIdx]) || conversions;
             const cost = parseNumber(row[costIdx]);
+            const costPerConversion = parseNumber(row[costPerConversionIdx]);
             const avgCpc = parseNumber(row[avgCpcIdx]);
             const avgCpm = parseNumber(row[avgCpmIdx]);
             const optimizationScore = parseNumber(row[optimizationScoreIdx]);
@@ -151,6 +153,7 @@ Deno.serve(async (req) => {
                 conversions: conversions,
                 all_conversions: allConversions,
                 cost: cost,
+                cost_per_conversion: costPerConversion,
                 avg_cpc: avgCpc,
                 avg_cpm: avgCpm,
                 optimization_score: optimizationScore,
