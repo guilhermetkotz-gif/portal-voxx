@@ -146,6 +146,11 @@ Deno.serve(async (req) => {
         h && (h.toLowerCase().includes('amount') && h.toLowerCase().includes('spent'))
       );
       
+      console.log('ONTEM - Headers:', ontemHeaders);
+      console.log('ONTEM - Account Name Index:', ontemAccountNameIndex);
+      console.log('ONTEM - Amount Spent Index:', ontemAmountSpentIndex);
+      console.log('ONTEM - Total Rows:', ontemRows.length);
+      
       if (ontemAccountNameIndex !== -1 && ontemAmountSpentIndex !== -1) {
         for (let i = 1; i < ontemRows.length; i++) {
           const row = ontemRows[i];
@@ -164,6 +169,9 @@ Deno.serve(async (req) => {
           
           if (accountName) {
             diarioD1ByAccount[accountName] = amountSpent;
+            if (i < 5) {
+              console.log(`ONTEM - Sample [${i}]:`, accountName, '=', amountSpent, '(raw:', amountSpentRaw, ')');
+            }
           }
         }
       }
