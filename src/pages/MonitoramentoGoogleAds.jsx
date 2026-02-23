@@ -321,14 +321,13 @@ export default function MonitoramentoGoogleAds() {
                     <TableHead className="text-right">Conversões</TableHead>
                     <TableHead className="text-right">Custo</TableHead>
                     <TableHead className="text-right">CPC</TableHead>
-                    <TableHead className="text-right">CPA</TableHead>
+                    <TableHead className="text-right">CPM</TableHead>
                     <TableHead>Opt. Score</TableHead>
                     <TableHead>Alertas</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAccounts.map(account => {
-                    const cpa = account.conversions > 0 ? (account.cost / account.conversions).toFixed(2) : '0.00';
                     return (
                       <TableRow key={account.id}>
                         <TableCell>{getStatusIcon(account)}</TableCell>
@@ -341,7 +340,7 @@ export default function MonitoramentoGoogleAds() {
                         <TableCell className="text-right font-semibold">{account.conversions}</TableCell>
                         <TableCell className="text-right">R$ {account.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right">R$ {account.avg_cpc.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-semibold">R$ {cpa}</TableCell>
+                        <TableCell className="text-right font-semibold">R$ {account.avg_cpm.toFixed(2)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {getScoreBadge(account.optimization_score)}
