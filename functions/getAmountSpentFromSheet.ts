@@ -104,6 +104,11 @@ Deno.serve(async (req) => {
         h && (h.toLowerCase().includes('amount') && h.toLowerCase().includes('spent'))
       );
       
+      console.log('MES - Headers:', mesHeaders);
+      console.log('MES - Account Name Index:', mesAccountNameIndex);
+      console.log('MES - Amount Spent Index:', mesAmountSpentIndex);
+      console.log('MES - Total Rows:', mesRows.length);
+      
       if (mesAccountNameIndex !== -1 && mesAmountSpentIndex !== -1) {
         for (let i = 1; i < mesRows.length; i++) {
           const row = mesRows[i];
@@ -122,6 +127,9 @@ Deno.serve(async (req) => {
           
           if (accountName) {
             amountSpentByAccount[accountName] = amountSpent;
+            if (i < 5) {
+              console.log(`MES - Sample [${i}]:`, accountName, '=', amountSpent, '(raw:', amountSpentRaw, ')');
+            }
           }
         }
       }
