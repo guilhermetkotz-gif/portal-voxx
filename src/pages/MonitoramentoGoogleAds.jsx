@@ -42,7 +42,7 @@ export default function MonitoramentoGoogleAds() {
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['google-ads-accounts'],
     queryFn: async () => {
-      const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score');
+      const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-ranking_posicao');
       const clientes = await base44.entities.Cliente.list();
       
       // Criar mapa de contas da planilha por account_name
@@ -71,11 +71,17 @@ export default function MonitoramentoGoogleAds() {
             conversions: googleAdsData?.conversions || (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
             all_conversions: googleAdsData?.all_conversions || (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
             cost: googleAdsData?.cost || c.investimento_google_mes || 0,
+            cost_per_conversion: googleAdsData?.cost_per_conversion || 0,
             avg_cpc: googleAdsData?.avg_cpc || c.cpc_google || 0,
             avg_cpm: googleAdsData?.avg_cpm || 0,
             optimization_score: googleAdsData?.optimization_score || 0,
             account_status: googleAdsData?.account_status || (c.status === 'ativo' ? 'Ativa' : 'Pausada'),
             conta_sem_dados: googleAdsData?.conta_sem_dados || false,
+            health_score: googleAdsData?.health_score || 0,
+            health_status: googleAdsData?.health_status || 'Sem dados',
+            ranking_posicao: googleAdsData?.ranking_posicao || 999,
+            alertas: googleAdsData?.alertas || [],
+            prioridade_acao: googleAdsData?.prioridade_acao || 'Investigar',
             fonte_dados: googleAdsData ? 'Planilha Google Ads' : 'Cadastro Cliente'
           };
         });
@@ -121,17 +127,17 @@ export default function MonitoramentoGoogleAds() {
     const totalInvestimento = accounts.reduce((sum, acc) => sum + acc.cost, 0);
     const totalConversoes = accounts.reduce((sum, acc) => sum + acc.conversions, 0);
     const cpaGeral = totalConversoes > 0 ? totalInvestimento / totalConversoes : 0;
-    const cpcMedio = accounts.reduce((sum, acc) => sum + acc.avg_cpc, 0) / accounts.length;
-    const scoreMedio = accounts.reduce((sum, acc) => sum + acc.optimization_score, 0) / accounts.length;
-    const contasAtivas = accounts.filter(acc => acc.account_status === 'Ativa' && !acc.conta_sem_dados).length;
+    const healthMedio = accounts.reduce((sum, acc) => sum + (acc.health_score || 0), 0) / accounts.length;
+    const contasUrgentes = accounts.filter(acc => acc.health_status === 'Urgente').length;
+    const contasSemDados = accounts.filter(acc => acc.conta_sem_dados || acc.health_status === 'Sem dados').length;
 
     return {
       totalInvestimento,
       totalConversoes,
       cpaGeral,
-      cpcMedio,
-      scoreMedio,
-      contasAtivas,
+      healthMedio,
+      contasUrgentes,
+      contasSemDados,
       totalContas: accounts.length
     };
   }, [accounts]);
@@ -217,8 +223,13 @@ export default function MonitoramentoGoogleAds() {
   const handleRefreshData = async () => {
     setIsRefreshing(true);
     try {
+      // 1. Sync data from sheet
       await base44.functions.invoke('syncGoogleAdsAccounts');
-      toast.success('Dados atualizados com sucesso!');
+      
+      // 2. Calculate health scores
+      await base44.functions.invoke('calcularHealthScoreGoogleAds');
+      
+      toast.success('Dados e health scores atualizados!');
       // Refetch accounts data
       window.location.reload();
     } catch (error) {
@@ -312,25 +323,21 @@ export default function MonitoramentoGoogleAds() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">CPC Médio</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">Health Médio</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">R$ {kpis.cpcMedio.toFixed(2)}</p>
-                  <MousePointerClick className="w-6 h-6 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Score Médio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">{kpis.scoreMedio.toFixed(0)}%</p>
-                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-xs font-bold text-blue-600">O</span>
+                  <p className="text-2xl font-bold">{kpis.healthMedio.toFixed(0)}</p>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    kpis.healthMedio >= 85 ? 'bg-green-100' :
+                    kpis.healthMedio >= 70 ? 'bg-yellow-100' :
+                    kpis.healthMedio >= 50 ? 'bg-orange-100' : 'bg-red-100'
+                  }`}>
+                    <span className={`text-xs font-bold ${
+                      kpis.healthMedio >= 85 ? 'text-green-600' :
+                      kpis.healthMedio >= 70 ? 'text-yellow-600' :
+                      kpis.healthMedio >= 50 ? 'text-orange-600' : 'text-red-600'
+                    }`}>H</span>
                   </div>
                 </div>
               </CardContent>
@@ -338,12 +345,24 @@ export default function MonitoramentoGoogleAds() {
 
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Contas Ativas</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">Contas Urgentes</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">{kpis.contasAtivas}/{kpis.totalContas}</p>
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <p className="text-2xl font-bold text-red-600">{kpis.contasUrgentes}</p>
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">Sem Dados</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl font-bold text-gray-600">{kpis.contasSemDados}</p>
+                  <AlertCircle className="w-6 h-6 text-gray-400" />
                 </div>
               </CardContent>
             </Card>
@@ -374,25 +393,47 @@ export default function MonitoramentoGoogleAds() {
               <Table>
                 <TableHeader>
                 <TableRow>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Ranking</TableHead>
                   <TableHead>Conta</TableHead>
                   <TableHead>Unidade</TableHead>
-                  <TableHead>Responsável VOXX</TableHead>
-                  <TableHead className="text-right">Clicks</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Health Score</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-right">Conversões</TableHead>
-                  <TableHead className="text-right">Custo</TableHead>
-                  <TableHead className="text-right">Cost/Conv.</TableHead>
+                  <TableHead className="text-right">CPA</TableHead>
                   <TableHead className="text-right">CPC</TableHead>
-                  <TableHead className="text-right">CPM</TableHead>
-                  <TableHead>Opt. Score</TableHead>
+                  <TableHead>Opt.</TableHead>
                   <TableHead>Alertas</TableHead>
+                  <TableHead>Prioridade</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAccounts.map(account => {
+                    const getHealthBadge = (status) => {
+                      const colors = {
+                        'Saudável': 'bg-green-600',
+                        'Atenção': 'bg-yellow-600',
+                        'Crítico': 'bg-orange-600',
+                        'Urgente': 'bg-red-600',
+                        'Sem dados': 'bg-gray-400'
+                      };
+                      return <Badge className={colors[status] || 'bg-gray-400'}>{status}</Badge>;
+                    };
+
+                    const getPrioridadeBadge = (prioridade) => {
+                      const colors = {
+                        'Atuar hoje': 'bg-red-100 text-red-800',
+                        'Alta prioridade': 'bg-orange-100 text-orange-800',
+                        'Monitorar': 'bg-blue-100 text-blue-800',
+                        'Escalar': 'bg-green-100 text-green-800',
+                        'Investigar': 'bg-gray-100 text-gray-800'
+                      };
+                      return <Badge variant="outline" className={colors[prioridade]}>{prioridade}</Badge>;
+                    };
+
                     return (
                       <TableRow key={account.id}>
-                        <TableCell>{getStatusIcon(account)}</TableCell>
+                        <TableCell className="font-bold text-lg">{account.ranking_posicao || '-'}</TableCell>
                         <TableCell className="font-medium">{account.account_name}</TableCell>
                         <TableCell>{account.unidade_nome}</TableCell>
                         <TableCell className="text-sm text-gray-600">
@@ -404,25 +445,35 @@ export default function MonitoramentoGoogleAds() {
                             handleAssignResponsavel={handleAssignResponsavel}
                           />
                         </TableCell>
-                        <TableCell className="text-right">{account.clicks.toLocaleString('pt-BR')}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl font-bold">{account.health_score || 0}</span>
+                            <div className={`w-3 h-3 rounded-full ${
+                              (account.health_score || 0) >= 85 ? 'bg-green-600' :
+                              (account.health_score || 0) >= 70 ? 'bg-yellow-600' :
+                              (account.health_score || 0) >= 50 ? 'bg-orange-600' : 'bg-red-600'
+                            }`} />
+                          </div>
+                        </TableCell>
+                        <TableCell>{getHealthBadge(account.health_status || 'Sem dados')}</TableCell>
                         <TableCell className="text-right font-semibold">{account.conversions}</TableCell>
-                        <TableCell className="text-right">R$ {account.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                         <TableCell className="text-right font-semibold text-violet-600">
                           {account.cost_per_conversion > 0 ? `R$ ${account.cost_per_conversion.toFixed(2)}` : '-'}
                         </TableCell>
                         <TableCell className="text-right">R$ {account.avg_cpc.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-semibold">R$ {account.avg_cpm.toFixed(2)}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getScoreBadge(account.optimization_score)}
-                            <span className="text-sm text-gray-600">{account.optimization_score}%</span>
+                          <span className="text-sm font-semibold">{account.optimization_score}%</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {(account.alertas || []).map((alerta, idx) => (
+                              <Badge key={idx} variant="outline" className="bg-red-50 text-red-700 text-xs block">
+                                {alerta}
+                              </Badge>
+                            ))}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {account.conta_sem_dados && (
-                            <Badge variant="outline" className="bg-gray-100">Sem Dados</Badge>
-                          )}
-                        </TableCell>
+                        <TableCell>{getPrioridadeBadge(account.prioridade_acao || 'Investigar')}</TableCell>
                       </TableRow>
                     );
                   })}
