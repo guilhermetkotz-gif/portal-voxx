@@ -328,6 +328,18 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-md"
         />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-56">
+            <SelectValue placeholder="Filtrar por status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os status</SelectItem>
+            <SelectItem value="sem_investimento">Sem investimento</SelectItem>
+            <SelectItem value="abaixo">Abaixo do sugerido</SelectItem>
+            <SelectItem value="dentro">Dentro da faixa</SelectItem>
+            <SelectItem value="acima">Acima do sugerido</SelectItem>
+          </SelectContent>
+        </Select>
         <Badge variant="outline" className="px-3 py-2">
           <Calendar className="w-4 h-4 mr-2" />
           Mês: {mes}/{ano}
