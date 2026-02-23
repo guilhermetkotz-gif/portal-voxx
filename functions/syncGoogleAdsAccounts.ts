@@ -64,11 +64,11 @@ Deno.serve(async (req) => {
         // Header row
         const headers = rows[0];
         
-        // Find column indices using config mapping
+        // Find column indices using exact match from config mapping
         const getColIndex = (configKey) => {
             const columnName = colMap[configKey];
             if (!columnName) return -1;
-            return headers.findIndex(h => h && h.toLowerCase().includes(columnName.toLowerCase()));
+            return headers.findIndex(h => h && h.trim() === columnName);
         };
         
         const accountNameIdx = getColIndex('account_name');
