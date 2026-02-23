@@ -30,8 +30,11 @@ export default function ResponsavelCell({
             {voxxUsers.map(u => (
               <button
                 key={u.id}
-                onClick={() => handleAssignResponsavel(account.id, account.account_name, u.id, () => setOpen(false))}
-                className="w-full text-left px-4 py-3 rounded-lg border hover:border-violet-600 hover:bg-violet-50 transition-colors"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  await handleAssignResponsavel(account.id, account.account_name, u.id, () => setOpen(false));
+                }}
+                className="w-full text-left px-4 py-3 rounded-lg border hover:border-violet-600 hover:bg-violet-50 transition-colors cursor-pointer"
               >
                 <div className="font-medium text-slate-900">{u.full_name}</div>
                 <div className="text-xs text-slate-500">{u.email}</div>
