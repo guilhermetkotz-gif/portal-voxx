@@ -20,13 +20,17 @@ import {
   Target,
   AlertCircle,
   CheckCircle,
-  Pause
+  Pause,
+  RefreshCw
 } from 'lucide-react';
 import GoogleAdsAccountCard from '../components/GoogleAdsAccountCard';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function MonitoramentoGoogleAds() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -122,6 +126,20 @@ export default function MonitoramentoGoogleAds() {
     return <Badge className="bg-red-600">Crítico</Badge>;
   };
 
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await base44.functions.invoke('syncMetaAdsAccounts');
+      toast.success('Dados atualizados com sucesso!');
+      // Refetch accounts data
+      window.location.reload();
+    } catch (error) {
+      toast.error('Erro ao atualizar dados: ' + error.message);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -142,6 +160,15 @@ export default function MonitoramentoGoogleAds() {
             <p className="text-gray-600 mt-1">Visão geral das contas Google Ads - VOXX</p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              variant="outline"
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar Dados'}
+            </Button>
             <button
               onClick={() => setViewMode('cards')}
               className={`px-4 py-2 rounded-lg ${viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
