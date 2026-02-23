@@ -123,13 +123,21 @@ export default function MonitoramentoGoogleAds() {
   }, [accounts]);
 
   const filteredAccounts = useMemo(() => {
-    if (!searchTerm) return accounts;
-    const term = searchTerm.toLowerCase();
-    return accounts.filter(acc => 
-      acc.account_name?.toLowerCase().includes(term) ||
-      acc.unidade_nome?.toLowerCase().includes(term) ||
-      acc.cliente_nome?.toLowerCase().includes(term)
-    );
+    let filtered = searchTerm 
+      ? accounts.filter(acc => {
+          const term = searchTerm.toLowerCase();
+          return acc.account_name?.toLowerCase().includes(term) ||
+                 acc.unidade_nome?.toLowerCase().includes(term) ||
+                 acc.cliente_nome?.toLowerCase().includes(term);
+        })
+      : accounts;
+    
+    // Ordenar: contas ativas primeiro, inativas por último
+    return filtered.sort((a, b) => {
+      const statusA = a.account_status === 'Pausada' ? 1 : 0;
+      const statusB = b.account_status === 'Pausada' ? 1 : 0;
+      return statusA - statusB;
+    });
   }, [accounts, searchTerm]);
 
   const getUserName = (userId) => {
