@@ -17,10 +17,8 @@ export default function ResponsavelCell({
     console.log('Account:', account.account_name);
     
     try {
-      await handleAssignResponsavel(account.id, account.account_name, userId, () => {
-        console.log('Fechando dialog...');
-        setOpen(false);
-      });
+      await handleAssignResponsavel(account.id, account.account_name, userId);
+      setOpen(false);
     } catch (error) {
       console.error('Erro no handleUserClick:', error);
     }
