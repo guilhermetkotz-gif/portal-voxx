@@ -56,6 +56,7 @@ const menuItems = [
   { divider: true },
   { name: "Dashboard Portfólio", icon: Activity, page: "DashboardPortfolio", adminOnly: true },
   { name: "Monitoramento Meta Ads", icon: Target, page: "MonitoramentoContas", adminOnly: true },
+  { name: "Monitoramento Google Ads", icon: TrendingUp, page: "MonitoramentoGoogleAds", adminOnly: true },
   { name: "Recálculo Meta Ads", icon: Calculator, page: "RecalculoMetaAds", adminOnly: true },
   { name: "Cadastro de Cliente", icon: UserPlus, page: "CadastroCliente", adminOnly: true },
   { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
