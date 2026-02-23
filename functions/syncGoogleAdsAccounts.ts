@@ -170,18 +170,32 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Delete all existing Google Ads accounts and insert new ones
+        // Fetch existing accounts to preserve responsavel_voxx
         const existingAccounts = await base44.asServiceRole.entities.GoogleAdsAccount.list('-created_date', 1000);
-        
-        const deletePromises = existingAccounts.map(acc => 
-            base44.asServiceRole.entities.GoogleAdsAccount.delete(acc.id)
-        );
-        await Promise.all(deletePromises);
+        const existingMap = new Map();
+        existingAccounts.forEach(acc => {
+            if (acc.account_name) {
+                existingMap.set(acc.account_name.trim().toLowerCase(), acc);
+            }
+        });
 
-        // Bulk create new accounts
-        if (accounts.length > 0) {
-            await base44.asServiceRole.entities.GoogleAdsAccount.bulkCreate(accounts);
-        }
+        // Upsert accounts - preserve responsavel_voxx if it exists
+        const upsertPromises = accounts.map(async (newAccount) => {
+            const existingAccount = existingMap.get(newAccount.account_name.trim().toLowerCase());
+            
+            if (existingAccount) {
+                // Update existing account, preserving responsavel_voxx
+                return base44.asServiceRole.entities.GoogleAdsAccount.update(existingAccount.id, {
+                    ...newAccount,
+                    responsavel_voxx: existingAccount.responsavel_voxx || newAccount.responsavel_voxx
+                });
+            } else {
+                // Create new account
+                return base44.asServiceRole.entities.GoogleAdsAccount.create(newAccount);
+            }
+        });
+        
+        await Promise.all(upsertPromises);
 
         return Response.json({ 
             success: true, 
