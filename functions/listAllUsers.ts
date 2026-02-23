@@ -10,7 +10,8 @@ Deno.serve(async (req) => {
         }
 
         // Apenas admins e voxx_admin podem listar todos os usuários
-        if (user.role !== 'admin' && user.tipo_acesso !== 'voxx_admin' && user.tipo_acesso !== 'voxx_manager') {
+        const tipoUsuario = user.tipo_usuario || user.tipo_acesso;
+        if (user.role !== 'admin' && tipoUsuario !== 'voxx_admin' && tipoUsuario !== 'voxx_manager') {
             return Response.json({ error: 'Forbidden' }, { status: 403 });
         }
 
