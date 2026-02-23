@@ -41,7 +41,7 @@ export default function MonitoramentoGoogleAds() {
     queryFn: () => base44.auth.me(),
   });
 
-  const { data: accounts = [], isLoading } = useQuery({
+  const { data: accounts = [], isLoading, refetch: refetchAccounts } = useQuery({
     queryKey: ['google-ads-accounts'],
     queryFn: async () => {
       const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score');
