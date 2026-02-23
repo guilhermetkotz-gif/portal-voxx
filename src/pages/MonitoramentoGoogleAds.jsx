@@ -72,7 +72,8 @@ export default function MonitoramentoGoogleAds() {
             account_name: c.google_ads_account_name.trim(),
             unidade_nome: c.nome,
             cliente_nome: c.nome,
-            responsavel_voxx: c.responsavel_google_ads || c.responsavel_voxx_trafego || c.responsavel_voxx,
+            // Prioridade: GoogleAdsAccount.responsavel_voxx > Cliente.responsavel_google_ads > outros
+            responsavel_voxx: googleAdsData?.responsavel_voxx || c.responsavel_google_ads || c.responsavel_voxx_trafego || c.responsavel_voxx,
             clicks: googleAdsData?.clicks || c.cliques_google_whatsapp || 0,
             conversions: googleAdsData?.conversions || (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
             all_conversions: googleAdsData?.all_conversions || (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
