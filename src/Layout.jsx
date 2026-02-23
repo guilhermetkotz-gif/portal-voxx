@@ -80,12 +80,18 @@ export default function Layout({ children, currentPageName }) {
       
       const tipoUsuario = user.tipo_usuario || user.tipo_acesso;
       
-      // Base44 admin and Voxx users see ALL clients automatically
-      if (user.role === 'admin' || tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager') {
+      // Base44 admin (role === 'admin') sees ALL clients automatically
+      if (user.role === 'admin') {
         return base44.entities.Cliente.list('-updated_date', 500);
       }
       
-      // Cliente users (cliente_admin, cliente_usuario) see only assigned clients via UserClientAccess
+      // Voxx users see ALL clients automatically ONLY if tipo_usuario is correctly set
+      if (tipoUsuario && (tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager')) {
+        return base44.entities.Cliente.list('-updated_date', 500);
+      }
+      
+      // All other users (cliente_admin, cliente_usuario, or users without tipo_usuario)
+      // see ONLY assigned clients via UserClientAccess
       const access = await base44.entities.UserClientAccess.filter({
         usuario_id: user.id,
         status: 'ativo'
