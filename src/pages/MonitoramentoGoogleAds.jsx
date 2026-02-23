@@ -177,12 +177,17 @@ export default function MonitoramentoGoogleAds() {
     try {
       console.log('Atribuindo responsável:', { accountId, accountName, userId });
       
-      // Atualizar diretamente a conta GoogleAdsAccount
-      await base44.entities.GoogleAdsAccount.update(accountId, {
-        responsavel_voxx: userId
-      });
+      const account = accounts.find(a => a.account_name === accountName);
+      
+      // Se há ID real da GoogleAdsAccount, atualizar
+      if (account?.googleAdsId || (accountId && !accountId.startsWith('cliente_'))) {
+        const realId = account?.googleAdsId || accountId;
+        await base44.entities.GoogleAdsAccount.update(realId, {
+          responsavel_voxx: userId
+        });
+      }
 
-      // Também atualizar o Cliente com responsavel_google_ads
+      // Sempre atualizar o Cliente com responsavel_google_ads
       const cliente = clientes.find(c => 
         c.google_ads_account_name?.trim().toLowerCase() === accountName?.trim().toLowerCase()
       );
@@ -192,20 +197,14 @@ export default function MonitoramentoGoogleAds() {
         });
       }
 
-      console.log('Conta Google Ads e Cliente atualizados com sucesso!');
+      console.log('Responsável atribuído com sucesso!');
       toast.success('Responsável atribuído com sucesso!');
-      
-      // Fechar dialog
-      if (closeDialog) {
-        console.log('Fechando dialog...');
-        closeDialog();
-      }
       
       // Recarregar dados
       await refetchClientes();
       await refetchAccounts();
     } catch (error) {
-      console.error('Erro completo ao atribuir:', error);
+      console.error('Erro ao atribuir:', error);
       toast.error('Erro ao atribuir responsável: ' + error.message);
     }
   };
