@@ -30,7 +30,33 @@ export default function MonitoramentoGoogleAds() {
 
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: ['google-ads-accounts'],
-    queryFn: () => base44.entities.GoogleAdsAccount.list('-optimization_score'),
+    queryFn: async () => {
+      const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score');
+      const clientes = await base44.entities.Cliente.filter({ google_ads_account_name: { $exists: true } });
+      
+      // Mescla contas dos clientes que têm google_ads_account_name
+      const contasClientes = clientes
+        .filter(c => c.google_ads_account_name)
+        .map(c => ({
+          id: `cliente_${c.id}`,
+          account_name: c.google_ads_account_name,
+          unidade_nome: c.nome,
+          cliente_nome: c.nome,
+          responsavel_voxx: c.responsavel_voxx_trafego || c.responsavel_voxx,
+          clicks: c.cliques_google_whatsapp || 0,
+          conversions: (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
+          all_conversions: (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
+          cost: c.investimento_google_mes || 0,
+          avg_cpc: c.cpc_google || 0,
+          avg_cpm: 0,
+          optimization_score: 0,
+          account_status: c.status === 'ativo' ? 'Ativa' : 'Pausada',
+          conta_sem_dados: false,
+          fonte_dados: 'Cadastro Cliente'
+        }));
+      
+      return [...googleAdsAccounts, ...contasClientes];
+    },
   });
 
   const { data: users = [] } = useQuery({
