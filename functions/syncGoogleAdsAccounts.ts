@@ -170,8 +170,10 @@ Deno.serve(async (req) => {
             });
         }
 
-        // Fetch existing accounts to preserve responsavel_voxx
+        // Fetch existing accounts and clients to preserve responsavel_voxx/responsavel_google_ads
         const existingAccounts = await base44.asServiceRole.entities.GoogleAdsAccount.list('-created_date', 1000);
+        const clientes = await base44.asServiceRole.entities.Cliente.list('-created_date', 1000);
+        
         const existingMap = new Map();
         existingAccounts.forEach(acc => {
             if (acc.account_name) {
@@ -179,20 +181,37 @@ Deno.serve(async (req) => {
             }
         });
 
-        // Upsert accounts - preserve responsavel_voxx if it exists
+        const clienteMap = new Map();
+        clientes.forEach(c => {
+            if (c.google_ads_account_name) {
+                clienteMap.set(c.google_ads_account_name.trim().toLowerCase(), c);
+            }
+        });
+
+        // Upsert accounts - preserve responsavel_voxx from existing account and from Cliente
         const upsertPromises = accounts.map(async (newAccount) => {
             const existingAccount = existingMap.get(newAccount.account_name.trim().toLowerCase());
+            const cliente = clienteMap.get(newAccount.account_name.trim().toLowerCase());
             
             if (existingAccount) {
-                // Update existing account, preserving responsavel_voxx
+                // Update existing account, preserving responsavel_voxx from existing account
                 const updateData = { ...newAccount };
+                // Preserve responsavel_voxx from GoogleAdsAccount
                 if (existingAccount.responsavel_voxx) {
                     updateData.responsavel_voxx = existingAccount.responsavel_voxx;
                 }
+                // Or use responsavel_google_ads from Cliente if it's set
+                else if (cliente?.responsavel_google_ads) {
+                    updateData.responsavel_voxx = cliente.responsavel_google_ads;
+                }
                 return base44.asServiceRole.entities.GoogleAdsAccount.update(existingAccount.id, updateData);
             } else {
-                // Create new account
-                return base44.asServiceRole.entities.GoogleAdsAccount.create(newAccount);
+                // Create new account - use responsavel_google_ads from Cliente if available
+                const newAccountData = { ...newAccount };
+                if (cliente?.responsavel_google_ads) {
+                    newAccountData.responsavel_voxx = cliente.responsavel_google_ads;
+                }
+                return base44.asServiceRole.entities.GoogleAdsAccount.create(newAccountData);
             }
         });
         
