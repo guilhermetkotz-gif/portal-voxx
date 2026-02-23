@@ -15,8 +15,8 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        // Usar service role para listar todos os usuários
-        const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 500);
+        // Usar service role para listar todos os usuários (limitado a 200 para evitar timeout)
+        const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 200);
 
         return Response.json({ users: allUsers });
     } catch (error) {
