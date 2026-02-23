@@ -262,15 +262,33 @@ export default function MonitoramentoGoogleAds() {
             <h1 className="text-3xl font-bold text-gray-900">Monitoramento Google Ads</h1>
             <p className="text-gray-600 mt-1">Visão geral das contas Google Ads - VOXX</p>
           </div>
-          <Button
-            onClick={handleRefreshData}
-            disabled={isRefreshing}
-            variant="outline"
-            className="gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Atualizando...' : 'Atualizar Dados'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleRefreshData}
+              disabled={isRefreshing}
+              variant="outline"
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar Dados'}
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  const res = await base44.functions.invoke('restoreGoogleAdsResponsaveis');
+                  toast.success(`${res.data.restauradas} atribuições restauradas!`);
+                  await refetchAccounts();
+                } catch (error) {
+                  toast.error('Erro ao restaurar: ' + error.message);
+                }
+              }}
+              variant="outline"
+              className="gap-2"
+            >
+              <UserCheck className="w-4 h-4" />
+              Restaurar Operadores
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="monitoramento" className="w-full">
