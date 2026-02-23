@@ -185,10 +185,11 @@ Deno.serve(async (req) => {
             
             if (existingAccount) {
                 // Update existing account, preserving responsavel_voxx
-                return base44.asServiceRole.entities.GoogleAdsAccount.update(existingAccount.id, {
-                    ...newAccount,
-                    responsavel_voxx: existingAccount.responsavel_voxx || newAccount.responsavel_voxx
-                });
+                const updateData = { ...newAccount };
+                if (existingAccount.responsavel_voxx) {
+                    updateData.responsavel_voxx = existingAccount.responsavel_voxx;
+                }
+                return base44.asServiceRole.entities.GoogleAdsAccount.update(existingAccount.id, updateData);
             } else {
                 // Create new account
                 return base44.asServiceRole.entities.GoogleAdsAccount.create(newAccount);
