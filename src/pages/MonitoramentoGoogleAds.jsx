@@ -34,8 +34,6 @@ export default function MonitoramentoGoogleAds() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards');
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
@@ -184,11 +182,11 @@ export default function MonitoramentoGoogleAds() {
       });
 
       toast.success('Responsável atribuído com sucesso!');
-      setAssignDialogOpen(false);
-      setSelectedAccount(null);
       
       // Recarregar dados
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       toast.error('Erro ao atribuir responsável: ' + error.message);
     }
@@ -398,13 +396,9 @@ export default function MonitoramentoGoogleAds() {
                         <TableCell className="font-medium">{account.account_name}</TableCell>
                         <TableCell>{account.unidade_nome}</TableCell>
                         <TableCell className="text-sm text-gray-600">
-                          <Dialog open={assignDialogOpen && selectedAccount?.id === account.id} onOpenChange={(open) => {
-                            setAssignDialogOpen(open);
-                            if (!open) setSelectedAccount(null);
-                          }}>
+                          <Dialog>
                             <DialogTrigger asChild>
                               <button
-                                onClick={() => setSelectedAccount(account)}
                                 className="flex items-center gap-1 hover:text-violet-600 transition-colors"
                               >
                                 <UserCheck className="w-3 h-3" />
@@ -418,7 +412,7 @@ export default function MonitoramentoGoogleAds() {
                                   {account.account_name}
                                 </p>
                               </DialogHeader>
-                              <ScrollArea className="max-h-[400px]">
+                              <ScrollArea className="max-h-[400px] pr-4">
                                 <div className="space-y-2">
                                   {voxxUsers.map(u => (
                                     <button
