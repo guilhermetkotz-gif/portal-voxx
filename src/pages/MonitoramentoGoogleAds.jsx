@@ -41,29 +41,56 @@ export default function MonitoramentoGoogleAds() {
     queryKey: ['google-ads-accounts'],
     queryFn: async () => {
       const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score');
-      const clientes = await base44.entities.Cliente.filter({ google_ads_account_name: { $exists: true } });
+      const clientes = await base44.entities.Cliente.list();
       
+      // Criar mapa de contas da planilha por account_name
+      const googleAdsMap = new Map();
+      googleAdsAccounts.forEach(acc => {
+        if (acc.account_name) {
+          googleAdsMap.set(acc.account_name.trim().toLowerCase(), acc);
+        }
+      });
+      
+      // Processar clientes
       const contasClientes = clientes
-        .filter(c => c.google_ads_account_name)
-        .map(c => ({
-          id: `cliente_${c.id}`,
-          account_name: c.google_ads_account_name,
-          unidade_nome: c.nome,
-          cliente_nome: c.nome,
-          responsavel_voxx: c.responsavel_voxx_trafego || c.responsavel_voxx,
-          clicks: c.cliques_google_whatsapp || 0,
-          conversions: (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
-          all_conversions: (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
-          cost: c.investimento_google_mes || 0,
-          avg_cpc: c.cpc_google || 0,
-          avg_cpm: 0,
-          optimization_score: 0,
-          account_status: c.status === 'ativo' ? 'Ativa' : 'Pausada',
-          conta_sem_dados: false,
-          fonte_dados: 'Cadastro Cliente'
+        .filter(c => c.google_ads_account_name && c.google_ads_account_name.trim())
+        .map(c => {
+          const accountNameNormalized = c.google_ads_account_name.trim().toLowerCase();
+          const googleAdsData = googleAdsMap.get(accountNameNormalized);
+          
+          // Se tiver dados da planilha, mescla; senão, usa dados do cliente
+          return {
+            id: `cliente_${c.id}`,
+            account_name: c.google_ads_account_name.trim(),
+            unidade_nome: c.nome,
+            cliente_nome: c.nome,
+            responsavel_voxx: c.responsavel_voxx_trafego || c.responsavel_voxx,
+            clicks: googleAdsData?.clicks || c.cliques_google_whatsapp || 0,
+            conversions: googleAdsData?.conversions || (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
+            all_conversions: googleAdsData?.all_conversions || (c.leads_google_cadastro || 0) + (c.leads_google_ligacao || 0),
+            cost: googleAdsData?.cost || c.investimento_google_mes || 0,
+            avg_cpc: googleAdsData?.avg_cpc || c.cpc_google || 0,
+            avg_cpm: googleAdsData?.avg_cpm || 0,
+            optimization_score: googleAdsData?.optimization_score || 0,
+            account_status: googleAdsData?.account_status || (c.status === 'ativo' ? 'Ativa' : 'Pausada'),
+            conta_sem_dados: googleAdsData?.conta_sem_dados || false,
+            fonte_dados: googleAdsData ? 'Planilha Google Ads' : 'Cadastro Cliente'
+          };
+        });
+      
+      // Adicionar contas da planilha que não têm cliente correspondente
+      const clienteAccountNames = new Set(
+        contasClientes.map(c => c.account_name.toLowerCase())
+      );
+      
+      const contasOrfas = googleAdsAccounts
+        .filter(acc => !clienteAccountNames.has(acc.account_name?.toLowerCase()))
+        .map(acc => ({
+          ...acc,
+          fonte_dados: 'Planilha Google Ads (sem cliente)'
         }));
       
-      return [...googleAdsAccounts, ...contasClientes];
+      return [...contasClientes, ...contasOrfas];
     },
     enabled: !!user,
   });
