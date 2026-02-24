@@ -1669,10 +1669,6 @@ export default function MonitoramentoContas({ user }) {
                                                     <select
                                                         value={cliente.responsavel_voxx_trafego || '__NONE__'}
                                                         onChange={(e) => {
-                                                            console.log('=== SELECT CHANGE ===');
-                                                            console.log('clienteId:', cliente.id);
-                                                            console.log('selected value:', e.target.value);
-                                                            console.log('voxxUsers disponíveis:', voxxUsers.length);
                                                             updateClienteMutation.mutate({ 
                                                                 clienteId: cliente.id, 
                                                                 responsavel: e.target.value
@@ -1684,8 +1680,10 @@ export default function MonitoramentoContas({ user }) {
                                                         <option value="__NONE__">
                                                             {loadingVoxxUsers ? 'Carregando...' : 'Nenhum responsável'}
                                                         </option>
-                                                        {voxxUsers.length === 0 && !loadingVoxxUsers && (
-                                                            <option disabled>Nenhum usuário disponível</option>
+                                                        {cliente.responsavel_voxx_trafego && !voxxUsers.find(u => u.email === cliente.responsavel_voxx_trafego) && (
+                                                            <option value={cliente.responsavel_voxx_trafego}>
+                                                                {cliente.responsavel_voxx_trafego} (atual)
+                                                            </option>
                                                         )}
                                                         {voxxUsers.map((voxxUser) => (
                                                             <option key={voxxUser.id} value={voxxUser.email}>
