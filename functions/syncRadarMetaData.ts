@@ -107,19 +107,15 @@ Deno.serve(async (req) => {
             const frequencyIdx = getColIndex('frequency');
             const amountSpentIdx = getColIndex('amount_spent');
 
-            console.error('=== MAPEAMENTO DE COLUNAS ONTEM ===');
-            console.error('Headers encontrados:', JSON.stringify(headers));
-            console.error('Column indices:', {
-                accountName: accountNameIdx,
-                cpl: cplIdx,
-                leads: leadsIdx,
-                clicks: clicksIdx,
-                impressions: impressionsIdx,
-                frequency: frequencyIdx,
-                amountSpent: amountSpentIdx
-            });
-            console.error('CPL coluna real (index', cplIdx, '):', headers[cplIdx]);
-            console.error('LEADS coluna real (index', leadsIdx, '):', headers[leadsIdx]);
+            console.error('=== MAPEAMENTO DE COLUNAS ===');
+            console.error('Config mapping messaging_conversations:', colMap.messaging_conversations);
+            console.error('Headers encontrados:', headers);
+            console.error('LEADS coluna encontrada (index', leadsIdx, '):', headers[leadsIdx]);
+            console.error('Valor esperado:', colMap.messaging_conversations);
+            
+            if (leadsIdx === -1) {
+                console.error('ERRO: Coluna de leads não encontrada! Verificar mapeamento.');
+            }
 
             const result = {};
 
@@ -138,12 +134,10 @@ Deno.serve(async (req) => {
                 const amountSpent = parseNumber(row[amountSpentIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
-                // Log for debugging - especialmente para Esteio (2)
-                if (i <= 3 || accountName.toLowerCase().includes('esteio')) {
-                    console.error(`=== ROW ${i} - ${accountName} ===`);
-                    console.error('  CPL (col', cplIdx, '):', row[cplIdx], '→', cpl);
-                    console.error('  LEADS (col', leadsIdx, '):', row[leadsIdx], '→', leads);
-                    console.error('  LEADS raw value:', JSON.stringify(row[leadsIdx]));
+                // Log primeiras 5 linhas para debug
+                if (i <= 5) {
+                    console.error(`ROW ${i} - ${accountName}:`);
+                    console.error(`  LEADS col[${leadsIdx}] = "${row[leadsIdx]}" → parsed: ${leads}`);
                 }
 
                 result[accountName] = {
