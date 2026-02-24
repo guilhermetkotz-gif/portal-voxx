@@ -558,6 +558,7 @@ ${statusValidacao}`.trim();
   const statusOptions = [
     { value: 'recebida', label: 'Recebida' },
     { value: 'em_triagem', label: 'Em Triagem' },
+    { value: 'programada', label: 'Programada' },
     { value: 'em_execucao', label: 'Em Execução' },
     { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
     { value: 'em_revisao', label: 'Em Revisão' },
