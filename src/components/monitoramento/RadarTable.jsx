@@ -9,8 +9,13 @@ import {
   ChevronRight, 
   Activity,
   Lightbulb,
-  RefreshCw
+  RefreshCw,
+  User
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { base44 } from '@/api/base44Client';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const formatCurrency = (value) => {
@@ -31,6 +36,41 @@ export default function RadarTable({
   setSelectedAccountForOtimizacao,
   setOtimizacaoModalOpen
 }) {
+  const queryClient = useQueryClient();
+
+  const { data: voxxUsers = [] } = useQuery({
+    queryKey: ['voxxUsers'],
+    queryFn: async () => {
+      try {
+        const response = await base44.functions.invoke('listVoxxUsers', {});
+        return response.data?.users || [];
+      } catch (error) {
+        console.error('Erro ao buscar usuários voxx:', error);
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
+  const updateResponsavelMutation = useMutation({
+    mutationFn: async ({ accountName, responsavel }) => {
+      const conta = accounts.find(a => a.account_name === accountName);
+      if (!conta) throw new Error('Conta não encontrada');
+      
+      await base44.entities.ContaMetaAds.update(conta.id, {
+        responsavel_voxx: responsavel === '__NONE__' ? null : responsavel
+      });
+      
+      return { accountName, responsavel };
+    },
+    onSuccess: ({ responsavel }) => {
+      queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] });
+      toast.success(`Responsável ${responsavel && responsavel !== '__NONE__' ? 'atualizado' : 'removido'} com sucesso!`);
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar responsável: ' + error.message);
+    }
+  });
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -49,6 +89,7 @@ export default function RadarTable({
             <TableHead className="text-right">Frequência (7d)</TableHead>
             <TableHead className="text-right">Inv. Diário</TableHead>
             <TableHead className="w-[280px]">Status</TableHead>
+            <TableHead className="w-[200px]">Responsável</TableHead>
             <TableHead className="text-center w-[120px]">Previsão 7d</TableHead>
           </TableRow>
         </TableHeader>
@@ -164,6 +205,45 @@ export default function RadarTable({
                 <TableCell>
                   <p className="text-sm text-slate-600">{row.status}</p>
                 </TableCell>
+                <TableCell>
+                  <Select
+                    value={accounts.find(a => a.account_name === row.account_name)?.responsavel_voxx || '__NONE__'}
+                    onValueChange={(value) => {
+                      updateResponsavelMutation.mutate({
+                        accountName: row.account_name,
+                        responsavel: value
+                      });
+                    }}
+                    disabled={updateResponsavelMutation.isPending}
+                  >
+                    <SelectTrigger className="w-full h-8 text-xs">
+                      <SelectValue>
+                        {(() => {
+                          const conta = accounts.find(a => a.account_name === row.account_name);
+                          if (!conta?.responsavel_voxx) return 'Não atribuído';
+                          const user = voxxUsers.find(u => u.email === conta.responsavel_voxx);
+                          return user?.full_name || conta.responsavel_voxx;
+                        })()}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__NONE__">
+                        <div className="flex items-center gap-2">
+                          <User className="w-3 h-3 text-slate-400" />
+                          <span>Não atribuído</span>
+                        </div>
+                      </SelectItem>
+                      {voxxUsers.map((voxxUser) => (
+                        <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                          <div className="flex items-center gap-2">
+                            <User className="w-3 h-3 text-violet-600" />
+                            <span>{voxxUser.full_name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
                 <TableCell className="text-center">
                   <div className="flex flex-col items-center gap-1">
                     <span className={cn(
@@ -193,7 +273,7 @@ export default function RadarTable({
               
               {expandedRows.has(row.account_name) && (
                 <TableRow>
-                  <TableCell colSpan={14} className="bg-slate-50 p-6">
+                  <TableCell colSpan={15} className="bg-slate-50 p-6">
                     {recommendations[row.account_name] ? (
                       recommendations[row.account_name].error ? (
                         <div className="text-red-600">{recommendations[row.account_name].error}</div>
