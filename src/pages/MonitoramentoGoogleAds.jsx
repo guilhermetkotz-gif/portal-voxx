@@ -39,10 +39,13 @@ export default function MonitoramentoGoogleAds() {
   const { data: user } = useQuery({
     queryKey: ['current-user'],
     queryFn: () => base44.auth.me(),
+    staleTime: 5 * 60 * 1000,
+    retry: false
   });
 
   const { data: accounts = [], isLoading, refetch: refetchAccounts } = useQuery({
     queryKey: ['google-ads-accounts'],
+    staleTime: 2 * 60 * 1000,
     queryFn: async () => {
       const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score');
       const clientes = await base44.entities.Cliente.list();
@@ -112,12 +115,14 @@ export default function MonitoramentoGoogleAds() {
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
     enabled: !!user,
+    staleTime: 5 * 60 * 1000
   });
 
   const { data: clientes = [], refetch: refetchClientes } = useQuery({
     queryKey: ['clientes-for-google-ads'],
     queryFn: () => base44.entities.Cliente.list(),
     enabled: !!user,
+    staleTime: 2 * 60 * 1000
   });
 
   const voxxUsers = users.filter(u => 
