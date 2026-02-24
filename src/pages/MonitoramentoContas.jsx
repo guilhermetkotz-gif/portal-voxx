@@ -1666,31 +1666,34 @@ export default function MonitoramentoContas({ user }) {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <select
+                                                    <Select
                                                         value={cliente.responsavel_voxx_trafego || '__NONE__'}
-                                                        onChange={(e) => {
+                                                        onValueChange={(value) => {
                                                             updateClienteMutation.mutate({ 
                                                                 clienteId: cliente.id, 
-                                                                responsavel: e.target.value
+                                                                responsavel: value
                                                             });
                                                         }}
-                                                        className="w-64 h-9 px-3 rounded-md border border-input bg-background text-sm"
                                                         disabled={updateClienteMutation.isPending || loadingVoxxUsers}
                                                     >
-                                                        <option value="__NONE__">
-                                                            {loadingVoxxUsers ? 'Carregando...' : 'Nenhum responsável'}
-                                                        </option>
-                                                        {cliente.responsavel_voxx_trafego && !voxxUsers.find(u => u.email === cliente.responsavel_voxx_trafego) && (
-                                                            <option value={cliente.responsavel_voxx_trafego}>
-                                                                {cliente.responsavel_voxx_trafego} (atual)
-                                                            </option>
-                                                        )}
-                                                        {voxxUsers.map((voxxUser) => (
-                                                            <option key={voxxUser.id} value={voxxUser.email}>
-                                                                {voxxUser.full_name} ({voxxUser.email})
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                        <SelectTrigger className="w-64">
+                                                            <SelectValue>
+                                                                {(() => {
+                                                                    if (!cliente.responsavel_voxx_trafego) return 'Nenhum responsável';
+                                                                    const user = voxxUsers.find(u => u.email === cliente.responsavel_voxx_trafego);
+                                                                    return user?.full_name || cliente.responsavel_voxx_trafego;
+                                                                })()}
+                                                            </SelectValue>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="__NONE__">Nenhum responsável</SelectItem>
+                                                            {voxxUsers.map((voxxUser) => (
+                                                                <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                                                                    {voxxUser.full_name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
