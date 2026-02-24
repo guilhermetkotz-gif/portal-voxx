@@ -19,6 +19,7 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
   const statusColors = {
     recebida: 'bg-blue-500',
     em_triagem: 'bg-indigo-500',
+    programada: 'bg-cyan-500',
     em_execucao: 'bg-purple-500',
     aguardando_cliente: 'bg-orange-500',
     em_revisao: 'bg-yellow-500',
