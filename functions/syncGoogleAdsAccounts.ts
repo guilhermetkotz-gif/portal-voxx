@@ -188,21 +188,21 @@ Deno.serve(async (req) => {
             }
         });
 
-        // Upsert accounts - preserve responsavel_voxx from existing account and from Cliente
+        // Upsert accounts - preserve responsavel_voxx, prioritizing Cliente.responsavel_google_ads
         const upsertPromises = accounts.map(async (newAccount) => {
             const existingAccount = existingMap.get(newAccount.account_name.trim().toLowerCase());
             const cliente = clienteMap.get(newAccount.account_name.trim().toLowerCase());
             
             if (existingAccount) {
-                // Update existing account, preserving responsavel_voxx from existing account
+                // Update existing account, preserving responsavel_voxx
                 const updateData = { ...newAccount };
-                // Preserve responsavel_voxx from GoogleAdsAccount
-                if (existingAccount.responsavel_voxx) {
-                    updateData.responsavel_voxx = existingAccount.responsavel_voxx;
-                }
-                // Or use responsavel_google_ads from Cliente if it's set
-                else if (cliente?.responsavel_google_ads) {
+                // Priority 1: responsavel_google_ads from Cliente (source of truth for manual assignments)
+                if (cliente?.responsavel_google_ads) {
                     updateData.responsavel_voxx = cliente.responsavel_google_ads;
+                }
+                // Priority 2: existing responsavel_voxx from GoogleAdsAccount
+                else if (existingAccount.responsavel_voxx) {
+                    updateData.responsavel_voxx = existingAccount.responsavel_voxx;
                 }
                 return base44.asServiceRole.entities.GoogleAdsAccount.update(existingAccount.id, updateData);
             } else {
