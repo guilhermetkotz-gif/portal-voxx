@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
-// Configuration JSON - Motor de Recomendações Voxx Meta Ads
+// Motor de Recomendações Voxx Meta Ads - v1.0.1
 const CONFIG = {
   "version": "1.0.0",
   "investment_buckets": [
