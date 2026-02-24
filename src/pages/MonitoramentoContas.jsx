@@ -82,15 +82,19 @@ export default function MonitoramentoContas({ user }) {
         staleTime: 5 * 60 * 1000
     });
 
-    const { data: voxxUsers = [], isLoading: loadingVoxxUsers } = useQuery({
+    const { data: voxxUsers = [], isLoading: loadingVoxxUsers, error: voxxUsersError } = useQuery({
         queryKey: ['voxxUsers'],
         queryFn: async () => {
             try {
+                console.log('🟦 Buscando usuários voxx...');
                 const response = await base44.functions.invoke('listVoxxUsers', {});
-                console.log('Voxx Users Response:', response.data);
+                console.log('🟦 Resposta completa:', response);
+                console.log('🟦 Response.data:', response.data);
+                console.log('🟦 Users array:', response.data?.users);
+                console.log('🟦 Total de usuários voxx:', response.data?.users?.length || 0);
                 return response.data?.users || [];
             } catch (error) {
-                console.error('Erro ao buscar usuários voxx:', error);
+                console.error('❌ Erro ao buscar usuários voxx:', error);
                 return [];
             }
         },
@@ -98,6 +102,16 @@ export default function MonitoramentoContas({ user }) {
         staleTime: 5 * 60 * 1000,
         retry: 2
     });
+
+    // Debug effect para monitorar voxxUsers
+    useEffect(() => {
+        console.log('🔍 Estado voxxUsers atualizado:', {
+            total: voxxUsers.length,
+            isLoading: loadingVoxxUsers,
+            hasError: !!voxxUsersError,
+            users: voxxUsers.map(u => ({ id: u.id, email: u.email, full_name: u.full_name }))
+        });
+    }, [voxxUsers, loadingVoxxUsers, voxxUsersError]);
 
     const updateClienteMutation = useMutation({
             mutationFn: async ({ clienteId, responsavel }) => {
