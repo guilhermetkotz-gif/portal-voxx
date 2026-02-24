@@ -205,13 +205,13 @@ Deno.serve(async (req) => {
 
     // Construir objeto de dados para análise
     const analysisData = {
-      frequency_current: account.frequency || 0,
-      delta_cpl_pct: radar ? (radar.variacao_cpl / 100) : 0,
-      ctr_vs_avg_pct: radar ? (radar.variacao_ctr / 100) : 0,
+      frequency_current: Number(account.frequency) || 0,
+      delta_cpl_pct: radar ? (Number(radar.variacao_cpl) / 100) : 0,
+      ctr_vs_avg_pct: radar ? (Number(radar.variacao_ctr) / 100) : 0,
       cpm_vs_avg_pct: 0,
       spend_pacing_ratio: 1.0,
-      leads_yesterday: radar?.leads_ontem || 0,
-      monthly_investment: account.amount_spent || 0
+      leads_yesterday: Number(radar?.leads_ontem) || 0,
+      monthly_investment: Number(account.amount_spent) || 0
     };
 
     const investmentBucket = getInvestmentBucket(analysisData.monthly_investment);
