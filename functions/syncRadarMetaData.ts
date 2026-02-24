@@ -59,9 +59,33 @@ Deno.serve(async (req) => {
 
         // Process data
         const parseNumber = (val) => {
-            if (!val || val === '') return null; // NUNCA retornar 0 por ausência
-            const str = typeof val === 'string' ? val.replace(/[^\d.,-]/g, '').replace(',', '.') : val;
-            const num = parseFloat(str);
+            if (!val || val === '') return null;
+            // Remove espaços e outros caracteres, mantém apenas números, ponto e vírgula
+            const str = String(val).trim().replace(/\s/g, '');
+            // Trata formato brasileiro (1.234,56) ou americano (1,234.56)
+            const hasComma = str.includes(',');
+            const hasDot = str.includes('.');
+            
+            let cleaned = str;
+            if (hasComma && hasDot) {
+                // Ambos presentes - determinar qual é decimal
+                const commaPos = str.lastIndexOf(',');
+                const dotPos = str.lastIndexOf('.');
+                if (dotPos > commaPos) {
+                    // Formato: 1.234,56 -> remove ponto, troca vírgula por ponto
+                    cleaned = str.replace(/\./g, '').replace(',', '.');
+                } else {
+                    // Formato: 1,234.56 -> remove vírgula
+                    cleaned = str.replace(/,/g, '');
+                }
+            } else if (hasComma) {
+                // Só vírgula - trocar por ponto
+                cleaned = str.replace(',', '.');
+            }
+            
+            // Remove tudo exceto números e ponto decimal
+            cleaned = cleaned.replace(/[^\d.]/g, '');
+            const num = parseFloat(cleaned);
             return isNaN(num) ? null : num;
         };
 
@@ -114,11 +138,12 @@ Deno.serve(async (req) => {
                 const amountSpent = parseNumber(row[amountSpentIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
-                // Log for debugging - First 3 rows
-                if (i <= 3) {
+                // Log for debugging - especialmente para Esteio (2)
+                if (i <= 3 || accountName.toLowerCase().includes('esteio')) {
                     console.error(`=== ROW ${i} - ${accountName} ===`);
                     console.error('  CPL (col', cplIdx, '):', row[cplIdx], '→', cpl);
                     console.error('  LEADS (col', leadsIdx, '):', row[leadsIdx], '→', leads);
+                    console.error('  LEADS raw value:', JSON.stringify(row[leadsIdx]));
                 }
 
                 result[accountName] = {
