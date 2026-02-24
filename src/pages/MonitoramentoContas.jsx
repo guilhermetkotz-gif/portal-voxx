@@ -1669,6 +1669,12 @@ export default function MonitoramentoContas({ user }) {
                                                     <Select
                                                         value={cliente.responsavel_voxx_trafego || '__NONE__'}
                                                         onValueChange={(value) => {
+                                                            console.log('📝 Mudança de responsável:', { 
+                                                                clienteId: cliente.id, 
+                                                                clienteNome: cliente.nome,
+                                                                valorSelecionado: value,
+                                                                voxxUsersTotal: voxxUsers.length
+                                                            });
                                                             updateClienteMutation.mutate({ 
                                                                 clienteId: cliente.id, 
                                                                 responsavel: value
@@ -1677,8 +1683,8 @@ export default function MonitoramentoContas({ user }) {
                                                         disabled={updateClienteMutation.isPending || loadingVoxxUsers}
                                                     >
                                                         <SelectTrigger className="w-64">
-                                                            <SelectValue>
-                                                                {(() => {
+                                                            <SelectValue placeholder="Selecione um responsável">
+                                                                {loadingVoxxUsers ? 'Carregando...' : (() => {
                                                                     if (!cliente.responsavel_voxx_trafego) return 'Nenhum responsável';
                                                                     const user = voxxUsers.find(u => u.email === cliente.responsavel_voxx_trafego);
                                                                     return user?.full_name || cliente.responsavel_voxx_trafego;
@@ -1687,11 +1693,17 @@ export default function MonitoramentoContas({ user }) {
                                                         </SelectTrigger>
                                                         <SelectContent>
                                                             <SelectItem value="__NONE__">Nenhum responsável</SelectItem>
-                                                            {voxxUsers.map((voxxUser) => (
-                                                                <SelectItem key={voxxUser.id} value={voxxUser.email}>
-                                                                    {voxxUser.full_name}
-                                                                </SelectItem>
-                                                            ))}
+                                                            {loadingVoxxUsers ? (
+                                                                <SelectItem value="__LOADING__" disabled>Carregando usuários...</SelectItem>
+                                                            ) : voxxUsers.length === 0 ? (
+                                                                <SelectItem value="__EMPTY__" disabled>Nenhum usuário disponível</SelectItem>
+                                                            ) : (
+                                                                voxxUsers.map((voxxUser) => (
+                                                                    <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                                                                        {voxxUser.full_name} ({voxxUser.email})
+                                                                    </SelectItem>
+                                                                ))
+                                                            )}
                                                         </SelectContent>
                                                     </Select>
                                                 </TableCell>
