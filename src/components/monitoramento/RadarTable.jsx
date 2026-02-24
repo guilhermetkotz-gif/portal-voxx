@@ -53,18 +53,16 @@ export default function RadarTable({
   });
 
   const updateResponsavelMutation = useMutation({
-    mutationFn: async ({ accountName, responsavel }) => {
-      const conta = accounts.find(a => a.account_name === accountName);
-      if (!conta) throw new Error('Conta não encontrada');
-      
-      await base44.entities.ContaMetaAds.update(conta.id, {
-        responsavel_voxx: responsavel === '__NONE__' ? null : responsavel
+    mutationFn: async ({ clienteId, responsavel }) => {
+      const response = await base44.functions.invoke('updateClienteResponsavel', {
+        clienteId,
+        responsavel
       });
-      
-      return { accountName, responsavel };
+      return { responsavel, clienteId };
     },
     onSuccess: ({ responsavel }) => {
-      queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ['clientes'] });
+      queryClient.invalidateQueries({ queryKey: ['radarMetaData'] });
       toast.success(`Responsável ${responsavel && responsavel !== '__NONE__' ? 'atualizado' : 'removido'} com sucesso!`);
     },
     onError: (error) => {
@@ -206,43 +204,46 @@ export default function RadarTable({
                   <p className="text-sm text-slate-600">{row.status}</p>
                 </TableCell>
                 <TableCell>
-                  <Select
-                    value={accounts.find(a => a.account_name === row.account_name)?.responsavel_voxx || '__NONE__'}
-                    onValueChange={(value) => {
-                      updateResponsavelMutation.mutate({
-                        accountName: row.account_name,
-                        responsavel: value
-                      });
-                    }}
-                    disabled={updateResponsavelMutation.isPending}
-                  >
-                    <SelectTrigger className="w-full h-8 text-xs">
-                      <SelectValue>
-                        {(() => {
-                          const conta = accounts.find(a => a.account_name === row.account_name);
-                          if (!conta?.responsavel_voxx) return 'Não atribuído';
-                          const user = voxxUsers.find(u => u.email === conta.responsavel_voxx);
-                          return user?.full_name || conta.responsavel_voxx;
-                        })()}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__NONE__">
-                        <div className="flex items-center gap-2">
-                          <User className="w-3 h-3 text-slate-400" />
-                          <span>Não atribuído</span>
-                        </div>
-                      </SelectItem>
-                      {voxxUsers.map((voxxUser) => (
-                        <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                  {row.cliente ? (
+                    <Select
+                      value={row.cliente.responsavel_voxx_trafego || '__NONE__'}
+                      onValueChange={(value) => {
+                        updateResponsavelMutation.mutate({
+                          clienteId: row.cliente.id,
+                          responsavel: value
+                        });
+                      }}
+                      disabled={updateResponsavelMutation.isPending}
+                    >
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue>
+                          {(() => {
+                            if (!row.cliente.responsavel_voxx_trafego) return 'Não atribuído';
+                            const user = voxxUsers.find(u => u.email === row.cliente.responsavel_voxx_trafego);
+                            return user?.full_name || row.cliente.responsavel_voxx_trafego;
+                          })()}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__NONE__">
                           <div className="flex items-center gap-2">
-                            <User className="w-3 h-3 text-violet-600" />
-                            <span>{voxxUser.full_name}</span>
+                            <User className="w-3 h-3 text-slate-400" />
+                            <span>Não atribuído</span>
                           </div>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        {voxxUsers.map((voxxUser) => (
+                          <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                            <div className="flex items-center gap-2">
+                              <User className="w-3 h-3 text-violet-600" />
+                              <span>{voxxUser.full_name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="text-xs text-slate-400">Cliente não encontrado</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-center">
                   <div className="flex flex-col items-center gap-1">
