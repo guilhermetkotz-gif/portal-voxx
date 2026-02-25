@@ -1596,6 +1596,8 @@ export default function MonitoramentoContas({ user }) {
                                 accounts={accounts}
                                 setSelectedAccountForOtimizacao={setSelectedAccountForOtimizacao}
                                 setOtimizacaoModalOpen={setOtimizacaoModalOpen}
+                                voxxUsers={voxxUsers}
+                                loadingVoxxUsers={loadingVoxxUsers}
                             />
                         </CardContent>
                     </Card>

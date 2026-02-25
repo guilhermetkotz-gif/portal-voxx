@@ -34,23 +34,11 @@ export default function RadarTable({
   recommendations,
   accounts,
   setSelectedAccountForOtimizacao,
-  setOtimizacaoModalOpen
+  setOtimizacaoModalOpen,
+  voxxUsers = [],
+  loadingVoxxUsers = false
 }) {
   const queryClient = useQueryClient();
-
-  const { data: voxxUsers = [] } = useQuery({
-    queryKey: ['voxxUsers'],
-    queryFn: async () => {
-      try {
-        const response = await base44.functions.invoke('listVoxxUsers', {});
-        return response.data?.users || [];
-      } catch (error) {
-        console.error('Erro ao buscar usuários voxx:', error);
-        return [];
-      }
-    },
-    staleTime: 5 * 60 * 1000
-  });
 
   const updateResponsavelMutation = useMutation({
     mutationFn: async ({ clienteId, responsavel }) => {
@@ -217,7 +205,7 @@ export default function RadarTable({
                     >
                       <SelectTrigger className="w-full h-8 text-xs">
                         <SelectValue>
-                          {(() => {
+                          {loadingVoxxUsers ? 'Carregando...' : (() => {
                             if (!row.cliente.responsavel_voxx_trafego) return 'Não atribuído';
                             const user = voxxUsers.find(u => u.email === row.cliente.responsavel_voxx_trafego);
                             return user?.full_name || row.cliente.responsavel_voxx_trafego;
@@ -231,14 +219,20 @@ export default function RadarTable({
                             <span>Não atribuído</span>
                           </div>
                         </SelectItem>
-                        {voxxUsers.map((voxxUser) => (
-                          <SelectItem key={voxxUser.id} value={voxxUser.email}>
-                            <div className="flex items-center gap-2">
-                              <User className="w-3 h-3 text-violet-600" />
-                              <span>{voxxUser.full_name}</span>
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {loadingVoxxUsers ? (
+                          <SelectItem value="__LOADING__" disabled>Carregando usuários...</SelectItem>
+                        ) : voxxUsers.length === 0 ? (
+                          <SelectItem value="__EMPTY__" disabled>Nenhum usuário disponível</SelectItem>
+                        ) : (
+                          voxxUsers.map((voxxUser) => (
+                            <SelectItem key={voxxUser.id} value={voxxUser.email}>
+                              <div className="flex items-center gap-2">
+                                <User className="w-3 h-3 text-violet-600" />
+                                <span>{voxxUser.full_name}</span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   ) : (
