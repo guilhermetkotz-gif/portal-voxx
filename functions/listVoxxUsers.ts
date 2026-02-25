@@ -18,12 +18,21 @@ Deno.serve(async (req) => {
         // Usar service role para listar todos os usuários
         const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 500);
         
+        console.log('📊 Total de usuários no sistema:', allUsers.length);
+        console.log('📊 Exemplo de usuário:', allUsers[0]);
+        
         // Filtrar apenas usuários voxx (tipo_acesso ou tipo_usuario)
         const voxxUsers = allUsers.filter(u => {
             const tipoAcesso = u.tipo_acesso || u.tipo_usuario;
-            return tipoAcesso?.startsWith('voxx_') || u.role === 'admin';
+            const isVoxx = tipoAcesso?.startsWith('voxx_') || u.role === 'admin';
+            if (isVoxx) {
+                console.log('✅ Usuário Voxx encontrado:', { id: u.id, email: u.email, full_name: u.full_name, tipo_acesso: tipoAcesso, role: u.role });
+            }
+            return isVoxx;
         });
 
+        console.log('📊 Total de usuários Voxx:', voxxUsers.length);
+        
         return Response.json({ users: voxxUsers });
     } catch (error) {
         return Response.json({ error: error.message }, { status: 500 });
