@@ -264,9 +264,9 @@ export default function RadarTable({
                   </div>
                 </TableCell>
               </TableRow>
-              
-              {expandedRows.has(row.account_name) && (
-                <TableRow>
+              ,
+              expandedRows.has(row.account_name) && (
+                <TableRow key={`radar-expanded-${row.account_name}-${index}`}>
                   <TableCell colSpan={15} className="bg-slate-50 p-6">
                     {recommendations[row.account_name] ? (
                       recommendations[row.account_name].error ? (
