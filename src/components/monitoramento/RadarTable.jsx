@@ -12,11 +12,8 @@ import {
   RefreshCw,
   User
 } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { base44 } from '@/api/base44Client';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import ResponsavelCellMeta from '@/components/metaads/ResponsavelCellMeta';
 
 const formatCurrency = (value) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -36,27 +33,19 @@ export default function RadarTable({
   setSelectedAccountForOtimizacao,
   setOtimizacaoModalOpen,
   voxxUsers = [],
-  loadingVoxxUsers = false
+  loadingVoxxUsers = false,
+  handleAssignResponsavelMeta
 }) {
-  const queryClient = useQueryClient();
+  const getUserName = (userId) => {
+    if (!userId) return 'Não atribuído';
+    const user = voxxUsers.find(u => u.id === userId || u.email === userId);
+    return user?.full_name || 'Não atribuído';
+  };
 
-  const updateResponsavelMutation = useMutation({
-    mutationFn: async ({ clienteId, responsavel }) => {
-      const response = await base44.functions.invoke('updateClienteResponsavel', {
-        clienteId,
-        responsavel
-      });
-      return { responsavel, clienteId };
-    },
-    onSuccess: ({ responsavel }) => {
-      queryClient.invalidateQueries({ queryKey: ['clientes'] });
-      queryClient.invalidateQueries({ queryKey: ['radarMetaData'] });
-      toast.success(`Responsável ${responsavel && responsavel !== '__NONE__' ? 'atualizado' : 'removido'} com sucesso!`);
-    },
-    onError: (error) => {
-      toast.error('Erro ao atualizar responsável: ' + error.message);
-    }
-  });
+  const getResponsavelMeta = (accountName) => {
+    const row = filteredRadarData.find(r => r.account_name === accountName);
+    return row?.cliente?.responsavel_meta_ads || null;
+  };
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -192,52 +181,13 @@ export default function RadarTable({
                   <p className="text-sm text-slate-600">{row.status}</p>
                 </TableCell>
                 <TableCell>
-                  {row.cliente ? (
-                    <Select
-                      value={row.cliente.responsavel_voxx_trafego || '__NONE__'}
-                      onValueChange={(value) => {
-                        updateResponsavelMutation.mutate({
-                          clienteId: row.cliente.id,
-                          responsavel: value
-                        });
-                      }}
-                      disabled={updateResponsavelMutation.isPending}
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue>
-                          {loadingVoxxUsers ? 'Carregando...' : (() => {
-                            if (!row.cliente.responsavel_voxx_trafego) return 'Não atribuído';
-                            const user = voxxUsers.find(u => u.email === row.cliente.responsavel_voxx_trafego);
-                            return user?.full_name || row.cliente.responsavel_voxx_trafego;
-                          })()}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__NONE__">
-                          <div className="flex items-center gap-2">
-                            <User className="w-3 h-3 text-slate-400" />
-                            <span>Não atribuído</span>
-                          </div>
-                        </SelectItem>
-                        {loadingVoxxUsers ? (
-                          <SelectItem value="__LOADING__" disabled>Carregando usuários...</SelectItem>
-                        ) : voxxUsers.length === 0 ? (
-                          <SelectItem value="__EMPTY__" disabled>Nenhum usuário disponível</SelectItem>
-                        ) : (
-                          voxxUsers.map((voxxUser) => (
-                            <SelectItem key={voxxUser.id} value={voxxUser.email}>
-                              <div className="flex items-center gap-2">
-                                <User className="w-3 h-3 text-violet-600" />
-                                <span>{voxxUser.full_name}</span>
-                              </div>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span className="text-xs text-slate-400">Cliente não encontrado</span>
-                  )}
+                  <ResponsavelCellMeta
+                    accountName={row.account_name}
+                    currentResponsavel={getResponsavelMeta(row.account_name)}
+                    voxxUsers={voxxUsers}
+                    getUserName={getUserName}
+                    handleAssignResponsavelMeta={handleAssignResponsavelMeta}
+                  />
                 </TableCell>
                 <TableCell className="text-center">
                   <div className="flex flex-col items-center gap-1">
