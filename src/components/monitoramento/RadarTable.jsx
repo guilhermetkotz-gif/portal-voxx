@@ -429,9 +429,8 @@ export default function RadarTable({
                     )}
                   </TableCell>
                 </TableRow>
-              )}
-            </React.Fragment>
-          ))}
+              )
+          ].filter(Boolean))}
         </TableBody>
       </Table>
 
