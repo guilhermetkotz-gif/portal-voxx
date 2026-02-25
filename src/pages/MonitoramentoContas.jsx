@@ -92,15 +92,30 @@ export default function MonitoramentoContas({ user }) {
                 console.log('🟦 Response.data:', response.data);
                 console.log('🟦 Users array:', response.data?.users);
                 console.log('🟦 Total de usuários voxx:', response.data?.users?.length || 0);
-                return response.data?.users || [];
+                
+                // Se response.data for undefined ou null, retornar array vazio
+                if (!response.data) {
+                    console.warn('⚠️ Response.data é undefined ou null');
+                    return [];
+                }
+                
+                // Se response.data.users for undefined, retornar array vazio
+                if (!response.data.users) {
+                    console.warn('⚠️ Response.data.users é undefined');
+                    return [];
+                }
+                
+                return response.data.users;
             } catch (error) {
                 console.error('❌ Erro ao buscar usuários voxx:', error);
+                console.error('❌ Detalhes do erro:', error.message, error.stack);
                 return [];
             }
         },
         enabled: !!isVoxx,
         staleTime: 5 * 60 * 1000,
-        retry: 2
+        retry: 3,
+        retryDelay: 1000
     });
 
     // Debug effect para monitorar voxxUsers
