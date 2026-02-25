@@ -80,9 +80,8 @@ export default function RadarTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredRadarData.map((row, index) => (
-            <React.Fragment key={`radar-${row.account_name}-${index}`}>
-              <TableRow className="hover:bg-slate-50">
+          {filteredRadarData.map((row, index) => [
+              <TableRow key={`radar-${row.account_name}-${index}`} className="hover:bg-slate-50">
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     <button
