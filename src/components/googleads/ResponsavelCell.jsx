@@ -11,16 +11,17 @@ export default function ResponsavelCell({
   handleAssignResponsavel 
 }) {
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleUserClick = async (userId, userName) => {
-    console.log('Botão clicado! Usuário:', userName, 'ID:', userId);
-    console.log('Account:', account.account_name);
-    
+    setIsLoading(true);
     try {
       await handleAssignResponsavel(account.id, account.account_name, userId);
       setOpen(false);
     } catch (error) {
       console.error('Erro no handleUserClick:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -46,13 +47,13 @@ export default function ResponsavelCell({
                 <button
                   key={u.id}
                   type="button"
+                  disabled={isLoading}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Click capturado no botão:', u.full_name);
                     handleUserClick(u.id, u.full_name);
                   }}
-                  className="w-full text-left px-4 py-3 rounded-lg border hover:border-violet-600 hover:bg-violet-50 transition-colors cursor-pointer active:bg-violet-100"
+                  className="w-full text-left px-4 py-3 rounded-lg border hover:border-violet-600 hover:bg-violet-50 transition-colors cursor-pointer active:bg-violet-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="font-medium text-slate-900">{u.full_name}</div>
                   <div className="text-xs text-slate-500">{u.email}</div>
