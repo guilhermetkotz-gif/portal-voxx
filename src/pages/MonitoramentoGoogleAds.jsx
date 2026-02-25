@@ -181,37 +181,47 @@ export default function MonitoramentoGoogleAds() {
 
   const handleAssignResponsavel = async (accountId, accountName, userId, closeDialog) => {
     try {
-      console.log('Atribuindo responsável:', { accountId, accountName, userId });
+      console.log('🔵 Atribuindo responsável:', { accountId, accountName, userId });
       
       const account = accounts.find(a => a.account_name === accountName);
+      console.log('🔵 Conta encontrada:', account);
       
       // Se há ID real da GoogleAdsAccount, atualizar
       if (account?.googleAdsId || (accountId && !accountId.startsWith('cliente_'))) {
         const realId = account?.googleAdsId || accountId;
+        console.log('🔵 Atualizando GoogleAdsAccount ID:', realId);
         await base44.entities.GoogleAdsAccount.update(realId, {
           responsavel_voxx: userId
         });
+        console.log('✅ GoogleAdsAccount atualizado');
       }
 
       // Sempre atualizar o Cliente com responsavel_google_ads
       const cliente = clientes.find(c => 
         c.google_ads_account_name?.trim().toLowerCase() === accountName?.trim().toLowerCase()
       );
+      console.log('🔵 Cliente encontrado:', cliente);
+      
       if (cliente) {
+        console.log('🔵 Atualizando Cliente ID:', cliente.id, 'com userId:', userId);
         await base44.entities.Cliente.update(cliente.id, {
           responsavel_google_ads: userId
         });
+        console.log('✅ Cliente atualizado');
       }
 
-      console.log('Responsável atribuído com sucesso!');
       toast.success('Responsável atribuído com sucesso!');
       
       // Recarregar dados
+      console.log('🔵 Recarregando dados...');
       await refetchClientes();
       await refetchAccounts();
+      console.log('✅ Dados recarregados');
     } catch (error) {
-      console.error('Erro ao atribuir:', error);
+      console.error('❌ Erro ao atribuir:', error);
+      console.error('❌ Stack:', error.stack);
       toast.error('Erro ao atribuir responsável: ' + error.message);
+      throw error;
     }
   };
 
