@@ -1,0 +1,68 @@
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { UserCheck } from 'lucide-react';
+
+export default function ResponsavelCellMeta({ 
+  accountName,
+  currentResponsavel,
+  voxxUsers, 
+  getUserName, 
+  handleAssignResponsavelMeta 
+}) {
+  const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleUserClick = async (userId, userName) => {
+    setIsLoading(true);
+    try {
+      await handleAssignResponsavelMeta(accountName, userId);
+      setOpen(false);
+    } catch (error) {
+      console.error('Erro ao atribuir responsável Meta:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="flex items-center gap-1 hover:text-violet-600 transition-colors">
+          <UserCheck className="w-3 h-3" />
+          <span>{getUserName(currentResponsavel)}</span>
+        </button>
+      </DialogTrigger>
+      <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>Atribuir Responsável Meta Ads</DialogTitle>
+          <p className="text-sm text-slate-500">{accountName}</p>
+        </DialogHeader>
+        <ScrollArea className="max-h-[400px] pr-4">
+          <div className="space-y-2">
+            {voxxUsers.length === 0 ? (
+              <p className="text-sm text-slate-500 p-4">Nenhum usuário Voxx encontrado</p>
+            ) : (
+              voxxUsers.map(u => (
+                <button
+                  key={u.id}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleUserClick(u.id, u.full_name);
+                  }}
+                  className="w-full text-left px-4 py-3 rounded-lg border hover:border-violet-600 hover:bg-violet-50 transition-colors cursor-pointer active:bg-violet-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="font-medium text-slate-900">{u.full_name}</div>
+                  <div className="text-xs text-slate-500">{u.email}</div>
+                </button>
+              ))
+            )}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}

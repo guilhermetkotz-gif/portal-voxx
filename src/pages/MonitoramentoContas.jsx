@@ -146,6 +146,42 @@ export default function MonitoramentoContas({ user }) {
             }
         });
 
+    // Handler EXCLUSIVO para Meta Ads - NÃO TOCA EM GOOGLE ADS
+    const handleAssignResponsavelMeta = async (accountName, userId) => {
+        try {
+            // 1. Atualizar ContaMetaAds.responsavel_voxx (se existir)
+            const metaAccount = accounts.find(a => a.account_name === accountName);
+            if (metaAccount?.id) {
+                await base44.entities.ContaMetaAds.update(metaAccount.id, {
+                    responsavel_voxx: userId
+                });
+            }
+
+            // 2. Atualizar SOMENTE Cliente.responsavel_meta_ads (NUNCA responsavel_google_ads)
+            const cliente = clientes.find(c => 
+                c.nome === accountName || 
+                c.meta_ads_account_name === accountName
+            );
+            
+            if (cliente) {
+                await base44.entities.Cliente.update(cliente.id, {
+                    responsavel_meta_ads: userId
+                });
+            }
+
+            // 3. Recarregar dados
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] }),
+                queryClient.invalidateQueries({ queryKey: ['clientes'] })
+            ]);
+            
+            toast.success('Responsável Meta Ads atribuído com sucesso!');
+        } catch (error) {
+            toast.error('Erro ao atribuir responsável Meta: ' + error.message);
+            throw error;
+        }
+    };
+
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [recommendations, setRecommendations] = useState({});
     const [otimizacaoModalOpen, setOtimizacaoModalOpen] = useState(false);
@@ -1613,6 +1649,7 @@ export default function MonitoramentoContas({ user }) {
                                 setOtimizacaoModalOpen={setOtimizacaoModalOpen}
                                 voxxUsers={voxxUsers}
                                 loadingVoxxUsers={loadingVoxxUsers}
+                                handleAssignResponsavelMeta={handleAssignResponsavelMeta}
                             />
                         </CardContent>
                     </Card>
