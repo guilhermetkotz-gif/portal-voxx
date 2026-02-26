@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
             const cliente = clientesMap.get(accountName);
             if (!cliente) continue;
 
-            // Pular se não tem responsável definido
-            if (!cliente.responsavel_voxx_trafego) continue;
+            // Pular se não tem responsável Meta Ads definido
+            if (!cliente.responsavel_meta_ads) continue;
 
             const radar = radarMap.get(accountName);
             if (!radar) continue;
@@ -202,9 +202,9 @@ Deno.serve(async (req) => {
             if (prioridadeRaw !== 'baixa' || alertas.length > 0) {
                 const missao = {
                     data_missao: hoje,
-                    responsavel_user_id: cliente.responsavel_voxx_trafego, // email como ID
-                    responsavel_nome: cliente.responsavel_voxx_trafego,
-                    responsavel_email: cliente.responsavel_voxx_trafego,
+                    responsavel_user_id: cliente.responsavel_meta_ads, // email como ID
+                    responsavel_nome: cliente.responsavel_meta_ads,
+                    responsavel_email: cliente.responsavel_meta_ads,
                     unidade_id: cliente.id,
                     unidade_nome: accountName,
                     prioridade_radar: prioridadeRaw,
