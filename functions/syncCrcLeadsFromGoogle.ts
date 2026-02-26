@@ -66,10 +66,7 @@ Deno.serve(async (req) => {
 async function syncClienteLeads(base44, cliente) {
   const clienteId = cliente.id;
     if (!cliente || !cliente.google_leads_sheet_url) {
-      return Response.json({ 
-        error: 'Cliente não encontrado ou planilha não configurada',
-        imported: 0
-      }, { status: 404 });
+      throw new Error('Cliente não encontrado ou planilha não configurada');
     }
 
     // Get config with column mapping
@@ -79,10 +76,7 @@ async function syncClienteLeads(base44, cliente) {
     const config = configs[0];
     
     if (!config?.mapeamento_planilha) {
-      return Response.json({ 
-        error: 'Mapeamento de planilha não configurado',
-        imported: 0
-      }, { status: 400 });
+      throw new Error('Mapeamento de planilha não configurado');
     }
 
     const mapping = config.mapeamento_planilha;
@@ -90,10 +84,7 @@ async function syncClienteLeads(base44, cliente) {
     // Extract spreadsheet ID from URL
     const urlMatch = cliente.google_leads_sheet_url.match(/\/d\/([a-zA-Z0-9-_]+)/);
     if (!urlMatch) {
-      return Response.json({ 
-        error: 'URL da planilha inválida',
-        imported: 0
-      }, { status: 400 });
+      throw new Error('URL da planilha inválida');
     }
     
     const spreadsheetId = urlMatch[1];
@@ -118,19 +109,17 @@ async function syncClienteLeads(base44, cliente) {
     });
 
     if (!response.ok) {
-      return Response.json({ 
-        error: 'Erro ao acessar Google Sheets',
-        imported: 0
-      }, { status: response.status });
+      throw new Error(`Erro ao acessar Google Sheets: ${response.status}`);
     }
 
     const data = await response.json();
     
     if (!data.values || data.values.length <= 1) {
-      return Response.json({ 
+      return { 
         imported: 0,
+        skipped: 0,
         message: 'Nenhum lead encontrado na planilha'
-      });
+      };
     }
 
     const headers = data.values[0];
@@ -148,10 +137,7 @@ async function syncClienteLeads(base44, cliente) {
     const origemIdx = getColumnIndex(mapping.coluna_origem);
 
     if (phoneIdx === -1) {
-      return Response.json({ 
-        error: 'Coluna de telefone não encontrada',
-        imported: 0
-      }, { status: 400 });
+      throw new Error('Coluna de telefone não encontrada');
     }
 
     let imported = 0;
