@@ -62,11 +62,19 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
       });
       const activeClientIds = allUserAccesses.map(a => a.cliente_id);
 
-      // Update user with clientes_atribuidos and status
+      // Update user with clientes_atribuidos, status, tipo_acesso and cliente_id
+      const primeiroClienteId = activeClientIds[0] || null;
       await base44.entities.User.update(usuario.id, { 
         status: 'ativo',
-        clientes_atribuidos: activeClientIds
+        clientes_atribuidos: activeClientIds,
+        tipo_acesso: tipoUsuario,
+        cliente_id: primeiroClienteId
       });
+      // Also sync via service role
+      await base44.functions.invoke('updateUserTipoUsuario', {
+        usuario_id: usuario.id,
+        tipo_usuario: tipoUsuario
+      }).catch(() => {});
 
       // Log action
       await base44.entities.LogAuditoria.create({
