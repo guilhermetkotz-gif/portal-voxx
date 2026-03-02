@@ -83,13 +83,13 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
     // Base44 admin has full access
     if (user?.role === 'admin') return true;
     
-    // Check UserTypePermissions
+    // Check UserTypePermissions from DB (source of truth)
     if (userPermissions?.paginas_permitidas) {
       return userPermissions.paginas_permitidas.includes(pageName);
     }
     
-    // Fallback - allow basic pages
-    return ['Home', 'Performance', 'Demandas', 'Chat', 'Conta', 'Ajuda'].includes(pageName);
+    // While permissions are loading, show basic pages
+    return ['Home', 'Chat', 'Conta', 'Ajuda'].includes(pageName);
   };
 
   return (
