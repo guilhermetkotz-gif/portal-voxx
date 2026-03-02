@@ -28,14 +28,37 @@ export default function InfograficoExecutivo({ planejamento, clienteNome }) {
     
     setCopiando(true);
     try {
-      const canvas = await html2canvas(infograficoRef.current, {
+      const targetWidth = 1439;
+      const targetHeight = 1600;
+      const element = infograficoRef.current;
+      const elementWidth = element.scrollWidth;
+      const elementHeight = element.scrollHeight;
+      const scale = Math.max(targetWidth / elementWidth, targetHeight / elementHeight);
+
+      const rawCanvas = await html2canvas(element, {
         backgroundColor: '#0f172a',
-        scale: 2,
+        scale: scale,
         logging: false,
-        useCORS: true
+        useCORS: true,
+        width: elementWidth,
+        height: elementHeight
       });
-      
-      canvas.toBlob(async (blob) => {
+
+      // Create final canvas with exact dimensions
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = targetWidth;
+      finalCanvas.height = targetHeight;
+      const ctx = finalCanvas.getContext('2d');
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+      const scaledWidth = elementWidth * scale;
+      const scaledHeight = elementHeight * scale;
+      const offsetX = (targetWidth - scaledWidth) / 2;
+      const offsetY = (targetHeight - scaledHeight) / 2;
+      ctx.drawImage(rawCanvas, offsetX, offsetY, scaledWidth, scaledHeight);
+
+      finalCanvas.toBlob(async (blob) => {
         try {
           await navigator.clipboard.write([
             new ClipboardItem({ 'image/png': blob })
