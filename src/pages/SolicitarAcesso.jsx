@@ -189,62 +189,18 @@ export default function SolicitarAcesso() {
           </div>
 
           {/* Contas */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-slate-900 mb-1">Contas/Unidades *</h3>
-              <p className="text-sm text-slate-500">Selecione as contas que você precisa acessar</p>
-            </div>
-
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <Input
-                placeholder="Buscar cliente, cidade ou marca..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            <div className="border rounded-lg max-h-64 overflow-y-auto">
-              {clientesFiltrados.map(cliente => (
-                <label
-                  key={cliente.id}
-                  className="flex items-center gap-3 p-3 hover:bg-slate-50 cursor-pointer border-b last:border-b-0"
-                >
-                  <Checkbox
-                    checked={contasSelecionadas.includes(cliente.id)}
-                    onCheckedChange={() => toggleConta(cliente.id)}
-                  />
-                  <Building2 className="w-4 h-4 text-slate-400" />
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900">{cliente.nome}</p>
-                    <p className="text-xs text-slate-500">
-                      {cliente.cidade}, {cliente.estado}
-                      {cliente.marca && ` • ${cliente.marca}`}
-                    </p>
-                  </div>
-                </label>
-              ))}
-
-              {clientesFiltrados.length === 0 && (
-                <div className="p-8 text-center text-slate-500">
-                  <p>Nenhuma conta encontrada</p>
-                </div>
-              )}
-            </div>
-
-            {contasSelecionadas.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {contasSelecionadas.map(id => {
-                  const cliente = clientes.find(c => c.id === id);
-                  return (
-                    <Badge key={id} variant="outline">
-                      {cliente?.nome}
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
+          <div className="space-y-2">
+            <Label>Contas/Unidades que deseja acessar *</Label>
+            <Textarea
+              value={contasTexto}
+              onChange={(e) => setContasTexto(e.target.value)}
+              placeholder="Ex: Oral Sin Maringá, Oral Sin Londrina, Clínica X..."
+              className="min-h-[80px]"
+              required
+            />
+            <p className="text-xs text-slate-500">
+              Informe o nome das unidades/contas que você precisa visualizar.
+            </p>
           </div>
 
           {/* Motivo */}
