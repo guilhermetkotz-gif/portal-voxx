@@ -719,7 +719,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
                           size="sm"
                           variant="outline"
                           className="text-violet-700 border-violet-300 hover:bg-violet-50"
-                          onClick={() => handleSaveConfig(dados.cliente.id)}
+                          onClick={(e) => { e.stopPropagation(); handleSaveConfig(dados.cliente.id); }}
                           disabled={savingConfigs[dados.cliente.id]}
                         >
                           <Save className="w-3 h-3 mr-1" />
