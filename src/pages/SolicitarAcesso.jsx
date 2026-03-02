@@ -95,20 +95,6 @@ export default function SolicitarAcesso() {
     criarSolicitacao.mutate({ motivo, contasTexto });
   };
 
-  const toggleConta = (clienteId) => {
-    if (contasSelecionadas.includes(clienteId)) {
-      setContasSelecionadas(contasSelecionadas.filter(id => id !== clienteId));
-    } else {
-      setContasSelecionadas([...contasSelecionadas, clienteId]);
-    }
-  };
-
-  const clientesFiltrados = clientes.filter(c =>
-    c.nome?.toLowerCase().includes(search.toLowerCase()) ||
-    c.cidade?.toLowerCase().includes(search.toLowerCase()) ||
-    c.marca?.toLowerCase().includes(search.toLowerCase())
-  );
-
   if (sucesso) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50 to-slate-100 flex items-center justify-center p-4">
