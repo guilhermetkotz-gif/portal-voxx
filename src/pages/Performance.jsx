@@ -394,8 +394,8 @@ export default function Performance({ currentCliente, selectedClienteId, user })
             />
           </div>
 
-          {/* Google Table */}
-          {isVoxx && clientes.length > 1 && (
+          {/* Google Table - hidden for non-voxx; voxx sees aggregated view in MonitoramentoContas */}
+          {false && (
             <Card className="overflow-hidden">
               <div className="p-4 border-b border-slate-100">
                 <h3 className="font-semibold">Visão Geral - Google Ads</h3>
