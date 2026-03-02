@@ -70,10 +70,12 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
         tipo_acesso: tipoUsuario,
         cliente_id: primeiroClienteId
       });
-      // Also sync via service role
+      // Also sync via service role to ensure data field is persisted
       await base44.functions.invoke('updateUserTipoUsuario', {
         usuario_id: usuario.id,
-        tipo_usuario: tipoUsuario
+        tipo_usuario: tipoUsuario,
+        cliente_id: primeiroClienteId,
+        tipo_acesso: tipoUsuario
       }).catch(() => {});
 
       // Log action
