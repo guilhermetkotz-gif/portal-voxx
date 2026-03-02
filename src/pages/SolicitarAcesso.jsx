@@ -77,7 +77,7 @@ export default function SolicitarAcesso() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (!nome || !email || !senha || !funcao || !motivo || contasSelecionadas.length === 0) {
+    if (!nome || !email || !senha || !funcao || !motivo || !contasTexto.trim()) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
