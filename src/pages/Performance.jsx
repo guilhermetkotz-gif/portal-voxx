@@ -47,9 +47,6 @@ const MetricTooltip = ({ term, children }) => {
 export default function Performance({ currentCliente, selectedClienteId, user }) {
   const [activeTab, setActiveTab] = useState('meta');
 
-  // clientes is passed via Layout - no need to fetch all
-  // Just use currentCliente (already scoped by Layout to user's accessible clients)
-
   // Buscar gasto diário da planilha "ontem meta Ads"
   const { data: sheetData } = useQuery({
     queryKey: ['amountSpentFromSheet'],
