@@ -23,22 +23,16 @@ Deno.serve(async (req) => {
 
         const config = configs[0];
         const spreadsheetId = config.spreadsheet_id;
-        const sheetName = config.aba_ontem; // Para monitoramento, esta aba contém dados mensais
+        const sheetName = config.aba_ontem;
         const colMap = config.mapeamento_colunas;
 
-        console.log('Using config:', {
-            nome: config.nome_configuracao,
-            spreadsheetId,
-            sheetName,
-            tipo: config.tipo
-        });
+        console.log('Using config:', { nome: config.nome_configuracao, spreadsheetId, sheetName });
 
         // Get access token for Google Sheets
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
 
-        const range = `${sheetName}!A:V`;
-
-        console.log('Using sheet name:', sheetName);
+        const encodedSheet = encodeURIComponent(sheetName);
+        const range = `${encodedSheet}!A:V`;
 
         // Fetch data from Google Sheets
         const response = await fetch(
@@ -64,10 +58,9 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'No data found in sheet' }, { status: 404 });
         }
 
-        // Header row
         const headers = rows[0];
+        console.log('Headers:', headers);
         
-        // Find column indices using config mapping
         const getColIndex = (configKey) => {
             const columnName = colMap[configKey];
             if (!columnName) return -1;
@@ -92,20 +85,25 @@ Deno.serve(async (req) => {
         const leadsRepetidosIdx = getColIndex('leads_repetidos');
         const notaGPTIdx = getColIndex('nota_gpt');
         
-        console.log('Column indices:', {
-            accountNameIdx,
-            newMessagingConnectionsIdx,
-            messagingConversationsIdx,
-            costPerMessagingIdx,
-            amountSpentIdx,
-            frequencyIdx,
-            header_sample: headers.slice(0, 20)
-        });
+        console.log('Column indices:', { accountNameIdx, amountSpentIdx, frequencyIdx, notaGPTIdx });
+
+        const parseNumber = (val) => {
+            if (!val) return 0;
+            const str = typeof val === 'string' ? val.replace(/[R$\s]/g, '').replace(',', '.') : String(val);
+            const num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+        };
+
+        const parsePercentage = (val) => {
+            if (!val) return 0;
+            const str = typeof val === 'string' ? val.replace(/[^\d.,]/g, '').replace(',', '.') : String(val);
+            const num = parseFloat(str);
+            return isNaN(num) ? 0 : num;
+        };
 
         const accounts = [];
-        const processedNames = new Set(); // Track processed account names to avoid duplicates
+        const processedNames = new Set();
 
-        // Process each row
         for (let i = 1; i < rows.length; i++) {
             const row = rows[i];
             if (!row || row.length === 0) continue;
@@ -113,50 +111,16 @@ Deno.serve(async (req) => {
             const accountName = (row[accountNameIdx] || '').trim();
             if (!accountName) continue;
 
-            // Normalize account name for comparison (remove extra spaces, lowercase)
             const normalizedName = accountName.toLowerCase().replace(/\s+/g, ' ');
-
-            // Skip if already processed this account name
-            if (processedNames.has(normalizedName)) {
-                console.log('Skipping duplicate account:', accountName);
-                continue;
-            }
+            if (processedNames.has(normalizedName)) continue;
             processedNames.add(normalizedName);
-
-            // Parse numeric values
-            const parseNumber = (val) => {
-                if (!val) return 0;
-                const str = typeof val === 'string' ? val.replace(/[^\d.,-]/g, '').replace(',', '.') : val;
-                const num = parseFloat(str);
-                return isNaN(num) ? 0 : num;
-            };
-
-            const parsePercentage = (val) => {
-                if (!val) return 0;
-                const str = typeof val === 'string' ? val.replace(/[^\d.,%]/g, '').replace(',', '.').replace('%', '') : val;
-                const num = parseFloat(str);
-                return isNaN(num) ? 0 : num;
-            };
 
             const notaGPT = parseNumber(row[notaGPTIdx]);
             const frequency = parseNumber(row[frequencyIdx]);
             const leadsRepetidos = parsePercentage(row[leadsRepetidosIdx]);
             const costPerMessaging = parseNumber(row[costPerMessagingIdx]);
+            const investimento = parseNumber(row[amountSpentIdx]);
 
-            // Debug log for first few accounts
-            if (i <= 3) {
-                console.log(`Account ${i} debug:`, {
-                    accountName,
-                    new_messaging_connections_raw: row[newMessagingConnectionsIdx],
-                    new_messaging_connections_parsed: parseNumber(row[newMessagingConnectionsIdx]),
-                    messaging_conversations_raw: row[messagingConversationsIdx],
-                    messaging_conversations_parsed: parseNumber(row[messagingConversationsIdx]),
-                    amount_spent_raw: row[amountSpentIdx],
-                    amount_spent_parsed: parseNumber(row[amountSpentIdx])
-                });
-            }
-
-            // Calculate Classificação
             let classificacao;
             if (notaGPT >= 90) classificacao = 'ELITE';
             else if (notaGPT >= 80) classificacao = 'SAUDÁVEL';
@@ -164,66 +128,50 @@ Deno.serve(async (req) => {
             else if (notaGPT >= 50) classificacao = 'ALERTA';
             else classificacao = 'CRÍTICO';
 
-            // Calculate Prioridade (baseado em impacto financeiro e volume)
-            let prioridade;
-            const investimento = parseNumber(row[amountSpentIdx]);
             const isCriticalMetrics = frequency >= 4.6 || leadsRepetidos >= 28 || costPerMessaging >= 55;
             const isHighSpend = investimento >= 2000;
-            
-            if (notaGPT < 50 || (isCriticalMetrics && isHighSpend)) {
-                prioridade = 'P1';
-            } else if (notaGPT >= 50 && notaGPT < 65 || isCriticalMetrics) {
-                prioridade = 'P2';
-            } else {
-                prioridade = 'P3';
-            }
 
-            // Calculate Main Issue
+            let prioridade;
+            if (notaGPT < 50 || (isCriticalMetrics && isHighSpend)) prioridade = 'P1';
+            else if ((notaGPT >= 50 && notaGPT < 65) || isCriticalMetrics) prioridade = 'P2';
+            else prioridade = 'P3';
+
             let mainIssue;
-            if (frequency >= 4.6) {
-                mainIssue = 'Frequência alta (saturação / criativo cansado)';
-            } else if (leadsRepetidos >= 28) {
-                mainIssue = 'Leads repetidos (público pequeno / repetição)';
-            } else if (costPerMessaging >= 55) {
-                mainIssue = 'Custo por conversa alto (criativo/oferta/qualificação)';
-            } else {
-                mainIssue = 'Saudável (monitorar)';
-            }
+            if (frequency >= 4.6) mainIssue = 'Frequência alta (saturação / criativo cansado)';
+            else if (leadsRepetidos >= 28) mainIssue = 'Leads repetidos (público pequeno / repetição)';
+            else if (costPerMessaging >= 55) mainIssue = 'Custo por conversa alto (criativo/oferta/qualificação)';
+            else mainIssue = 'Saudável (monitorar)';
 
             accounts.push({
                 account_name: accountName,
                 impressions: parseNumber(row[impressionsIdx]),
                 cost_per_messaging: costPerMessaging,
-                frequency: frequency,
+                frequency,
                 cost_per_unique_link: parseNumber(row[costPerUniqueLinkIdx]),
                 page_engagement: parseNumber(row[pageEngagementIdx]),
                 page_likes: parseNumber(row[pageLikesIdx]),
                 reach: parseNumber(row[reachIdx]),
-                amount_spent: parseNumber(row[amountSpentIdx]),
+                amount_spent: investimento,
                 clicks_all: parseNumber(row[clicksAllIdx]),
                 cpc: parseNumber(row[cpcIdx]),
-                messaging_conversations: parseNumber(row[messagingConversationsIdx]) || 0,
+                messaging_conversations: parseNumber(row[messagingConversationsIdx]),
                 cost_per_new_messaging: parseNumber(row[costPerNewMessagingIdx]),
                 new_messaging_connections: parseNumber(row[newMessagingConnectionsIdx]),
                 custo_engajamento: parseNumber(row[custoEngajamentoIdx]),
                 leads_repetidos_percent: leadsRepetidos,
                 nota_gpt: notaGPT,
-                classificacao: classificacao,
-                prioridade: prioridade,
+                classificacao,
+                prioridade,
                 main_issue: mainIssue
             });
         }
 
-        // Delete all existing accounts and insert new ones
-        const existingAccounts = await base44.asServiceRole.entities.ContaMetaAds.list('-created_date', 1000);
-        
-        // Delete in batches to avoid timeout
-        const deletePromises = existingAccounts.map(acc => 
-            base44.asServiceRole.entities.ContaMetaAds.delete(acc.id)
-        );
-        await Promise.all(deletePromises);
+        console.log(`Processed ${accounts.length} accounts`);
 
-        // Bulk create new accounts
+        // Delete all existing and insert new
+        const existingAccounts = await base44.asServiceRole.entities.ContaMetaAds.list('-created_date', 1000);
+        await Promise.all(existingAccounts.map(acc => base44.asServiceRole.entities.ContaMetaAds.delete(acc.id)));
+
         if (accounts.length > 0) {
             await base44.asServiceRole.entities.ContaMetaAds.bulkCreate(accounts);
         }
