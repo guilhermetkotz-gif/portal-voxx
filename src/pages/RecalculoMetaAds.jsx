@@ -362,6 +362,24 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     }));
   };
 
+  const handleSaveConfig = async (clienteId) => {
+    const config = customConfigs[clienteId] || {};
+    setSavingConfigs(prev => ({ ...prev, [clienteId]: true }));
+    try {
+      await base44.entities.Cliente.update(clienteId, {
+        distribuicao_personalizada: {
+          ...config,
+          atualizado_por_nome: user?.full_name || user?.email,
+          atualizado_por_email: user?.email,
+          atualizado_em: new Date().toISOString()
+        }
+      });
+      queryClient.invalidateQueries({ queryKey: ['clientesRecalculo'] });
+    } finally {
+      setSavingConfigs(prev => ({ ...prev, [clienteId]: false }));
+    }
+  };
+
   const getImpactoColor = (recalculado, diarioD1) => {
     const diferenca = Math.abs(recalculado - diarioD1);
     const percentual = diarioD1 > 0 ? (diferenca / diarioD1) * 100 : 0;
