@@ -47,11 +47,8 @@ const MetricTooltip = ({ term, children }) => {
 export default function Performance({ currentCliente, selectedClienteId, user }) {
   const [activeTab, setActiveTab] = useState('meta');
 
-  const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ['clientes'],
-    queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
-    staleTime: 2 * 60 * 1000
-  });
+  // clientes is passed via Layout - no need to fetch all
+  // Just use currentCliente (already scoped by Layout to user's accessible clients)
 
   // Buscar gasto diário da planilha "ontem meta Ads"
   const { data: sheetData } = useQuery({
@@ -123,7 +120,8 @@ export default function Performance({ currentCliente, selectedClienteId, user })
   }, [planejamentos, currentCliente, amountSpentByAccount]);
 
   const cliente = currentCliente;
-  const isVoxx = user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_operacao';
+  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
+  const isVoxx = tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager' || user?.role === 'admin';
   
   // Buscar gasto diário do cliente atual
   let gastoDiarioMeta = 0;
