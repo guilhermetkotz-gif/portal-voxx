@@ -288,10 +288,7 @@ export default function GerenciarAcessos({ user }) {
                     <Badge className="bg-amber-100 text-amber-700">Pendente</Badge>
                   </div>
                   <p className="text-sm text-slate-500 mb-2">{solicitacao.usuario_email}</p>
-                  <div className="text-sm text-slate-700 mb-2">
-                    <strong>Contas solicitadas:</strong> {solicitacao.contas_solicitadas_nomes?.join(', ') || 'N/A'}
-                  </div>
-                  <div className="text-sm text-slate-600 mb-2">
+                  <div className="text-sm text-slate-600 mb-2 whitespace-pre-line">
                     <strong>Motivo:</strong> {solicitacao.motivo}
                   </div>
                   <p className="text-xs text-slate-400">
