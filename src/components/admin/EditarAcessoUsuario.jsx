@@ -142,8 +142,14 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
   const atualizarTipoUsuario = useMutation({
     mutationFn: async (novoTipo) => {
       await base44.entities.User.update(usuario.id, {
-        tipo_usuario: novoTipo
+        tipo_usuario: novoTipo,
+        role: usuario.role || 'user'
       });
+      // Also update via auth to ensure data field is set
+      await base44.functions.invoke('updateUserTipoUsuario', {
+        usuario_id: usuario.id,
+        tipo_usuario: novoTipo
+      }).catch(() => {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todosUsuarios'] });
