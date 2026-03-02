@@ -225,12 +225,14 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   });
 
   const { data: clientes = [] } = useQuery({
-    queryKey: ['clientesDisponiveis', user?.id, user?.tipo_acesso],
+    queryKey: ['clientesDisponiveis', user?.id, user?.tipo_usuario, user?.tipo_acesso],
     queryFn: async () => {
       if (!user) return [];
       
+      const tipoUsuario = user.tipo_usuario || user.tipo_acesso;
+      
       // Usuários Voxx veem TODOS os clientes
-      if (user.role === 'admin' || user.tipo_acesso === 'voxx_admin' || user.tipo_acesso === 'voxx_operacao' || user.tipo_acesso === 'voxx_manager') {
+      if (user.role === 'admin' || tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager') {
         return base44.entities.Cliente.list('-updated_date', 500);
       }
       
