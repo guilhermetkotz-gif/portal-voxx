@@ -15,16 +15,9 @@ export default function SolicitarAcesso() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [funcao, setFuncao] = useState('');
-  const [contasSelecionadas, setContasSelecionadas] = useState([]);
+  const [contasTexto, setContasTexto] = useState('');
   const [motivo, setMotivo] = useState('');
-  const [search, setSearch] = useState('');
   const [sucesso, setSucesso] = useState(false);
-
-  const { data: clientes = [] } = useQuery({
-    queryKey: ['clientesPublicos'],
-    queryFn: () => base44.entities.Cliente.filter({ status: 'ativo' }, 'nome', 500),
-    staleTime: 5 * 60 * 1000
-  });
 
   const criarSolicitacao = useMutation({
     mutationFn: async (data) => {
