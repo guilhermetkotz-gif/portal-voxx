@@ -133,18 +133,7 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
             return <div key={index} className="h-px bg-slate-800 my-3" />;
           }
 
-          // Hide admin-only items for non-admin users
-          const userType = user?.tipo_usuario || user?.tipo_acesso;
-          if (item.adminOnly && user?.role !== 'admin' && userType !== 'voxx_admin' && userType !== 'voxx_manager') {
-            return null;
-          }
-
-          // Hide voxx-only items for non-voxx users
-          if (item.voxxOnly && user?.role !== 'admin' && userType !== 'voxx_admin' && userType !== 'voxx_operacao' && userType !== 'voxx_manager') {
-            return null;
-          }
-
-          // Check UserTypePermissions for page access
+          // All access is controlled by UserTypePermissions (DB source of truth)
           if (!isPageAllowed(item.page)) {
             return null;
           }
