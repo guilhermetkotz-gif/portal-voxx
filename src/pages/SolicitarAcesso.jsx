@@ -38,18 +38,13 @@ export default function SolicitarAcesso() {
         });
 
         // Create access request
-        const contasNomes = contasSelecionadas.map(id => {
-          const cliente = clientes.find(c => c.id === id);
-          return cliente?.nome || id;
-        });
-
         await base44.entities.AccessRequest.create({
           usuario_id: newUser.id,
           usuario_nome: nome,
           usuario_email: email,
-          contas_solicitadas: contasSelecionadas,
-          contas_solicitadas_nomes: contasNomes,
-          motivo: data.motivo,
+          contas_solicitadas: [],
+          contas_solicitadas_nomes: [],
+          motivo: `${data.motivo}\n\nContas solicitadas: ${data.contasTexto}`,
           status: 'pendente'
         });
 
@@ -63,7 +58,7 @@ export default function SolicitarAcesso() {
             user_email: admin.email,
             tipo: 'nova_solicitacao',
             titulo: 'Nova Solicitação de Acesso',
-            mensagem: `${nome} (${email}) solicitou acesso a ${contasSelecionadas.length} conta(s).`,
+            mensagem: `${nome} (${email}) solicitou acesso. Contas: ${data.contasTexto}`,
             lida: false
           });
         }
