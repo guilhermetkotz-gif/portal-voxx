@@ -703,7 +703,28 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
                           <Label className="font-semibold text-slate-900">
                             Usar Distribuição Personalizada
                           </Label>
+                          {dados.config.atualizado_por_nome && (
+                            <span className="flex items-center gap-1 text-xs text-slate-500">
+                              <User className="w-3 h-3" />
+                              Último lançamento: <strong>{dados.config.atualizado_por_nome}</strong>
+                              {dados.config.atualizado_em && (
+                                <span className="text-slate-400">
+                                  {' '}({format(new Date(dados.config.atualizado_em), 'dd/MM HH:mm')})
+                                </span>
+                              )}
+                            </span>
+                          )}
                         </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-violet-700 border-violet-300 hover:bg-violet-50"
+                          onClick={() => handleSaveConfig(dados.cliente.id)}
+                          disabled={savingConfigs[dados.cliente.id]}
+                        >
+                          <Save className="w-3 h-3 mr-1" />
+                          {savingConfigs[dados.cliente.id] ? 'Salvando...' : 'Salvar'}
+                        </Button>
                       </div>
 
                       {dados.config.enabled && (
