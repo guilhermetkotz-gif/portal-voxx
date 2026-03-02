@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calculator, Calendar, TrendingUp, AlertTriangle, DollarSign, Target, ChevronDown, ChevronUp, Lock, Activity, CheckCircle, XCircle, Zap } from 'lucide-react';
+import { Calculator, Calendar, TrendingUp, AlertTriangle, DollarSign, Target, ChevronDown, ChevronUp, Lock, Activity, CheckCircle, XCircle, Zap, Save, User } from 'lucide-react';
 import { format, differenceInDays, getDaysInMonth, startOfMonth, endOfMonth, startOfDay } from 'date-fns';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 
