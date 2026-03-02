@@ -44,7 +44,7 @@ export default function RadarTable({
 
   const getResponsavelMeta = (accountName) => {
     const row = filteredRadarData.find(r => r.account_name === accountName);
-    return row?.cliente?.responsavel_meta_ads || null;
+    return row?.cliente?.responsavel_voxx_trafego || null;
   };
   return (
     <div className="overflow-x-auto">
