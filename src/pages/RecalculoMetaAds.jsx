@@ -51,8 +51,34 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientesRecalculo'],
     queryFn: () => base44.entities.Cliente.list('-nome', 500),
-    staleTime: 2 * 60 * 1000
+    staleTime: 2 * 60 * 1000,
+    onSuccess: (data) => {
+      // Inicializar customConfigs com os dados salvos nos clientes
+      const saved = {};
+      data.forEach(c => {
+        if (c.distribuicao_personalizada) {
+          saved[c.id] = c.distribuicao_personalizada;
+        }
+      });
+      setCustomConfigs(prev => ({ ...saved, ...prev }));
+    }
   });
+
+  // Inicializar customConfigs quando clientes carregam (compatível com react-query v5)
+  React.useEffect(() => {
+    if (clientes.length > 0) {
+      setCustomConfigs(prev => {
+        const saved = {};
+        clientes.forEach(c => {
+          if (c.distribuicao_personalizada && !prev[c.id]) {
+            saved[c.id] = c.distribuicao_personalizada;
+          }
+        });
+        if (Object.keys(saved).length === 0) return prev;
+        return { ...saved, ...prev };
+      });
+    }
+  }, [clientes]);
 
   // Buscar planejamentos do mês atual
   const { data: planejamentos = [] } = useQuery({
