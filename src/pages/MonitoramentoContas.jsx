@@ -259,10 +259,17 @@ export default function MonitoramentoContas({ user }) {
 
     const syncMutation = useMutation({
         mutationFn: async () => {
-            await base44.functions.invoke('syncMetaAdsAccounts', {});
-            await base44.functions.invoke('syncRadarMetaData', {});
+            // Run both independently - don't let one failure block the other
+            const results = await Promise.allSettled([
+                base44.functions.invoke('syncMetaAdsAccounts', {}),
+                base44.functions.invoke('syncRadarMetaData', {})
+            ]);
+            const errors = results.filter(r => r.status === 'rejected').map(r => r.reason?.message);
+            if (errors.length === 2) throw new Error(errors.join('; '));
+            return results;
         },
-        onSuccess: () => {
+        onSettled: () => {
+            // Always invalidate queries regardless of success/failure
             queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] });
             queryClient.invalidateQueries({ queryKey: ['radarMetaData'] });
         }
