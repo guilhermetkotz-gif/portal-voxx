@@ -45,6 +45,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [customConfigs, setCustomConfigs] = useState({}); // { clienteId: { enabled, percentage, cutoffDate, endDate } }
+  const [savingConfigs, setSavingConfigs] = useState({}); // track saving state per cliente
 
   // Buscar todos os clientes
   const { data: clientes = [] } = useQuery({
