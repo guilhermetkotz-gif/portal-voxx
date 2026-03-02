@@ -92,7 +92,7 @@ export default function SolicitarAcesso() {
       return;
     }
 
-    criarSolicitacao.mutate({ motivo });
+    criarSolicitacao.mutate({ motivo, contasTexto });
   };
 
   const toggleConta = (clienteId) => {
