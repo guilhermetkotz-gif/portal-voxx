@@ -44,6 +44,7 @@ const menuItems = [
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
   { name: "Planejamento Estratégico", icon: TrendingUp, page: "PlanejamentoEstrategico" },
   { name: "Saldo Meta Ads", icon: CreditCard, page: "GestaoSaldoMetaAds", adminOnly: true },
+  { name: "Saldo Google Ads", icon: CreditCard, page: "GestaoSaldoGoogleAds", adminOnly: true },
   { name: "Abrir Demanda", icon: PlusCircle, page: "AbrirDemanda", highlight: true },
   { divider: true },
   { name: "CRC - Caixa de Leads", icon: HeadphonesIcon, page: "CrcCaixaLeads" },
