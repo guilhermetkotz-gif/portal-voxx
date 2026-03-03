@@ -233,6 +233,39 @@ export default function GoogleAdsDashboard({ accounts, voxxUsers }) {
         </Card>
       </div>
 
+      {/* Gasto por Operador */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold text-slate-700">Gasto por Operador</CardTitle>
+          <p className="text-xs text-slate-400">Investimento e contas ativas por responsável VOXX</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {data.gastoPorOperador.length === 0 ? (
+              <p className="text-sm text-slate-400">Nenhum operador atribuído</p>
+            ) : (
+              data.gastoPorOperador.map((op, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  <div className="w-28 text-xs text-slate-600 truncate font-medium">{op.nome}</div>
+                  <div className="flex-1">
+                    <div className="w-full bg-slate-100 rounded-full h-2">
+                      <div
+                        className="bg-indigo-500 h-2 rounded-full"
+                        style={{ width: `${op.pct}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-700 font-semibold w-24 text-right">
+                    R$ {op.gasto.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </div>
+                  <div className="text-xs text-slate-400 w-16 text-right">{op.contas} contas</div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Linha 2: Scatter + Ranking */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Gráfico 2: Mapa de Risco */}
