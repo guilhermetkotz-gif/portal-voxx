@@ -322,7 +322,7 @@ export default function MonitoramentoGoogleAds() {
 
             <hr className="border-slate-200" />
 
-            {/* Filtros Globais */}
+            {/* Filtros e visualização */}
             <div className="flex flex-wrap gap-3 items-center">
               <div className="flex gap-2">
                 <button
@@ -363,165 +363,150 @@ export default function MonitoramentoGoogleAds() {
               </Select>
             </div>
 
-        {kpis && (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Investimento Total</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">R$ {kpis.totalInvestimento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                  <DollarSign className="w-6 h-6 text-blue-600" />
-                </div>
-              </CardContent>
-            </Card>
+            {/* KPIs */}
+            {kpis && (
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-600">Investimento Total</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl font-bold">R$ {kpis.totalInvestimento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      <DollarSign className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-600">Conversões</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl font-bold">{kpis.totalConversoes}</p>
+                      <Target className="w-6 h-6 text-green-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-600">CPA Médio</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl font-bold">R$ {kpis.cpaGeral.toFixed(2)}</p>
+                      <TrendingUp className="w-6 h-6 text-purple-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-600">CPC Médio</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl font-bold">R$ {kpis.cpcMedio.toFixed(2)}</p>
+                      <MousePointerClick className="w-6 h-6 text-orange-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-600">Score Médio</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl font-bold">{kpis.scoreMedio.toFixed(0)}%</p>
+                      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span className="text-xs font-bold text-blue-600">O</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-600">Contas Ativas</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <p className="text-2xl font-bold">{kpis.contasAtivas}/{kpis.totalContas}</p>
+                      <CheckCircle className="w-6 h-6 text-green-600" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Conversões</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">{kpis.totalConversoes}</p>
-                  <Target className="w-6 h-6 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Busca */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                placeholder="Buscar por conta, unidade ou cliente..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">CPA Médio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">R$ {kpis.cpaGeral.toFixed(2)}</p>
-                  <TrendingUp className="w-6 h-6 text-purple-600" />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Cards */}
+            {viewMode === 'cards' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredAccounts.map(account => (
+                  <GoogleAdsAccountCard key={account.id} account={account} />
+                ))}
+              </div>
+            )}
 
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">CPC Médio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">R$ {kpis.cpcMedio.toFixed(2)}</p>
-                  <MousePointerClick className="w-6 h-6 text-orange-600" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Score Médio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">{kpis.scoreMedio.toFixed(0)}%</p>
-                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-xs font-bold text-blue-600">O</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Contas Ativas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">{kpis.contasAtivas}/{kpis.totalContas}</p>
-                  <CheckCircle className="w-6 h-6 text-green-600" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <Input
-            placeholder="Buscar por conta, unidade ou cliente..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {viewMode === 'cards' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAccounts.map(account => (
-              <GoogleAdsAccountCard key={account.id} account={account} />
-            ))}
-          </div>
-        )}
-
-        {viewMode === 'table' && (
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Conta</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Responsável VOXX</TableHead>
-                  <TableHead className="text-right">Clicks</TableHead>
-                  <TableHead className="text-right">Conversões</TableHead>
-                  <TableHead className="text-right">Custo</TableHead>
-                  <TableHead className="text-right">Cost/Conv.</TableHead>
-                  <TableHead className="text-right">CPC</TableHead>
-                  <TableHead className="text-right">CPM</TableHead>
-                  <TableHead>Opt. Score</TableHead>
-                  <TableHead>Alertas</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredAccounts.map(account => {
-                    return (
-                      <TableRow key={account.id}>
-                        <TableCell>{getStatusIcon(account)}</TableCell>
-                        <TableCell className="font-medium">{account.account_name}</TableCell>
-                        <TableCell>{account.unidade_nome}</TableCell>
-                        <TableCell className="text-sm text-gray-600">
-                          <ResponsavelCell
-                            account={account}
-                            voxxUsers={voxxUsers}
-                            getUserName={getUserName}
-                            getResponsavelGoogleAds={getResponsavelGoogleAds}
-                            handleAssignResponsavel={handleAssignResponsavel}
-                          />
-                        </TableCell>
-                        <TableCell className="text-right">{account.clicks.toLocaleString('pt-BR')}</TableCell>
-                        <TableCell className="text-right font-semibold">{account.conversions}</TableCell>
-                        <TableCell className="text-right">R$ {account.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
-                        <TableCell className="text-right font-semibold text-violet-600">
-                          {account.cost_per_conversion > 0 ? `R$ ${account.cost_per_conversion.toFixed(2)}` : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">R$ {account.avg_cpc.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-semibold">R$ {account.avg_cpm.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getScoreBadge(account.optimization_score)}
-                            <span className="text-sm text-gray-600">{account.optimization_score}%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {account.conta_sem_dados && (
-                            <Badge variant="outline" className="bg-gray-100">Sem Dados</Badge>
-                          )}
-                        </TableCell>
+            {/* Tabela */}
+            {viewMode === 'table' && (
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Conta</TableHead>
+                        <TableHead>Unidade</TableHead>
+                        <TableHead>Responsável VOXX</TableHead>
+                        <TableHead className="text-right">Clicks</TableHead>
+                        <TableHead className="text-right">Conversões</TableHead>
+                        <TableHead className="text-right">Custo</TableHead>
+                        <TableHead className="text-right">Cost/Conv.</TableHead>
+                        <TableHead className="text-right">CPC</TableHead>
+                        <TableHead className="text-right">CPM</TableHead>
+                        <TableHead>Opt. Score</TableHead>
+                        <TableHead>Alertas</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        )}
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAccounts.map(account => (
+                        <TableRow key={account.id}>
+                          <TableCell>{getStatusIcon(account)}</TableCell>
+                          <TableCell className="font-medium">{account.account_name}</TableCell>
+                          <TableCell>{account.unidade_nome}</TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            <ResponsavelCell
+                              account={account}
+                              voxxUsers={voxxUsers}
+                              getUserName={getUserName}
+                              getResponsavelGoogleAds={getResponsavelGoogleAds}
+                              handleAssignResponsavel={handleAssignResponsavel}
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">{account.clicks.toLocaleString('pt-BR')}</TableCell>
+                          <TableCell className="text-right font-semibold">{account.conversions}</TableCell>
+                          <TableCell className="text-right">R$ {account.cost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-semibold text-violet-600">
+                            {account.cost_per_conversion > 0 ? `R$ ${account.cost_per_conversion.toFixed(2)}` : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">R$ {account.avg_cpc.toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-semibold">R$ {account.avg_cpm.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              {getScoreBadge(account.optimization_score)}
+                              <span className="text-sm text-gray-600">{account.optimization_score}%</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {account.conta_sem_dados && (
+                              <Badge variant="outline" className="bg-gray-100">Sem Dados</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
 
             {filteredAccounts.length === 0 && (
               <div className="text-center py-12">
