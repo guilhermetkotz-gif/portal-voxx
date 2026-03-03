@@ -120,11 +120,29 @@ export default function GoogleAdsDashboard({ accounts, voxxUsers }) {
       return s > 0 && s < scoreP25;
     }).length;
 
+    // Gasto por Operador
+    const operadorMap = {};
+    accounts.forEach(a => {
+      const key = a.responsavel_voxx || '__sem_responsavel__';
+      const nome = voxxUsers?.find(u => u.id === key)?.full_name || (key === '__sem_responsavel__' ? 'Não atribuído' : key);
+      if (!operadorMap[key]) operadorMap[key] = { nome, gasto: 0, contas: 0 };
+      if ((a.cost || 0) > 0) {
+        operadorMap[key].gasto += a.cost || 0;
+        operadorMap[key].contas += 1;
+      }
+    });
+    const totalGasto = Object.values(operadorMap).reduce((s, o) => s + o.gasto, 0);
+    const gastoPorOperador = Object.values(operadorMap)
+      .filter(o => o.gasto > 0)
+      .sort((a, b) => b.gasto - a.gasto)
+      .map(o => ({ ...o, pct: totalGasto > 0 ? (o.gasto / totalGasto) * 100 : 0 }));
+
     return {
       scoreData,
       scatterData,
       rankingData: scored,
       statusData,
+      gastoPorOperador,
       alertas: { semGasto, gastoSemConversao, cpaAlto, scoreBaixo },
       totais: {
         total: accounts.length,
