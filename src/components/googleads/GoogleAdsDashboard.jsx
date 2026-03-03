@@ -276,7 +276,7 @@ export default function GoogleAdsDashboard({ accounts, voxxUsers }) {
                   <div className="text-xs text-slate-700 font-semibold w-24 text-right">
                     R$ {op.gasto.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </div>
-                  <div className="text-xs text-slate-400 w-16 text-right">{op.contas} contas</div>
+                  <div className="text-xs text-slate-400 w-20 text-right">{op.contas} {op.contas === 1 ? 'conta' : 'contas'} c/ gasto</div>
                 </div>
               ))
             )}
