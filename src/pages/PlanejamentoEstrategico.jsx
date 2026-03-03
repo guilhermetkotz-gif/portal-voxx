@@ -71,17 +71,25 @@ export default function PlanejamentoEstrategico({ currentCliente, selectedClient
         return base44.entities.Cliente.list('-updated_date', 500);
       }
       
-      if (isVoxxOperacao(user)) {
-        const allClientes = await base44.entities.Cliente.list('-updated_date', 500);
-        return allClientes.filter(c => user?.clientes_atribuidos?.includes(c.id));
-      }
-      
+      // Buscar acessos via UserClientAccess para qualquer tipo de usuário não-admin
       const userAccess = await base44.entities.UserClientAccess.filter({
         usuario_id: user.id,
         status: 'ativo'
       });
-      const clienteIds = userAccess.map(a => a.cliente_id);
       const allClientes = await base44.entities.Cliente.list('-updated_date', 500);
+
+      if (isVoxxOperacao(user)) {
+        // Combinar clientes_atribuidos com UserClientAccess
+        const atribuidos = user?.clientes_atribuidos || [];
+        const accessIds = userAccess.map(a => a.cliente_id);
+        const combinedIds = [...new Set([...atribuidos, ...accessIds])];
+        if (combinedIds.length > 0) {
+          return allClientes.filter(c => combinedIds.includes(c.id));
+        }
+        return allClientes; // fallback: mostrar todos se não houver restrições
+      }
+
+      const clienteIds = userAccess.map(a => a.cliente_id);
       return allClientes.filter(c => clienteIds.includes(c.id));
     },
     enabled: !!user,
