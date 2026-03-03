@@ -78,7 +78,11 @@ export default function PerformancePorOperadorGoogleAds({ googleAdsAccounts, vox
 
     // Calcular médias
     const operadores = Array.from(operadoresMap.values()).map((op) => {
-      const healthScoreMedio = op.totalContas > 0 ? op.healthScoreTotal / op.totalContas : 0;
+      // Health score médio apenas das contas com conversões > 0
+      const contasComConversoes = op.contas.filter(c => (c.conversions || 0) > 0);
+      const healthScoreMedio = contasComConversoes.length > 0
+        ? contasComConversoes.reduce((sum, c) => sum + (c.health_score || 0), 0) / contasComConversoes.length
+        : 0;
       
       // CPA médio ponderado por conversões
       const cpaMedio = op.pesoConversions > 0 
