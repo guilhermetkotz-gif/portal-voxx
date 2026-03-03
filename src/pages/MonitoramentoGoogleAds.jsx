@@ -37,6 +37,8 @@ export default function MonitoramentoGoogleAds() {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterResponsavel, setFilterResponsavel] = useState('all');
 
   const { data: user } = useQuery({
     queryKey: ['current-user'],
