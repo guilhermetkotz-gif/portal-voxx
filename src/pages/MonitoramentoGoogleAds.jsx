@@ -317,19 +317,50 @@ export default function MonitoramentoGoogleAds() {
 
           {/* Tab: Monitoramento de Contas */}
           <TabsContent value="monitoramento" className="space-y-6 mt-6">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode('cards')}
-                className={`px-4 py-2 rounded-lg ${viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
-              >
-                Cards
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`px-4 py-2 rounded-lg ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}`}
-              >
-                Tabela
-              </button>
+            {/* Dashboard de Performance */}
+            <GoogleAdsDashboard accounts={accounts} voxxUsers={voxxUsers} />
+
+            <hr className="border-slate-200" />
+
+            {/* Filtros Globais */}
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode('cards')}
+                  className={`px-4 py-2 rounded-lg text-sm ${viewMode === 'cards' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border'}`}
+                >
+                  Cards
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`px-4 py-2 rounded-lg text-sm ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border'}`}
+                >
+                  Tabela
+                </button>
+              </div>
+
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="Ativa">Ativa</SelectItem>
+                  <SelectItem value="Pausada">Pausada</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterResponsavel} onValueChange={setFilterResponsavel}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Responsável" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os responsáveis</SelectItem>
+                  {voxxUsers.map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
         {kpis && (
