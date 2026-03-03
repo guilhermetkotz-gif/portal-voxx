@@ -80,6 +80,11 @@ export default function PerformancePorOperadorGoogleAds({ googleAdsAccounts, vox
     const operadores = Array.from(operadoresMap.values()).map((op) => {
       // Health score médio apenas das contas com conversões > 0
       const contasComConversoes = op.contas.filter(c => (c.conversions || 0) > 0);
+      console.log('[HealthScore] Operador:', op.responsavel, 
+        '| Total contas:', op.totalContas,
+        '| Contas c/ conversões:', contasComConversoes.length,
+        '| health_scores:', contasComConversoes.map(c => ({ nome: c.account_name, hs: c.health_score, conv: c.conversions }))
+      );
       const healthScoreMedio = contasComConversoes.length > 0
         ? contasComConversoes.reduce((sum, c) => sum + (c.health_score || 0), 0) / contasComConversoes.length
         : 0;
