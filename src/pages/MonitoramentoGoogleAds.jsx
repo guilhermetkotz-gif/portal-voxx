@@ -157,26 +157,34 @@ export default function MonitoramentoGoogleAds() {
   }, [accounts]);
 
   const filteredAccounts = useMemo(() => {
-    let filtered = searchTerm 
-      ? accounts.filter(acc => {
-          const term = searchTerm.toLowerCase();
-          return acc.account_name?.toLowerCase().includes(term) ||
-                 acc.unidade_nome?.toLowerCase().includes(term) ||
-                 acc.cliente_nome?.toLowerCase().includes(term);
-        })
-      : accounts;
+    let filtered = accounts;
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(acc =>
+        acc.account_name?.toLowerCase().includes(term) ||
+        acc.unidade_nome?.toLowerCase().includes(term) ||
+        acc.cliente_nome?.toLowerCase().includes(term)
+      );
+    }
+
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(acc => acc.account_status === filterStatus);
+    }
+
+    if (filterResponsavel !== 'all') {
+      filtered = filtered.filter(acc => acc.responsavel_voxx === filterResponsavel);
+    }
     
-    // Ordenar: contas com atenção (sem dados) por último, depois pausadas, ativas primeiro
     return filtered.sort((a, b) => {
       const getPriority = (acc) => {
-        if (acc.conta_sem_dados) return 2; // Atenção - por último
-        if (acc.account_status === 'Pausada') return 1; // Pausada - meio
-        return 0; // Ativa - primeiro
+        if (acc.conta_sem_dados) return 2;
+        if (acc.account_status === 'Pausada') return 1;
+        return 0;
       };
-      
       return getPriority(a) - getPriority(b);
     });
-  }, [accounts, searchTerm]);
+  }, [accounts, searchTerm, filterStatus, filterResponsavel]);
 
   const getUserName = (userId) => {
     const user = users.find(u => u.id === userId);
