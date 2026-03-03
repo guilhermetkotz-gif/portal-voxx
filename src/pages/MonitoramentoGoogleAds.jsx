@@ -28,7 +28,9 @@ import {
 import GoogleAdsAccountCard from '../components/GoogleAdsAccountCard';
 import ResponsavelCell from '../components/googleads/ResponsavelCell';
 import PerformancePorOperadorGoogleAds from '../components/googleads/PerformancePorOperadorGoogleAds';
+import GoogleAdsDashboard from '../components/googleads/GoogleAdsDashboard';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
 export default function MonitoramentoGoogleAds() {
