@@ -14,7 +14,7 @@ import KPICard from '@/components/ui/KPICard';
 import { format } from 'date-fns';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 import { Checkbox } from '@/components/ui/checkbox';
-import GoogleSaldoModalNovaTomada from '@/components/googleads/GoogleSaldoModalNovaTomada';
+import GoogleSaldoModalNovaTomada from '@/components/googleads/GoogleSaldoModalNovaTomada.jsx';
 
 export default function GestaoSaldoGoogleAds({ user }) {
   const { toast } = useToast();
