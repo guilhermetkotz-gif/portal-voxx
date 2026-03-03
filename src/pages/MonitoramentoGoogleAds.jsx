@@ -50,6 +50,7 @@ export default function MonitoramentoGoogleAds() {
   const { data: accounts = [], isLoading, refetch: refetchAccounts } = useQuery({
     queryKey: ['google-ads-accounts'],
     staleTime: 2 * 60 * 1000,
+    enabled: true,
     queryFn: async () => {
       const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score');
       const clientes = await base44.entities.Cliente.list();
