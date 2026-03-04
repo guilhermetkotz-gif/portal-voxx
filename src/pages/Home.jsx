@@ -130,10 +130,18 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     staleTime: 60 * 1000
   });
 
-  // Buscar todas as contas Meta Ads para cálculo do percentil
+  // Buscar todas as contas Meta Ads para cálculo do percentil e métricas atualizadas
   const { data: todasContasMetaAds = [] } = useQuery({
     queryKey: ['todasContasMetaAds'],
     queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
+    staleTime: 2 * 60 * 1000
+  });
+
+  // Buscar conta Google Ads atualizada do cliente
+  const { data: googleAdsAccounts = [] } = useQuery({
+    queryKey: ['googleAdsAccountHome', currentCliente?.google_ads_account_name, currentCliente?.nome],
+    queryFn: () => base44.entities.GoogleAdsAccount.list('-data_atualizacao', 500),
+    enabled: !!currentCliente,
     staleTime: 2 * 60 * 1000
   });
 
