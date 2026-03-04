@@ -73,31 +73,38 @@ export default function GoogleAdsDashboard({ accounts, voxxUsers }) {
       };
     }).filter(d => d.x > 0 || d.y > 0);
 
-    // GRÁFICO 3 — Top 10 Prioridade
+    // GRÁFICO 3 — Top 10 Prioridade (enriquecido)
+    const avgCpa = (() => {
+      const valid = accounts.filter(x => x.cost_per_conversion > 0);
+      return valid.length > 0 ? valid.reduce((s, x) => s + x.cost_per_conversion, 0) / valid.length : 0;
+    })();
+
     const scored = accounts.map(a => {
       const score = a.health_score || a.optimization_score || 0;
       const spend = a.cost || 0;
       const conversions = a.conversions || 0;
       let priority = 0;
-      if (spend > 0 && conversions === 0) priority += 30;
-      if (score < 40 && score > 0) priority += 25;
-      if (score > 0 && score < 60) priority += 15;
-      if (spend > p66) priority += 20;
-      if (a.cost_per_conversion > 0) {
-        const avgCpa = accounts.filter(x => x.cost_per_conversion > 0).reduce((s, x) => s + x.cost_per_conversion, 0) / 
-          (accounts.filter(x => x.cost_per_conversion > 0).length || 1);
-        if (a.cost_per_conversion > avgCpa * 1.5) priority += 10;
+      const razoes = [];
+
+      if (spend > 0 && conversions === 0) { priority += 30; razoes.push('Gasto sem conversão'); }
+      if (score < 40 && score > 0) { priority += 25; razoes.push('Score crítico'); }
+      else if (score > 0 && score < 60) { priority += 15; razoes.push('Score baixo'); }
+      if (spend > p66) { priority += 20; razoes.push('Alto investimento'); }
+      if (a.cost_per_conversion > 0 && avgCpa > 0 && a.cost_per_conversion > avgCpa * 1.5) {
+        priority += 10; razoes.push('CPA elevado');
       }
-      return { ...a, priority };
+
+      return {
+        ...a,
+        priority,
+        razoes,
+        score,
+        spend,
+        conversions,
+      };
     }).filter(a => a.priority > 0)
       .sort((a, b) => b.priority - a.priority)
-      .slice(0, 10)
-      .map(a => ({
-        name: (a.account_name || '').length > 25 ? (a.account_name || '').slice(0, 25) + '…' : (a.account_name || ''),
-        score: a.health_score || a.optimization_score || 0,
-        spend: a.cost || 0,
-        priority: a.priority,
-      }));
+      .slice(0, 10);
 
     // GRÁFICO 4 — Status
     const statusCount = {};
