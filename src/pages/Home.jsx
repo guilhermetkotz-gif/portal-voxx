@@ -432,8 +432,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
         />
         <KPICard
           title="CPC Google"
-          value={formatCurrency(cliente?.cpc_google)}
-          subtitle="Custo por clique"
+          value={formatCurrency(googleCPC)}
+          subtitle={contaGoogleAdsAtual ? 'Custo por clique (Google Ads)' : 'Custo por clique'}
           icon={MousePointerClick}
           variant="default"
         />
