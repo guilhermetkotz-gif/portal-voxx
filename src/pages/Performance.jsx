@@ -235,7 +235,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">Impressions</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {cliente?.impressions?.toLocaleString('pt-BR') || '-'}
+                  {(contaMetaAds?.impressions ?? cliente?.impressions)?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
@@ -246,7 +246,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">Reach</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {cliente?.reach?.toLocaleString('pt-BR') || '-'}
+                  {(contaMetaAds?.reach ?? cliente?.reach)?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
@@ -257,7 +257,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">Page Engagement</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {cliente?.page_engagement?.toLocaleString('pt-BR') || '-'}
+                  {(contaMetaAds?.page_engagement ?? cliente?.page_engagement)?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
@@ -268,7 +268,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">Page Likes</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {cliente?.page_likes?.toLocaleString('pt-BR') || '-'}
+                  {(contaMetaAds?.page_likes ?? cliente?.page_likes)?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
@@ -279,7 +279,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">Clicks (All)</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {cliente?.clicks_all?.toLocaleString('pt-BR') || '-'}
+                  {(contaMetaAds?.clicks_all ?? cliente?.clicks_all)?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
@@ -290,7 +290,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">CPC (Link Click)</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {formatCurrency(cliente?.cpc_link_click)}
+                  {formatCurrency(contaMetaAds?.cpc ?? cliente?.cpc_link_click)}
                 </p>
               </div>
               <div className="text-center">
@@ -301,7 +301,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">CPC (All)</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {formatCurrency(cliente?.cpc_all)}
+                  {formatCurrency(contaMetaAds?.cpc ?? cliente?.cpc_all)}
                 </p>
               </div>
               <div className="text-center">
@@ -312,7 +312,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">Cost per Unique Link Click</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {formatCurrency(cliente?.cost_per_unique_link)}
+                  {formatCurrency(contaMetaAds?.cost_per_unique_link ?? cliente?.cost_per_unique_link)}
                 </p>
               </div>
               <div className="text-center">
@@ -323,7 +323,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">New Messaging Connections</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {cliente?.new_messaging_connections?.toLocaleString('pt-BR') || '-'}
+                  {(contaMetaAds?.new_messaging_connections ?? cliente?.new_messaging_connections)?.toLocaleString('pt-BR') || '-'}
                 </p>
               </div>
               <div className="text-center">
@@ -334,7 +334,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">Cost per New Messaging</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {formatCurrency(cliente?.cost_per_new_messaging)}
+                  {formatCurrency(contaMetaAds?.cost_per_new_messaging ?? cliente?.cost_per_new_messaging)}
                 </p>
               </div>
               <div className="text-center">
@@ -345,14 +345,15 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                 </div>
                 <p className="text-xs text-slate-500 mb-1">% Leads Repetidos</p>
                 <p className="text-lg font-bold text-slate-900">
-                  {(() => {
-                    const leads = cliente?.leads_meta_mes || 0;
-                    const newConnections = cliente?.new_messaging_connections || 0;
-                    if (leads === 0) return '-';
-                    const diff = leads - newConnections;
-                    const percentage = ((diff / leads) * 100).toFixed(1);
-                    return `${percentage}%`;
-                  })()}
+                  {contaMetaAds?.leads_repetidos_percent != null
+                    ? `${contaMetaAds.leads_repetidos_percent.toFixed(1)}%`
+                    : (() => {
+                        const leads = cliente?.leads_meta_mes || 0;
+                        const newConnections = cliente?.new_messaging_connections || 0;
+                        if (leads === 0) return '-';
+                        const diff = leads - newConnections;
+                        return `${((diff / leads) * 100).toFixed(1)}%`;
+                      })()}
                 </p>
               </div>
             </div>
