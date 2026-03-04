@@ -116,10 +116,36 @@ export default function Performance({ currentCliente, selectedClienteId, user })
     return budgetMensal - valorInvestido;
   }, [planejamentos, currentCliente, amountSpentByAccount]);
 
+  // Buscar conta Meta Ads atualizada
+  const { data: todasContasMetaAds = [] } = useQuery({
+    queryKey: ['contasMetaAdsPerformance'],
+    queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
+    staleTime: 2 * 60 * 1000
+  });
+
+  // Buscar conta Google Ads atualizada
+  const { data: googleAdsAccounts = [] } = useQuery({
+    queryKey: ['googleAdsAccountsPerformance'],
+    queryFn: () => base44.entities.GoogleAdsAccount.list('-data_atualizacao', 500),
+    staleTime: 2 * 60 * 1000
+  });
+
   const cliente = currentCliente;
   const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
   const isVoxx = tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager' || user?.role === 'admin';
-  
+
+  // Conta Meta Ads atualizada do cliente
+  const contaMetaAds = todasContasMetaAds.find(c =>
+    c.account_name === cliente?.meta_ads_account_name ||
+    c.account_name === cliente?.nome
+  );
+
+  // Conta Google Ads atualizada do cliente
+  const contaGoogleAds = googleAdsAccounts.find(c =>
+    c.account_name === cliente?.google_ads_account_name ||
+    c.account_name === cliente?.nome
+  );
+
   // Buscar gasto diário do cliente atual
   let gastoDiarioMeta = 0;
   const nomeCliente = cliente?.nome?.trim();
