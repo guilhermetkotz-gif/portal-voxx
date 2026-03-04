@@ -148,6 +148,7 @@ export default function GoogleAdsDashboard({ accounts, voxxUsers }) {
       scoreData,
       scatterData,
       rankingData: scored,
+      avgCpa,
       statusData,
       gastoPorOperador,
       alertas: { semGasto, gastoSemConversao, cpaAlto, scoreBaixo },
