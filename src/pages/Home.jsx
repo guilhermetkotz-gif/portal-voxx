@@ -162,6 +162,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   const healthScoreData = calcularPercentil();
 
+  const cliente = currentCliente;
+
   // Encontrar conta Meta Ads atualizada do cliente (para métricas de performance)
   const contaMetaAdsAtual = todasContasMetaAds.find(c =>
     c.account_name === currentCliente?.meta_ads_account_name ||
@@ -186,10 +188,6 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const googleConversions = contaGoogleAdsAtual?.conversions ?? null;
   const googleCPC = contaGoogleAdsAtual?.avg_cpc ?? cliente?.cpc_google;
   const googleCost = contaGoogleAdsAtual?.cost ?? null;
-
-  // Removed unnecessary check - handled above
-
-  const cliente = currentCliente;
   const demandasAbertas = demandas;
 
   // Fetch Google leads from sheet if configured
