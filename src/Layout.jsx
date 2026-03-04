@@ -33,7 +33,8 @@ const pageTitles = {
         Conta: { title: "Minha Conta", subtitle: "Configurações do perfil" },
         GerenciarAcessos: { title: "Gerenciar Acessos", subtitle: "Controle de usuários e permissões" },
         Kanban: { title: "Kanban de Demandas", subtitle: "Gerencie demandas por setor" },
-                MonitoramentoDemandas: { title: "Monitoramento de Demandas", subtitle: "Analytics e KPIs de demandas" }
+                MonitoramentoDemandas: { title: "Monitoramento de Demandas", subtitle: "Analytics e KPIs de demandas" },
+        GerenciarContas: { title: "Gerenciar Contas", subtitle: "Gestão de clientes e unidades" }
                 };
 
 export default function Layout({ children, currentPageName }) {
