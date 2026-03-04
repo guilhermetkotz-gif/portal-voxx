@@ -28,7 +28,8 @@ import {
   Activity,
   Calculator,
   HeadphonesIcon,
-  Settings
+  Settings,
+  Building2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
