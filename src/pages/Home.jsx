@@ -450,7 +450,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
               </div>
             </div>
             <p className="text-2xl font-bold text-slate-900">
-              {cliente?.impressions?.toLocaleString('pt-BR') || '-'}
+              {metricsImpressions?.toLocaleString('pt-BR') || '-'}
             </p>
             <p className="text-xs text-slate-500 mt-1">Impressions</p>
           </div>
@@ -461,7 +461,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
               </div>
             </div>
             <p className="text-2xl font-bold text-slate-900">
-              {cliente?.page_engagement?.toLocaleString('pt-BR') || '-'}
+              {metricsEngagement?.toLocaleString('pt-BR') || '-'}
             </p>
             <p className="text-xs text-slate-500 mt-1">Page Engagement</p>
           </div>
@@ -472,7 +472,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
               </div>
             </div>
             <p className="text-2xl font-bold text-slate-900">
-              {cliente?.page_likes?.toLocaleString('pt-BR') || '-'}
+              {metricsPageLikes?.toLocaleString('pt-BR') || '-'}
             </p>
             <p className="text-xs text-slate-500 mt-1">Page Likes</p>
           </div>
@@ -483,7 +483,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
               </div>
             </div>
             <p className="text-2xl font-bold text-slate-900">
-              {cliente?.reach?.toLocaleString('pt-BR') || '-'}
+              {metricsReach?.toLocaleString('pt-BR') || '-'}
             </p>
             <p className="text-xs text-slate-500 mt-1">Reach</p>
           </div>
@@ -494,7 +494,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
               </div>
             </div>
             <p className="text-2xl font-bold text-slate-900">
-              {cliente?.clicks_all?.toLocaleString('pt-BR') || '-'}
+              {metricsClicksAll?.toLocaleString('pt-BR') || '-'}
             </p>
             <p className="text-xs text-slate-500 mt-1">Clicks (All)</p>
           </div>
