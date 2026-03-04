@@ -60,6 +60,7 @@ const menuItems = [
   { name: "Monitoramento Google Ads", icon: TrendingUp, page: "MonitoramentoGoogleAds", adminOnly: true },
   { name: "Recálculo Meta Ads", icon: Calculator, page: "RecalculoMetaAds", adminOnly: true },
   { name: "Cadastro de Cliente", icon: UserPlus, page: "CadastroCliente", adminOnly: true },
+  { name: "Gerenciar Contas", icon: Building2, page: "GerenciarContas", adminOnly: true },
   { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
   { name: "Gerenciar Chats", icon: MessageCircle, page: "GerenciarChats", voxxOnly: true },
 ];
