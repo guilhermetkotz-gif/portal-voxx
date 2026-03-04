@@ -66,6 +66,7 @@ import GerenciarAcessos from './pages/GerenciarAcessos';
 import GerenciarChats from './pages/GerenciarChats';
 import GerenciarContas from './pages/GerenciarContas';
 import GerenciarPermissoes from './pages/GerenciarPermissoes';
+import GestaoSaldoGoogleAds from './pages/GestaoSaldoGoogleAds';
 import GestaoSaldoMetaAds from './pages/GestaoSaldoMetaAds';
 import HistoricoOtimizacoesCliente from './pages/HistoricoOtimizacoesCliente';
 import Home from './pages/Home';
@@ -81,7 +82,6 @@ import RecalculoMetaAds from './pages/RecalculoMetaAds';
 import Saldos from './pages/Saldos';
 import SolicitarAcesso from './pages/SolicitarAcesso';
 import Timeline from './pages/Timeline';
-import GestaoSaldoGoogleAds from './pages/GestaoSaldoGoogleAds';
 import __Layout from './Layout.jsx';
 
 
@@ -105,6 +105,7 @@ export const PAGES = {
     "GerenciarChats": GerenciarChats,
     "GerenciarContas": GerenciarContas,
     "GerenciarPermissoes": GerenciarPermissoes,
+    "GestaoSaldoGoogleAds": GestaoSaldoGoogleAds,
     "GestaoSaldoMetaAds": GestaoSaldoMetaAds,
     "HistoricoOtimizacoesCliente": HistoricoOtimizacoesCliente,
     "Home": Home,
@@ -120,7 +121,6 @@ export const PAGES = {
     "Saldos": Saldos,
     "SolicitarAcesso": SolicitarAcesso,
     "Timeline": Timeline,
-    "GestaoSaldoGoogleAds": GestaoSaldoGoogleAds,
 }
 
 export const pagesConfig = {

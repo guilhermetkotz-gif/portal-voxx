@@ -380,7 +380,7 @@ export default function MonitoramentoGoogleAds() {
                   <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-600">Conversões</CardTitle></CardHeader>
                   <CardContent>
                     <div className="flex items-center justify-between">
-                      <p className="text-2xl font-bold">{kpis.totalConversoes}</p>
+                      <p className="text-2xl font-bold">{Math.round(kpis.totalConversoes)}</p>
                       <Target className="w-6 h-6 text-green-600" />
                     </div>
                   </CardContent>
