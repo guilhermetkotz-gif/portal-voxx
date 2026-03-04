@@ -162,6 +162,31 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   const healthScoreData = calcularPercentil();
 
+  // Encontrar conta Meta Ads atualizada do cliente (para métricas de performance)
+  const contaMetaAdsAtual = todasContasMetaAds.find(c =>
+    c.account_name === currentCliente?.meta_ads_account_name ||
+    c.account_name === currentCliente?.nome
+  );
+
+  // Encontrar conta Google Ads atualizada do cliente
+  const contaGoogleAdsAtual = googleAdsAccounts.find(c =>
+    c.account_name === currentCliente?.google_ads_account_name ||
+    c.account_name === currentCliente?.nome
+  );
+
+  // Métricas Meta — prefere ContaMetaAds (dados da planilha), fallback para Cliente
+  const metricsImpressions = contaMetaAdsAtual?.impressions ?? cliente?.impressions;
+  const metricsEngagement = contaMetaAdsAtual?.page_engagement ?? cliente?.page_engagement;
+  const metricsPageLikes = contaMetaAdsAtual?.page_likes ?? cliente?.page_likes;
+  const metricsReach = contaMetaAdsAtual?.reach ?? cliente?.reach;
+  const metricsClicksAll = contaMetaAdsAtual?.clicks_all ?? cliente?.clicks_all;
+
+  // Métricas Google — prefere GoogleAdsAccount (dados da planilha), fallback para Cliente
+  const googleClicks = contaGoogleAdsAtual?.clicks ?? null;
+  const googleConversions = contaGoogleAdsAtual?.conversions ?? null;
+  const googleCPC = contaGoogleAdsAtual?.avg_cpc ?? cliente?.cpc_google;
+  const googleCost = contaGoogleAdsAtual?.cost ?? null;
+
   // Removed unnecessary check - handled above
 
   const cliente = currentCliente;
