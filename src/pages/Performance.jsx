@@ -208,7 +208,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
             />
             <KPICard
               title="Investimento no Mês"
-              value={formatCurrency(cliente?.investimento_meta_mes)}
+              value={formatCurrency(contaMetaAds?.amount_spent ?? cliente?.investimento_meta_mes)}
               subtitle={`Total acumulado`}
               icon={TrendingUp}
             />
