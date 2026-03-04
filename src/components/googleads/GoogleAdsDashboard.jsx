@@ -319,32 +319,105 @@ export default function GoogleAdsDashboard({ accounts, voxxUsers }) {
           </CardContent>
         </Card>
 
-        {/* Gráfico 3: Ranking de Prioridade */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-slate-700">Top Prioridade — Contas para Atenção</CardTitle>
-            <p className="text-xs text-slate-400">Gasto alto + score baixo + sem conversão</p>
+        {/* Gráfico 3: Ranking de Prioridade — rich list */}
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-2 border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <span className="text-base">🚨</span> Top Prioridade — Contas para Atenção
+                </CardTitle>
+                <p className="text-xs text-slate-400 mt-0.5">Score baixo · Gasto alto · Sem conversão · CPA elevado</p>
+              </div>
+              {data.rankingData.length > 0 && (
+                <span className="text-xs font-semibold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                  {data.rankingData.length} conta{data.rankingData.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {data.rankingData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart 
-                  data={data.rankingData} 
-                  layout="vertical" 
-                  margin={{ top: 4, right: 8, left: 8, bottom: 4 }}
-                >
-                  <XAxis type="number" tick={{ fontSize: 10 }} hide />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={130} />
-                  <Tooltip 
-                    formatter={(v, n) => [v, 'Índice de prioridade']}
-                    labelFormatter={(l) => l}
-                  />
-                  <Bar dataKey="priority" fill="#f97316" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto">
+                {data.rankingData.map((item, idx) => {
+                  const maxPriority = data.rankingData[0].priority;
+                  const pct = maxPriority > 0 ? (item.priority / maxPriority) * 100 : 0;
+                  const urgency = item.priority >= 60 ? 'critico' : item.priority >= 35 ? 'atencao' : 'monitorar';
+                  const urgencyConfig = {
+                    critico: { label: 'Crítico', bg: 'bg-red-50', bar: 'bg-red-500', badge: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+                    atencao: { label: 'Atenção', bg: 'bg-orange-50', bar: 'bg-orange-500', badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-400' },
+                    monitorar: { label: 'Monitorar', bg: 'bg-yellow-50', bar: 'bg-yellow-400', badge: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-400' },
+                  }[urgency];
+                  const shortName = (item.account_name || '').length > 28 ? (item.account_name || '').slice(0, 28) + '…' : (item.account_name || '');
+
+                  return (
+                    <div key={idx} className={`px-4 py-3 ${urgencyConfig.bg} hover:brightness-95 transition-all`}>
+                      <div className="flex items-start gap-3">
+                        {/* Posição */}
+                        <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                          <span className="text-[10px] font-bold text-slate-500">{idx + 1}</span>
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-slate-800 truncate">{shortName}</span>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${urgencyConfig.badge}`}>
+                              {urgencyConfig.label}
+                            </span>
+                          </div>
+
+                          {/* Métricas inline */}
+                          <div className="flex items-center gap-3 mt-1 flex-wrap">
+                            {item.score > 0 && (
+                              <span className="text-xs text-slate-500">
+                                Score: <span className={`font-bold ${item.score < 40 ? 'text-red-600' : item.score < 60 ? 'text-orange-500' : 'text-yellow-600'}`}>{item.score}</span>
+                              </span>
+                            )}
+                            {item.spend > 0 && (
+                              <span className="text-xs text-slate-500">
+                                Gasto: <span className="font-semibold text-slate-700">R$ {item.spend.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                              </span>
+                            )}
+                            <span className="text-xs text-slate-500">
+                              Conv.: <span className={`font-bold ${item.conversions === 0 ? 'text-red-600' : 'text-green-600'}`}>{item.conversions}</span>
+                            </span>
+                          </div>
+
+                          {/* Tags de razão */}
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {item.razoes.map((r, ri) => (
+                              <span key={ri} className="text-[9px] font-medium bg-white/80 border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                                {r}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Barra de prioridade */}
+                          <div className="mt-2 w-full bg-white/60 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full transition-all ${urgencyConfig.bar}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Score de prioridade */}
+                        <div className="flex-shrink-0 text-right">
+                          <div className={`text-lg font-black ${urgency === 'critico' ? 'text-red-600' : urgency === 'atencao' ? 'text-orange-500' : 'text-yellow-600'}`}>
+                            {item.priority}
+                          </div>
+                          <div className="text-[9px] text-slate-400 font-medium">pts</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             ) : (
-              <div className="h-[220px] flex items-center justify-center text-slate-400 text-sm">
-                Nenhuma conta crítica identificada
+              <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-400">
+                <span className="text-3xl">✅</span>
+                <span className="text-sm font-medium">Nenhuma conta crítica identificada</span>
               </div>
             )}
           </CardContent>
