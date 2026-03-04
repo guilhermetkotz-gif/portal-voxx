@@ -380,27 +380,27 @@ export default function Performance({ currentCliente, selectedClienteId, user })
           {/* Google KPIs */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
-              title="Leads Cadastro"
-              value={cliente?.leads_google_cadastro?.toLocaleString('pt-BR') || '-'}
-              subtitle="Formulários preenchidos"
+              title="Conversões"
+              value={contaGoogleAds ? Math.round(contaGoogleAds.conversions || 0).toLocaleString('pt-BR') : (cliente?.leads_google_cadastro?.toLocaleString('pt-BR') || '-')}
+              subtitle={contaGoogleAds ? "Total de conversões" : "Formulários preenchidos"}
               icon={Users}
               variant="success"
             />
             <KPICard
-              title="Leads Ligação"
-              value={cliente?.leads_google_ligacao?.toLocaleString('pt-BR') || '-'}
-              subtitle="Ligações recebidas"
+              title="Todas Conversões"
+              value={contaGoogleAds ? Math.round(contaGoogleAds.all_conversions || 0).toLocaleString('pt-BR') : (cliente?.leads_google_ligacao?.toLocaleString('pt-BR') || '-')}
+              subtitle={contaGoogleAds ? "All Conversions" : "Ligações recebidas"}
               icon={Phone}
             />
             <KPICard
-              title="Cliques WhatsApp"
-              value={cliente?.cliques_google_whatsapp?.toLocaleString('pt-BR') || '-'}
-              subtitle="Cliques no botão"
-              icon={MessageCircle}
+              title="Cliques"
+              value={contaGoogleAds ? (contaGoogleAds.clicks || 0).toLocaleString('pt-BR') : (cliente?.cliques_google_whatsapp?.toLocaleString('pt-BR') || '-')}
+              subtitle={contaGoogleAds ? "Total de cliques" : "Cliques no botão"}
+              icon={MousePointerClick}
             />
             <KPICard
-              title="CPC"
-              value={formatCurrency(cliente?.cpc_google)}
+              title="CPC Médio"
+              value={formatCurrency(contaGoogleAds?.avg_cpc ?? cliente?.cpc_google)}
               subtitle="Custo por clique"
               icon={MousePointerClick}
             />
@@ -409,15 +409,16 @@ export default function Performance({ currentCliente, selectedClienteId, user })
           <div className="grid sm:grid-cols-2 gap-4">
             <KPICard
               title="Investimento no Mês"
-              value={formatCurrency(cliente?.investimento_google_mes)}
-              subtitle={`${formatCurrency(cliente?.investimento_dia_google)}/dia`}
+              value={formatCurrency(contaGoogleAds?.cost ?? cliente?.investimento_google_mes)}
+              subtitle={contaGoogleAds ? `CPA: ${formatCurrency(contaGoogleAds.cost_per_conversion)}` : `${formatCurrency(cliente?.investimento_dia_google)}/dia`}
               icon={TrendingUp}
             />
             <KPICard
-              title="Saldo Disponível"
-              value={formatCurrency(cliente?.saldo_google)}
+              title="Score de Otimização"
+              value={contaGoogleAds ? `${Math.round(contaGoogleAds.optimization_score || 0)}` : formatCurrency(cliente?.saldo_google)}
+              subtitle={contaGoogleAds ? "Optimization Score" : "Saldo disponível"}
               icon={Target}
-              variant={cliente?.saldo_google < (cliente?.investimento_dia_google * 3) ? 'danger' : 'success'}
+              variant={contaGoogleAds ? (contaGoogleAds.optimization_score >= 70 ? 'success' : contaGoogleAds.optimization_score >= 50 ? 'warning' : 'danger') : 'default'}
             />
           </div>
 
