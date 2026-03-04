@@ -187,17 +187,17 @@ export default function Performance({ currentCliente, selectedClienteId, user })
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <KPICard
               title="Leads Entregues"
-              value={cliente?.leads_meta_mes?.toLocaleString('pt-BR') || '-'}
+              value={(contaMetaAds?.messaging_conversations ?? contaMetaAds?.new_messaging_connections ?? cliente?.leads_meta_mes)?.toLocaleString('pt-BR') || '-'}
               subtitle="Este mês"
               icon={Users}
               variant="primary"
             />
             <KPICard
               title="CPL"
-              value={formatCurrency(cliente?.custo_por_lead_meta)}
+              value={formatCurrency(contaMetaAds?.cost_per_new_messaging ?? contaMetaAds?.cost_per_messaging ?? cliente?.custo_por_lead_meta)}
               subtitle="Custo por lead"
               icon={DollarSign}
-              variant={cliente?.custo_por_lead_meta > (cliente?.cpl_baseline_meta * 1.2) ? 'warning' : 'default'}
+              variant={(contaMetaAds?.cost_per_new_messaging ?? cliente?.custo_por_lead_meta) > (cliente?.cpl_baseline_meta * 1.2) ? 'warning' : 'default'}
             />
             <KPICard
               title="Gasto Diário (D-1)"
