@@ -543,6 +543,7 @@ ${statusValidacao}`.trim();
   const isOralSin = currentDemanda?.cliente_nome?.toLowerCase().includes('oral sin');
   const mostrarBriefingVOXX = currentDemanda?.setor === 'CRIACAO' && isOralSin && currentDemanda?.campos_adicionais;
   const mostrarBriefingEdicao = currentDemanda?.setor === 'EDICAO' && currentDemanda?.campos_adicionais;
+  const mostrarBriefingUniversal = currentDemanda?.setor === 'CRIACAO' && !isOralSin && currentDemanda?.campos_adicionais?.briefing_universal;
   
   let dadosBriefingEdicao = null;
   if (mostrarBriefingEdicao && currentDemanda) {
