@@ -506,6 +506,32 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     );
   }
 
+  // Mostrar wizard Universal para clientes NÃO Oral Sin ao selecionar CRIACAO
+  if (deveMostrarWizardUniversal) {
+    return (
+      <div className="max-w-3xl mx-auto space-y-6">
+        <Card className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Palette className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Briefing Universal – Criação de Artes</h3>
+              <p className="text-sm text-slate-600 mt-1">
+                Cliente: <strong>{clienteSelecionado?.nome}</strong> — Vamos criar um briefing completo em 8 etapas. Tempo estimado: 90 segundos.
+              </p>
+            </div>
+          </div>
+        </Card>
+        <BriefingUniversalWizard
+          cliente={clienteSelecionado}
+          onComplete={handleWizardUniversalComplete}
+          onCancel={() => setSetor('')}
+        />
+      </div>
+    );
+  }
+
   // Mostrar wizard de Edição de Vídeo - ativa automaticamente quando escolher EDICAO
   if (setor === 'EDICAO' && clienteId) {
     return (
