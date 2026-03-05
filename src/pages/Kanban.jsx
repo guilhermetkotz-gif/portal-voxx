@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 import moment from 'moment-timezone';
 import ColumnManagerModal from '@/components/kanban/ColumnManagerModal';
+import NovaDemandaCriacaoModal from '@/components/kanban/NovaDemandaCriacaoModal';
 
 const DEFAULT_COLUMN_ORDER = [
   'ATENDIMENTO',
