@@ -1015,8 +1015,71 @@ ${statusValidacao}`.trim();
                   </Card>
                 )}
 
+                {/* Briefing Universal — Clientes não Oral Sin */}
+                {mostrarBriefingUniversal && (() => {
+                  const bu = currentDemanda.campos_adicionais.briefing_universal;
+                  const val = (campo) => bu[campo] || 'Não informado';
+                  const texto = `📦 BRIEFING DE CRIAÇÃO (RESUMO)
+══════════════════════════
+
+[FORMATO] ${val('formato')}
+[CANAL] ${val('canal')}
+[TEMA] ${val('tema')}
+[OFERTA] ${val('oferta')}
+[OBJETIVO] ${val('objetivo')}
+[CTA] ${val('cta')}
+[DESTINO] ${val('destino_tipo')}${bu.destino ? ` → ${bu.destino}` : ''}
+[TOM] ${val('tom')} | [LINGUAGEM] ${val('linguagem')}
+[TIPO_IMAGEM] ${val('tipo_imagem')}
+[PRAZO] ${val('prazo')}${bu.urgente === 'Sim' ? ` ⚡ URGENTE: ${bu.motivo_urgencia}` : ''}
+
+══════════════════════════
+🪝 HOOKS (3 variações):
+${(bu.hooks || []).map((h, i) => `${i + 1}. ${h}`).join('\n') || 'Não gerado'}
+
+══════════════════════════
+✍️ COPY DA ARTE:
+${bu.copy_arte || 'Não gerado'}
+
+══════════════════════════
+🎨 DIREÇÃO DE ARTE:
+${bu.direcao_arte || 'Não gerado'}
+
+══════════════════════════
+🏗️ ESTRUTURA DO CRIATIVO:
+${bu.estrutura_criativo || 'Não gerado'}
+`.trim();
+
+                  return (
+                    <Card key="briefing-universal">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            <CardTitle className="text-base">📦 Briefing de Criação (Resumo)</CardTitle>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => { navigator.clipboard.writeText(texto); toast.success('Briefing copiado!'); }}
+                          >
+                            <Copy className="w-3 h-3 mr-1" /> Copiar briefing
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Textarea
+                          value={texto}
+                          readOnly
+                          className="min-h-[500px] font-mono text-xs bg-slate-900 text-blue-300 border-slate-700"
+                        />
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
                 {/* Campos Adicionais - somente se não tiver briefing específico */}
-                {!mostrarBriefingVOXX && !mostrarBriefingEdicao && currentDemanda.campos_adicionais && Object.keys(currentDemanda.campos_adicionais).length > 0 && (() => {
+                {!mostrarBriefingVOXX && !mostrarBriefingEdicao && !mostrarBriefingUniversal && currentDemanda.campos_adicionais && Object.keys(currentDemanda.campos_adicionais).length > 0 && (() => {
                   const isPrimitive = (value) => {
                     if (value === null || value === undefined) return false;
                     const type = typeof value;
