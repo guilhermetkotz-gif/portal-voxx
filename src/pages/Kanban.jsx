@@ -50,6 +50,7 @@ const Kanban = ({ user, selectedClienteId }) => {
   const navigate = useNavigate();
   const [selectedDemanda, setSelectedDemanda] = useState(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
+  const [showNovaCriacaoModal, setShowNovaCriacaoModal] = useState(false);
   const [viewMode, setViewMode] = useState('ativas'); // 'ativas' ou 'concluidas'
   const [filters, setFilters] = useState({
     cliente_id: 'all',
