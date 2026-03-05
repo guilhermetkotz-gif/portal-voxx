@@ -468,6 +468,11 @@ const Kanban = ({ user, selectedClienteId }) => {
         columns={columnsForManager}
         onSave={handleSaveColumns}
       />
+
+      <NovaDemandaCriacaoModal
+        open={showNovaCriacaoModal}
+        onClose={() => setShowNovaCriacaoModal(false)}
+      />
     </div>
   );
 };
