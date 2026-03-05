@@ -401,13 +401,6 @@ const Kanban = ({ user, selectedClienteId }) => {
           <Button variant="outline" onClick={() => setShowColumnManager(true)}>
             <Settings className="mr-2 h-4 w-4" /> Gerenciar Colunas
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowNovaCriacaoModal(true)}
-            className="border-blue-300 text-blue-700 hover:bg-blue-50"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Criação (Artes)
-          </Button>
           <Button onClick={() => navigate(createPageUrl('AbrirDemanda'))}>
             <Plus className="mr-2 h-4 w-4" /> Nova Demanda
           </Button>
