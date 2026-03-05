@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
 import EdicaoVideoWizard from '@/components/demandas/EdicaoVideoWizard';
+import BriefingUniversalWizard from '@/components/demandas/BriefingUniversalWizard';
 
 const setores = [
   { 
@@ -362,6 +363,24 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       campos_adicionais: camposAdicionais
     };
 
+    await createDemanda.mutateAsync(data);
+  };
+
+  const handleWizardUniversalComplete = async (wizardData) => {
+    const data = {
+      cliente_id: clienteId,
+      cliente_nome: clienteSelecionado?.nome,
+      setor: 'CRIACAO',
+      subcategoria: 'Briefing Universal',
+      titulo: wizardData.titulo,
+      descricao: wizardData.descricao,
+      status: 'recebida',
+      prioridade: wizardData.urgente ? 'alta' : 'media',
+      urgente: wizardData.urgente || false,
+      previsao_entrega: wizardData.previsao_entrega || null,
+      anexos: wizardData.anexos || [],
+      campos_adicionais: wizardData.camposAdicionais
+    };
     await createDemanda.mutateAsync(data);
   };
 
