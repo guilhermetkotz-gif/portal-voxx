@@ -284,6 +284,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
                     clienteSelecionado?.marca?.toLowerCase().includes('oral sin') ||
                     clienteSelecionado?.nome?.toLowerCase().includes('oral sin');
   const deveMostrarWizard = setor === 'CRIACAO' && isOralSin && !mostrarWizardOralSin;
+  const deveMostrarWizardUniversal = setor === 'CRIACAO' && clienteId && !isOralSin;
   
   const clientesFiltrados = clientes.filter(c => 
     c.nome?.toLowerCase().includes(searchCliente.toLowerCase()) ||
