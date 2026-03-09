@@ -1164,15 +1164,14 @@ ${bu.estrutura_criativo || 'Não gerado'}
                               <span>{moment(event.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</span>
                             </div>
                             {event.anexo_url && (
-                              <a
-                                href={event.anexo_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => handleOpenFile(event.anexo_url)}
                                 className="flex items-center gap-1 mt-2 text-violet-600 hover:text-violet-700"
                               >
                                 <Paperclip className="h-3 w-3" />
                                 Ver anexo
-                              </a>
+                              </button>
                             )}
                           </div>
                         </div>
