@@ -807,16 +807,15 @@ ${statusValidacao}`.trim();
                     </CardHeader>
                     <CardContent className="space-y-2">
                       {currentDemanda.anexos.map((url, idx) => (
-                        <a
+                        <button
                           key={idx}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          type="button"
+                          onClick={() => handleOpenFile(url)}
                           className="flex items-center gap-2 text-sm text-violet-600 hover:text-violet-700"
                         >
                           <Paperclip className="h-4 w-4" />
                           Anexo {idx + 1}
-                        </a>
+                        </button>
                       ))}
                     </CardContent>
                   </Card>
