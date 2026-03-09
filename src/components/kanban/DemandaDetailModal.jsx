@@ -540,6 +540,17 @@ ${statusValidacao}`.trim();
     return { briefing, score, nivelRisco, pendencias, statusValidacao };
   };
 
+  const handleOpenFile = async (url) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
   const isOralSin = currentDemanda?.cliente_nome?.toLowerCase().includes('oral sin');
   const mostrarBriefingVOXX = currentDemanda?.setor === 'CRIACAO' && isOralSin && currentDemanda?.campos_adicionais;
   const mostrarBriefingEdicao = currentDemanda?.setor === 'EDICAO' && currentDemanda?.campos_adicionais;
