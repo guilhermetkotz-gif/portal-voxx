@@ -25,13 +25,32 @@ async function fetchSheet(spreadsheetId, sheetName, accessToken) {
 }
 
 async function syncMeta(base44, accessToken) {
+  console.log('🚀 INICIANDO syncMeta...');
+  
   const configs = await base44.asServiceRole.entities.MetaAdsSheetConfig.filter({ tipo: 'monitoramento', ativo: true });
-  if (!configs || configs.length === 0) return { error: 'No active monitoramento config found' };
+  console.log('📋 Configs encontradas:', configs.length);
+  
+  if (!configs || configs.length === 0) {
+    console.error('❌ Nenhuma config de monitoramento ativa encontrada!');
+    return { error: 'No active monitoramento config found' };
+  }
 
   const config = configs[0];
+  console.log('✅ Usando config:', config.nome_configuracao);
+  console.log('📊 Spreadsheet ID:', config.spreadsheet_id);
+  console.log('📄 Aba:', config.aba_ontem);
+  console.log('🗺️ Mapeamento de colunas:', config.mapeamento_colunas);
+  
   const colMap = config.mapeamento_colunas;
+  
+  console.log('📥 Buscando dados da planilha...');
   const rows = await fetchSheet(config.spreadsheet_id, config.aba_ontem, accessToken);
-  if (rows.length < 2) return { error: 'No data in Meta sheet' };
+  console.log('📦 Total de linhas:', rows.length);
+  
+  if (rows.length < 2) {
+    console.error('❌ Sem dados na planilha Meta!');
+    return { error: 'No data in Meta sheet' };
+  }
 
   const headers = rows[0];
   const getIdx = (key) => {
