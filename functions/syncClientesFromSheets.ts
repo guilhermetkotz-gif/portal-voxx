@@ -96,6 +96,22 @@ async function syncMeta(base44, accessToken) {
     else if (costPerMessaging >= 55) mainIssue = 'Custo por conversa alto (criativo/oferta/qualificação)';
     else mainIssue = 'Saudável (monitorar)';
 
+    const messagingConversations = parseNumber(row[messagingConversationsIdx]);
+    const newMessagingConnections = parseNumber(row[newMessagingConnectionsIdx]);
+
+    // Debug para primeira conta
+    if (accounts.length === 0) {
+      console.log('🔍 DEBUG PRIMEIRA CONTA:', {
+        accountName,
+        messagingConversationsIdx,
+        newMessagingConnectionsIdx,
+        messagingConversations_raw: row[messagingConversationsIdx],
+        newMessagingConnections_raw: row[newMessagingConnectionsIdx],
+        messagingConversations,
+        newMessagingConnections
+      });
+    }
+
     accounts.push({
       account_name: accountName,
       impressions: parseNumber(row[impressionsIdx]),
@@ -108,9 +124,9 @@ async function syncMeta(base44, accessToken) {
       amount_spent: investimento,
       clicks_all: parseNumber(row[clicksAllIdx]),
       cpc: parseNumber(row[cpcIdx]),
-      messaging_conversations: parseNumber(row[messagingConversationsIdx]),
+      messaging_conversations: messagingConversations,
       cost_per_new_messaging: parseNumber(row[costPerNewMessagingIdx]),
-      new_messaging_connections: parseNumber(row[newMessagingConnectionsIdx]),
+      new_messaging_connections: newMessagingConnections,
       custo_engajamento: parseNumber(row[custoEngajamentoIdx]),
       leads_repetidos_percent: leadsRepetidos,
       nota_gpt: notaGPT,
