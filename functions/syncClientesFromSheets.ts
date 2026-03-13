@@ -66,11 +66,29 @@ async function syncMeta(base44, accessToken) {
       messaging_conversations: colMap['messaging_conversations'],
       new_messaging_connections: colMap['new_messaging_connections'],
       cost_per_messaging: colMap['cost_per_messaging']
-    }
+    },
+    headers: headers
+  });
+
+  // Build cliente map for matching
+  const clientes = await base44.asServiceRole.entities.Cliente.list('-created_date', 1000);
+  const clienteMap = new Map();
+  
+  clientes.forEach(c => {
+    const keys = [];
+    if (c.meta_ads_account_name) keys.push(c.meta_ads_account_name.trim().toLowerCase());
+    if (c.nome) keys.push(c.nome.trim().toLowerCase());
+    
+    keys.forEach(key => {
+      const normalized = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+      clienteMap.set(key, c);
+      if (key !== normalized) clienteMap.set(normalized, c);
+    });
   });
 
   const accounts = [];
   const seen = new Set();
+  const matchLog = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -87,18 +105,14 @@ async function syncMeta(base44, accessToken) {
     const costPerMessaging = parseNumber(row[costPerMessagingIdx]);
     const investimento = parseNumber(row[amountSpentIdx]);
     
-    // Buscar cliente correspondente
-    const key = accountName.toLowerCase().replace(/\s+/g, ' ');
-    const keyNormalized = key
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
+    const keyNormalized = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
     const cliente = clienteMap.get(key) || clienteMap.get(keyNormalized);
     
-    if (!cliente && accounts.length < 5) {
-      console.log(`⚠️ Meta Ads - SEM MATCH: ${accountName}`);
+    if (!cliente) {
+      matchLog.push(`❌ Meta - SEM MATCH: ${accountName}`);
+    } else {
+      matchLog.push(`✅ Meta - MATCH: ${accountName} → ${cliente.nome}`);
+    }
 
     let classificacao;
     if (notaGPT >= 90) classificacao = 'ELITE';
@@ -123,16 +137,16 @@ async function syncMeta(base44, accessToken) {
     const messagingConversations = parseNumber(row[messagingConversationsIdx]);
     const newMessagingConnections = parseNumber(row[newMessagingConnectionsIdx]);
 
-    // Debug para primeira conta
     if (accounts.length === 0) {
-      console.log('🔍 DEBUG PRIMEIRA CONTA:', {
+      console.log('🔍 DEBUG PRIMEIRA CONTA META:', {
         accountName,
         messagingConversationsIdx,
         newMessagingConnectionsIdx,
         messagingConversations_raw: row[messagingConversationsIdx],
         newMessagingConnections_raw: row[newMessagingConnectionsIdx],
         messagingConversations,
-        newMessagingConnections
+        newMessagingConnections,
+        cost_per_messaging: costPerMessaging
       });
     }
 
@@ -158,6 +172,10 @@ async function syncMeta(base44, accessToken) {
       prioridade,
       main_issue: mainIssue
     });
+  }
+
+  if (matchLog.length > 0) {
+    console.log('📊 MATCHING META ADS:\n' + matchLog.slice(0, 10).join('\n'));
   }
 
   const existing = await base44.asServiceRole.entities.ContaMetaAds.list('-created_date', 1000);
@@ -196,8 +214,25 @@ async function syncGoogle(base44, accessToken) {
   const avgCpmIdx = getIdx('avg_cpm');
   const optimizationScoreIdx = getIdx('optimization_score');
 
+  // Build cliente map for matching
+  const clientes = await base44.asServiceRole.entities.Cliente.list('-created_date', 1000);
+  const clienteMap = new Map();
+  
+  clientes.forEach(c => {
+    const keys = [];
+    if (c.google_ads_account_name) keys.push(c.google_ads_account_name.trim().toLowerCase());
+    if (c.nome) keys.push(c.nome.trim().toLowerCase());
+    
+    keys.forEach(key => {
+      const normalized = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+      clienteMap.set(key, c);
+      if (key !== normalized) clienteMap.set(normalized, c);
+    });
+  });
+
   const accounts = [];
   const seen = new Set();
+  const matchLog = [];
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -217,6 +252,15 @@ async function syncGoogle(base44, accessToken) {
     const clicks = parseNumber(row[clicksIdx]);
     const conversions = parseNumber(row[conversionsIdx]);
     const cost = parseNumber(row[costIdx]);
+    
+    const keyNormalized = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    const cliente = clienteMap.get(key) || clienteMap.get(keyNormalized);
+    
+    if (!cliente) {
+      matchLog.push(`❌ Google - SEM MATCH: ${accountName}`);
+    } else {
+      matchLog.push(`✅ Google - MATCH: ${accountName} → ${cliente.nome}`);
+    }
 
     accounts.push({
       account_name: accountName,
@@ -237,31 +281,18 @@ async function syncGoogle(base44, accessToken) {
     });
   }
 
+  if (matchLog.length > 0) {
+    console.log('📊 MATCHING GOOGLE ADS:\n' + matchLog.slice(0, 10).join('\n'));
+  }
+
   const existingAccounts = await base44.asServiceRole.entities.GoogleAdsAccount.list('-created_date', 1000);
-  const clientes = await base44.asServiceRole.entities.Cliente.list('-created_date', 1000);
-
   const existingMap = new Map(existingAccounts.map(a => [a.account_name?.trim().toLowerCase(), a]));
-  const clienteMap = new Map(clientes.filter(c => c.google_ads_account_name)
-    .map(c => [c.google_ads_account_name.trim().toLowerCase(), c]));
-
-  const matchLog = [];
   
   await Promise.all(accounts.map(async (newAcc) => {
     const key = newAcc.account_name.trim().toLowerCase();
-    const keyNormalized = key
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
+    const keyNormalized = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
     const existing = existingMap.get(key);
     const cliente = clienteMap.get(key) || clienteMap.get(keyNormalized);
-    
-    if (!cliente) {
-      matchLog.push(`❌ SEM MATCH: ${newAcc.account_name}`);
-    } else {
-      matchLog.push(`✅ MATCH: ${newAcc.account_name} → ${cliente.nome}`);
-    }
     
     const updateData = { ...newAcc };
     if (cliente?.responsavel_google_ads) updateData.responsavel_voxx = cliente.responsavel_google_ads;
@@ -273,8 +304,6 @@ async function syncGoogle(base44, accessToken) {
       return base44.asServiceRole.entities.GoogleAdsAccount.create(updateData);
     }
   }));
-  
-  console.log('📊 RESULTADO DO MATCHING GOOGLE ADS:\n' + matchLog.join('\n'));
 
   console.log(`Google Ads sync: ${accounts.length} accounts processed`);
   return { accountsProcessed: accounts.length };
@@ -283,7 +312,6 @@ async function syncGoogle(base44, accessToken) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-
     console.log('syncClientesFromSheets: starting...');
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
