@@ -66,7 +66,21 @@ export default function MonitoramentoContas({ user }) {
 
     const { data: accounts = [], isLoading } = useQuery({
         queryKey: ['metaAdsAccounts'],
-        queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
+        queryFn: async () => {
+            const data = await base44.entities.ContaMetaAds.list('-created_date', 500);
+            // Debug: Log primeira conta para verificar estrutura dos dados
+            if (data.length > 0) {
+                console.log('🔍 DEBUG CONTA META ADS:', {
+                    account_name: data[0].account_name,
+                    messaging_conversations: data[0].messaging_conversations,
+                    new_messaging_connections: data[0].new_messaging_connections,
+                    cost_per_messaging: data[0].cost_per_messaging,
+                    cost_per_new_messaging: data[0].cost_per_new_messaging,
+                    all_fields: Object.keys(data[0])
+                });
+            }
+            return data;
+        },
         staleTime: 2 * 60 * 1000
     });
 
