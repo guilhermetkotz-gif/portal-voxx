@@ -282,22 +282,40 @@ async function syncGoogle(base44, accessToken) {
     // Tentar múltiplas variações para matching
     const keyNormalized = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
     
-    // Extrair última parte se tiver formato "XXX - Oral Sin - Cidade"
-    let keyLastPart = key;
+    // Variações de matching
+    const matchKeys = [key, keyNormalized];
+    
+    // Se tiver formato "XXX - Oral Sin - Cidade", extrair variações
     if (accountName.includes(' - ')) {
       const parts = accountName.split(' - ');
-      keyLastPart = parts[parts.length - 1].trim().toLowerCase();
+      
+      // Última parte (Cidade)
+      const cidade = parts[parts.length - 1].trim().toLowerCase();
+      matchKeys.push(cidade);
+      
+      // "Oral Sin - Cidade" (sem o número)
+      if (parts.length >= 3) {
+        const semNumero = parts.slice(1).join(' - ').trim().toLowerCase();
+        matchKeys.push(semNumero);
+        matchKeys.push(semNumero.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim());
+      }
+      
+      // Também tentar com "oral sin - cidade"
+      matchKeys.push(`oral sin - ${cidade}`);
+      matchKeys.push(`oral sin - ${cidade}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim());
     }
     
-    const cliente = clienteMap.get(key) || 
-                    clienteMap.get(keyNormalized) || 
-                    clienteMap.get(keyLastPart) ||
-                    clienteMap.get(`oral sin - ${keyLastPart}`);
+    let cliente = null;
+    for (const k of matchKeys) {
+      cliente = clienteMap.get(k);
+      if (cliente) break;
+    }
     
     if (!cliente) {
       matchLog.push(`❌ Google - SEM MATCH: ${accountName}`);
-      if (matchLog.length <= 5) {
-        console.log(`  🔎 Tentativas: [${key}] [${keyNormalized}] [${keyLastPart}]`);
+      if (matchLog.length <= 3) {
+        console.log(`  🔎 Account: "${accountName}"`);
+        console.log(`  🔎 Tentativas:`, matchKeys.slice(0, 6));
       }
     } else {
       matchLog.push(`✅ Google - MATCH: ${accountName} → ${cliente.nome}`);
