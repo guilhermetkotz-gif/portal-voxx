@@ -1077,11 +1077,11 @@ export default function MonitoramentoContas({ user }) {
                                         <TableCell className="text-right font-medium">
                                             R$ {account.amount_spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            {account.messaging_conversations}
+                                        <TableCell className="text-right font-medium">
+                                            {account.messaging_conversations || 0}
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            {account.new_messaging_connections}
+                                        <TableCell className="text-right font-medium">
+                                            {account.new_messaging_connections || 0}
                                         </TableCell>
                                     </TableRow>
                                 ))}
