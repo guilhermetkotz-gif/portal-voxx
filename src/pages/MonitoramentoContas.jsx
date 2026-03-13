@@ -1092,10 +1092,14 @@ export default function MonitoramentoContas({ user }) {
                                             R$ {account.amount_spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                                         </TableCell>
                                         <TableCell className="text-right font-medium">
-                                            {account.messaging_conversations || 0}
+                                            <span className={account.messaging_conversations === account.cost_per_messaging ? 'text-red-600 font-bold' : ''}>
+                                                {account.messaging_conversations?.toFixed?.(0) || account.messaging_conversations || 0}
+                                            </span>
                                         </TableCell>
                                         <TableCell className="text-right font-medium">
-                                            {account.new_messaging_connections || 0}
+                                            <span className={account.new_messaging_connections === account.cost_per_messaging ? 'text-red-600 font-bold' : ''}>
+                                                {account.new_messaging_connections?.toFixed?.(0) || account.new_messaging_connections || 0}
+                                            </span>
                                         </TableCell>
                                     </TableRow>
                                 ))}
