@@ -66,9 +66,20 @@ async function syncMeta(base44, accessToken) {
       messaging_conversations: colMap['messaging_conversations'],
       new_messaging_connections: colMap['new_messaging_connections'],
       cost_per_messaging: colMap['cost_per_messaging']
-    },
-    headers: headers
+    }
   });
+  
+  console.log('📋 TODOS OS HEADERS DA PLANILHA:', headers);
+  
+  if (messagingConversationsIdx === -1) {
+    console.error('❌ COLUNA messaging_conversations NÃO ENCONTRADA!');
+    console.error('   Procurando por:', colMap['messaging_conversations']);
+  }
+  
+  if (newMessagingConnectionsIdx === -1) {
+    console.error('❌ COLUNA new_messaging_connections NÃO ENCONTRADA!');
+    console.error('   Procurando por:', colMap['new_messaging_connections']);
+  }
 
   // Build cliente map for matching
   const clientes = await base44.asServiceRole.entities.Cliente.list('-created_date', 1000);
