@@ -216,12 +216,36 @@ async function syncGoogle(base44, accessToken) {
 
   // Build cliente map for matching
   const clientes = await base44.asServiceRole.entities.Cliente.list('-created_date', 1000);
+  
+  console.log('🔍 TOTAL DE CLIENTES:', clientes.length);
+  console.log('🔍 EXEMPLOS DE NOMES:', clientes.slice(0, 5).map(c => ({
+    nome: c.nome,
+    google_ads_account_name: c.google_ads_account_name,
+    meta_ads_account_name: c.meta_ads_account_name
+  })));
+  
   const clienteMap = new Map();
   
   clientes.forEach(c => {
     const keys = [];
-    if (c.google_ads_account_name) keys.push(c.google_ads_account_name.trim().toLowerCase());
-    if (c.nome) keys.push(c.nome.trim().toLowerCase());
+    
+    // 1. google_ads_account_name (exato)
+    if (c.google_ads_account_name) {
+      keys.push(c.google_ads_account_name.trim().toLowerCase());
+    }
+    
+    // 2. nome do cliente (exato)
+    if (c.nome) {
+      keys.push(c.nome.trim().toLowerCase());
+    }
+    
+    // 3. Extrair parte "cidade" dos account_names com formato "XXX - Oral Sin - Cidade"
+    if (c.google_ads_account_name && c.google_ads_account_name.includes(' - ')) {
+      const parts = c.google_ads_account_name.split(' - ');
+      const lastPart = parts[parts.length - 1].trim().toLowerCase();
+      keys.push(lastPart);
+      keys.push(`oral sin - ${lastPart}`);
+    }
     
     keys.forEach(key => {
       const normalized = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
@@ -229,6 +253,8 @@ async function syncGoogle(base44, accessToken) {
       if (key !== normalized) clienteMap.set(normalized, c);
     });
   });
+  
+  console.log('🔍 TOTAL DE CHAVES NO MAPA:', clienteMap.size);
 
   const accounts = [];
   const seen = new Set();
@@ -253,11 +279,26 @@ async function syncGoogle(base44, accessToken) {
     const conversions = parseNumber(row[conversionsIdx]);
     const cost = parseNumber(row[costIdx]);
     
+    // Tentar múltiplas variações para matching
     const keyNormalized = key.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
-    const cliente = clienteMap.get(key) || clienteMap.get(keyNormalized);
+    
+    // Extrair última parte se tiver formato "XXX - Oral Sin - Cidade"
+    let keyLastPart = key;
+    if (accountName.includes(' - ')) {
+      const parts = accountName.split(' - ');
+      keyLastPart = parts[parts.length - 1].trim().toLowerCase();
+    }
+    
+    const cliente = clienteMap.get(key) || 
+                    clienteMap.get(keyNormalized) || 
+                    clienteMap.get(keyLastPart) ||
+                    clienteMap.get(`oral sin - ${keyLastPart}`);
     
     if (!cliente) {
       matchLog.push(`❌ Google - SEM MATCH: ${accountName}`);
+      if (matchLog.length <= 5) {
+        console.log(`  🔎 Tentativas: [${key}] [${keyNormalized}] [${keyLastPart}]`);
+      }
     } else {
       matchLog.push(`✅ Google - MATCH: ${accountName} → ${cliente.nome}`);
     }
