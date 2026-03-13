@@ -179,6 +179,28 @@ async function syncMeta(base44, accessToken) {
         cost_per_messaging: costPerMessaging
       });
     }
+    
+    if (accountName.includes('Fortaleza')) {
+      console.log('🔥 DEBUG FORTALEZA COMPLETO:', {
+        accountName,
+        indices: {
+          messagingConversationsIdx,
+          newMessagingConnectionsIdx,
+          costPerMessagingIdx
+        },
+        valores_raw: {
+          messaging_conversations: row[messagingConversationsIdx],
+          new_messaging_connections: row[newMessagingConnectionsIdx],
+          cost_per_messaging: row[costPerMessagingIdx]
+        },
+        valores_parsed: {
+          messagingConversations,
+          newMessagingConnections,
+          costPerMessaging
+        },
+        row_completa: row
+      });
+    }
 
     accounts.push({
       account_name: accountName,
