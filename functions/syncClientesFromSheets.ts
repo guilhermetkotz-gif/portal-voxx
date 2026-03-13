@@ -85,6 +85,11 @@ async function syncMeta(base44, accessToken) {
       messaging_conversations: colMap['messaging_conversations'],
       new_messaging_connections: colMap['new_messaging_connections'],
       cost_per_messaging: colMap['cost_per_messaging']
+    },
+    actual_headers: {
+      messaging_conversations: headers[messagingConversationsIdx],
+      new_messaging_connections: headers[newMessagingConnectionsIdx],
+      cost_per_messaging: headers[costPerMessagingIdx]
     }
   });
   
