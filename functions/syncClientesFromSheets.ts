@@ -58,6 +58,17 @@ async function syncMeta(base44, accessToken) {
   const leadsRepetidosIdx = getIdx('leads_repetidos');
   const notaGPTIdx = getIdx('nota_gpt');
 
+  console.log('📊 ÍNDICES DAS COLUNAS META ADS:', {
+    messagingConversationsIdx,
+    newMessagingConnectionsIdx,
+    costPerMessagingIdx,
+    col_names: {
+      messaging_conversations: colMap['messaging_conversations'],
+      new_messaging_connections: colMap['new_messaging_connections'],
+      cost_per_messaging: colMap['cost_per_messaging']
+    }
+  });
+
   const accounts = [];
   const seen = new Set();
 
