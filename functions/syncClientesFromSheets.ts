@@ -86,6 +86,19 @@ async function syncMeta(base44, accessToken) {
     const leadsRepetidos = parsePercentage(row[leadsRepetidosIdx]);
     const costPerMessaging = parseNumber(row[costPerMessagingIdx]);
     const investimento = parseNumber(row[amountSpentIdx]);
+    
+    // Buscar cliente correspondente
+    const key = accountName.toLowerCase().replace(/\s+/g, ' ');
+    const keyNormalized = key
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    const cliente = clienteMap.get(key) || clienteMap.get(keyNormalized);
+    
+    if (!cliente && accounts.length < 5) {
+      console.log(`⚠️ Meta Ads - SEM MATCH: ${accountName}`);
 
     let classificacao;
     if (notaGPT >= 90) classificacao = 'ELITE';
@@ -231,10 +244,25 @@ async function syncGoogle(base44, accessToken) {
   const clienteMap = new Map(clientes.filter(c => c.google_ads_account_name)
     .map(c => [c.google_ads_account_name.trim().toLowerCase(), c]));
 
+  const matchLog = [];
+  
   await Promise.all(accounts.map(async (newAcc) => {
     const key = newAcc.account_name.trim().toLowerCase();
+    const keyNormalized = key
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
     const existing = existingMap.get(key);
-    const cliente = clienteMap.get(key);
+    const cliente = clienteMap.get(key) || clienteMap.get(keyNormalized);
+    
+    if (!cliente) {
+      matchLog.push(`❌ SEM MATCH: ${newAcc.account_name}`);
+    } else {
+      matchLog.push(`✅ MATCH: ${newAcc.account_name} → ${cliente.nome}`);
+    }
+    
     const updateData = { ...newAcc };
     if (cliente?.responsavel_google_ads) updateData.responsavel_voxx = cliente.responsavel_google_ads;
     else if (existing?.responsavel_voxx) updateData.responsavel_voxx = existing.responsavel_voxx;
@@ -245,6 +273,8 @@ async function syncGoogle(base44, accessToken) {
       return base44.asServiceRole.entities.GoogleAdsAccount.create(updateData);
     }
   }));
+  
+  console.log('📊 RESULTADO DO MATCHING GOOGLE ADS:\n' + matchLog.join('\n'));
 
   console.log(`Google Ads sync: ${accounts.length} accounts processed`);
   return { accountsProcessed: accounts.length };
