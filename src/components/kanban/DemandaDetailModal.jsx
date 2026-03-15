@@ -595,7 +595,7 @@ ${statusValidacao}`.trim();
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-50 flex justify-end" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       
