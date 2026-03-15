@@ -315,6 +315,33 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
   ` : `<p class="texto" style="color:#94a3b8;font-style:italic;">Dados de Meta Ads não vinculados a este cliente no momento.</p>`}
 </div>
 
+<!-- ══ BLOCO 2b — META ADS ONTEM ══ -->
+${radar ? `
+<div class="section">
+  <div class="bloco-label">Bloco 2 · Ontem</div>
+  <div class="bloco-title">Meta Ads — Ontem</div>
+  <div class="metrics-3">
+    <div class="metric-card green"><div class="metric-value">${radar.leads_ontem ?? "—"}</div><div class="metric-label">Leads ontem</div></div>
+    <div class="metric-card"><div class="metric-value">${radar.amount_spent_ontem != null ? `R$ ${(radar.amount_spent_ontem).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</div><div class="metric-label">Inv. diário</div></div>
+    <div class="metric-card"><div class="metric-value">${radar.cpl_ontem != null ? `R$ ${(radar.cpl_ontem).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</div><div class="metric-label">CPL atual</div></div>
+  </div>
+  <div class="metrics-3">
+    <div class="metric-card ${radar.variacao_cpl != null && radar.variacao_cpl > 10 ? "red" : radar.variacao_cpl != null && radar.variacao_cpl < -5 ? "green" : "amber"}">
+      <div class="metric-value">${radar.variacao_cpl != null ? `${radar.variacao_cpl > 0 ? "+" : ""}${radar.variacao_cpl.toFixed(1)}%` : "—"}</div>
+      <div class="metric-label">Var. CPL</div>
+    </div>
+    <div class="metric-card ${radar.variacao_ctr != null && radar.variacao_ctr >= 0 ? "green" : "red"}">
+      <div class="metric-value">${radar.variacao_ctr != null ? `${radar.variacao_ctr > 0 ? "+" : ""}${radar.variacao_ctr.toFixed(1)}%` : "—"}</div>
+      <div class="metric-label">Var. CTR</div>
+    </div>
+    <div class="metric-card ${radar.frequencia_7d != null && radar.frequencia_7d > 3 ? "red" : ""}">
+      <div class="metric-value">${radar.frequencia_7d != null ? `${radar.frequencia_7d.toFixed(2)}x` : "—"}</div>
+      <div class="metric-label">Freq. (7d)</div>
+    </div>
+  </div>
+</div>
+` : ""}
+
 <!-- ══ BLOCO 3 — GOOGLE ADS ══ -->
 <div class="section">
   <div class="bloco-label">Bloco 3</div>
