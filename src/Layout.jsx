@@ -34,7 +34,9 @@ const pageTitles = {
         GerenciarAcessos: { title: "Gerenciar Acessos", subtitle: "Controle de usuários e permissões" },
         Kanban: { title: "Kanban de Demandas", subtitle: "Gerencie demandas por setor" },
                 MonitoramentoDemandas: { title: "Monitoramento de Demandas", subtitle: "Analytics e KPIs de demandas" },
-        GerenciarContas: { title: "Gerenciar Contas", subtitle: "Gestão de clientes e unidades" }
+        GerenciarContas: { title: "Gerenciar Contas", subtitle: "Gestão de clientes e unidades" },
+        PlanoDeAcao: { title: "Plano de Ação", subtitle: "Acompanhamento de ações por cliente" },
+        PlanoDeAcaoDetalhe: { title: "Plano de Ação", subtitle: "Detalhes do plano" }
                 };
 
 export default function Layout({ children, currentPageName }) {
