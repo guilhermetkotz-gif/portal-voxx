@@ -60,6 +60,8 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
+      <Route path="/PlanoDeAcao" element={<LayoutWrapper currentPageName="PlanoDeAcao"><PlanoDeAcao /></LayoutWrapper>} />
+      <Route path="/PlanoDeAcaoDetalhe" element={<LayoutWrapper currentPageName="PlanoDeAcaoDetalhe"><PlanoDeAcaoDetalhe /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
