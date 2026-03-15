@@ -310,6 +310,17 @@ export default function PlanoDeAcaoDetalhe({ user }) {
                             <p className="text-sm font-semibold text-slate-900">{item.acao_proposta}</p>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
+                            {!item.demanda_id_relacionada && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2 text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                                onClick={() => setNovaDemandaItem(item)}
+                              >
+                                <PlusCircle className="w-3.5 h-3.5 mr-1" />
+                                Nova Demanda
+                              </Button>
+                            )}
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setItemParaEditar(item); setNovaAcaoOpen(true); }}>
                               <Pencil className="w-3.5 h-3.5 text-slate-400" />
                             </Button>
