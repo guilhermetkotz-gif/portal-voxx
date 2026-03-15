@@ -367,20 +367,19 @@ ${radar ? `
   <div class="bloco-label">Bloco 4</div>
   <div class="bloco-title">Demandas Operacionais</div>
   <p class="texto">Seguimos com as demandas operacionais em andamento conforme o planejamento. Abaixo o status atual das solicitações.</p>
-  <div class="metrics-3">
-    <div class="metric-card blue"><div class="metric-value">${demandasExecucao.length}</div><div class="metric-label">Em andamento</div></div>
+  <div class="metrics-3" style="grid-template-columns:repeat(2,1fr);">
+    <div class="metric-card blue"><div class="metric-value">${demandasEmAndamento.length}</div><div class="metric-label">Em andamento</div></div>
     <div class="metric-card green"><div class="metric-value">${demandasConcluidas.length}</div><div class="metric-label">Concluídas</div></div>
-    <div class="metric-card ${demandasAguardando.length > 0 ? "amber" : ""}"><div class="metric-value">${demandasAguardando.length}</div><div class="metric-label">Aguardando retorno</div></div>
   </div>
-  ${demandasExecucao.length > 0 ? `
-  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:6px;">Em execução</p>
-  <ul class="item-list">
-    ${demandasExecucao.slice(0, 4).map(d => `<li>${d.titulo}<span class="badge badge-blue">${statusDemandaLabel[d.status] || d.status}</span></li>`).join("")}
-  </ul>` : ""}
   ${demandasConcluidas.length > 0 ? `
-  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#16a34a;margin-top:14px;margin-bottom:6px;">Principais entregas realizadas</p>
+  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#16a34a;margin-bottom:6px;">Principais entregas realizadas</p>
   <ul class="item-list">
     ${demandasConcluidas.slice(0, 4).map(d => `<li>${d.titulo}<span class="badge badge-green">Concluída</span></li>`).join("")}
+  </ul>` : ""}
+  ${demandasEmAndamento.length > 0 ? `
+  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#2563eb;margin-top:14px;margin-bottom:6px;">Demandas em andamento</p>
+  <ul class="item-list">
+    ${demandasEmAndamento.map(d => `<li>${d.titulo}<span class="badge badge-blue">${statusDemandaLabel[d.status] || d.status}</span></li>`).join("")}
   </ul>` : ""}
 </div>
 
