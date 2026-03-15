@@ -13,6 +13,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, ExternalLink, Building2, Users
 } from "lucide-react";
 import NovaAcaoModal from "@/components/planoacao/NovaAcaoModal";
+import NovaDemandaPlanoModal from "@/components/planoacao/NovaDemandaPlanoModal";
 import PrazoIndicador, { calcularIndicadorPrazo } from "@/components/planoacao/PrazoIndicador";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
