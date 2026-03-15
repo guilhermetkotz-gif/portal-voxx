@@ -338,7 +338,7 @@ const Kanban = ({ user, selectedClienteId }) => {
     }
   };
 
-  if (isLoading) {
+  if (!user) {
     return (
       <div className="flex justify-center items-center h-96">
         <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
@@ -346,10 +346,18 @@ const Kanban = ({ user, selectedClienteId }) => {
     );
   }
 
-  if (!user || (!isVoxxAdmin(user) && !isVoxxOperacao(user))) {
+  if (!isVoxxAdmin(user) && !isVoxxOperacao(user)) {
     return (
       <div className="flex items-center justify-center h-96">
         <p className="text-lg text-red-500">Acesso negado. Esta página é apenas para usuários Voxx.</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
       </div>
     );
   }
