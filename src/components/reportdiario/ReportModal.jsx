@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Copy, X, Pencil, Check } from "lucide-react";
+import { FileText, Copy, Pencil, Check } from "lucide-react";
 import { calcularIndicadorPrazo } from "@/components/planoacao/PrazoIndicador";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,24 @@ const statusDemandaLabel = {
   em_execucao: "Em execução", aguardando_cliente: "Aguardando cliente",
   em_revisao: "Em revisão", concluida: "Concluída",
 };
+
+function SectionHeader({ label, title }) {
+  return (
+    <div className="mb-3">
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+      <p className="text-sm font-bold text-slate-800">{title}</p>
+    </div>
+  );
+}
+
+function MetricBox({ label, value, colorClass = "text-slate-800" }) {
+  return (
+    <div className="bg-slate-50 rounded-lg p-2 text-center border border-slate-100">
+      <p className={`text-base font-bold ${colorClass}`}>{value}</p>
+      <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
+    </div>
+  );
+}
 
 export default function ReportModal({ cliente, report, dataReport, demandas, plano, planoItens, meta, google, user, onClose, onSave }) {
   const [destaque, setDestaque] = useState(report?.destaque_positivo || "");
@@ -28,275 +46,370 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
 
   // ── Dados derivados ──
   const demandasCliente = demandas.filter((d) => d.cliente_id === cliente.id);
-  const demandasAbertas = demandasCliente.filter((d) => !["concluida"].includes(d.status));
   const demandasConcluidas = demandasCliente.filter((d) => d.status === "concluida");
   const demandasAguardando = demandasCliente.filter((d) => d.status === "aguardando_cliente");
   const demandasExecucao = demandasCliente.filter((d) => d.status === "em_execucao");
+  const demandasProgramadas = demandasCliente.filter((d) => d.status === "programada");
 
   const itensPlano = plano ? planoItens.filter((i) => i.plano_id === plano.id) : [];
-  const itensAndamento = itensPlano.filter((i) => i.status_acao === "Em andamento").length;
-  const itensConcluidos = itensPlano.filter((i) => i.status_acao === "Concluída").length;
-  const itensAtraso = itensPlano.filter((i) => calcularIndicadorPrazo(i.prazo, i.status_acao) === "atraso").length;
-  const itensAVencer = itensPlano.filter((i) => calcularIndicadorPrazo(i.prazo, i.status_acao) === "a_vencer").length;
+  const itensAndamento = itensPlano.filter((i) => i.status_acao === "Em andamento");
+  const itensConcluidos = itensPlano.filter((i) => i.status_acao === "Concluída");
+  const itensNovos = itensPlano.filter((i) => i.status_acao === "Nova");
+  const itensAtraso = itensPlano.filter((i) => calcularIndicadorPrazo(i.prazo, i.status_acao) === "atraso");
+  const itensAVencer = itensPlano.filter((i) => calcularIndicadorPrazo(i.prazo, i.status_acao) === "a_vencer");
 
-  // ── Destaque e alerta automáticos (se não editados) ──
+  // ── Textos automáticos ──
   const destaqueAuto = (() => {
-    if (meta?.classificacao === "ELITE" || meta?.classificacao === "SAUDÁVEL") return `Meta Ads com performance ${meta.classificacao.toLowerCase()} — campanhas operando dentro da meta.`;
-    if (itensConcluidos > 0) return `${itensConcluidos} ação(ões) do plano de ação concluída(s) no período.`;
-    if (demandasConcluidas.length > 0) return `${demandasConcluidas.length} demanda(s) concluída(s) no período.`;
-    return "Campanhas e operação em acompanhamento contínuo.";
+    if (meta?.classificacao === "ELITE") return `Meta Ads com performance ELITE — campanhas entregando acima da meta com excelente custo por lead.`;
+    if (meta?.classificacao === "SAUDÁVEL") return `Meta Ads com performance saudável — campanhas estáveis e dentro dos objetivos.`;
+    if (itensConcluidos.length > 0) return `${itensConcluidos.length} ação(ões) do plano de ação concluída(s) — evoluindo no planejamento estratégico.`;
+    if (demandasConcluidas.length > 0) return `${demandasConcluidas.length} demanda(s) concluída(s) — entregas realizadas conforme planejado.`;
+    if (google?.health_status === "Saudável") return `Google Ads com status saudável — conversões estáveis e custo por conversão controlado.`;
+    return "Campanhas e operação em acompanhamento contínuo com foco em evolução dos resultados.";
   })();
 
   const atencaoAuto = (() => {
-    if (meta?.classificacao === "CRÍTICO") return `Meta Ads com classificação CRÍTICA — atenção imediata necessária.`;
-    if (itensAtraso > 0) return `${itensAtraso} ação(ões) do plano com prazo em atraso.`;
-    if (demandasAguardando.length > 0) return `${demandasAguardando.length} demanda(s) aguardando retorno do cliente.`;
-    return "Nenhum ponto crítico identificado no momento.";
+    if (meta?.classificacao === "CRÍTICO") return `Meta Ads com classificação CRÍTICA — análise aprofundada em andamento e ações corretivas sendo aplicadas.`;
+    if (meta?.classificacao === "ALERTA") return `Meta Ads em estado de ALERTA — monitoramento intensificado com ajustes em execução.`;
+    if (itensAtraso.length > 0) return `${itensAtraso.length} ação(ões) do plano com prazo em atraso — acompanhamento prioritário.`;
+    if (google?.health_status === "Urgente" || google?.health_status === "Crítico") return `Google Ads com status ${google.health_status} — ações corretivas sendo implementadas.`;
+    if (demandasAguardando.length > 0) return `${demandasAguardando.length} demanda(s) aguardando retorno do cliente para prosseguimento.`;
+    return "Nenhum ponto crítico identificado. Monitoramento ativo e operação estável.";
   })();
 
   const proxPassosAuto = [
-    demandasExecucao.length > 0 ? `Seguir com execução das ${demandasExecucao.length} demanda(s) em andamento.` : null,
-    itensAndamento > 0 ? `Acompanhar as ${itensAndamento} ação(ões) em andamento no plano de ação.` : null,
-    "Manter monitoramento contínuo das campanhas e otimizar conforme necessário.",
+    demandasExecucao.length > 0 ? `Seguir com a execução das ${demandasExecucao.length} demanda(s) em andamento.` : null,
+    itensAndamento.length > 0 ? `Acompanhar as ${itensAndamento.length} ação(ões) em andamento no plano de ação.` : null,
+    itensAVencer.length > 0 ? `Priorizar as ${itensAVencer.length} ação(ões) com prazo a vencer em breve.` : null,
+    "Otimização contínua das campanhas com foco em evolução de conversões.",
+    "Execução das ações previstas no planejamento estratégico.",
   ].filter(Boolean).join("\n");
 
+  const destaqueTexto = destaque || destaqueAuto;
+  const atencaoTexto = atencao || atencaoAuto;
+  const proxPassosTexto = proxPassos || proxPassosAuto;
+
+  // ── Salvar ──
   const handleSave = () => {
-    onSave({
-      destaque_positivo: destaque || destaqueAuto,
-      ponto_atencao: atencao || atencaoAuto,
-      proximos_passos: proxPassos || proxPassosAuto,
-    });
+    onSave({ destaque_positivo: destaqueTexto, ponto_atencao: atencaoTexto, proximos_passos: proxPassosTexto });
     setEditando(false);
     toast.success("Report salvo!");
   };
 
+  // ── Copiar Resumo WhatsApp ──
   const handleCopiarResumo = () => {
-    const texto = [
+    const linhas = [
       `📄 *Resumo Diário Voxx — ${cliente.nome}*`,
       `📅 Data: ${dataFmt}`,
       ``,
       `📌 *Destaque do dia:*`,
-      destaque || destaqueAuto,
+      destaqueTexto,
       ``,
       `⚠️ *Ponto de atenção:*`,
-      atencao || atencaoAuto,
+      atencaoTexto,
       ``,
       `📊 *Meta Ads*`,
       meta
-        ? `Investimento: R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\nLeads/Conversas: ${meta.messaging_conversations || 0}\nStatus: ${meta.classificacao || "—"}`
-        : "Dados não disponíveis no momento.",
+        ? [
+            `• Investimento: R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+            `• Leads/Conversas: ${meta.messaging_conversations || meta.new_messaging_connections || 0}`,
+            `• CPL: R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+            `• Status: ${meta.classificacao || "—"}`,
+            meta.main_issue ? `• Alerta: ${meta.main_issue}` : null,
+          ].filter(Boolean).join("\n")
+        : "Dados não disponíveis.",
       ``,
       `🔎 *Google Ads*`,
       google
-        ? `Investimento: R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}\nConversões: ${google.conversions || 0}\nCusto/Conversão: R$ ${(google.cost_per_conversion || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-        : "Dados não disponíveis no momento.",
+        ? [
+            `• Investimento: R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+            `• Conversões: ${google.conversions || 0}`,
+            `• Custo/Conversão: R$ ${(google.cost_per_conversion || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+            google.health_status ? `• Status: ${google.health_status}` : null,
+          ].filter(Boolean).join("\n")
+        : "Dados não disponíveis.",
       ``,
       `🧩 *Demandas*`,
       `• Em andamento: ${demandasExecucao.length}`,
       `• Concluídas: ${demandasConcluidas.length}`,
       `• Aguardando retorno: ${demandasAguardando.length}`,
+      demandasConcluidas.length > 0
+        ? `\n📦 *Principais entregas realizadas:*\n` + demandasConcluidas.slice(0, 3).map(d => `• ${d.titulo}`).join("\n")
+        : null,
       ``,
-      plano ? [
-        `📋 *Plano de Ação*`,
-        `• Total: ${itensPlano.length} ações`,
-        `• Em andamento: ${itensAndamento}`,
-        `• Concluídas: ${itensConcluidos}`,
-        itensAtraso > 0 ? `• Em atraso: ${itensAtraso}` : null,
-        ``,
-      ].filter(Boolean).join("\n") : "",
-      `➡️ *Próximos passos*`,
-      proxPassos || proxPassosAuto,
+      plano
+        ? [
+            `📋 *Plano de Ação*`,
+            `• Total de ações: ${itensPlano.length}`,
+            `• Em andamento: ${itensAndamento.length}`,
+            `• Concluídas: ${itensConcluidos.length}`,
+            itensAtraso.length > 0 ? `• Em atraso: ${itensAtraso.length}` : null,
+            itensAVencer.length > 0 ? `• A vencer: ${itensAVencer.length}` : null,
+            ``,
+          ].filter(Boolean).join("\n")
+        : null,
+      `🔧 *Ações realizadas pela Voxx hoje:*`,
+      `Monitoramento das campanhas, análise de desempenho e acompanhamento das demandas operacionais. Ajustes e otimizações aplicados conforme necessário.`,
+      ``,
+      `➡️ *Próximos passos:*`,
+      proxPassosTexto,
       ``,
       `_Gerado em ${dataGeracao} · Portal Voxx_`,
-    ].filter((l) => l !== "").join("\n");
+    ].filter((l) => l !== null).join("\n");
 
-    navigator.clipboard.writeText(texto);
-    toast.success("Resumo copiado!");
+    navigator.clipboard.writeText(linhas);
+    toast.success("Resumo copiado para a área de transferência!");
   };
 
+  // ── Gerar PDF ──
   const handleGerarPDF = () => {
-    const destaqueTexto = destaque || destaqueAuto;
-    const atencaoTexto = atencao || atencaoAuto;
-    const proxPassosTexto = proxPassos || proxPassosAuto;
+    const metaClassBadge = (cls) => {
+      if (!cls) return "badge-slate";
+      if (cls === "ELITE" || cls === "SAUDÁVEL") return "badge-green";
+      if (cls === "CRÍTICO" || cls === "ALERTA") return "badge-red";
+      return "badge-yellow";
+    };
+    const googleStatusBadge = (s) => {
+      if (!s) return "badge-slate";
+      if (s === "Saudável") return "badge-green";
+      if (s === "Crítico" || s === "Urgente") return "badge-red";
+      return "badge-yellow";
+    };
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <title>Report Diário — ${cliente.nome}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1e293b; font-size: 13px; line-height: 1.6; }
-    .page { max-width: 780px; margin: 0 auto; }
+<meta charset="UTF-8"/>
+<title>Report Diário — ${cliente.nome}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1e293b; font-size: 13px; line-height: 1.65; }
+  .page { max-width: 760px; margin: 0 auto; }
 
-    /* CAPA */
-    .header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 36px 40px 30px; }
-    .brand { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; opacity: 0.6; margin-bottom: 10px; }
-    .doc-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
-    .doc-subtitle { font-size: 13px; opacity: 0.75; margin-top: 4px; }
-    .doc-info { margin-top: 16px; display: flex; gap: 24px; flex-wrap: wrap; }
-    .doc-info-item label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.55; display: block; margin-bottom: 2px; }
-    .doc-info-item span { font-size: 14px; font-weight: 600; }
+  /* ── CAPA ── */
+  .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%); color: #fff; padding: 40px 44px 36px; }
+  .brand { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.5; margin-bottom: 12px; }
+  .doc-title { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+  .doc-subtitle { font-size: 13px; opacity: 0.65; margin-top: 6px; }
+  .doc-meta { margin-top: 22px; display: grid; grid-template-columns: repeat(3, auto); gap: 0 32px; }
+  .doc-meta-item { }
+  .doc-meta-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.45; display: block; margin-bottom: 2px; }
+  .doc-meta-value { font-size: 13px; font-weight: 700; }
 
-    /* SEÇÕES */
-    .section { padding: 24px 40px; border-bottom: 1px solid #f1f5f9; }
-    .section:last-child { border-bottom: none; }
-    .section-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #94a3b8; margin-bottom: 12px; }
-    .section-title { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 12px; }
+  /* ── SEÇÕES ── */
+  .section { padding: 26px 44px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; }
+  .section:last-child { border-bottom: none; }
+  .bloco-label { font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+  .bloco-title { font-size: 17px; font-weight: 700; color: #0f172a; margin-bottom: 14px; }
 
-    /* RESUMO EXECUTIVO */
-    .exec-text { font-size: 13px; color: #475569; line-height: 1.7; margin-bottom: 14px; }
-    .highlight-box { border-left: 3px solid #22c55e; background: #f0fdf4; padding: 10px 14px; border-radius: 0 6px 6px 0; margin-bottom: 10px; }
-    .highlight-box .hl-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #16a34a; margin-bottom: 3px; }
-    .highlight-box .hl-text { font-size: 13px; color: #166534; }
-    .atencao-box { border-left: 3px solid #f59e0b; background: #fffbeb; padding: 10px 14px; border-radius: 0 6px 6px 0; margin-bottom: 10px; }
-    .atencao-box .hl-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #d97706; margin-bottom: 3px; }
-    .atencao-box .hl-text { font-size: 13px; color: #92400e; }
+  /* ── TEXTO ── */
+  .texto { font-size: 13px; color: #475569; line-height: 1.75; margin-bottom: 14px; }
 
-    /* GRID DE MÉTRICAS */
-    .metrics-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
-    .metric-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; text-align: center; }
-    .metric-value { font-size: 22px; font-weight: 700; color: #1e293b; }
-    .metric-label { font-size: 10px; color: #64748b; margin-top: 2px; }
-    .metric-card.ok .metric-value { color: #16a34a; }
-    .metric-card.warn .metric-value { color: #d97706; }
-    .metric-card.bad .metric-value { color: #dc2626; }
+  /* ── BOXES DE DESTAQUE ── */
+  .box-destaque { border-left: 3px solid #22c55e; background: #f0fdf4; padding: 11px 16px; border-radius: 0 8px 8px 0; margin-bottom: 10px; }
+  .box-destaque .box-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #16a34a; margin-bottom: 4px; }
+  .box-destaque .box-text { font-size: 13px; color: #166534; line-height: 1.6; }
+  .box-atencao { border-left: 3px solid #f59e0b; background: #fffbeb; padding: 11px 16px; border-radius: 0 8px 8px 0; margin-bottom: 10px; }
+  .box-atencao .box-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #b45309; margin-bottom: 4px; }
+  .box-atencao .box-text { font-size: 13px; color: #92400e; line-height: 1.6; }
 
-    /* BADGE */
-    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; }
-    .badge-green { background: #dcfce7; color: #166534; }
-    .badge-yellow { background: #fef3c7; color: #92400e; }
-    .badge-red { background: #fee2e2; color: #991b1b; }
-    .badge-blue { background: #dbeafe; color: #1d4ed8; }
-    .badge-slate { background: #f1f5f9; color: #475569; }
+  /* ── METRICS ── */
+  .metrics-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .metrics-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .metric-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+  .metric-value { font-size: 20px; font-weight: 800; color: #1e293b; line-height: 1; }
+  .metric-label { font-size: 10px; color: #64748b; margin-top: 3px; }
+  .metric-card.green .metric-value { color: #16a34a; }
+  .metric-card.amber .metric-value { color: #d97706; }
+  .metric-card.red .metric-value { color: #dc2626; }
+  .metric-card.blue .metric-value { color: #2563eb; }
+  .metric-card.violet .metric-value { color: #7c3aed; }
 
-    /* LISTA */
-    .item-list { list-style: none; }
-    .item-list li { padding: 8px 0; border-bottom: 1px solid #f8fafc; font-size: 13px; color: #334155; display: flex; align-items: flex-start; gap: 8px; }
-    .item-list li:last-child { border-bottom: none; }
-    .item-list li::before { content: "•"; color: #7c3aed; font-weight: 700; margin-top: 1px; }
+  /* ── BADGES ── */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-slate { background: #f1f5f9; color: #475569; }
 
-    /* PRÓXIMOS PASSOS */
-    .steps-list { }
-    .steps-list p { font-size: 13px; color: #475569; margin-bottom: 6px; padding-left: 16px; position: relative; }
-    .steps-list p::before { content: "→"; position: absolute; left: 0; color: #7c3aed; font-weight: 700; }
+  /* ── LISTAS ── */
+  .item-list { list-style: none; margin-top: 10px; }
+  .item-list li { padding: 7px 0; border-bottom: 1px solid #f8fafc; font-size: 12px; color: #334155; display: flex; align-items: flex-start; gap: 8px; }
+  .item-list li:last-child { border-bottom: none; }
+  .item-list li::before { content: "•"; color: #7c3aed; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .item-list li .badge { margin-left: 6px; }
 
-    /* RODAPÉ */
-    .footer { background: #f8fafc; padding: 14px 40px; text-align: center; color: #94a3b8; font-size: 10px; border-top: 1px solid #e2e8f0; }
+  /* ── AÇÕES VOXX ── */
+  .acoes-voxx-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; }
+  .acoes-voxx-box p { font-size: 13px; color: #475569; line-height: 1.75; }
 
-    @media print {
-      .page { max-width: 100%; }
-    }
-  </style>
+  /* ── PRÓXIMOS PASSOS ── */
+  .steps-list p { font-size: 13px; color: #475569; margin-bottom: 7px; padding-left: 18px; position: relative; line-height: 1.6; }
+  .steps-list p::before { content: "→"; position: absolute; left: 0; color: #7c3aed; font-weight: 700; }
+
+  /* ── RODAPÉ ── */
+  .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 44px; display: flex; justify-content: space-between; align-items: center; }
+  .footer-brand { font-size: 11px; font-weight: 700; color: #64748b; }
+  .footer-date { font-size: 10px; color: #94a3b8; }
+
+  @media print {
+    .page { max-width: 100%; }
+    .section { page-break-inside: avoid; }
+  }
+</style>
 </head>
 <body>
 <div class="page">
 
-  <!-- CAPA -->
-  <div class="header">
-    <div class="brand">Portal Voxx · Report Diário</div>
-    <div class="doc-title">Resumo Diário Voxx</div>
-    <div class="doc-subtitle">Visão geral das ações e resultados do dia</div>
-    <div class="doc-info">
-      <div class="doc-info-item"><label>Cliente</label><span>${cliente.nome}</span></div>
-      <div class="doc-info-item"><label>Data</label><span>${dataFmt}</span></div>
-      <div class="doc-info-item"><label>Gerado em</label><span>${dataGeracao}</span></div>
-    </div>
+<!-- ══ CABEÇALHO ══ -->
+<div class="header">
+  <div class="brand">Portal Voxx · Relatório Executivo</div>
+  <div class="doc-title">Resumo Diário Voxx</div>
+  <div class="doc-subtitle">Visão geral das ações e resultados do dia</div>
+  <div class="doc-meta">
+    <div class="doc-meta-item"><span class="doc-meta-label">Cliente</span><span class="doc-meta-value">${cliente.nome}</span></div>
+    <div class="doc-meta-item"><span class="doc-meta-label">Data do report</span><span class="doc-meta-value">${dataFmt}</span></div>
+    <div class="doc-meta-item"><span class="doc-meta-label">Gerado em</span><span class="doc-meta-value">${dataGeracao}</span></div>
   </div>
+</div>
 
-  <!-- BLOCO 1 — RESUMO EXECUTIVO -->
-  <div class="section">
-    <div class="section-label">Bloco 1</div>
-    <div class="section-title">Resumo Executivo</div>
-    <p class="exec-text">Hoje seguimos com a gestão ativa das campanhas e das ações operacionais da conta. Monitoramos o desempenho das campanhas, andamento das demandas e evolução das ações estratégicas definidas para o cliente. O foco permanece em manter estabilidade nas campanhas, otimizar resultados e avançar nas entregas previstas no planejamento.</p>
-    <div class="highlight-box">
-      <div class="hl-label">✅ Destaque positivo do dia</div>
-      <div class="hl-text">${destaqueTexto}</div>
-    </div>
-    <div class="atencao-box">
-      <div class="hl-label">⚠️ Ponto de atenção</div>
-      <div class="hl-text">${atencaoTexto}</div>
-    </div>
+<!-- ══ BLOCO 1 — RESUMO EXECUTIVO ══ -->
+<div class="section">
+  <div class="bloco-label">Bloco 1</div>
+  <div class="bloco-title">Resumo Executivo</div>
+  <p class="texto">
+    Hoje seguimos com o acompanhamento ativo das campanhas e das ações operacionais da conta.
+    Monitoramos o desempenho das campanhas, o andamento das demandas e a evolução das ações estratégicas definidas para o cliente.
+    <br/><br/>
+    Nosso foco permanece em manter estabilidade nas campanhas, otimizar resultados e avançar nas entregas planejadas.
+  </p>
+  <div class="box-destaque">
+    <div class="box-label">✅ Destaque positivo do dia</div>
+    <div class="box-text">${destaqueTexto}</div>
   </div>
+  <div class="box-atencao">
+    <div class="box-label">⚠️ Ponto de atenção</div>
+    <div class="box-text">${atencaoTexto}</div>
+  </div>
+</div>
 
-  <!-- BLOCO 2 — META ADS -->
-  <div class="section">
-    <div class="section-label">Bloco 2</div>
-    <div class="section-title">Meta Ads — Visão Geral</div>
-    ${meta ? `
-    <p class="exec-text">As campanhas no Meta Ads seguem em monitoramento constante com ajustes contínuos para melhoria de performance e estabilidade dos resultados.</p>
-    <div class="metrics-grid">
-      <div class="metric-card"><div class="metric-value">R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div><div class="metric-label">Investimento</div></div>
-      <div class="metric-card ok"><div class="metric-value">${meta.messaging_conversations || meta.new_messaging_connections || 0}</div><div class="metric-label">Leads / Conversas</div></div>
-      <div class="metric-card"><div class="metric-value">R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><div class="metric-label">Custo por lead</div></div>
-    </div>
-    <div>Status geral: <span class="badge ${meta.classificacao === "ELITE" || meta.classificacao === "SAUDÁVEL" ? "badge-green" : meta.classificacao === "CRÍTICO" || meta.classificacao === "ALERTA" ? "badge-red" : "badge-yellow"}">${meta.classificacao || "—"}</span></div>
-    ${meta.main_issue ? `<p style="margin-top:8px; font-size:12px; color:#64748b;">Principal alerta: ${meta.main_issue}</p>` : ""}
-    ` : `<p class="exec-text" style="color:#94a3b8;">Dados de Meta Ads não disponíveis para este cliente no momento.</p>`}
+<!-- ══ BLOCO 2 — META ADS ══ -->
+<div class="section">
+  <div class="bloco-label">Bloco 2</div>
+  <div class="bloco-title">Meta Ads — Visão Geral</div>
+  ${meta ? `
+  <p class="texto">As campanhas no Meta Ads seguem em monitoramento constante com ajustes contínuos para melhoria de performance e estabilidade dos resultados.</p>
+  <div class="metrics-3">
+    <div class="metric-card"><div class="metric-value">R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div><div class="metric-label">Investimento</div></div>
+    <div class="metric-card green"><div class="metric-value">${meta.messaging_conversations || meta.new_messaging_connections || 0}</div><div class="metric-label">Leads / Conversas</div></div>
+    <div class="metric-card"><div class="metric-value">R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><div class="metric-label">Custo por lead (CPL)</div></div>
   </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+    <span style="font-size:11px;color:#64748b;">Status geral:</span>
+    <span class="badge ${metaClassBadge(meta.classificacao)}">${meta.classificacao || "—"}</span>
+    ${meta.nota_gpt ? `<span style="font-size:11px;color:#64748b;">· Nota GPT: <strong>${meta.nota_gpt}</strong>/100</span>` : ""}
+  </div>
+  ${meta.main_issue ? `<p style="font-size:12px;color:#64748b;margin-top:4px;">⚡ Principal alerta: ${meta.main_issue}</p>` : ""}
+  ${meta.frequency ? `<p style="font-size:12px;color:#64748b;margin-top:4px;">Frequência: ${meta.frequency.toFixed(1)}x</p>` : ""}
+  ` : `<p class="texto" style="color:#94a3b8;font-style:italic;">Dados de Meta Ads não vinculados a este cliente no momento.</p>`}
+</div>
 
-  <!-- BLOCO 3 — GOOGLE ADS -->
-  <div class="section">
-    <div class="section-label">Bloco 3</div>
-    <div class="section-title">Google Ads — Visão Geral</div>
-    ${google ? `
-    <p class="exec-text">As campanhas no Google Ads seguem em acompanhamento diário com foco em eficiência de conversão e estabilidade de custos.</p>
-    <div class="metrics-grid">
-      <div class="metric-card"><div class="metric-value">R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div><div class="metric-label">Investimento</div></div>
-      <div class="metric-card ok"><div class="metric-value">${google.conversions || 0}</div><div class="metric-label">Conversões</div></div>
-      <div class="metric-card"><div class="metric-value">R$ ${(google.cost_per_conversion || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><div class="metric-label">Custo/Conversão</div></div>
-    </div>
-    ${google.health_status ? `<div>Status: <span class="badge ${google.health_status === "Saudável" ? "badge-green" : google.health_status === "Crítico" || google.health_status === "Urgente" ? "badge-red" : "badge-yellow"}">${google.health_status}</span></div>` : ""}
-    ${google.optimization_score ? `<p style="margin-top:8px; font-size:12px; color:#64748b;">Optimization Score: ${google.optimization_score}%</p>` : ""}
-    ` : `<p class="exec-text" style="color:#94a3b8;">Dados de Google Ads não disponíveis para este cliente no momento.</p>`}
+<!-- ══ BLOCO 3 — GOOGLE ADS ══ -->
+<div class="section">
+  <div class="bloco-label">Bloco 3</div>
+  <div class="bloco-title">Google Ads — Visão Geral</div>
+  ${google ? `
+  <p class="texto">As campanhas no Google Ads seguem em acompanhamento diário com foco em eficiência de conversão e estabilidade dos custos.</p>
+  <div class="metrics-3">
+    <div class="metric-card"><div class="metric-value">R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div><div class="metric-label">Investimento</div></div>
+    <div class="metric-card green"><div class="metric-value">${google.conversions || 0}</div><div class="metric-label">Conversões</div></div>
+    <div class="metric-card"><div class="metric-value">R$ ${(google.cost_per_conversion || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><div class="metric-label">Custo por conversão</div></div>
   </div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+    ${google.health_status ? `<span style="font-size:11px;color:#64748b;">Status:</span><span class="badge ${googleStatusBadge(google.health_status)}">${google.health_status}</span>` : ""}
+    ${google.optimization_score ? `<span style="font-size:11px;color:#64748b;">· Optimization Score: <strong>${google.optimization_score}%</strong></span>` : ""}
+  </div>
+  ${google.clicks ? `<p style="font-size:12px;color:#64748b;margin-top:4px;">Cliques: ${google.clicks} · CPC médio: R$ ${(google.avg_cpc || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>` : ""}
+  ` : `<p class="texto" style="color:#94a3b8;font-style:italic;">Dados de Google Ads não vinculados a este cliente no momento.</p>`}
+</div>
 
-  <!-- BLOCO 4 — DEMANDAS -->
-  <div class="section">
-    <div class="section-label">Bloco 4</div>
-    <div class="section-title">Demandas Operacionais</div>
-    <p class="exec-text">Seguimos com as demandas operacionais em andamento conforme planejamento.</p>
-    <div class="metrics-grid">
-      <div class="metric-card ${demandasExecucao.length > 0 ? "ok" : ""}"><div class="metric-value">${demandasExecucao.length}</div><div class="metric-label">Em andamento</div></div>
-      <div class="metric-card ok"><div class="metric-value">${demandasConcluidas.length}</div><div class="metric-label">Concluídas</div></div>
-      <div class="metric-card ${demandasAguardando.length > 0 ? "warn" : ""}"><div class="metric-value">${demandasAguardando.length}</div><div class="metric-label">Aguardando retorno</div></div>
-    </div>
-    ${demandasExecucao.slice(0, 3).length > 0 ? `
-    <ul class="item-list">
-      ${demandasExecucao.slice(0, 3).map(d => `<li>${d.titulo} <span class="badge badge-yellow" style="margin-left:4px;">${statusDemandaLabel[d.status] || d.status}</span></li>`).join("")}
-    </ul>` : ""}
+<!-- ══ BLOCO 4 — DEMANDAS OPERACIONAIS ══ -->
+<div class="section">
+  <div class="bloco-label">Bloco 4</div>
+  <div class="bloco-title">Demandas Operacionais</div>
+  <p class="texto">Seguimos com as demandas operacionais em andamento conforme o planejamento. Abaixo o status atual das solicitações.</p>
+  <div class="metrics-3">
+    <div class="metric-card blue"><div class="metric-value">${demandasExecucao.length}</div><div class="metric-label">Em andamento</div></div>
+    <div class="metric-card green"><div class="metric-value">${demandasConcluidas.length}</div><div class="metric-label">Concluídas</div></div>
+    <div class="metric-card ${demandasAguardando.length > 0 ? "amber" : ""}"><div class="metric-value">${demandasAguardando.length}</div><div class="metric-label">Aguardando retorno</div></div>
   </div>
+  ${demandasExecucao.length > 0 ? `
+  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:6px;">Em execução</p>
+  <ul class="item-list">
+    ${demandasExecucao.slice(0, 4).map(d => `<li>${d.titulo}<span class="badge badge-blue">${statusDemandaLabel[d.status] || d.status}</span></li>`).join("")}
+  </ul>` : ""}
+  ${demandasConcluidas.length > 0 ? `
+  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#16a34a;margin-top:14px;margin-bottom:6px;">Principais entregas realizadas</p>
+  <ul class="item-list">
+    ${demandasConcluidas.slice(0, 4).map(d => `<li>${d.titulo}<span class="badge badge-green">Concluída</span></li>`).join("")}
+  </ul>` : ""}
+</div>
 
-  <!-- BLOCO 5 — PLANO DE AÇÃO -->
-  ${plano ? `
-  <div class="section">
-    <div class="section-label">Bloco 5</div>
-    <div class="section-title">Plano de Ação</div>
-    <p class="exec-text">O plano de ação do cliente segue ativo com acompanhamento das ações definidas.</p>
-    <div class="metrics-grid">
-      <div class="metric-card"><div class="metric-value">${itensPlano.length}</div><div class="metric-label">Total de ações</div></div>
-      <div class="metric-card"><div class="metric-value">${itensAndamento}</div><div class="metric-label">Em andamento</div></div>
-      <div class="metric-card ok"><div class="metric-value">${itensConcluidos}</div><div class="metric-label">Concluídas</div></div>
-    </div>
-    ${itensAtraso > 0 ? `<p style="color:#dc2626; font-size:12px; margin-top:4px;">⚠️ ${itensAtraso} ação(ões) com prazo em atraso</p>` : ""}
-    ${itensAVencer > 0 ? `<p style="color:#d97706; font-size:12px; margin-top:4px;">🕐 ${itensAVencer} ação(ões) a vencer em breve</p>` : ""}
+<!-- ══ BLOCO 5 — PLANO DE AÇÃO ══ -->
+${plano ? `
+<div class="section">
+  <div class="bloco-label">Bloco 5</div>
+  <div class="bloco-title">Plano de Ação — Acompanhamento</div>
+  <p class="texto">O plano de ação do cliente segue em andamento. Abaixo o status das ações definidas no planejamento estratégico.</p>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+    <span style="font-size:12px;color:#64748b;">Status do plano:</span>
+    <span class="badge badge-yellow">${plano.status_plano}</span>
   </div>
-  ` : ""}
+  <div class="metrics-4">
+    <div class="metric-card"><div class="metric-value">${itensPlano.length}</div><div class="metric-label">Total de ações</div></div>
+    <div class="metric-card blue"><div class="metric-value">${itensAndamento.length}</div><div class="metric-label">Em andamento</div></div>
+    <div class="metric-card green"><div class="metric-value">${itensConcluidos.length}</div><div class="metric-label">Concluídas</div></div>
+    <div class="metric-card ${itensAtraso.length > 0 ? "red" : ""}"><div class="metric-value">${itensAtraso.length}</div><div class="metric-label">Em atraso</div></div>
+  </div>
+  ${itensAVencer.length > 0 ? `<p style="font-size:12px;color:#d97706;margin-bottom:10px;">🕐 ${itensAVencer.length} ação(ões) com prazo a vencer em breve</p>` : ""}
+  ${itensAndamento.length > 0 ? `
+  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:6px;">Ações prioritárias em andamento</p>
+  <ul class="item-list">
+    ${itensAndamento.slice(0, 3).map(i => `<li>${i.acao_proposta} <span class="badge badge-yellow">Em andamento</span></li>`).join("")}
+  </ul>` : ""}
+</div>
+` : ""}
 
-  <!-- BLOCO 6 — PRÓXIMOS PASSOS -->
-  <div class="section">
-    <div class="section-label">Bloco 6</div>
-    <div class="section-title">Próximos Passos</div>
-    <p class="exec-text">As próximas ações seguem focadas em evolução contínua das campanhas e execução das demandas planejadas.</p>
-    <div class="steps-list">
-      ${(proxPassosTexto).split("\n").map(s => s.trim()).filter(Boolean).map(s => `<p>${s}</p>`).join("")}
-    </div>
+<!-- ══ BLOCO 6 — AÇÕES DA VOXX ══ -->
+<div class="section">
+  <div class="bloco-label">Bloco 6</div>
+  <div class="bloco-title">Ações Realizadas pela Voxx</div>
+  <div class="acoes-voxx-box">
+    <p>
+      Hoje a equipe Voxx realizou o monitoramento das campanhas, análise de desempenho e acompanhamento das demandas operacionais, aplicando ajustes e otimizações sempre que necessário para manter a evolução dos resultados.
+    </p>
+    <p style="margin-top:10px;">
+      Nossa rotina inclui verificação diária das principais métricas, identificação de oportunidades de melhoria, atualização das demandas em andamento e alinhamento constante com o planejamento estratégico da conta.
+    </p>
   </div>
+</div>
 
-  <!-- RODAPÉ -->
-  <div class="footer">
-    <strong>Relatório gerado automaticamente pelo Portal Voxx</strong> · ${dataGeracao}
+<!-- ══ BLOCO 7 — PRÓXIMOS PASSOS ══ -->
+<div class="section">
+  <div class="bloco-label">Bloco 7</div>
+  <div class="bloco-title">Próximos Passos</div>
+  <p class="texto">Seguimos com foco em evolução contínua das campanhas e execução das demandas planejadas.</p>
+  <div class="steps-list">
+    ${proxPassosTexto.split("\n").map(s => s.trim()).filter(Boolean).map(s => `<p>${s}</p>`).join("")}
   </div>
+</div>
+
+<!-- ══ RODAPÉ ══ -->
+<div class="footer">
+  <span class="footer-brand">Portal Voxx · Relatório gerado automaticamente</span>
+  <span class="footer-date">${dataGeracao}</span>
+</div>
 
 </div>
 </body>
@@ -308,140 +421,159 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
     janela.print();
   };
 
+  // ─────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span>📄 Report — {cliente.nome}</span>
+          <DialogTitle className="flex items-center justify-between flex-wrap gap-2">
+            <span className="font-bold text-slate-900">📄 Report — {cliente.nome}</span>
             <span className="text-sm font-normal text-slate-500">{dataFmt}</span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* RESUMO EXECUTIVO */}
-          <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Resumo Executivo</p>
-            <p className="text-sm text-slate-600 mb-3">Seguimos com a gestão ativa das campanhas e das ações operacionais. O foco permanece em manter estabilidade nas campanhas, otimizar resultados e avançar nas entregas planejadas.</p>
+        <div className="space-y-3 pb-2">
 
+          {/* ── BLOCO 1: RESUMO EXECUTIVO ── */}
+          <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
+            <SectionHeader label="Bloco 1" title="Resumo Executivo" />
+            <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+              Hoje seguimos com o acompanhamento ativo das campanhas e das ações operacionais. Foco em estabilidade, otimização e execução das entregas planejadas.
+            </p>
             <div className="space-y-2">
               <div>
-                <Label className="text-xs text-green-600 font-semibold">✅ Destaque positivo do dia</Label>
+                <Label className="text-xs text-green-700 font-semibold">✅ Destaque positivo do dia</Label>
                 {editando ? (
-                  <Textarea value={destaque} onChange={(e) => setDestaque(e.target.value)} placeholder={destaqueAuto} className="mt-1 text-sm min-h-[60px]" />
+                  <Textarea value={destaque} onChange={(e) => setDestaque(e.target.value)} placeholder={destaqueAuto} className="mt-1 text-sm min-h-[56px]" />
                 ) : (
-                  <p className="text-sm text-slate-700 mt-1 bg-green-50 border border-green-100 rounded-lg px-3 py-2">{destaque || destaqueAuto}</p>
+                  <p className="text-sm text-green-800 mt-1 bg-green-50 border border-green-100 rounded-lg px-3 py-2 leading-relaxed">{destaqueTexto}</p>
                 )}
               </div>
               <div>
-                <Label className="text-xs text-amber-600 font-semibold">⚠️ Ponto de atenção</Label>
+                <Label className="text-xs text-amber-700 font-semibold">⚠️ Ponto de atenção</Label>
                 {editando ? (
-                  <Textarea value={atencao} onChange={(e) => setAtencao(e.target.value)} placeholder={atencaoAuto} className="mt-1 text-sm min-h-[60px]" />
+                  <Textarea value={atencao} onChange={(e) => setAtencao(e.target.value)} placeholder={atencaoAuto} className="mt-1 text-sm min-h-[56px]" />
                 ) : (
-                  <p className="text-sm text-slate-700 mt-1 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">{atencao || atencaoAuto}</p>
+                  <p className="text-sm text-amber-800 mt-1 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">{atencaoTexto}</p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* META ADS */}
-          {meta && (
+          {/* ── BLOCO 2: META ADS ── */}
+          {meta ? (
             <div className="rounded-xl border border-slate-100 p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">📊 Meta Ads</p>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                {[
-                  { label: "Investimento", value: `R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}` },
-                  { label: "Leads", value: meta.messaging_conversations || meta.new_messaging_connections || 0 },
-                  { label: "CPL", value: `R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-slate-50 rounded-lg p-2">
-                    <p className="text-base font-bold text-slate-800">{value}</p>
-                    <p className="text-xs text-slate-500">{label}</p>
-                  </div>
-                ))}
+              <SectionHeader label="Bloco 2" title="Meta Ads — Visão Geral" />
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <MetricBox label="Investimento" value={`R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`} />
+                <MetricBox label="Leads/Conversas" value={meta.messaging_conversations || meta.new_messaging_connections || 0} colorClass="text-green-700" />
+                <MetricBox label="CPL" value={`R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
               </div>
-              <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                Status: <Badge className={cn("text-xs", meta.classificacao === "ELITE" || meta.classificacao === "SAUDÁVEL" ? "bg-green-100 text-green-700" : meta.classificacao === "CRÍTICO" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700")}>{meta.classificacao || "—"}</Badge>
+              <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
+                <span>Status:</span>
+                <Badge className={cn("text-xs", meta.classificacao === "ELITE" || meta.classificacao === "SAUDÁVEL" ? "bg-green-100 text-green-700" : meta.classificacao === "CRÍTICO" || meta.classificacao === "ALERTA" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700")}>{meta.classificacao || "—"}</Badge>
+                {meta.nota_gpt && <span>· Nota: <strong>{meta.nota_gpt}</strong>/100</span>}
                 {meta.main_issue && <span className="text-slate-400">· {meta.main_issue}</span>}
               </div>
             </div>
-          )}
-
-          {/* GOOGLE ADS */}
-          {google && (
-            <div className="rounded-xl border border-slate-100 p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">🔎 Google Ads</p>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                {[
-                  { label: "Investimento", value: `R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}` },
-                  { label: "Conversões", value: google.conversions || 0 },
-                  { label: "Custo/Conv.", value: `R$ ${(google.cost_per_conversion || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-slate-50 rounded-lg p-2">
-                    <p className="text-base font-bold text-slate-800">{value}</p>
-                    <p className="text-xs text-slate-500">{label}</p>
-                  </div>
-                ))}
-              </div>
-              {google.health_status && (
-                <div className="mt-2 text-xs text-slate-500">
-                  Status: <Badge className={cn("text-xs", google.health_status === "Saudável" ? "bg-green-100 text-green-700" : google.health_status === "Crítico" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700")}>{google.health_status}</Badge>
-                </div>
-              )}
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">
+              <SectionHeader label="Bloco 2" title="Meta Ads — Visão Geral" />
+              Dados de Meta Ads não vinculados a este cliente.
             </div>
           )}
 
-          {/* DEMANDAS */}
+          {/* ── BLOCO 3: GOOGLE ADS ── */}
+          {google ? (
+            <div className="rounded-xl border border-slate-100 p-4">
+              <SectionHeader label="Bloco 3" title="Google Ads — Visão Geral" />
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <MetricBox label="Investimento" value={`R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`} />
+                <MetricBox label="Conversões" value={google.conversions || 0} colorClass="text-green-700" />
+                <MetricBox label="Custo/Conv." value={`R$ ${(google.cost_per_conversion || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
+                {google.health_status && (
+                  <>
+                    <span>Status:</span>
+                    <Badge className={cn("text-xs", google.health_status === "Saudável" ? "bg-green-100 text-green-700" : google.health_status === "Crítico" || google.health_status === "Urgente" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700")}>{google.health_status}</Badge>
+                  </>
+                )}
+                {google.optimization_score > 0 && <span>· Score: <strong>{google.optimization_score}%</strong></span>}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">
+              <SectionHeader label="Bloco 3" title="Google Ads — Visão Geral" />
+              Dados de Google Ads não vinculados a este cliente.
+            </div>
+          )}
+
+          {/* ── BLOCO 4: DEMANDAS ── */}
           <div className="rounded-xl border border-slate-100 p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">🧩 Demandas</p>
-            <div className="grid grid-cols-3 gap-3 text-center">
-              {[
-                { label: "Em andamento", value: demandasExecucao.length, color: "text-blue-700" },
-                { label: "Concluídas", value: demandasConcluidas.length, color: "text-green-700" },
-                { label: "Aguardando", value: demandasAguardando.length, color: "text-amber-700" },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="bg-slate-50 rounded-lg p-2">
-                  <p className={`text-xl font-bold ${color}`}>{value}</p>
-                  <p className="text-xs text-slate-500">{label}</p>
-                </div>
-              ))}
+            <SectionHeader label="Bloco 4" title="Demandas Operacionais" />
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <MetricBox label="Em andamento" value={demandasExecucao.length} colorClass="text-blue-700" />
+              <MetricBox label="Concluídas" value={demandasConcluidas.length} colorClass="text-green-700" />
+              <MetricBox label="Aguardando" value={demandasAguardando.length} colorClass={demandasAguardando.length > 0 ? "text-amber-700" : "text-slate-700"} />
             </div>
             {demandasExecucao.slice(0, 3).map((d) => (
-              <div key={d.id} className="mt-2 flex items-center gap-2 text-xs text-slate-600 border-t border-slate-50 pt-2">
+              <div key={d.id} className="flex items-center gap-2 text-xs text-slate-600 py-1 border-t border-slate-50">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
                 {d.titulo}
               </div>
             ))}
-          </div>
-
-          {/* PLANO DE AÇÃO */}
-          {plano && (
-            <div className="rounded-xl border border-violet-100 bg-violet-50/30 p-4">
-              <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-3">📋 Plano de Ação</p>
-              <div className="grid grid-cols-4 gap-2 text-center">
-                {[
-                  { label: "Total", value: itensPlano.length },
-                  { label: "Andamento", value: itensAndamento },
-                  { label: "Concluídas", value: itensConcluidos },
-                  { label: "Atraso", value: itensAtraso },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-white rounded-lg p-2 border border-violet-100">
-                    <p className="text-lg font-bold text-violet-700">{value}</p>
-                    <p className="text-xs text-slate-500">{label}</p>
+            {demandasConcluidas.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-slate-100">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-green-600 mb-1">Entregas realizadas</p>
+                {demandasConcluidas.slice(0, 3).map((d) => (
+                  <div key={d.id} className="flex items-center gap-2 text-xs text-slate-600 py-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                    {d.titulo}
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* ── BLOCO 5: PLANO DE AÇÃO ── */}
+          {plano && (
+            <div className="rounded-xl border border-violet-100 bg-violet-50/30 p-4">
+              <SectionHeader label="Bloco 5" title="Plano de Ação — Acompanhamento" />
+              <div className="grid grid-cols-4 gap-2 mb-2">
+                <MetricBox label="Total" value={itensPlano.length} colorClass="text-slate-700" />
+                <MetricBox label="Andamento" value={itensAndamento.length} colorClass="text-blue-700" />
+                <MetricBox label="Concluídas" value={itensConcluidos.length} colorClass="text-green-700" />
+                <MetricBox label="Atraso" value={itensAtraso.length} colorClass={itensAtraso.length > 0 ? "text-red-700" : "text-slate-700"} />
+              </div>
+              {itensAVencer.length > 0 && <p className="text-xs text-amber-600 mt-1">🕐 {itensAVencer.length} ação(ões) a vencer em breve</p>}
+              {itensAndamento.slice(0, 3).map((i) => (
+                <div key={i.id} className="flex items-center gap-2 text-xs text-violet-700 py-1 border-t border-violet-100 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+                  {i.acao_proposta}
+                </div>
+              ))}
             </div>
           )}
 
-          {/* PRÓXIMOS PASSOS */}
+          {/* ── BLOCO 6: AÇÕES DA VOXX ── */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+            <SectionHeader label="Bloco 6" title="Ações Realizadas pela Voxx" />
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Hoje a equipe Voxx realizou o monitoramento das campanhas, análise de desempenho e acompanhamento das demandas operacionais, aplicando ajustes e otimizações sempre que necessário para manter a evolução dos resultados.
+            </p>
+          </div>
+
+          {/* ── BLOCO 7: PRÓXIMOS PASSOS ── */}
           <div className="rounded-xl border border-slate-100 p-4">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">➡️ Próximos Passos</p>
+            <SectionHeader label="Bloco 7" title="Próximos Passos" />
             {editando ? (
               <Textarea value={proxPassos} onChange={(e) => setProxPassos(e.target.value)} placeholder={proxPassosAuto} className="text-sm min-h-[80px]" />
             ) : (
               <div className="space-y-1">
-                {(proxPassos || proxPassosAuto).split("\n").filter(Boolean).map((s, i) => (
+                {proxPassosTexto.split("\n").filter(Boolean).map((s, i) => (
                   <p key={i} className="text-sm text-slate-700 flex items-start gap-2">
                     <span className="text-violet-500 font-bold mt-0.5 shrink-0">→</span> {s}
                   </p>
@@ -450,7 +582,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
             )}
           </div>
 
-          {/* AÇÕES */}
+          {/* ── AÇÕES DO MODAL ── */}
           <div className="flex items-center gap-2 pt-2 border-t border-slate-100 flex-wrap">
             {editando ? (
               <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={handleSave}>

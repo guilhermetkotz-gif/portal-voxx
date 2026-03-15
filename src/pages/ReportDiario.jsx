@@ -291,14 +291,26 @@ export default function ReportDiario({ user }) {
                 </div>
 
                 {/* Ações */}
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      // Abrir modal e copiar resumo imediatamente após
+                      setReportAberto({ cliente, report });
+                    }}
+                  >
+                    <FileText className="w-3.5 h-3.5 mr-1" />
+                    Ver Report
+                  </Button>
                   <Button
                     size="sm"
                     className="h-8 bg-violet-600 hover:bg-violet-700 text-xs"
                     onClick={() => setReportAberto({ cliente, report })}
                   >
                     <FileText className="w-3.5 h-3.5 mr-1" />
-                    Gerar Report
+                    Gerar PDF
                   </Button>
                 </div>
               </div>
