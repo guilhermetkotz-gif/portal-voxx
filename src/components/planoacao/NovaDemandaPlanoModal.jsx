@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CheckCircle2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
 import BriefingUniversalWizard from '@/components/demandas/BriefingUniversalWizard';
