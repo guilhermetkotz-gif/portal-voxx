@@ -449,11 +449,14 @@ const Kanban = ({ user, selectedClienteId }) => {
         </Droppable>
       </DragDropContext>
 
-      <DemandaDetailModal 
-        demanda={selectedDemanda} 
-        open={!!selectedDemanda} 
-        onClose={() => setSelectedDemanda(null)} 
-      />
+      {/* Modais FORA do DragDropContext para evitar conflito de portais com o DnD */}
+      {selectedDemanda && (
+        <DemandaDetailModal 
+          demanda={selectedDemanda} 
+          open={!!selectedDemanda} 
+          onClose={() => setSelectedDemanda(null)} 
+        />
+      )}
 
       <ColumnManagerModal
         open={showColumnManager}
