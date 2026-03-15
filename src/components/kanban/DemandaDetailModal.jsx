@@ -1268,16 +1268,15 @@ ${bu.estrutura_criativo || 'Não gerado'}
                     <CardTitle className="text-base">Mudar Status</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Select value={currentDemanda.status} onValueChange={handleStatusChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map(opt => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <select
+                      value={currentDemanda.status}
+                      onChange={(e) => handleStatusChange(e.target.value)}
+                      className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      {statusOptions.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
                   </CardContent>
                 </Card>
 
