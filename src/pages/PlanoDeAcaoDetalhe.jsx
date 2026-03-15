@@ -103,17 +103,17 @@ export default function PlanoDeAcaoDetalhe({ user }) {
     const hoje = format(new Date(), "dd/MM/yyyy 'às' HH:mm");
     const dataAbertura = plano.data_abertura ? format(parseISO(plano.data_abertura), "dd/MM/yyyy", { locale: ptBR }) : "—";
 
+    const indicadorLabels = { ok: "Prazo OK", a_vencer: "A vencer", atraso: "Em atraso", concluida: "Concluída", sem_prazo: "Não informado" };
     const listaAcoes = itens.map((item, idx) => {
-      const prazoFmt = item.prazo ? format(parseISO(item.prazo), "dd/MM/yyyy", { locale: ptBR }) : "—";
+      const prazoFmt = item.prazo ? format(parseISO(item.prazo), "dd/MM/yyyy", { locale: ptBR }) : "Não informado";
       const indicador = calcularIndicadorPrazo(item.prazo, item.status_acao);
-      const indicadorLabel = { ok: "Prazo OK", a_vencer: "A vencer", atraso: "Em atraso", concluida: "Concluída", sem_prazo: "Sem prazo" }[indicador];
       return [
         `${idx + 1}. ${item.acao_proposta}`,
-        `   Problema: ${item.problema_identificado}`,
-        `   Responsável: ${item.responsavel}`,
-        `   Prazo: ${prazoFmt}`,
-        `   Status: ${item.status_acao}`,
-        `   Indicador: ${indicadorLabel}`,
+        `Problema: ${item.problema_identificado || "Não informado"}`,
+        `Responsável: ${item.responsavel || "Não informado"}`,
+        `Prazo: ${prazoFmt}`,
+        `Status: ${item.status_acao}`,
+        `Indicador de prazo: ${indicadorLabels[indicador]}`,
       ].join("\n");
     }).join("\n\n");
 
