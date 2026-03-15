@@ -36,7 +36,8 @@ const pageTitles = {
                 MonitoramentoDemandas: { title: "Monitoramento de Demandas", subtitle: "Analytics e KPIs de demandas" },
         GerenciarContas: { title: "Gerenciar Contas", subtitle: "Gestão de clientes e unidades" },
         PlanoDeAcao: { title: "Plano de Ação", subtitle: "Acompanhamento de ações por cliente" },
-        PlanoDeAcaoDetalhe: { title: "Plano de Ação", subtitle: "Detalhes do plano" }
+        PlanoDeAcaoDetalhe: { title: "Plano de Ação", subtitle: "Detalhes do plano" },
+        ReportDiario: { title: "Report Diário", subtitle: "Resumo executivo diário por cliente" }
                 };
 
 export default function Layout({ children, currentPageName }) {
