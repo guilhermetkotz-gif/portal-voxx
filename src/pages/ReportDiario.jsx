@@ -58,6 +58,12 @@ export default function ReportDiario({ user }) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: radarMeta = [] } = useQuery({
+    queryKey: ["radarMeta"],
+    queryFn: () => base44.entities.RadarMetaData.list("-created_date", 500),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: contasGoogle = [] } = useQuery({
     queryKey: ["contasGoogle"],
     queryFn: () => base44.entities.GoogleAdsAccount.list("-created_date", 500),
