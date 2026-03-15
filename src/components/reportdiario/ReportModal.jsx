@@ -112,7 +112,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
       meta
         ? [
             `• Investimento: R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-            `• Leads/Conversas: ${meta.messaging_conversations || meta.new_messaging_connections || 0}`,
+            `• Leads/Conversas: ${meta.new_messaging_connections || meta.messaging_conversations || 0}`,
             `• CPL: R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
             `• Status: ${meta.classificacao || "—"}`,
             meta.main_issue ? `• Alerta: ${meta.main_issue}` : null,
