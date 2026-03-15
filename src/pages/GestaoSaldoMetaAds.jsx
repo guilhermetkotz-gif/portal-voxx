@@ -830,16 +830,37 @@ export default function GestaoSaldoMetaAds({ user }) {
                                 <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border">
                                   <div className="flex items-center gap-2">
                                     <Checkbox
-                                      checked={tomada.pago}
-                                      onCheckedChange={(checked) => {
-                                        if (!editingClients.has(row.cliente.id)) {
-                                          setEditingClients(prev => new Set(prev).add(row.cliente.id));
-                                        }
-                                        handleTomadaChange(row.cliente.id, index, 'pago', checked);
-                                        if (checked && !tomada.data_pagamento) {
-                                          handleTomadaChange(row.cliente.id, index, 'data_pagamento', format(new Date(), 'yyyy-MM-dd'));
-                                        }
-                                      }}
+                                     checked={tomada.pago}
+                                     onCheckedChange={(checked) => {
+                                       const dataPagamento = checked && !tomada.data_pagamento ? format(new Date(), 'yyyy-MM-dd') : tomada.data_pagamento;
+                                       const editsAtual = editingRows[row.cliente.id] || {};
+                                       const historicoAtual = [...(editsAtual.historico_tomadas || row.balance?.historico_tomadas || [])];
+                                       historicoAtual[index] = { ...historicoAtual[index], pago: checked, data_pagamento: dataPagamento };
+
+                                       const valorPagoCalc = historicoAtual.filter(t => t.pago).reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
+                                       const tomadasPagasCalc = historicoAtual.filter(t => t.pago).length;
+
+                                       const data = {
+                                         client_id: row.cliente.id,
+                                         client_name: row.cliente.nome,
+                                         month_year: selectedMonth,
+                                         ad_account_id: row.mainAccount?.ad_account_id || '',
+                                         saldo: editsAtual.saldo !== undefined ? parseFloat(editsAtual.saldo) : row.balance?.saldo || 0,
+                                         valor_planejado_meta: row.planejamento?.investimento_meta_mes || row.valorPlanejado || 0,
+                                         valor_pago: valorPagoCalc,
+                                         gasto_diario: editsAtual.gasto_diario !== undefined ? parseFloat(editsAtual.gasto_diario) : row.balance?.gasto_diario || 0,
+                                         qtd_tomadas: editsAtual.qtd_tomadas !== undefined ? parseInt(editsAtual.qtd_tomadas) : row.balance?.qtd_tomadas || 4,
+                                         tomadas_pagas: tomadasPagasCalc,
+                                         valor_enviado: editsAtual.valor_enviado !== undefined ? parseFloat(editsAtual.valor_enviado) : row.balance?.valor_enviado || 0,
+                                         data_ultima_tomada: editsAtual.data_ultima_tomada || row.balance?.data_ultima_tomada,
+                                         metodo_pagamento: editsAtual.metodo_pagamento || row.balance?.metodo_pagamento,
+                                         observacoes: editsAtual.observacoes || row.balance?.observacoes,
+                                         historico_tomadas: historicoAtual,
+                                       };
+
+                                       handleFieldChange(row.cliente.id, 'historico_tomadas', historicoAtual);
+                                       saveMutation.mutate(data);
+                                     }}
                                     />
                                     <span className={`text-sm font-medium ${tomada.pago ? 'text-green-700 line-through' : 'text-slate-700'}`}>
                                       Tomada #{tomada.numero}
