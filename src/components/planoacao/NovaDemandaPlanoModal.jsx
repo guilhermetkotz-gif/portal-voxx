@@ -186,6 +186,7 @@ export default function NovaDemandaPlanoModal({ open, onClose, clienteId, client
     setPrioridade('media');
     setPrevisaoEntrega('');
     setFase('form');
+    setUltimaDemandaTitulo('');
     onClose();
   };
 
