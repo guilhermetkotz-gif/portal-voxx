@@ -340,6 +340,7 @@ export default function ReportDiario({ user }) {
           plano={planosAtivos.find((p) => p.cliente_id === reportAberto.cliente.id) || null}
           planoItens={planoItens}
           meta={getMetaCliente(reportAberto.cliente)}
+          radar={getRadarCliente(reportAberto.cliente)}
           google={getGoogleCliente(reportAberto.cliente)}
           user={user}
           onClose={() => setReportAberto(null)}
