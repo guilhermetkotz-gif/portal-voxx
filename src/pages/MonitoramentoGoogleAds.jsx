@@ -355,7 +355,7 @@ export default function MonitoramentoGoogleAds() {
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Responsável" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent modal={false}>
                   <SelectItem value="all">Todos os responsáveis</SelectItem>
                   {voxxUsers.map(u => (
                     <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
