@@ -49,7 +49,14 @@ const PAGINAS_DISPONIVEIS = [
   { nome: 'OnboardingCliente', descricao: 'Onboarding de cliente', categoria: 'Administração' },
   { nome: 'ConfiguracaoAlertas', descricao: 'Configuração de alertas', categoria: 'Configurações' },
   { nome: 'Chat', descricao: 'Chat & Suporte', categoria: 'Suporte' },
-  { nome: 'MonitoramentoDemandas', descricao: 'Monitoramento de Demandas', categoria: 'Análise' }
+  { nome: 'MonitoramentoDemandas', descricao: 'Monitoramento de Demandas', categoria: 'Análise' },
+  { nome: 'MonitoramentoGoogleAds', descricao: 'Monitoramento Google Ads', categoria: 'Análise' },
+  { nome: 'GestaoSaldoGoogleAds', descricao: 'Gestão de Saldos Google Ads', categoria: 'Financeiro' },
+  { nome: 'PlanoDeAcao', descricao: 'Plano de Ação', categoria: 'Operacional' },
+  { nome: 'PlanoDeAcaoDetalhe', descricao: 'Detalhe do Plano de Ação', categoria: 'Operacional' },
+  { nome: 'ReportDiario', descricao: 'Report Diário', categoria: 'Operacional' },
+  { nome: 'DetalheConta', descricao: 'Detalhe de Conta Meta Ads', categoria: 'Análise' },
+  { nome: 'HistoricoOtimizacoesCliente', descricao: 'Histórico de Otimizações', categoria: 'Análise' }
 ];
 
 const CATEGORIAS = [...new Set(PAGINAS_DISPONIVEIS.map(p => p.categoria))];
