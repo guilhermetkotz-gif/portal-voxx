@@ -40,6 +40,7 @@ export default function PlanoDeAcaoDetalhe({ user }) {
   const [novaAcaoOpen, setNovaAcaoOpen] = useState(false);
   const [itemParaEditar, setItemParaEditar] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [novaDemandaItem, setNovaDemandaItem] = useState(null); // item para criar demanda vinculada
 
   const { data: plano, isLoading: loadingPlano } = useQuery({
     queryKey: ["planoDetalhe", planoId],
