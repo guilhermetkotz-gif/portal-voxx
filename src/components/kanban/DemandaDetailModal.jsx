@@ -551,6 +551,8 @@ ${statusValidacao}`.trim();
     }
   };
 
+  if (!demanda) return null;
+
   const isOralSin = currentDemanda?.cliente_nome?.toLowerCase().includes('oral sin');
   const mostrarBriefingVOXX = currentDemanda?.setor === 'CRIACAO' && isOralSin && currentDemanda?.campos_adicionais;
   const mostrarBriefingEdicao = currentDemanda?.setor === 'EDICAO' && currentDemanda?.campos_adicionais;
@@ -564,8 +566,6 @@ ${statusValidacao}`.trim();
       console.error('Erro ao gerar briefing de edição:', error);
     }
   }
-
-  if (!demanda) return null;
 
   const statusOptions = [
     { value: 'recebida', label: 'Recebida' },
