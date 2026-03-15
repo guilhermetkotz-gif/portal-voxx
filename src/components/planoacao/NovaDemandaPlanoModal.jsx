@@ -349,6 +349,27 @@ export default function NovaDemandaPlanoModal({ open, onClose, clienteId, client
             <span className="text-sm">Criando e vinculando demanda...</span>
           </div>
         )}
+
+        {/* FASE: Sucesso */}
+        {fase === 'sucesso' && (
+          <div className="py-6 flex flex-col items-center gap-4 text-center">
+            <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle2 className="w-7 h-7 text-green-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900">Demanda criada e vinculada!</p>
+              <p className="text-sm text-slate-500 mt-1">
+                <strong>"{ultimaDemandaTitulo}"</strong> foi criada e vinculada a esta ação do plano.
+              </p>
+            </div>
+            <div className="flex gap-3 w-full mt-2">
+              <Button variant="outline" onClick={handleClose} className="flex-1">Fechar</Button>
+              <Button onClick={handleNovaDemanda} className="flex-1 bg-violet-600 hover:bg-violet-700">
+                <Plus className="w-4 h-4 mr-1" /> Nova Demanda
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
