@@ -485,6 +485,31 @@ ${plano ? `
             </div>
           )}
 
+          {/* ── BLOCO 2b: META ADS — ONTEM ── */}
+          {radar && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-4">
+              <SectionHeader label="Bloco 2 · Ontem" title="Meta Ads — Ontem" />
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                <MetricBox label="Leads ontem" value={radar.leads_ontem ?? "—"} colorClass="text-green-700" />
+                <MetricBox label="Inv. diário" value={radar.amount_spent_ontem != null ? `R$ ${(radar.amount_spent_ontem).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"} />
+                <MetricBox label="CPL atual" value={radar.cpl_ontem != null ? `R$ ${(radar.cpl_ontem).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"} />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <MetricBox
+                  label="Var. CPL"
+                  value={radar.variacao_cpl != null ? `${radar.variacao_cpl > 0 ? "+" : ""}${radar.variacao_cpl.toFixed(1)}%` : "—"}
+                  colorClass={radar.variacao_cpl == null ? "text-slate-700" : radar.variacao_cpl > 10 ? "text-red-600" : radar.variacao_cpl < -5 ? "text-green-700" : "text-amber-600"}
+                />
+                <MetricBox
+                  label="Var. CTR"
+                  value={radar.variacao_ctr != null ? `${radar.variacao_ctr > 0 ? "+" : ""}${radar.variacao_ctr.toFixed(1)}%` : "—"}
+                  colorClass={radar.variacao_ctr == null ? "text-slate-700" : radar.variacao_ctr >= 0 ? "text-green-700" : "text-red-600"}
+                />
+                <MetricBox label="Freq. (7d)" value={radar.frequencia_7d != null ? `${radar.frequencia_7d.toFixed(2)}x` : "—"} colorClass={radar.frequencia_7d != null && radar.frequencia_7d > 3 ? "text-red-600" : "text-slate-700"} />
+              </div>
+            </div>
+          )}
+
           {/* ── BLOCO 3: GOOGLE ADS ── */}
           {google ? (
             <div className="rounded-xl border border-slate-100 p-4">
