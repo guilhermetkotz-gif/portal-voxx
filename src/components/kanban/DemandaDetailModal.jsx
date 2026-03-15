@@ -592,30 +592,42 @@ ${statusValidacao}`.trim();
     concluida: 'bg-green-500',
   };
 
+  if (!open) return null;
+
   return (
-    <>
-      <Sheet open={open} onOpenChange={onClose}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-          <SheetHeader>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <SheetTitle className="text-xl pr-8">{currentDemanda.titulo}</SheetTitle>
-                <SheetDescription className="mt-1">
-                  Cliente: {currentDemanda.cliente_nome}
-                </SheetDescription>
-              </div>
+    <div className="fixed inset-0 z-50 flex justify-end" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      
+      {/* Painel lateral */}
+      <div className="relative w-full sm:max-w-2xl bg-white h-full overflow-y-auto shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b px-6 py-4 z-10">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold pr-8">{currentDemanda.titulo}</h2>
+              <p className="text-sm text-muted-foreground mt-1">Cliente: {currentDemanda.cliente_nome}</p>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setEditMode(!editMode)}
-                className="flex-shrink-0"
               >
                 {editMode ? <X className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
               </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-          </SheetHeader>
+          </div>
+        </div>
 
-          <div className="mt-6 space-y-6">
+        <div className="p-6 space-y-6">
             {/* Status e Prioridade */}
             <div className="flex flex-wrap gap-2">
               {currentDemanda.urgente && (
