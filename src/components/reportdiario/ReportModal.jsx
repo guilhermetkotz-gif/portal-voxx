@@ -468,7 +468,7 @@ ${plano ? `
               <SectionHeader label="Bloco 2" title="Meta Ads — Visão Geral" />
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <MetricBox label="Investimento" value={`R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`} />
-                <MetricBox label="Leads/Conversas" value={meta.messaging_conversations || meta.new_messaging_connections || 0} colorClass="text-green-700" />
+                <MetricBox label="Leads/Conversas" value={meta.new_messaging_connections || meta.messaging_conversations || 0} colorClass="text-green-700" />
                 <MetricBox label="CPL" value={`R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
               </div>
               <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500">
