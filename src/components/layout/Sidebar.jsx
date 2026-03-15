@@ -43,6 +43,7 @@ const menuItems = [
   { name: "Demandas", icon: TicketCheck, page: "Demandas", badge: true },
   { name: "Kanban", icon: KanbanSquare, page: "Kanban", voxxOnly: true },
   { name: "Plano de Ação", icon: ClipboardList, page: "PlanoDeAcao", voxxOnly: true },
+  { name: "Report Diário", icon: FileBarChart2, page: "ReportDiario", voxxOnly: true },
   { name: "Monitoramento Demandas", icon: BarChart3, page: "MonitoramentoDemandas", voxxOnly: true },
   { name: "Timeline", icon: Clock, page: "Timeline" },
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
