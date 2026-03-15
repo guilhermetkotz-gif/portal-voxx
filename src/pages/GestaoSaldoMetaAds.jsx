@@ -936,12 +936,43 @@ export default function GestaoSaldoMetaAds({ user }) {
       <ModalNovaTomada
         open={modalNovaTomada.open}
         onOpenChange={(open) => setModalNovaTomada({ open, clienteId: null, clienteNome: null, valorSugerido: 0 })}
-        onSave={(tomadaData) => {
+        onSave={async (tomadaData) => {
           if (modalNovaTomada.clienteId) {
-            // Ativa edição e expande card
-            setEditingClients(prev => new Set(prev).add(modalNovaTomada.clienteId));
-            setExpandedCards(prev => new Set(prev).add(modalNovaTomada.clienteId));
-            handleAddTomada(modalNovaTomada.clienteId, tomadaData);
+            const clienteId = modalNovaTomada.clienteId;
+            const balance = getBalanceControl(clienteId);
+            const edits = editingRows[clienteId] || {};
+            const historicoAtual = edits.historico_tomadas || balance?.historico_tomadas || [];
+            const novaTomada = { numero: historicoAtual.length + 1, ...tomadaData };
+            const novoHistorico = [...historicoAtual, novaTomada];
+
+            // Calcular valor_pago e tomadas_pagas
+            const valorPagoCalculado = novoHistorico.filter(t => t.pago).reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
+            const tomadasPagasCalculado = novoHistorico.filter(t => t.pago).length;
+
+            const cliente = clientes.find(c => c.id === clienteId);
+            const mainAccount = getMainMetaAccount(cliente);
+            const row = dataRows.find(r => r.cliente.id === clienteId);
+
+            const data = {
+              client_id: clienteId,
+              client_name: cliente?.nome,
+              month_year: selectedMonth,
+              ad_account_id: mainAccount?.ad_account_id || '',
+              saldo: edits.saldo !== undefined ? parseFloat(edits.saldo) : balance?.saldo || 0,
+              valor_planejado_meta: row?.planejamento?.investimento_meta_mes || row?.valorPlanejado || 0,
+              valor_pago: valorPagoCalculado,
+              gasto_diario: edits.gasto_diario !== undefined ? parseFloat(edits.gasto_diario) : balance?.gasto_diario || 0,
+              qtd_tomadas: edits.qtd_tomadas !== undefined ? parseInt(edits.qtd_tomadas) : balance?.qtd_tomadas || 4,
+              tomadas_pagas: tomadasPagasCalculado,
+              valor_enviado: edits.valor_enviado !== undefined ? parseFloat(edits.valor_enviado) : balance?.valor_enviado || 0,
+              data_ultima_tomada: edits.data_ultima_tomada || balance?.data_ultima_tomada,
+              metodo_pagamento: edits.metodo_pagamento || balance?.metodo_pagamento,
+              observacoes: edits.observacoes || balance?.observacoes,
+              historico_tomadas: novoHistorico,
+            };
+
+            saveMutation.mutate(data);
+            setExpandedCards(prev => new Set(prev).add(clienteId));
           }
         }}
         clienteNome={modalNovaTomada.clienteNome}
