@@ -10,7 +10,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   ArrowLeft, Plus, FileText, Copy, Pencil, Trash2,
-  CheckCircle2, Clock, AlertTriangle, ExternalLink, Building2, Users
+  CheckCircle2, Clock, AlertTriangle, ExternalLink, Building2, Users, PlusCircle
 } from "lucide-react";
 import NovaAcaoModal from "@/components/planoacao/NovaAcaoModal";
 import NovaDemandaPlanoModal from "@/components/planoacao/NovaDemandaPlanoModal";
