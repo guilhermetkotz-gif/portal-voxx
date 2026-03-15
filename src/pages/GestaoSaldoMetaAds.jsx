@@ -82,7 +82,7 @@ export default function GestaoSaldoMetaAds({ user }) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['metaAdsBalance']);
+      queryClient.invalidateQueries({ queryKey: ['metaAdsBalance'] });
       toast({ title: 'Sucesso', description: 'Dados salvos com sucesso.' });
     },
   });
