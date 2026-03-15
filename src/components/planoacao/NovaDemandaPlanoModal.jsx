@@ -35,7 +35,8 @@ const SETORES = [
  */
 export default function NovaDemandaPlanoModal({ open, onClose, clienteId, clienteNome, planoAcaoItemId }) {
   const queryClient = useQueryClient();
-  const [fase, setFase] = useState('form'); // 'form' | 'wizard_oral_sin' | 'wizard_universal' | 'wizard_edicao'
+  const [fase, setFase] = useState('form'); // 'form' | 'wizard_oral_sin' | 'wizard_universal' | 'wizard_edicao' | 'sucesso'
+  const [ultimaDemandaTitulo, setUltimaDemandaTitulo] = useState('');
   const [setor, setSetor] = useState('');
   const [subcategoria, setSubcategoria] = useState('');
   const [titulo, setTitulo] = useState('');
