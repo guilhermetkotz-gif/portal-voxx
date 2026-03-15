@@ -302,7 +302,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
   <p class="texto">As campanhas no Meta Ads seguem em monitoramento constante com ajustes contínuos para melhoria de performance e estabilidade dos resultados.</p>
   <div class="metrics-3">
     <div class="metric-card"><div class="metric-value">R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div><div class="metric-label">Investimento</div></div>
-    <div class="metric-card green"><div class="metric-value">${meta.messaging_conversations || meta.new_messaging_connections || 0}</div><div class="metric-label">Leads / Conversas</div></div>
+    <div class="metric-card green"><div class="metric-value">${meta.new_messaging_connections || meta.messaging_conversations || 0}</div><div class="metric-label">Leads / Conversas</div></div>
     <div class="metric-card"><div class="metric-value">R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><div class="metric-label">Custo por lead (CPL)</div></div>
   </div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
