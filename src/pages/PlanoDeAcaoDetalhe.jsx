@@ -378,6 +378,14 @@ export default function PlanoDeAcaoDetalhe({ user }) {
         itemParaEditar={itemParaEditar}
         onSaved={() => setItemParaEditar(null)}
       />
+
+      <NovaDemandaPlanoModal
+        open={!!novaDemandaItem}
+        onClose={() => setNovaDemandaItem(null)}
+        clienteId={plano?.cliente_id}
+        clienteNome={plano?.cliente_nome}
+        planoAcaoItemId={novaDemandaItem?.id}
+      />
     </div>
   );
 }
