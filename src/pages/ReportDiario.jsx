@@ -121,6 +121,11 @@ export default function ReportDiario({ user }) {
     return contasMeta.find((c) => (c.account_name || "").toLowerCase().includes(nome) || nome.includes((c.account_name || "").toLowerCase()));
   };
 
+  const getRadarCliente = (cliente) => {
+    const nome = (cliente.meta_ads_account_name || cliente.nome || "").toLowerCase();
+    return radarMeta.find((r) => (r.account_name || "").toLowerCase().includes(nome) || nome.includes((r.account_name || "").toLowerCase()));
+  };
+
   const getGoogleCliente = (cliente) => {
     const nome = (cliente.google_ads_account_name || cliente.nome || "").toLowerCase();
     return contasGoogle.find((c) => (c.account_name || "").toLowerCase().includes(nome) || nome.includes((c.unidade_nome || "").toLowerCase()));
