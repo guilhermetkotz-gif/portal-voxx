@@ -1301,34 +1301,34 @@ ${bu.estrutura_criativo || 'Não gerado'}
                 </Button>
               </>
             )}
-          </div>
-        </SheetContent>
-      </Sheet>
+        </div>
 
-      {/* Dialog de Confirmação de Exclusão */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              Confirmar Exclusão
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir esta demanda? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteDemandaMutation.mutate()}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+        {/* Dialog de Confirmação de Exclusão - inline, sem portal */}
+        {showDeleteDialog && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeleteDialog(false)} />
+            <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                Confirmar Exclusão
+              </h3>
+              <p className="text-sm text-slate-600 mb-6">
+                Tem certeza que deseja excluir esta demanda? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>Cancelar</Button>
+                <Button
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  onClick={() => deleteDemandaMutation.mutate()}
+                >
+                  Excluir
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
