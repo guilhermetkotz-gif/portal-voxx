@@ -71,9 +71,12 @@ export default function GestaoSaldoMetaAds({ user }) {
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      const existing = balanceControls.find(
-        b => b.client_id === data.client_id && b.month_year === data.month_year
-      );
+      // Busca direto do banco para evitar problema de cache stale
+      const records = await base44.entities.MetaAdsBalanceControl.filter({
+        client_id: data.client_id,
+        month_year: data.month_year
+      });
+      const existing = records[0];
       
       if (existing) {
         return base44.entities.MetaAdsBalanceControl.update(existing.id, data);
