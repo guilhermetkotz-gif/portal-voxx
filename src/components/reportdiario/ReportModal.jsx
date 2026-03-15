@@ -567,24 +567,29 @@ ${plano ? `
           {/* ── BLOCO 4: DEMANDAS ── */}
           <div className="rounded-xl border border-slate-100 p-4">
             <SectionHeader label="Bloco 4" title="Demandas Operacionais" />
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <MetricBox label="Em andamento" value={demandasExecucao.length} colorClass="text-blue-700" />
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <MetricBox label="Em andamento" value={demandasEmAndamento.length} colorClass="text-blue-700" />
               <MetricBox label="Concluídas" value={demandasConcluidas.length} colorClass="text-green-700" />
-              <MetricBox label="Aguardando" value={demandasAguardando.length} colorClass={demandasAguardando.length > 0 ? "text-amber-700" : "text-slate-700"} />
             </div>
-            {demandasExecucao.slice(0, 3).map((d) => (
-              <div key={d.id} className="flex items-center gap-2 text-xs text-slate-600 py-1 border-t border-slate-50">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                {d.titulo}
-              </div>
-            ))}
             {demandasConcluidas.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-slate-100">
+              <div className="mb-2">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-green-600 mb-1">Entregas realizadas</p>
                 {demandasConcluidas.slice(0, 3).map((d) => (
-                  <div key={d.id} className="flex items-center gap-2 text-xs text-slate-600 py-1">
+                  <div key={d.id} className="flex items-center gap-2 text-xs text-slate-600 py-1 border-t border-slate-50">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
                     {d.titulo}
+                  </div>
+                ))}
+              </div>
+            )}
+            {demandasEmAndamento.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-slate-100">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-1">Demandas em andamento</p>
+                {demandasEmAndamento.map((d) => (
+                  <div key={d.id} className="flex items-center gap-2 text-xs text-slate-600 py-1 border-t border-slate-50">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                    <span className="flex-1">{d.titulo}</span>
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0">{statusDemandaLabel[d.status] || d.status}</Badge>
                   </div>
                 ))}
               </div>
