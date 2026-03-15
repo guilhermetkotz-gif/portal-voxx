@@ -344,7 +344,7 @@ export default function MonitoramentoGoogleAds() {
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent modal={false}>
                   <SelectItem value="all">Todos os status</SelectItem>
                   <SelectItem value="Ativa">Ativa</SelectItem>
                   <SelectItem value="Pausada">Pausada</SelectItem>
