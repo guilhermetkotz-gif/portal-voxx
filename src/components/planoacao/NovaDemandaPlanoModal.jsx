@@ -76,7 +76,7 @@ export default function NovaDemandaPlanoModal({ open, onClose, clienteId, client
         ...dadosDemanda,
       });
 
-      // Vincular demanda ao item do plano
+      // Vincular demanda ao item do plano (sempre sobrescreve com a mais recente)
       if (planoAcaoItemId) {
         await base44.entities.PlanoDeAcaoItem.update(planoAcaoItemId, {
           demanda_id_relacionada: demanda.id,
@@ -85,13 +85,24 @@ export default function NovaDemandaPlanoModal({ open, onClose, clienteId, client
 
       queryClient.invalidateQueries({ queryKey: ['planoItens'] });
       queryClient.invalidateQueries({ queryKey: ['demandas'] });
-      toast.success('Demanda criada e vinculada ao plano!');
-      handleClose();
+      setUltimaDemandaTitulo(dadosDemanda.titulo || 'Demanda');
+      setFase('sucesso');
     } catch (error) {
       toast.error('Erro ao criar demanda: ' + error.message);
     } finally {
       setSalvando(false);
     }
+  };
+
+  const handleNovaDemanda = () => {
+    setSetor('');
+    setSubcategoria('');
+    setTitulo('');
+    setDescricao('');
+    setUrgente(false);
+    setPrioridade('media');
+    setPrevisaoEntrega('');
+    setFase('form');
   };
 
   const handleSubmitForm = async (e) => {
