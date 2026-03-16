@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
             const accountNameIdx = getColIndex('account_name');
             const cplIdx = getColIndex('cost_per_messaging');
-            const leadsIdx = getColIndex('messaging_conversations'); // Messaging Conversations Started
+            const leadsIdx = getColIndex('cadastros_whats'); // CADASTROS + WHATS (nova fonte)
             const clicksIdx = getColIndex('clicks_all');
             const impressionsIdx = getColIndex('impressions');
             const frequencyIdx = getColIndex('frequency');
