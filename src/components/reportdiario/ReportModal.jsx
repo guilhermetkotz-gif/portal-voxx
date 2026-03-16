@@ -628,7 +628,7 @@ ${plano ? `
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">
-              <SectionHeader label="Bloco 2" title="Meta Ads — Visão Geral" />
+              <SectionHeader label="2" title="Performance de Mídia — Meta Ads" />
               Dados de Meta Ads não vinculados a este cliente.
             </div>
           )}
