@@ -608,6 +608,26 @@ ${plano ? `
             )}
           </div>
 
+          {/* ── BLOCO 4b: HISTÓRICO DE OTIMIZAÇÕES ── */}
+          {otimizacoesMes.length > 0 && (
+            <div className="rounded-xl border border-orange-100 bg-orange-50/30 p-4">
+              <SectionHeader label="Bloco 4b" title="Histórico de Otimizações — Meta Ads" />
+              <p className="text-xs text-slate-500 mb-3">Otimizações realizadas no mês atual nas campanhas Meta Ads.</p>
+              <div className="space-y-2">
+                {otimizacoesMes.map((o) => (
+                  <div key={o.id} className="border border-orange-100 bg-white rounded-lg p-3">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs font-semibold text-slate-700">{o.resumo_acao || o.objetivo}</span>
+                      <span className="text-[10px] text-slate-400 shrink-0">{o.data_acao ? format(parseISO(o.data_acao), "dd/MM", { locale: ptBR }) : "—"}</span>
+                    </div>
+                    {o.problema && <p className="text-[11px] text-slate-500"><span className="font-medium text-slate-600">Problema:</span> {o.problema}</p>}
+                    {o.acoes_implementadas && <p className="text-[11px] text-slate-500 mt-0.5"><span className="font-medium text-slate-600">Ações:</span> {o.acoes_implementadas}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── BLOCO 5: PLANO DE AÇÃO ── */}
           {plano && (
             <div className="rounded-xl border border-violet-100 bg-violet-50/30 p-4">
