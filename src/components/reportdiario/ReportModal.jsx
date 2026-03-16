@@ -225,297 +225,328 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
       if (s === "Crítico" || s === "Urgente") return "badge-red";
       return "badge-yellow";
     };
+    const fmtBrl = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtBrl0 = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+    const otimizacoesExibir = otimizacoesMes.slice(0, 3);
+    const demandasEmAndamentoExibir = demandasEmAndamento.slice(0, 3);
+    const demandasConcluidasExibir = demandasConcluidas.slice(0, 3);
+    const demandasAguardandoExibir = demandasAguardando.slice(0, 3);
+    const itensPlanoExibir = itensPlano.slice(0, 3);
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<title>Report Diário — ${cliente.nome}</title>
+<title>Report Diário Voxx — ${cliente.nome}</title>
 <style>
+  @page { margin: 0; size: A4; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1e293b; font-size: 13px; line-height: 1.65; }
-  .page { max-width: 760px; margin: 0 auto; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1e293b; font-size: 13px; line-height: 1.65; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { max-width: 780px; margin: 0 auto; padding-bottom: 40px; }
 
-  /* ── CAPA ── */
-  .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%); color: #fff; padding: 40px 44px 36px; }
-  .brand { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.5; margin-bottom: 12px; }
-  .doc-title { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
-  .doc-subtitle { font-size: 13px; opacity: 0.65; margin-top: 6px; }
-  .doc-meta { margin-top: 22px; display: grid; grid-template-columns: repeat(3, auto); gap: 0 32px; }
-  .doc-meta-item { }
-  .doc-meta-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.45; display: block; margin-bottom: 2px; }
-  .doc-meta-value { font-size: 13px; font-weight: 700; }
+  /* ── CABEÇALHO ── */
+  .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%); color: #fff; padding: 36px 44px 32px; display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
+  .header-left {}
+  .header-brand { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.45; margin-bottom: 8px; }
+  .header-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+  .header-meta { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
+  .header-meta-row { font-size: 12px; opacity: 0.75; }
+  .header-meta-row strong { opacity: 1; }
+  .portal-btn { background: linear-gradient(135deg, #16a34a, #15803d); border-radius: 12px; padding: 14px 18px; text-align: center; text-decoration: none; display: block; min-width: 200px; flex-shrink: 0; }
+  .portal-btn-icon { font-size: 20px; margin-bottom: 4px; }
+  .portal-btn-main { font-size: 13px; font-weight: 800; color: #fff; display: block; letter-spacing: 0.2px; }
+  .portal-btn-sub { font-size: 10px; color: rgba(255,255,255,0.75); display: block; margin-top: 3px; line-height: 1.4; }
 
   /* ── SEÇÕES ── */
-  .section { padding: 26px 44px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; }
+  .section { padding: 24px 44px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; }
   .section:last-child { border-bottom: none; }
-  .bloco-label { font-size: 9px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
-  .bloco-title { font-size: 17px; font-weight: 700; color: #0f172a; margin-bottom: 14px; }
+  .section-title { font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .section-title-icon { font-size: 15px; }
 
   /* ── TEXTO ── */
-  .texto { font-size: 13px; color: #475569; line-height: 1.75; margin-bottom: 14px; }
+  .texto { font-size: 13px; color: #475569; line-height: 1.8; margin-bottom: 12px; }
 
-  /* ── BOXES DE DESTAQUE ── */
-  .box-destaque { border-left: 3px solid #22c55e; background: #f0fdf4; padding: 11px 16px; border-radius: 0 8px 8px 0; margin-bottom: 10px; }
-  .box-destaque .box-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #16a34a; margin-bottom: 4px; }
-  .box-destaque .box-text { font-size: 13px; color: #166534; line-height: 1.6; }
-  .box-atencao { border-left: 3px solid #f59e0b; background: #fffbeb; padding: 11px 16px; border-radius: 0 8px 8px 0; margin-bottom: 10px; }
-  .box-atencao .box-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #b45309; margin-bottom: 4px; }
-  .box-atencao .box-text { font-size: 13px; color: #92400e; line-height: 1.6; }
+  /* ── BOXES ── */
+  .box-destaque { border-left: 3px solid #22c55e; background: #f0fdf4; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; }
+  .box-destaque-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #16a34a; margin-bottom: 3px; }
+  .box-destaque-text { font-size: 12px; color: #166534; line-height: 1.6; }
+  .box-atencao { border-left: 3px solid #f59e0b; background: #fffbeb; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; }
+  .box-atencao-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #b45309; margin-bottom: 3px; }
+  .box-atencao-text { font-size: 12px; color: #92400e; line-height: 1.6; }
 
   /* ── METRICS ── */
-  .metrics-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
-  .metrics-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
-  .metric-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
-  .metric-value { font-size: 20px; font-weight: 800; color: #1e293b; line-height: 1; }
-  .metric-label { font-size: 10px; color: #64748b; margin-top: 3px; }
+  .metrics-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .metrics-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+  .metrics-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  .metric-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; }
+  .metric-value { font-size: 18px; font-weight: 800; color: #1e293b; line-height: 1; }
+  .metric-label { font-size: 10px; color: #64748b; margin-top: 4px; }
   .metric-card.green .metric-value { color: #16a34a; }
   .metric-card.amber .metric-value { color: #d97706; }
   .metric-card.red .metric-value { color: #dc2626; }
   .metric-card.blue .metric-value { color: #2563eb; }
   .metric-card.violet .metric-value { color: #7c3aed; }
 
+  /* ── PLATAFORMA HEADER ── */
+  .plataforma-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; }
+  .plataforma-header.meta { background: #eff6ff; }
+  .plataforma-header.google { background: #faf5ff; }
+  .plataforma-header-name { font-size: 13px; font-weight: 800; }
+  .plataforma-header.meta .plataforma-header-name { color: #1d4ed8; }
+  .plataforma-header.google .plataforma-header-name { color: #7c3aed; }
+
   /* ── BADGES ── */
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; }
   .badge-green { background: #dcfce7; color: #166534; }
   .badge-yellow { background: #fef3c7; color: #92400e; }
   .badge-red { background: #fee2e2; color: #991b1b; }
   .badge-blue { background: #dbeafe; color: #1d4ed8; }
   .badge-slate { background: #f1f5f9; color: #475569; }
 
-  /* ── LISTAS ── */
-  .item-list { list-style: none; margin-top: 10px; }
-  .item-list li { padding: 7px 0; border-bottom: 1px solid #f8fafc; font-size: 12px; color: #334155; display: flex; align-items: flex-start; gap: 8px; }
-  .item-list li:last-child { border-bottom: none; }
-  .item-list li::before { content: "•"; color: #7c3aed; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
-  .item-list li .badge { margin-left: 6px; }
+  /* ── DEMANDAS ── */
+  .demanda-item { padding: 10px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 6px; }
+  .demanda-titulo { font-size: 12px; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
+  .demanda-meta { font-size: 10px; color: #64748b; }
+
+  /* ── OTIMIZAÇÕES ── */
+  .otimizacao-item { padding: 12px 14px; border-radius: 8px; border: 1px solid #fed7aa; background: #fff7ed; margin-bottom: 8px; }
+  .otimizacao-data { font-size: 10px; font-weight: 700; color: #c2410c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .otimizacao-acao { font-size: 12px; color: #431407; line-height: 1.5; }
+  .otimizacao-impacto { font-size: 11px; color: #9a3412; margin-top: 4px; font-style: italic; }
+
+  /* ── PLANO ── */
+  .plano-item { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: start; padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 11px; }
+  .plano-item:nth-child(even) { background: #faf5ff; }
+  .plano-acao { color: #334155; }
+  .plano-responsavel { color: #64748b; white-space: nowrap; }
+  .plano-prazo { white-space: nowrap; }
+  .plano-prazo.atraso { color: #dc2626; font-weight: 700; }
+  .plano-prazo.a_vencer { color: #d97706; }
+  .plano-prazo.ok { color: #64748b; }
+
+  /* ── SUBSEÇÃO ── */
+  .sub-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; margin-top: 14px; }
+  .sub-label.green { color: #16a34a; }
+  .sub-label.blue { color: #2563eb; }
+  .sub-label.amber { color: #b45309; }
+  .sub-label.violet { color: #7c3aed; }
 
   /* ── AÇÕES VOXX ── */
-  .acoes-voxx-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; }
-  .acoes-voxx-box p { font-size: 13px; color: #475569; line-height: 1.75; }
+  .acoes-voxx-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; }
+  .acoes-voxx-box p { font-size: 13px; color: #475569; line-height: 1.8; }
 
   /* ── PRÓXIMOS PASSOS ── */
-  .steps-list p { font-size: 13px; color: #475569; margin-bottom: 7px; padding-left: 18px; position: relative; line-height: 1.6; }
+  .steps-list p { font-size: 13px; color: #475569; margin-bottom: 7px; padding-left: 20px; position: relative; line-height: 1.6; }
   .steps-list p::before { content: "→"; position: absolute; left: 0; color: #7c3aed; font-weight: 700; }
 
+  /* ── SEPARADOR ── */
+  .divider { height: 1px; background: #f1f5f9; margin: 14px 0; }
+
   /* ── RODAPÉ ── */
-  .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 16px 44px; display: flex; justify-content: space-between; align-items: center; }
-  .footer-brand { font-size: 11px; font-weight: 700; color: #64748b; }
-  .footer-date { font-size: 10px; color: #94a3b8; }
+  .footer { background: #f8fafc; border-top: 2px solid #e2e8f0; padding: 14px 44px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .footer-brand { font-size: 12px; font-weight: 700; color: #475569; }
+  .footer-sub { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+  .footer-date { font-size: 10px; color: #94a3b8; text-align: right; }
 
   @media print {
+    @page { margin: 0; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .page { max-width: 100%; }
     .section { page-break-inside: avoid; }
+    .header, .footer { -webkit-print-color-adjust: exact; }
   }
 </style>
 </head>
 <body>
 <div class="page">
 
-<!-- ══ CABEÇALHO ══ -->
+<!-- ══ CABEÇALHO EDITORIAL ══ -->
 <div class="header">
-  <div class="brand">Portal Voxx · Relatório Executivo</div>
-  <div class="doc-title">Resumo Diário Voxx</div>
-  <div class="doc-subtitle">Visão geral das ações e resultados do dia</div>
-  <div class="doc-meta">
-    <div class="doc-meta-item"><span class="doc-meta-label">Cliente</span><span class="doc-meta-value">${cliente.nome}</span></div>
-    <div class="doc-meta-item"><span class="doc-meta-label">Data do report</span><span class="doc-meta-value">${dataFmt}</span></div>
-    <div class="doc-meta-item"><span class="doc-meta-label">Gerado em</span><span class="doc-meta-value">${dataGeracao}</span></div>
+  <div class="header-left">
+    <div class="header-brand">Portal Voxx · Relatório Executivo</div>
+    <div class="header-title">Report Diário Voxx</div>
+    <div class="header-meta">
+      <div class="header-meta-row"><strong>Cliente:</strong> ${cliente.nome}</div>
+      <div class="header-meta-row"><strong>Data do relatório:</strong> ${dataFmt}</div>
+      <div class="header-meta-row"><strong>Gerado em:</strong> ${dataGeracao}</div>
+    </div>
   </div>
+  <a href="https://portal-voxx.com/" class="portal-btn">
+    <div class="portal-btn-icon">📊</div>
+    <span class="portal-btn-main">Acesse pelo Portal Voxx</span>
+    <span class="portal-btn-sub">Acompanhe resultados, demandas e ações em um só lugar.</span>
+  </a>
 </div>
 
-<!-- ══ BLOCO 1 — RESUMO EXECUTIVO ══ -->
+<!-- ══ 1 — RESUMO EXECUTIVO ══ -->
 <div class="section">
-  <div class="bloco-label">Bloco 1</div>
-  <div class="bloco-title">Resumo Executivo</div>
-  <p class="texto">
-    Hoje seguimos com o acompanhamento ativo das campanhas e das ações operacionais da conta.
-    Monitoramos o desempenho das campanhas, o andamento das demandas e a evolução das ações estratégicas definidas para o cliente.
-    <br/><br/>
-    Nosso foco permanece em manter estabilidade nas campanhas, otimizar resultados e avançar nas entregas planejadas.
-  </p>
+  <div class="section-title"><span class="section-title-icon">📋</span> Resumo Executivo</div>
+  <p class="texto">${resumoExecutivo}</p>
   <div class="box-destaque">
-    <div class="box-label">✅ Destaque positivo do dia</div>
-    <div class="box-text">${destaqueTexto}</div>
+    <div class="box-destaque-label">✅ Destaque positivo do dia</div>
+    <div class="box-destaque-text">${destaqueTexto}</div>
   </div>
   <div class="box-atencao">
-    <div class="box-label">⚠️ Ponto de atenção</div>
-    <div class="box-text">${atencaoTexto}</div>
+    <div class="box-atencao-label">⚠️ Ponto de atenção</div>
+    <div class="box-atencao-text">${atencaoTexto}</div>
   </div>
 </div>
 
-<!-- ══ BLOCO 2 — META ADS ══ -->
+<!-- ══ 2 — PERFORMANCE DE MÍDIA ══ -->
 <div class="section">
-  <div class="bloco-label">Bloco 2</div>
-  <div class="bloco-title">Meta Ads — Visão Geral</div>
+  <div class="section-title"><span class="section-title-icon">📈</span> Performance de Mídia</div>
+
   ${meta ? `
-  <p class="texto">As campanhas no Meta Ads seguem em monitoramento constante com ajustes contínuos para melhoria de performance e estabilidade dos resultados.</p>
+  <div class="plataforma-header meta">
+    <span style="font-size:16px;">🎯</span>
+    <span class="plataforma-header-name">Meta Ads</span>
+    <span class="badge ${metaClassBadge(meta.classificacao)}" style="margin-left:auto;">${meta.classificacao || "—"}</span>
+  </div>
   <div class="metrics-3">
-    <div class="metric-card"><div class="metric-value">R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div><div class="metric-label">Investimento</div></div>
-    <div class="metric-card green"><div class="metric-value">${meta.new_messaging_connections || meta.messaging_conversations || 0}</div><div class="metric-label">Leads / Conversas</div></div>
-    <div class="metric-card"><div class="metric-value">R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><div class="metric-label">Custo por lead (CPL)</div></div>
+    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl0(meta.amount_spent)}</div><div class="metric-label">Investimento</div></div>
+    <div class="metric-card green"><div class="metric-value">${meta.new_messaging_connections || meta.messaging_conversations || 0}</div><div class="metric-label">Leads gerados</div></div>
+    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl(meta.cost_per_messaging)}</div><div class="metric-label">CPL médio</div></div>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-    <span style="font-size:11px;color:#64748b;">Status geral:</span>
-    <span class="badge ${metaClassBadge(meta.classificacao)}">${meta.classificacao || "—"}</span>
-    ${meta.nota_gpt ? `<span style="font-size:11px;color:#64748b;">· Nota GPT: <strong>${meta.nota_gpt}</strong>/100</span>` : ""}
+  <div class="metrics-3">
+    <div class="metric-card ${meta.frequency && meta.frequency > 3 ? "amber" : ""}"><div class="metric-value">${meta.frequency ? meta.frequency.toFixed(1) + "x" : "—"}</div><div class="metric-label">Frequência</div></div>
+    <div class="metric-card"><div class="metric-value">${meta.nota_gpt ? meta.nota_gpt + "/100" : "—"}</div><div class="metric-label">Nota GPT</div></div>
+    <div class="metric-card ${meta.leads_repetidos_percent && meta.leads_repetidos_percent > 25 ? "amber" : ""}"><div class="metric-value">${meta.leads_repetidos_percent ? meta.leads_repetidos_percent.toFixed(0) + "%" : "—"}</div><div class="metric-label">Leads repetidos</div></div>
   </div>
-  ${meta.main_issue ? `<p style="font-size:12px;color:#64748b;margin-top:4px;">⚡ Principal alerta: ${meta.main_issue}</p>` : ""}
-  ${meta.frequency ? `<p style="font-size:12px;color:#64748b;margin-top:4px;">Frequência: ${meta.frequency.toFixed(1)}x</p>` : ""}
-  ` : `<p class="texto" style="color:#94a3b8;font-style:italic;">Dados de Meta Ads não vinculados a este cliente no momento.</p>`}
-</div>
+  ${meta.main_issue ? `<p style="font-size:11px;color:#dc2626;background:#fef2f2;padding:7px 12px;border-radius:6px;margin-top:4px;">⚡ ${meta.main_issue}</p>` : ""}
+  ` : `<p class="texto" style="color:#94a3b8;font-style:italic;margin-bottom:12px;">Dados de Meta Ads não vinculados a este cliente no momento.</p>`}
 
-<!-- ══ BLOCO 2b — META ADS ONTEM ══ -->
-${radar ? `
-<div class="section">
-  <div class="bloco-label">Bloco 2 · Ontem</div>
-  <div class="bloco-title">Meta Ads — Ontem</div>
-  <div class="metrics-3">
-    <div class="metric-card green"><div class="metric-value">${radar.leads_ontem ?? "—"}</div><div class="metric-label">Leads ontem</div></div>
-    <div class="metric-card"><div class="metric-value">${radar.amount_spent_ontem != null ? `R$ ${(radar.amount_spent_ontem).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</div><div class="metric-label">Inv. diário</div></div>
-    <div class="metric-card"><div class="metric-value">${radar.cpl_ontem != null ? `R$ ${(radar.cpl_ontem).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</div><div class="metric-label">CPL atual</div></div>
-  </div>
-  <div class="metrics-3">
-    <div class="metric-card ${radar.variacao_cpl != null && radar.variacao_cpl > 10 ? "red" : radar.variacao_cpl != null && radar.variacao_cpl < -5 ? "green" : "amber"}">
-      <div class="metric-value">${radar.variacao_cpl != null ? `${radar.variacao_cpl > 0 ? "+" : ""}${radar.variacao_cpl.toFixed(1)}%` : "—"}</div>
-      <div class="metric-label">Var. CPL</div>
+  ${radar ? `
+  <div style="margin-top:12px;">
+    <p style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Meta Ads — Ontem vs 7 dias</p>
+    <div class="metrics-3">
+      <div class="metric-card green"><div class="metric-value">${radar.leads_ontem ?? "—"}</div><div class="metric-label">Leads ontem</div></div>
+      <div class="metric-card ${radar.variacao_cpl != null && radar.variacao_cpl > 10 ? "red" : radar.variacao_cpl != null && radar.variacao_cpl < -5 ? "green" : "amber"}"><div class="metric-value">${radar.variacao_cpl != null ? `${radar.variacao_cpl > 0 ? "+" : ""}${radar.variacao_cpl.toFixed(1)}%` : "—"}</div><div class="metric-label">Var. CPL</div></div>
+      <div class="metric-card ${radar.frequencia_7d != null && radar.frequencia_7d > 3 ? "red" : ""}"><div class="metric-value">${radar.frequencia_7d != null ? `${radar.frequencia_7d.toFixed(1)}x` : "—"}</div><div class="metric-label">Freq. (7d)</div></div>
     </div>
-    <div class="metric-card ${radar.variacao_ctr != null && radar.variacao_ctr >= 0 ? "green" : "red"}">
-      <div class="metric-value">${radar.variacao_ctr != null ? `${radar.variacao_ctr > 0 ? "+" : ""}${radar.variacao_ctr.toFixed(1)}%` : "—"}</div>
-      <div class="metric-label">Var. CTR</div>
-    </div>
-    <div class="metric-card ${radar.frequencia_7d != null && radar.frequencia_7d > 3 ? "red" : ""}">
-      <div class="metric-value">${radar.frequencia_7d != null ? `${radar.frequencia_7d.toFixed(2)}x` : "—"}</div>
-      <div class="metric-label">Freq. (7d)</div>
-    </div>
-  </div>
-</div>
-` : ""}
+  </div>` : ""}
 
-<!-- ══ BLOCO 3 — GOOGLE ADS ══ -->
-<div class="section">
-  <div class="bloco-label">Bloco 3</div>
-  <div class="bloco-title">Google Ads — Visão Geral</div>
+  <div class="divider"></div>
+
   ${google ? `
-  <p class="texto">As campanhas no Google Ads seguem em acompanhamento diário com foco em eficiência de conversão e estabilidade dos custos.</p>
+  <div class="plataforma-header google">
+    <span style="font-size:16px;">🔍</span>
+    <span class="plataforma-header-name">Google Ads</span>
+    ${google.health_status ? `<span class="badge ${googleStatusBadge(google.health_status)}" style="margin-left:auto;">${google.health_status}</span>` : ""}
+  </div>
   <div class="metrics-3">
-    <div class="metric-card"><div class="metric-value">R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</div><div class="metric-label">Investimento</div></div>
+    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl0(google.cost)}</div><div class="metric-label">Investimento</div></div>
     <div class="metric-card green"><div class="metric-value">${google.conversions || 0}</div><div class="metric-label">Conversões</div></div>
-    <div class="metric-card"><div class="metric-value">R$ ${(google.cost_per_conversion || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div><div class="metric-label">Custo por conversão</div></div>
+    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl(google.cost_per_conversion)}</div><div class="metric-label">Custo/Conversão</div></div>
   </div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-    ${google.health_status ? `<span style="font-size:11px;color:#64748b;">Status:</span><span class="badge ${googleStatusBadge(google.health_status)}">${google.health_status}</span>` : ""}
-    ${google.optimization_score ? `<span style="font-size:11px;color:#64748b;">· Optimization Score: <strong>${google.optimization_score}%</strong></span>` : ""}
+  <div class="metrics-3">
+    <div class="metric-card blue"><div class="metric-value">${google.clicks || 0}</div><div class="metric-label">Cliques</div></div>
+    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl(google.avg_cpc)}</div><div class="metric-label">CPC médio</div></div>
+    <div class="metric-card ${google.optimization_score && google.optimization_score >= 70 ? "green" : google.optimization_score && google.optimization_score < 50 ? "amber" : ""}"><div class="metric-value">${google.optimization_score ? google.optimization_score + "%" : "—"}</div><div class="metric-label">Optim. Score</div></div>
   </div>
-  ${google.clicks ? `<p style="font-size:12px;color:#64748b;margin-top:4px;">Cliques: ${google.clicks} · CPC médio: R$ ${(google.avg_cpc || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>` : ""}
   ` : `<p class="texto" style="color:#94a3b8;font-style:italic;">Dados de Google Ads não vinculados a este cliente no momento.</p>`}
 </div>
 
-<!-- ══ BLOCO 4 — DEMANDAS OPERACIONAIS ══ -->
+<!-- ══ 3 — DEMANDAS E EXECUÇÃO ══ -->
 <div class="section">
-  <div class="bloco-label">Bloco 4</div>
-  <div class="bloco-title">Demandas Operacionais</div>
-  <p class="texto">Seguimos com as demandas operacionais em andamento conforme o planejamento. Abaixo o status atual das solicitações.</p>
-  <div class="metrics-3" style="grid-template-columns:repeat(2,1fr);">
+  <div class="section-title"><span class="section-title-icon">⚙️</span> Demandas e Execução</div>
+  <div class="metrics-2" style="margin-bottom:16px;">
     <div class="metric-card blue"><div class="metric-value">${demandasEmAndamento.length}</div><div class="metric-label">Em andamento</div></div>
     <div class="metric-card green"><div class="metric-value">${demandasConcluidas.length}</div><div class="metric-label">Concluídas</div></div>
   </div>
-  ${demandasConcluidas.length > 0 ? `
-  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#16a34a;margin-bottom:6px;">Principais entregas realizadas</p>
-  <ul class="item-list">
-    ${demandasConcluidas.map(d => `<li>${d.titulo}<span class="badge badge-green">Concluída</span></li>`).join("")}
-  </ul>` : ""}
-  ${demandasEmAndamento.length > 0 ? `
-  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#2563eb;margin-top:14px;margin-bottom:6px;">Demandas em andamento</p>
-  <ul class="item-list">
-    ${demandasEmAndamento.map(d => `<li>${d.titulo}<span class="badge badge-blue">${statusDemandaLabel[d.status] || d.status}</span></li>`).join("")}
-  </ul>` : ""}
+
+  ${demandasConcluidasExibir.length > 0 ? `
+  <div class="sub-label green">✅ Demandas concluídas</div>
+  ${demandasConcluidasExibir.map(d => `
+  <div class="demanda-item" style="border-color:#bbf7d0;background:#f0fdf4;">
+    <div class="demanda-titulo">${d.titulo}</div>
+    <div class="demanda-meta">Status: <span style="color:#16a34a;font-weight:700;">Concluída</span> · Responsável: Voxx</div>
+  </div>`).join("")}` : ""}
+
+  ${demandasEmAndamentoExibir.length > 0 ? `
+  <div class="sub-label blue">🔄 Demandas em andamento</div>
+  ${demandasEmAndamentoExibir.map(d => `
+  <div class="demanda-item">
+    <div class="demanda-titulo">${d.titulo}</div>
+    <div class="demanda-meta">Status: <span style="color:#2563eb;font-weight:700;">${statusDemandaLabel[d.status] || d.status}</span> · Responsável: Voxx</div>
+  </div>`).join("")}` : ""}
+
+  ${demandasAguardandoExibir.length > 0 ? `
+  <div class="sub-label amber">⏳ Aguardando cliente</div>
+  ${demandasAguardandoExibir.map(d => `
+  <div class="demanda-item" style="border-color:#fde68a;background:#fffbeb;">
+    <div class="demanda-titulo">${d.titulo}</div>
+    <div class="demanda-meta">Aguardando retorno do cliente para prosseguimento.</div>
+  </div>`).join("")}` : ""}
 </div>
 
-${otimizacoesMes.length > 0 ? `
-<!-- ══ BLOCO 4b — HISTÓRICO DE OTIMIZAÇÕES ══ -->
+${otimizacoesExibir.length > 0 ? `
+<!-- ══ OTIMIZAÇÕES APLICADAS ══ -->
 <div class="section">
-  <div class="bloco-label">Bloco 4b</div>
-  <div class="bloco-title">Histórico de Otimizações — Meta Ads</div>
-  <p class="texto">Otimizações realizadas no mês atual nas campanhas Meta Ads.</p>
-  <ul class="item-list">
-    ${otimizacoesMes.map(o => `
-    <li style="flex-direction:column;align-items:flex-start;gap:4px;">
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
-        <strong>${o.resumo_acao || o.objetivo || "Otimização"}</strong>
-        <span style="font-size:10px;color:#94a3b8;">${o.data_acao ? o.data_acao.split("T")[0].split("-").reverse().join("/") : "—"}</span>
-      </div>
-      ${o.problema ? `<span style="font-size:11px;color:#64748b;"><strong>Problema:</strong> ${o.problema}</span>` : ""}
-      ${o.acoes_implementadas ? `<span style="font-size:11px;color:#64748b;"><strong>Ações:</strong> ${o.acoes_implementadas}</span>` : ""}
-    </li>`).join("")}
-  </ul>
+  <div class="section-title"><span class="section-title-icon">🔧</span> Otimizações aplicadas no período</div>
+  ${otimizacoesExibir.map(o => `
+  <div class="otimizacao-item">
+    <div class="otimizacao-data">${o.data_acao ? o.data_acao.split("T")[0].split("-").reverse().join("/") : "—"} — ${o.problema || "Otimização de campanha"}</div>
+    <div class="otimizacao-acao"><strong>Ação:</strong> ${o.acoes_implementadas || o.resumo_acao || "—"}</div>
+    ${o.objetivo ? `<div class="otimizacao-impacto">Impacto esperado: ${o.objetivo}</div>` : ""}
+  </div>`).join("")}
+  ${otimizacoesMes.length > 3 ? `<p style="font-size:10px;color:#94a3b8;margin-top:8px;">+ ${otimizacoesMes.length - 3} otimizações adicionais disponíveis no Portal Voxx.</p>` : ""}
 </div>
 ` : ""}
 
-<!-- ══ BLOCO 5 — PLANO DE AÇÃO ══ -->
 ${plano ? `
+<!-- ══ 4 — PLANO DE AÇÃO ══ -->
 <div class="section">
-  <div class="bloco-label">Bloco 5</div>
-  <div class="bloco-title">Plano de Ação — Acompanhamento</div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:${plano.objetivo_geral ? "6px" : "14px"};">
-    <span style="font-size:14px;font-weight:700;color:#4c1d95;">${plano.titulo_plano}</span>
+  <div class="section-title"><span class="section-title-icon">📋</span> Plano de Ação</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+    <span style="font-size:13px;font-weight:700;color:#4c1d95;">${plano.titulo_plano}</span>
     <span class="badge badge-yellow">${plano.status_plano}</span>
   </div>
-  ${plano.objetivo_geral ? `<p class="texto" style="margin-bottom:14px;">${plano.objetivo_geral}</p>` : ""}
-  <div class="metrics-4">
-    <div class="metric-card"><div class="metric-value">${itensPlano.length}</div><div class="metric-label">Total</div></div>
+  ${plano.objetivo_geral ? `<p class="texto" style="margin-bottom:12px;">${plano.objetivo_geral}</p>` : ""}
+  <div class="metrics-4" style="margin-bottom:12px;">
+    <div class="metric-card violet"><div class="metric-value">${itensNovos.length}</div><div class="metric-label">Ações abertas</div></div>
     <div class="metric-card blue"><div class="metric-value">${itensAndamento.length}</div><div class="metric-label">Em andamento</div></div>
     <div class="metric-card green"><div class="metric-value">${itensConcluidos.length}</div><div class="metric-label">Concluídas</div></div>
     <div class="metric-card ${itensAtraso.length > 0 ? "red" : ""}"><div class="metric-value">${itensAtraso.length}</div><div class="metric-label">Em atraso</div></div>
   </div>
-  ${itensAVencer.length > 0 ? `<p style="font-size:12px;color:#d97706;margin-bottom:10px;">🕐 ${itensAVencer.length} ação(ões) com prazo a vencer em breve</p>` : ""}
-  ${itensPlano.length > 0 ? `
-  <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:11px;">
-    <thead>
-      <tr style="background:#ede9fe;color:#5b21b6;">
-        <th style="padding:7px 10px;text-align:left;font-weight:700;letter-spacing:0.5px;">Ação</th>
-        <th style="padding:7px 10px;text-align:left;font-weight:700;letter-spacing:0.5px;">Responsável</th>
-        <th style="padding:7px 10px;text-align:left;font-weight:700;letter-spacing:0.5px;">Prazo</th>
-        <th style="padding:7px 10px;text-align:left;font-weight:700;letter-spacing:0.5px;">Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itensPlano.map((item, idx) => {
-        const ind = calcularIndicadorPrazo(item.prazo, item.status_acao);
-        const prazoStyle = ind === "atraso" ? "color:#dc2626;font-weight:700;" : ind === "a_vencer" ? "color:#d97706;" : "color:#64748b;";
-        const statusBg = item.status_acao === "Concluída" ? "background:#dcfce7;color:#166534;" : item.status_acao === "Em andamento" ? "background:#dbeafe;color:#1d4ed8;" : "background:#f1f5f9;color:#475569;";
-        const prazoFmt = item.prazo ? item.prazo.split("T")[0].split("-").reverse().join("/") : "—";
-        return `<tr style="background:${idx % 2 === 0 ? "#fff" : "#f5f3ff"};">
-          <td style="padding:7px 10px;color:#334155;border-bottom:1px solid #f1f5f9;">${item.acao_proposta}</td>
-          <td style="padding:7px 10px;color:#64748b;border-bottom:1px solid #f1f5f9;">${item.responsavel || "—"}</td>
-          <td style="padding:7px 10px;${prazoStyle}border-bottom:1px solid #f1f5f9;">${prazoFmt}</td>
-          <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;"><span style="padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;${statusBg}">${item.status_acao || "—"}</span></td>
-        </tr>`;
-      }).join("")}
-    </tbody>
-  </table>` : ""}
+  ${itensAVencer.length > 0 ? `<p style="font-size:11px;color:#d97706;background:#fffbeb;padding:6px 10px;border-radius:6px;margin-bottom:12px;">🕐 ${itensAVencer.length} ação(ões) com prazo a vencer em breve</p>` : ""}
+  ${itensPlanoExibir.length > 0 ? `
+  <div style="border:1px solid #ede9fe;border-radius:8px;overflow:hidden;">
+    <div style="display:grid;grid-template-columns:1fr 110px 80px 90px;background:#ede9fe;padding:7px 10px;">
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Ação</span>
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Responsável</span>
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Prazo</span>
+      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Status</span>
+    </div>
+    ${itensPlanoExibir.map((item, idx) => {
+      const ind = calcularIndicadorPrazo(item.prazo, item.status_acao);
+      const prazoStyle = ind === "atraso" ? "color:#dc2626;font-weight:700;" : ind === "a_vencer" ? "color:#d97706;" : "color:#64748b;";
+      const statusBg = item.status_acao === "Concluída" ? "background:#dcfce7;color:#166534;" : item.status_acao === "Em andamento" ? "background:#dbeafe;color:#1d4ed8;" : "background:#f1f5f9;color:#475569;";
+      const prazoFmt = item.prazo ? item.prazo.split("T")[0].split("-").reverse().join("/") : "—";
+      return `<div style="display:grid;grid-template-columns:1fr 110px 80px 90px;padding:8px 10px;background:${idx % 2 === 0 ? "#fff" : "#faf5ff"};border-top:1px solid #f1f5f9;font-size:11px;align-items:start;">
+        <span style="color:#334155;">${item.acao_proposta}</span>
+        <span style="color:#64748b;">${item.responsavel || "—"}</span>
+        <span style="${prazoStyle}">${prazoFmt}</span>
+        <span><span style="padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;${statusBg}">${item.status_acao || "—"}</span></span>
+      </div>`;
+    }).join("")}
+  </div>
+  ${itensPlano.length > 3 ? `<p style="font-size:10px;color:#94a3b8;margin-top:8px;">+ ${itensPlano.length - 3} ações adicionais disponíveis no Portal Voxx.</p>` : ""}
+  ` : ""}
 </div>
 ` : ""}
 
-<!-- ══ BLOCO 6 — AÇÕES DA VOXX ══ -->
+<!-- ══ 5 — AÇÕES REALIZADAS PELA VOXX ══ -->
 <div class="section">
-  <div class="bloco-label">Bloco 6</div>
-  <div class="bloco-title">Ações Realizadas pela Voxx</div>
+  <div class="section-title"><span class="section-title-icon">🚀</span> Ações realizadas pela Voxx</div>
   <div class="acoes-voxx-box">
-    <p>
-      Hoje a equipe Voxx realizou o monitoramento das campanhas, análise de desempenho e acompanhamento das demandas operacionais, aplicando ajustes e otimizações sempre que necessário para manter a evolução dos resultados.
-    </p>
-    <p style="margin-top:10px;">
-      Nossa rotina inclui verificação diária das principais métricas, identificação de oportunidades de melhoria, atualização das demandas em andamento e alinhamento constante com o planejamento estratégico da conta.
-    </p>
+    <p>${acoesVoxxTexto}</p>
   </div>
 </div>
 
-<!-- ══ BLOCO 7 — PRÓXIMOS PASSOS ══ -->
+<!-- ══ 6 — PRÓXIMOS PASSOS ══ -->
 <div class="section">
-  <div class="bloco-label">Bloco 7</div>
-  <div class="bloco-title">Próximos Passos</div>
-  <p class="texto">Seguimos com foco em evolução contínua das campanhas e execução das demandas planejadas.</p>
+  <div class="section-title"><span class="section-title-icon">➡️</span> Próximos Passos</div>
   <div class="steps-list">
     ${proxPassosTexto.split("\n").map(s => s.trim()).filter(Boolean).map(s => `<p>${s}</p>`).join("")}
   </div>
@@ -523,8 +554,11 @@ ${plano ? `
 
 <!-- ══ RODAPÉ ══ -->
 <div class="footer">
-  <span class="footer-brand">Portal Voxx · Relatório gerado automaticamente</span>
-  <span class="footer-date">${dataGeracao}</span>
+  <div>
+    <div class="footer-brand">Portal Voxx</div>
+    <div class="footer-sub">Relatório gerado automaticamente</div>
+  </div>
+  <div class="footer-date">${dataGeracao}</div>
 </div>
 
 </div>
@@ -534,7 +568,7 @@ ${plano ? `
     const janela = window.open("", "_blank");
     janela.document.write(html);
     janela.document.close();
-    janela.print();
+    setTimeout(() => janela.print(), 500);
   };
 
   // ─────────────────────────────────────────────────────────
