@@ -35,7 +35,7 @@ function MetricBox({ label, value, colorClass = "text-slate-800" }) {
   );
 }
 
-export default function ReportModal({ cliente, report, dataReport, demandas, plano, planoItens, meta, radar, google, user, onClose, onSave }) {
+export default function ReportModal({ cliente, report, dataReport, demandas, plano, planoItens, meta, radar, google, otimizacoes = [], user, onClose, onSave }) {
   const [destaque, setDestaque] = useState(report?.destaque_positivo || "");
   const [atencao, setAtencao] = useState(report?.ponto_atencao || "");
   const [proxPassos, setProxPassos] = useState(report?.proximos_passos || "");
