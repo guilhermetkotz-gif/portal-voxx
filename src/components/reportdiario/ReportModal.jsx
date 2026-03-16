@@ -586,12 +586,10 @@ ${plano ? `
 
         <div className="space-y-3 pb-2">
 
-          {/* ── BLOCO 1: RESUMO EXECUTIVO ── */}
+          {/* ── RESUMO EXECUTIVO ── */}
           <div className="rounded-xl bg-slate-50 border border-slate-200 p-4">
-            <SectionHeader label="Bloco 1" title="Resumo Executivo" />
-            <p className="text-xs text-slate-500 mb-3 leading-relaxed">
-              Hoje seguimos com o acompanhamento ativo das campanhas e das ações operacionais. Foco em estabilidade, otimização e execução das entregas planejadas.
-            </p>
+            <SectionHeader label="1" title="Resumo Executivo" />
+            <p className="text-xs text-slate-500 mb-3 leading-relaxed">{resumoExecutivo}</p>
             <div className="space-y-2">
               <div>
                 <Label className="text-xs text-green-700 font-semibold">✅ Destaque positivo do dia</Label>
