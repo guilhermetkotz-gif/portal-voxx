@@ -211,7 +211,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
     toast.success("Resumo copiado para a área de transferência!");
   };
 
-  // ── Gerar PDF ──
+  // ── Gerar PDF — Modelo Executivo 1 Página ──
   const handleGerarPDF = () => {
     const metaClassBadge = (cls) => {
       if (!cls) return "badge-slate";
