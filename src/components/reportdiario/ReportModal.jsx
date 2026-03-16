@@ -679,7 +679,7 @@ ${plano ? `
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-sm text-slate-400">
-              <SectionHeader label="Bloco 3" title="Google Ads — Visão Geral" />
+              <SectionHeader label="2" title="Performance de Mídia — Google Ads" />
               Dados de Google Ads não vinculados a este cliente.
             </div>
           )}
