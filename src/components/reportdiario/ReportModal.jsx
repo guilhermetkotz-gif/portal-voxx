@@ -374,7 +374,7 @@ ${radar ? `
   ${demandasConcluidas.length > 0 ? `
   <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#16a34a;margin-bottom:6px;">Principais entregas realizadas</p>
   <ul class="item-list">
-    ${demandasConcluidas.slice(0, 4).map(d => `<li>${d.titulo}<span class="badge badge-green">Concluída</span></li>`).join("")}
+    ${demandasConcluidas.map(d => `<li>${d.titulo}<span class="badge badge-green">Concluída</span></li>`).join("")}
   </ul>` : ""}
   ${demandasEmAndamento.length > 0 ? `
   <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#2563eb;margin-top:14px;margin-bottom:6px;">Demandas em andamento</p>
