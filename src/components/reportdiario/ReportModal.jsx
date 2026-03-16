@@ -481,7 +481,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
       ${meta ? `<span class="campanha-badge ${meta.classificacao === "ELITE" || meta.classificacao === "SAUDÁVEL" ? "badge-ok" : meta.classificacao === "CRÍTICO" || meta.classificacao === "ALERTA" ? "badge-err" : "badge-warn"}">${meta.classificacao || "—"}</span>` : `<span class="campanha-badge badge-na">Sem dados</span>`}
     </div>
     <div class="campanha-rows">
-      <div class="campanha-row"><span class="campanha-row-label">Investimento</span><span class="campanha-row-value">R$ ${fmtBrl0(meta?.amount_spent)}</span></div>
+      <div class="campanha-row"><span class="campanha-row-label">Investimento</span><span class="campanha-row-value">R$ ${fmtBrl(meta?.amount_spent)}</span></div>
       <div class="campanha-row"><span class="campanha-row-label">Leads</span><span class="campanha-row-value">${meta?.new_messaging_connections || meta?.messaging_conversations || 0}</span></div>
       <div class="campanha-row"><span class="campanha-row-label">CPL</span><span class="campanha-row-value">R$ ${fmtBrl(meta?.cost_per_messaging)}</span></div>
       <div class="campanha-row"><span class="campanha-row-label">Frequência</span><span class="campanha-row-value">${meta?.frequency ? meta.frequency.toFixed(1) + "x" : "—"}</span></div>
