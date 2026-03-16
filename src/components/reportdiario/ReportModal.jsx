@@ -573,7 +573,7 @@ ${plano ? `
             {demandasConcluidas.length > 0 && (
               <div className="mb-2">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-green-600 mb-1">Entregas realizadas</p>
-                {demandasConcluidas.slice(0, 3).map((d) => (
+                {demandasConcluidas.map((d) => (
                   <div key={d.id} className="flex items-center gap-2 text-xs text-slate-600 py-1 border-t border-slate-50">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
                     {d.titulo}
