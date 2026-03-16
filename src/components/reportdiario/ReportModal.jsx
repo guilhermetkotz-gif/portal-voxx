@@ -46,7 +46,13 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
 
   // ── Dados derivados ──
   const demandasCliente = demandas.filter((d) => d.cliente_id === cliente.id);
-  const demandasConcluidas = demandasCliente.filter((d) => d.status === "concluida");
+  const mesAtual = new Date().getMonth();
+  const anoAtual = new Date().getFullYear();
+  const demandasConcluidas = demandasCliente.filter((d) => {
+    if (d.status !== "concluida") return false;
+    const dt = new Date(d.updated_date);
+    return dt.getMonth() === mesAtual && dt.getFullYear() === anoAtual;
+  });
   const demandasAguardando = demandasCliente.filter((d) => d.status === "aguardando_cliente");
   const demandasEmAndamento = demandasCliente.filter((d) => d.status !== "concluida");
   // mantido para compatibilidade com textos automáticos
