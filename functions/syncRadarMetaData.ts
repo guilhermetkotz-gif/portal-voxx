@@ -137,9 +137,15 @@ Deno.serve(async (req) => {
                 const amountSpent = parseNumber(row[amountSpentIdx]);
                 const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
 
+                // Descartar linhas sem CPL ou leads válidos
+                if (cpl === null || leads === null) {
+                    continue;
+                }
+
                 // Log primeiras 5 linhas para debug
                 if (i <= 5) {
                     console.error(`ROW ${i} - ${accountName}:`);
+                    console.error(`  CPL col[${cplIdx}] = "${row[cplIdx]}" → parsed: ${cpl}`);
                     console.error(`  LEADS col[${leadsIdx}] = "${row[leadsIdx]}" → parsed: ${leads}`);
                 }
 
