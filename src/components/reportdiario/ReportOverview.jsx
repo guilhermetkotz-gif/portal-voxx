@@ -12,8 +12,9 @@ import { cn } from "@/lib/utils";
 import { calcularIndicadorPrazo } from "@/components/planoacao/PrazoIndicador";
 
 // ── helpers ──
-const fmtBrl = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtBrl0 = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const parseNum = (v) => { if (v == null) return 0; if (typeof v === "number") return v; const s = String(v).replace(/,/g, ""); return parseFloat(s) || 0; };
+const fmtBrl = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtBrl0 = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STATUS_LABELS = {
   recebida: "Recebida", em_triagem: "Em triagem", programada: "Programada",
