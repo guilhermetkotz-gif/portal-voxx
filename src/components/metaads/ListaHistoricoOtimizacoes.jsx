@@ -57,7 +57,7 @@ export default function ListaHistoricoOtimizacoes() {
     });
 
     const handleClickConta = (conta) => {
-        navigate(createPageUrl('HistoricoOtimizacoesCliente') + `?conta_id=${conta.id}`);
+        navigate(createPageUrl('HistoricoOtimizacoesCliente') + `?conta_id=${conta.id}&conta_name=${encodeURIComponent(conta.account_name)}`);
     };
 
     if (loadingContas || loadingOtimizacoes) {
