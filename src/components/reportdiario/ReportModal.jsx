@@ -213,11 +213,12 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
 
   // ── Gerar PDF — Modelo Executivo 1 Página ──
   const handleGerarPDF = () => {
-    const fmtBrl = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const fmtBrl0 = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const parseNum = (v) => { if (v == null) return 0; if (typeof v === "number") return v; return parseFloat(String(v).replace(/,/g, "")) || 0; };
+    const fmtBrl = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const fmtBrl0 = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
     const totalLeads = (meta?.new_messaging_connections || meta?.messaging_conversations || 0) + (google?.conversions || 0);
-    const totalInvest = (meta?.amount_spent || 0) + (google?.cost || 0);
+    const totalInvest = parseNum(meta?.amount_spent) + parseNum(google?.cost);
     const cplMedio = totalLeads > 0 ? (totalInvest / totalLeads) : 0;
 
     // Variações de resumo executivo para evitar repetição
