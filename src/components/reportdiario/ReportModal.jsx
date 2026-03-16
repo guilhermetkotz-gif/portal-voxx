@@ -658,10 +658,10 @@ ${plano ? `
             </div>
           )}
 
-          {/* ── BLOCO 3: GOOGLE ADS ── */}
+          {/* ── GOOGLE ADS ── */}
           {google ? (
             <div className="rounded-xl border border-slate-100 p-4">
-              <SectionHeader label="Bloco 3" title="Google Ads — Visão Geral" />
+              <SectionHeader label="2" title="Performance de Mídia — Google Ads" />
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <MetricBox label="Investimento" value={`R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`} />
                 <MetricBox label="Conversões" value={google.conversions || 0} colorClass="text-green-700" />
