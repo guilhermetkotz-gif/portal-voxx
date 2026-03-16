@@ -736,10 +736,10 @@ ${plano ? `
             </div>
           )}
 
-          {/* ── BLOCO 5: PLANO DE AÇÃO ── */}
+          {/* ── PLANO DE AÇÃO ── */}
           {plano && (
             <div className="rounded-xl border border-violet-100 bg-violet-50/30 p-4">
-              <SectionHeader label="Bloco 5" title="Plano de Ação — Acompanhamento" />
+              <SectionHeader label="4" title="Plano de Ação" />
 
               {/* Nome do plano e status */}
               <div className="flex items-center gap-2 mb-3 flex-wrap">
