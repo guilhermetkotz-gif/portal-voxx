@@ -11,7 +11,14 @@ import { calcularIndicadorPrazo } from "@/components/planoacao/PrazoIndicador";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const parseNum = (v) => { if (v == null) return 0; if (typeof v === "number") return v; return parseFloat(String(v).replace(/,/g, "")) || 0; };
+const parseNum = (v) => {
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  const s = String(v).replace(/R\$\s*/g, "").trim();
+  if (/\d+\.\d{3},\d{2}/.test(s)) return parseFloat(s.replace(/\./g, "").replace(",", ".")) || 0;
+  if (/^\d+,\d+$/.test(s)) return parseFloat(s.replace(",", ".")) || 0;
+  return parseFloat(s.replace(/,/g, "")) || 0;
+};
 const fmtBrl = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const statusDemandaLabel = {
