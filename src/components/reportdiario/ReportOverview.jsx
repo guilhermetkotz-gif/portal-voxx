@@ -66,7 +66,8 @@ export default function ReportOverview({
   meta, radar, google, otimizacoes, user, onBack, onAbrirModal
 }) {
   const handleGerarPDFOverview = () => {
-    const fmtBrl = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const parseNum = (v) => { if (v == null) return 0; if (typeof v === "number") return v; return parseFloat(String(v).replace(/,/g, "")) || 0; };
+    const fmtBrl = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtN = (v) => (v || 0).toLocaleString("pt-BR");
     const dataFmt2 = dataReport
       ? format(parseISO(dataReport), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
