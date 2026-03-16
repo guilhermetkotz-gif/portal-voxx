@@ -38,6 +38,8 @@ export default function ConfigurarPlanilhaModal({ open, onOpenChange, config = n
       cpc: 'CPC (Cost per Link Click)',
       custo_engajamento: 'Custo por Engajamento',
       leads_repetidos: 'Leads Repetidos',
+      leads: 'leads',
+      cadastros_whats: 'CADASTROS + WHATS',
       nota_gpt: 'Nota GPT'
     },
     ativo: true
@@ -81,6 +83,8 @@ export default function ConfigurarPlanilhaModal({ open, onOpenChange, config = n
             cpc: 'CPC (Cost per Link Click)',
             custo_engajamento: 'Custo por Engajamento',
             leads_repetidos: 'Leads Repetidos',
+            leads: 'leads',
+            cadastros_whats: 'CADASTROS + WHATS',
             nota_gpt: 'Nota GPT'
           },
           ativo: true
