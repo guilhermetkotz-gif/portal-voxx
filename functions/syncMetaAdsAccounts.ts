@@ -140,7 +140,9 @@ Deno.serve(async (req) => {
             const frequency = parseNumber(row[frequencyIdx]);
             const leadsRepetidos = parsePercentage(row[leadsRepetidosIdx]);
             const costPerMessaging = parseNumber(row[costPerMessagingIdx]);
-            const investimento = parseNumber(row[amountSpentIdx]);
+            const rawAmountSpent = row[amountSpentIdx];
+            const investimento = parseNumber(rawAmountSpent);
+            if (i <= 3) console.log(`[DEBUG] account: ${accountName} | raw amount_spent: "${rawAmountSpent}" | parsed: ${investimento}`);
 
             let classificacao;
             if (notaGPT >= 90) classificacao = 'ELITE';
