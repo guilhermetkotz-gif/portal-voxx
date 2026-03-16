@@ -757,6 +757,11 @@ export default function MonitoramentoContas({ user }) {
         }
 
         return filtered.sort((a, b) => {
+            // 0. Separar contas sem investimento para o final
+            const aSemInv = a.investimentoDiario === 0 ? 1 : 0;
+            const bSemInv = b.investimentoDiario === 0 ? 1 : 0;
+            if (aSemInv !== bSemInv) return aSemInv - bSemInv;
+
             // 1. Prioridade
             const prioridadeOrder = { critica: 0, alta: 1, media: 2, baixa: 3 };
             const prioCompare = prioridadeOrder[a.prioridade] - prioridadeOrder[b.prioridade];
