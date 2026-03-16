@@ -90,18 +90,28 @@ Deno.serve(async (req) => {
         const parseNumber = (val) => {
             if (!val) return 0;
             if (typeof val === 'number') return val;
-            // Remove R$, spaces
-            let str = val.replace(/R\$\s*/g, '').trim();
-            // pt-BR format: "6.899,45" → remove dot (thousands), replace comma with dot
-            if (/\d+\.\d{3},\d{2}/.test(str)) {
-                str = str.replace(/\./g, '').replace(',', '.');
-            } else if (/^\d+,\d+$/.test(str)) {
-                // "23,96" → "23.96"
+            // Remove R$, currency symbols, spaces, and non-breaking spaces
+            let str = String(val).replace(/R\$\s*/g, '').replace(/\u00a0/g, '').trim();
+            // pt-BR format with dot as thousands separator and comma as decimal:
+            // e.g. "23.957,66" or "1.234.567,89"
+            // Detect: has comma AND has dot, comma comes after the last dot → pt-BR
+            const hasDot = str.includes('.');
+            const hasComma = str.includes(',');
+            if (hasDot && hasComma) {
+                const lastDot = str.lastIndexOf('.');
+                const lastComma = str.lastIndexOf(',');
+                if (lastComma > lastDot) {
+                    // pt-BR: remove dots (thousands), replace comma with dot
+                    str = str.replace(/\./g, '').replace(',', '.');
+                } else {
+                    // US format: remove commas (thousands)
+                    str = str.replace(/,/g, '');
+                }
+            } else if (hasComma && !hasDot) {
+                // Only comma → decimal separator: "23,96"
                 str = str.replace(',', '.');
-            } else {
-                // fallback: remove commas
-                str = str.replace(/,/g, '');
             }
+            // If only dot → already valid float
             const num = parseFloat(str);
             return isNaN(num) ? 0 : num;
         };
