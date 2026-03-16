@@ -118,9 +118,8 @@ Deno.serve(async (req) => {
 
         const parsePercentage = (val) => {
             if (!val) return 0;
-            const str = typeof val === 'string' ? val.replace(/[^\d.,]/g, '').replace(',', '.') : String(val);
-            const num = parseFloat(str);
-            return isNaN(num) ? 0 : num;
+            if (typeof val === 'number') return val;
+            return parseNumber(val.replace(/[^\d.,R$\s]/g, ''));
         };
 
         const accounts = [];
