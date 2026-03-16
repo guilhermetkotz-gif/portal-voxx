@@ -800,17 +800,15 @@ ${plano ? `
             </div>
           )}
 
-          {/* ── BLOCO 6: AÇÕES DA VOXX ── */}
+          {/* ── AÇÕES DA VOXX ── */}
           <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-            <SectionHeader label="Bloco 6" title="Ações Realizadas pela Voxx" />
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Hoje a equipe Voxx realizou o monitoramento das campanhas, análise de desempenho e acompanhamento das demandas operacionais, aplicando ajustes e otimizações sempre que necessário para manter a evolução dos resultados.
-            </p>
+            <SectionHeader label="5" title="Ações realizadas pela Voxx" />
+            <p className="text-sm text-slate-600 leading-relaxed">{acoesVoxxTexto}</p>
           </div>
 
-          {/* ── BLOCO 7: PRÓXIMOS PASSOS ── */}
+          {/* ── PRÓXIMOS PASSOS ── */}
           <div className="rounded-xl border border-slate-100 p-4">
-            <SectionHeader label="Bloco 7" title="Próximos Passos" />
+            <SectionHeader label="6" title="Próximos Passos" />
             {editando ? (
               <Textarea value={proxPassos} onChange={(e) => setProxPassos(e.target.value)} placeholder={proxPassosAuto} className="text-sm min-h-[80px]" />
             ) : (
