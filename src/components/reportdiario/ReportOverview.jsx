@@ -95,7 +95,7 @@ export default function ReportOverview({
     });
 
     const totalLeads2 = (meta?.new_messaging_connections || meta?.messaging_conversations || 0) + (google?.conversions || 0);
-    const totalInvest2 = (meta?.amount_spent || 0) + (google?.cost || 0);
+    const totalInvest2 = parseNum(meta?.amount_spent) + parseNum(google?.cost);
     const cplMedio2 = totalLeads2 > 0 ? totalInvest2 / totalLeads2 : 0;
 
     // Alertas
