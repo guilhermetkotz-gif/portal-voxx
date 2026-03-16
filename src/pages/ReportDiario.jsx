@@ -383,7 +383,7 @@ export default function ReportDiario({ user }) {
             return metaConta && (o.account_name || "").toLowerCase() === (metaConta.account_name || "").toLowerCase();
           })}
           user={user}
-          onClose={() => setReportAberto(null)}
+          onClose={() => { setReportAberto(null); }}
           onSave={(patch) => {
             upsertReportMutation.mutate({
               clienteId: reportAberto.cliente.id,
