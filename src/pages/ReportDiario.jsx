@@ -76,6 +76,12 @@ export default function ReportDiario({ user }) {
     staleTime: 2 * 60 * 1000,
   });
 
+  const { data: otimizacoesMeta = [] } = useQuery({
+    queryKey: ["otimizacoesMeta"],
+    queryFn: () => base44.entities.MetaAdsOtimizacao.list("-data_acao", 1000),
+    staleTime: 5 * 60 * 1000,
+  });
+
   // ── Mutations ──
   const upsertReportMutation = useMutation({
     mutationFn: async ({ clienteId, clienteNome, data, patch }) => {
