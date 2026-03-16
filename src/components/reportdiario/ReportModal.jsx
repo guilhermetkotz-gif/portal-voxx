@@ -11,6 +11,9 @@ import { calcularIndicadorPrazo } from "@/components/planoacao/PrazoIndicador";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+const parseNum = (v) => { if (v == null) return 0; if (typeof v === "number") return v; return parseFloat(String(v).replace(/,/g, "")) || 0; };
+const fmtBrl = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 const statusDemandaLabel = {
   recebida: "Recebida", em_triagem: "Em triagem", programada: "Programada",
   em_execucao: "Em execução", aguardando_cliente: "Aguardando cliente",
