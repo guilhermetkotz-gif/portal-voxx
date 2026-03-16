@@ -632,7 +632,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
             <div className="rounded-xl border border-slate-100 p-4">
               <SectionHeader label="2" title="Performance de Mídia — Meta Ads" />
               <div className="grid grid-cols-3 gap-2 mb-3">
-                <MetricBox label="Investimento" value={`R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                <MetricBox label="Investimento" value={`R$ ${(typeof meta.amount_spent === "number" ? meta.amount_spent : parseFloat(String(meta.amount_spent || 0).replace(/,/g, "")) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                 <MetricBox label="Leads/Conversas" value={meta.new_messaging_connections || meta.messaging_conversations || 0} colorClass="text-green-700" />
                 <MetricBox label="CPL" value={`R$ ${(meta.cost_per_messaging || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
               </div>
