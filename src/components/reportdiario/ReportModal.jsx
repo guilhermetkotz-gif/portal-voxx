@@ -213,49 +213,30 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
 
   // ── Gerar PDF — Modelo Executivo 1 Página ──
   const handleGerarPDF = () => {
-    const metaClassBadge = (cls) => {
-      if (!cls) return "badge-slate";
-      if (cls === "ELITE" || cls === "SAUDÁVEL") return "badge-green";
-      if (cls === "CRÍTICO" || cls === "ALERTA") return "badge-red";
-      return "badge-yellow";
-    };
-    const googleStatusBadge = (s) => {
-      if (!s) return "badge-slate";
-      if (s === "Saudável") return "badge-green";
-      if (s === "Crítico" || s === "Urgente") return "badge-red";
-      return "badge-yellow";
-    };
     const fmtBrl = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtBrl0 = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-    // Monta a lista completa de ações realizadas no mês (histórico real)
-    const acoesHistoricoMes = [
-      ...otimizacoesMes.map(o => ({
-        data: o.data_acao,
-        tipo: "Otimização de campanha",
-        descricao: o.acoes_implementadas || o.resumo_acao || "Otimização aplicada.",
-        detalhe: o.objetivo ? `Impacto esperado: ${o.objetivo}` : null,
-        responsavel: "Equipe de Tráfego Voxx",
-      })),
-      ...demandasConcluidas.map(d => ({
-        data: d.updated_date,
-        tipo: "Entrega operacional",
-        descricao: d.titulo,
-        detalhe: d.descricao ? d.descricao.slice(0, 120) + (d.descricao.length > 120 ? "..." : "") : null,
-        responsavel: "Equipe Voxx",
-      })),
-      ...itensPlano.filter(i => i.status_acao === "Concluída").map(i => ({
-        data: i.updated_date || i.prazo,
-        tipo: "Ação do plano concluída",
-        descricao: i.acao_proposta,
-        detalhe: i.observacoes || null,
-        responsavel: i.responsavel || "Equipe Voxx",
-      })),
-    ].sort((a, b) => {
-      if (!a.data) return 1;
-      if (!b.data) return -1;
-      return new Date(b.data) - new Date(a.data);
-    });
+    const totalLeads = (meta?.new_messaging_connections || meta?.messaging_conversations || 0) + (google?.conversions || 0);
+    const totalInvest = (meta?.amount_spent || 0) + (google?.cost || 0);
+    const cplMedio = totalLeads > 0 ? (totalInvest / totalLeads) : 0;
+
+    // Variações de resumo executivo para evitar repetição
+    const resumoVariacoes = [
+      `Hoje seguimos com o acompanhamento ativo das campanhas e execução das demandas operacionais da unidade. ${demandasConcluidas.length > 0 ? `Foram concluídas ${demandasConcluidas.length} entrega(s) no período, fortalecendo o fluxo de marketing.` : `As demandas seguem em execução conforme planejamento.`} A gestão está focada na evolução contínua da performance e no avanço das estratégias da unidade.`,
+      `O dia foi marcado pelo acompanhamento contínuo das campanhas e pela gestão das ações operacionais previstas. ${otimizacoesMes.length > 0 ? `Foram realizadas ${otimizacoesMes.length} otimização(ões) nas campanhas para melhorar os resultados.` : `As campanhas seguem estáveis com monitoramento ativo.`} Seguimos com foco em performance e entregas estratégicas.`,
+      `A equipe Voxx seguiu hoje com a execução das atividades operacionais e o monitoramento das campanhas. ${demandasEmAndamento.length > 0 ? `Há ${demandasEmAndamento.length} demanda(s) em andamento, mantendo o ritmo das entregas.` : `O fluxo operacional está estável e alinhado ao planejamento.`} A gestão segue comprometida com a evolução consistente dos resultados.`,
+    ];
+    const resumoIdx = new Date().getDate() % resumoVariacoes.length;
+    const resumoFinal = resumoVariacoes[resumoIdx];
+
+    // Próximos passos dinâmicos (máx 3)
+    const proximosPassosDinamicos = [
+      otimizacoesMes.length > 0 || (meta?.classificacao === "ALERTA" || meta?.classificacao === "CRÍTICO")
+        ? "Otimização contínua e ajustes nas campanhas Meta Ads" : null,
+      demandasEmAndamento.length > 0 ? `Avanço das ${demandasEmAndamento.length} demanda(s) em execução` : null,
+      itensAndamento.length > 0 ? "Evolução do plano de ação estratégico" : null,
+      "Monitoramento de performance e ajustes estratégicos",
+    ].filter(Boolean).slice(0, 3);
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -263,404 +244,340 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
 <meta charset="UTF-8"/>
 <title>Report Diário Voxx — ${cliente.nome}</title>
 <style>
-  /* ── PAGINAÇÃO DINÂMICA ── */
-  @page {
-    size: A4;
-    margin: 14mm 12mm 18mm 12mm;
-  }
-  @page :first {
-    margin-top: 0;
-  }
-
+  @page { size: A4; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
     background: #fff;
     color: #1e293b;
-    font-size: 13px;
-    line-height: 1.65;
+    font-size: 12px;
+    line-height: 1.5;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    width: 210mm;
+    min-height: 297mm;
   }
-  .page { max-width: 760px; margin: 0 auto; }
 
-  /* ── CABEÇALHO PRINCIPAL (apenas p1) ── */
+  /* ══ HEADER ══ */
   .header {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
     color: #fff;
-    padding: 32px 40px 28px;
+    padding: 22px 32px 18px;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    gap: 24px;
-    page-break-after: avoid;
-  }
-  .header-brand { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.45; margin-bottom: 8px; }
-  .header-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
-  .header-meta { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
-  .header-meta-row { font-size: 12px; opacity: 0.75; }
-  .header-meta-row strong { opacity: 1; }
-  .portal-btn { background: linear-gradient(135deg, #16a34a, #15803d); border-radius: 12px; padding: 14px 18px; text-align: center; text-decoration: none; display: block; min-width: 190px; flex-shrink: 0; }
-  .portal-btn-icon { font-size: 18px; margin-bottom: 4px; }
-  .portal-btn-main { font-size: 13px; font-weight: 800; color: #fff; display: block; }
-  .portal-btn-sub { font-size: 10px; color: rgba(255,255,255,0.75); display: block; margin-top: 3px; line-height: 1.4; }
-
-  /* ── CABEÇALHO SIMPLIFICADO (páginas 2+) ── */
-  .mini-header {
-    display: none;
-    background: #0f172a;
-    color: #fff;
-    padding: 8px 40px;
-    font-size: 10px;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 0;
+    gap: 16px;
   }
-  .mini-header-brand { font-weight: 700; letter-spacing: 1px; opacity: 0.8; }
-  .mini-header-cliente { opacity: 0.65; }
-
-  /* ── SEÇÕES PAGINADAS ── */
-  /* Seções curtas — não quebrar */
-  .section-fixed { padding: 20px 40px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; }
-  /* Seções longas — podem ser divididas entre páginas */
-  .section-paginable { padding: 20px 40px; border-bottom: 1px solid #f1f5f9; }
-  .section:last-child, .section-fixed:last-child, .section-paginable:last-child { border-bottom: none; }
-
-  .section-title {
-    font-size: 15px; font-weight: 800; color: #0f172a;
-    margin-bottom: 14px;
-    display: flex; align-items: center; gap: 8px;
-    /* título nunca fica sozinho no final da página */
-    page-break-after: avoid;
+  .header-left {}
+  .header-eyebrow { font-size: 8px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.4; margin-bottom: 5px; }
+  .header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+  .header-subtitle { font-size: 11px; opacity: 0.6; margin-top: 4px; }
+  .header-meta { margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+  .header-meta-row { font-size: 10px; opacity: 0.65; }
+  .header-meta-row strong { opacity: 1; color: #fff; }
+  .header-right {}
+  .voxx-logo-box {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 10px 18px;
+    text-align: center;
   }
+  .voxx-logo-text { font-size: 18px; font-weight: 900; color: #fff; letter-spacing: -1px; }
+  .voxx-logo-sub { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-top: 2px; }
 
-  /* ── TEXTO ── */
-  .texto { font-size: 13px; color: #475569; line-height: 1.8; margin-bottom: 12px; }
+  /* ══ BANNER PORTAL ══ */
+  .portal-banner {
+    background: linear-gradient(90deg, #166534 0%, #15803d 60%, #16a34a 100%);
+    padding: 10px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .portal-banner-left { display: flex; align-items: center; gap: 10px; }
+  .portal-banner-icon { font-size: 16px; }
+  .portal-banner-title { font-size: 11px; font-weight: 800; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; }
+  .portal-banner-sub { font-size: 9px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+  .portal-banner-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; padding: 5px 14px; font-size: 9px; font-weight: 700; color: #fff; white-space: nowrap; }
 
-  /* ── BOXES ── */
-  .box-destaque { border-left: 3px solid #22c55e; background: #f0fdf4; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; page-break-inside: avoid; }
-  .box-destaque-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #16a34a; margin-bottom: 3px; }
-  .box-destaque-text { font-size: 12px; color: #166534; line-height: 1.6; }
-  .box-atencao { border-left: 3px solid #f59e0b; background: #fffbeb; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; page-break-inside: avoid; }
-  .box-atencao-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #b45309; margin-bottom: 3px; }
-  .box-atencao-text { font-size: 12px; color: #92400e; line-height: 1.6; }
+  /* ══ BODY ══ */
+  .body { padding: 16px 32px; }
 
-  /* ── METRICS (nunca quebrar) ── */
-  .metrics-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; page-break-inside: avoid; }
-  .metrics-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; page-break-inside: avoid; }
-  .metrics-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; page-break-inside: avoid; }
-  .metric-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; }
-  .metric-value { font-size: 17px; font-weight: 800; color: #1e293b; line-height: 1; }
-  .metric-label { font-size: 10px; color: #64748b; margin-top: 4px; }
-  .metric-card.green .metric-value { color: #16a34a; }
-  .metric-card.amber .metric-value { color: #d97706; }
-  .metric-card.red .metric-value { color: #dc2626; }
-  .metric-card.blue .metric-value { color: #2563eb; }
-  .metric-card.violet .metric-value { color: #7c3aed; }
-
-  /* ── PLATAFORMA HEADER ── */
-  .plataforma-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; page-break-inside: avoid; }
-  .plataforma-header.meta { background: #eff6ff; }
-  .plataforma-header.google { background: #faf5ff; }
-  .plataforma-header-name { font-size: 13px; font-weight: 800; }
-  .plataforma-header.meta .plataforma-header-name { color: #1d4ed8; }
-  .plataforma-header.google .plataforma-header-name { color: #7c3aed; }
-
-  /* ── BADGES ── */
-  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 10px; font-weight: 700; }
-  .badge-green { background: #dcfce7; color: #166534; }
-  .badge-yellow { background: #fef3c7; color: #92400e; }
-  .badge-red { background: #fee2e2; color: #991b1b; }
-  .badge-blue { background: #dbeafe; color: #1d4ed8; }
-  .badge-slate { background: #f1f5f9; color: #475569; }
-
-  /* ── DEMANDAS — cada item evita quebrar no meio ── */
-  .demanda-item { padding: 10px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 6px; page-break-inside: avoid; }
-  .demanda-titulo { font-size: 12px; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
-  .demanda-meta { font-size: 10px; color: #64748b; }
-
-  /* ── OTIMIZAÇÕES — cada item evita quebrar no meio ── */
-  .otimizacao-item { padding: 12px 14px; border-radius: 8px; border: 1px solid #fed7aa; background: #fff7ed; margin-bottom: 8px; page-break-inside: avoid; }
-  .otimizacao-data { font-size: 10px; font-weight: 700; color: #c2410c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .otimizacao-acao { font-size: 12px; color: #431407; line-height: 1.5; }
-  .otimizacao-impacto { font-size: 11px; color: #9a3412; margin-top: 4px; font-style: italic; }
-
-  /* ── AÇÃO HISTÓRICO VOXX — cada item evita quebrar no meio ── */
-  .acao-voxx-item { padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; margin-bottom: 8px; page-break-inside: avoid; }
-  .acao-voxx-tipo { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #6366f1; margin-bottom: 3px; }
-  .acao-voxx-data { font-size: 10px; color: #64748b; float: right; }
-  .acao-voxx-desc { font-size: 12px; color: #1e293b; font-weight: 600; margin-bottom: 3px; }
-  .acao-voxx-detalhe { font-size: 11px; color: #64748b; line-height: 1.5; }
-  .acao-voxx-resp { font-size: 10px; color: #94a3b8; margin-top: 4px; }
-
-  /* ── PLANO — cada linha evita quebrar no meio ── */
-  .plano-row { display: grid; grid-template-columns: 1fr 110px 80px 90px; padding: 8px 10px; font-size: 11px; align-items: start; page-break-inside: avoid; }
-  .plano-row:nth-child(even) { background: #faf5ff; }
-  .plano-row:nth-child(odd) { background: #fff; }
-
-  /* ── SUBSEÇÃO ── */
-  .sub-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; margin-top: 14px; page-break-after: avoid; }
-  .sub-label.green { color: #16a34a; }
-  .sub-label.blue { color: #2563eb; }
-  .sub-label.amber { color: #b45309; }
-  .sub-label.violet { color: #7c3aed; }
-
-  /* ── PRÓXIMOS PASSOS ── */
-  .steps-list p { font-size: 13px; color: #475569; margin-bottom: 7px; padding-left: 20px; position: relative; line-height: 1.6; page-break-inside: avoid; }
-  .steps-list p::before { content: "→"; position: absolute; left: 0; color: #7c3aed; font-weight: 700; }
-
-  /* ── SEPARADOR ── */
-  .divider { height: 1px; background: #f1f5f9; margin: 14px 0; }
-
-  /* ── RODAPÉ FIXO EM TODAS AS PÁGINAS ── */
-  .footer-fixed {
-    position: fixed;
-    bottom: 0;
-    left: 0; right: 0;
+  /* ══ RESUMO EXECUTIVO ══ */
+  .resumo-box {
     background: #f8fafc;
-    border-top: 1px solid #e2e8f0;
-    padding: 7px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 10px;
-    color: #94a3b8;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    border-left: 3px solid #0f172a;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+    margin-bottom: 14px;
   }
-  .footer-brand { font-weight: 700; color: #475569; }
+  .resumo-label { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 4px; }
+  .resumo-text { font-size: 11px; color: #334155; line-height: 1.65; }
+
+  /* ══ KPI CARDS ══ */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .kpi-card {
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+  }
+  .kpi-card.dark { background: #0f172a; border-color: #0f172a; }
+  .kpi-value { font-size: 16px; font-weight: 900; color: #0f172a; line-height: 1; }
+  .kpi-card.dark .kpi-value { color: #fff; }
+  .kpi-label { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; margin-top: 3px; }
+  .kpi-card.dark .kpi-label { color: rgba(255,255,255,0.6); }
+  .kpi-context { font-size: 9px; color: #94a3b8; margin-top: 2px; }
+  .kpi-card.dark .kpi-context { color: rgba(255,255,255,0.4); }
+
+  /* ══ STATUS CAMPANHAS ══ */
+  .campanhas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .campanha-card { border-radius: 10px; border: 1px solid #e2e8f0; padding: 12px 14px; }
+  .campanha-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #f1f5f9; }
+  .campanha-icon { font-size: 13px; }
+  .campanha-name { font-size: 11px; font-weight: 800; }
+  .campanha-name.meta { color: #1d4ed8; }
+  .campanha-name.google { color: #7c3aed; }
+  .campanha-badge { margin-left: auto; font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+  .badge-ok { background: #dcfce7; color: #166534; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-err { background: #fee2e2; color: #991b1b; }
+  .badge-na { background: #f1f5f9; color: #475569; }
+  .campanha-rows {}
+  .campanha-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 10px; border-bottom: 1px solid #f8fafc; }
+  .campanha-row:last-child { border-bottom: none; }
+  .campanha-row-label { color: #64748b; }
+  .campanha-row-value { font-weight: 700; color: #1e293b; }
+
+  /* ══ ATIVIDADE OPERACIONAL ══ */
+  .atividade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .atividade-card { border-radius: 10px; border: 1px solid #e2e8f0; padding: 12px 14px; background: #fff; }
+  .atividade-title { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 8px; }
+  .atividade-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #f8fafc; font-size: 10px; }
+  .atividade-row:last-child { border-bottom: none; }
+  .atividade-row-label { color: #475569; }
+  .atividade-row-value { font-weight: 800; color: #0f172a; font-size: 13px; }
+  .atividade-row-value.green { color: #16a34a; }
+  .atividade-row-value.blue { color: #2563eb; }
+  .atividade-row-value.orange { color: #ea580c; }
+
+  /* ══ PRÓXIMOS PASSOS ══ */
+  .passos-box { background: #f8fafc; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .passos-label { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; margin-bottom: 8px; }
+  .passo-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px; font-size: 10px; color: #334155; }
+  .passo-bullet { width: 5px; height: 5px; border-radius: 50%; background: #7c3aed; flex-shrink: 0; margin-top: 4px; }
+
+  /* ══ BLOCO FINAL PORTAL ══ */
+  .portal-final {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .portal-final-left { flex: 1; }
+  .portal-final-title { font-size: 11px; font-weight: 800; color: #fff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .portal-final-item { font-size: 9px; color: rgba(255,255,255,0.6); margin-bottom: 3px; }
+  .portal-final-item span { color: #4ade80; font-weight: 700; margin-right: 4px; }
+  .portal-final-btn { background: linear-gradient(135deg, #16a34a, #15803d); border-radius: 20px; padding: 8px 18px; font-size: 10px; font-weight: 800; color: #fff; white-space: nowrap; text-decoration: none; display: block; text-align: center; }
+
+  /* ══ RODAPÉ ══ */
+  .footer { background: #f1f5f9; border-top: 1px solid #e2e8f0; padding: 8px 32px; display: flex; justify-content: space-between; align-items: center; }
+  .footer-brand { font-size: 10px; font-weight: 700; color: #475569; }
+  .footer-sub { font-size: 9px; color: #94a3b8; }
+  .footer-date { font-size: 9px; color: #94a3b8; text-align: right; }
+
+  /* ══ SECTION HEADING ══ */
+  .section-heading { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .section-heading::after { content: ""; flex: 1; height: 1px; background: #e2e8f0; }
 
   @media print {
-    @page {
-      size: A4;
-      margin: 14mm 12mm 18mm 12mm;
-    }
-    @page :first {
-      margin-top: 0;
-    }
+    @page { size: A4; margin: 0; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .page { max-width: 100%; }
-    .footer-fixed { position: fixed; bottom: 0; }
-    /* Mostrar mini-header nas páginas 2+ via CSS counters não é possível,
-       mas o rodapé fixo garante info em todas as páginas */
+    a { text-decoration: none; }
   }
 </style>
 </head>
 <body>
-<div class="page">
 
-<!-- ══ RODAPÉ FIXO (todas as páginas) ══ -->
-<div class="footer-fixed">
-  <span class="footer-brand">Portal Voxx</span>
-  <span>${cliente.nome} · ${dataFmt}</span>
-  <span>Gerado em ${dataGeracao}</span>
-</div>
-
-<!-- ══ CABEÇALHO EDITORIAL (p1) ══ -->
+<!-- ══ 1. HEADER INSTITUCIONAL ══ -->
 <div class="header">
-  <div>
-    <div class="header-brand">Portal Voxx · Relatório Executivo</div>
+  <div class="header-left">
+    <div class="header-eyebrow">Portal Voxx · Relatório Executivo</div>
     <div class="header-title">Report Diário Voxx</div>
+    <div class="header-subtitle">Visão executiva de performance e operação</div>
     <div class="header-meta">
       <div class="header-meta-row"><strong>Cliente:</strong> ${cliente.nome}</div>
-      <div class="header-meta-row"><strong>Data do relatório:</strong> ${dataFmt}</div>
-      <div class="header-meta-row"><strong>Gerado em:</strong> ${dataGeracao}</div>
+      <div class="header-meta-row"><strong>Data:</strong> ${dataFmt}</div>
     </div>
   </div>
-  <a href="https://portal-voxx.com/" class="portal-btn">
-    <div class="portal-btn-icon">📊</div>
-    <span class="portal-btn-main">Acesse pelo Portal Voxx</span>
-    <span class="portal-btn-sub">Acompanhe resultados, demandas e ações em um só lugar.</span>
-  </a>
-</div>
-
-<!-- ══ 1 — RESUMO EXECUTIVO (seção curta, não quebra) ══ -->
-<div class="section-fixed">
-  <div class="section-title">📋 Resumo Executivo</div>
-  <p class="texto">${resumoExecutivo}</p>
-  <div class="box-destaque">
-    <div class="box-destaque-label">✅ Destaque positivo do dia</div>
-    <div class="box-destaque-text">${destaqueTexto}</div>
-  </div>
-  <div class="box-atencao">
-    <div class="box-atencao-label">⚠️ Ponto de atenção</div>
-    <div class="box-atencao-text">${atencaoTexto}</div>
-  </div>
-</div>
-
-<!-- ══ 2 — PERFORMANCE DE MÍDIA (seção curta, não quebra) ══ -->
-<div class="section-fixed">
-  <div class="section-title">📈 Performance de Mídia</div>
-
-  ${meta ? `
-  <div class="plataforma-header meta">
-    <span style="font-size:15px;">🎯</span>
-    <span class="plataforma-header-name">Meta Ads</span>
-    <span class="badge ${metaClassBadge(meta.classificacao)}" style="margin-left:auto;">${meta.classificacao || "—"}</span>
-  </div>
-  <div class="metrics-3">
-    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl0(meta.amount_spent)}</div><div class="metric-label">Investimento</div></div>
-    <div class="metric-card green"><div class="metric-value">${meta.new_messaging_connections || meta.messaging_conversations || 0}</div><div class="metric-label">Leads gerados</div></div>
-    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl(meta.cost_per_messaging)}</div><div class="metric-label">CPL médio</div></div>
-  </div>
-  <div class="metrics-3">
-    <div class="metric-card ${meta.frequency && meta.frequency > 3 ? "amber" : ""}"><div class="metric-value">${meta.frequency ? meta.frequency.toFixed(1) + "x" : "—"}</div><div class="metric-label">Frequência</div></div>
-    <div class="metric-card"><div class="metric-value">${meta.nota_gpt ? meta.nota_gpt + "/100" : "—"}</div><div class="metric-label">Nota GPT</div></div>
-    <div class="metric-card ${meta.leads_repetidos_percent && meta.leads_repetidos_percent > 25 ? "amber" : ""}"><div class="metric-value">${meta.leads_repetidos_percent ? meta.leads_repetidos_percent.toFixed(0) + "%" : "—"}</div><div class="metric-label">Leads repetidos</div></div>
-  </div>
-  ${meta.main_issue ? `<p style="font-size:11px;color:#dc2626;background:#fef2f2;padding:7px 12px;border-radius:6px;margin-top:4px;page-break-inside:avoid;">⚡ ${meta.main_issue}</p>` : ""}
-  ` : `<p class="texto" style="color:#94a3b8;font-style:italic;margin-bottom:12px;">Dados de Meta Ads não vinculados a este cliente no momento.</p>`}
-
-  ${radar ? `
-  <div style="margin-top:12px;">
-    <p style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Meta Ads — Ontem vs 7 dias</p>
-    <div class="metrics-3">
-      <div class="metric-card green"><div class="metric-value">${radar.leads_ontem ?? "—"}</div><div class="metric-label">Leads ontem</div></div>
-      <div class="metric-card ${radar.variacao_cpl != null && radar.variacao_cpl > 10 ? "red" : radar.variacao_cpl != null && radar.variacao_cpl < -5 ? "green" : "amber"}"><div class="metric-value">${radar.variacao_cpl != null ? `${radar.variacao_cpl > 0 ? "+" : ""}${radar.variacao_cpl.toFixed(1)}%` : "—"}</div><div class="metric-label">Var. CPL</div></div>
-      <div class="metric-card ${radar.frequencia_7d != null && radar.frequencia_7d > 3 ? "red" : ""}"><div class="metric-value">${radar.frequencia_7d != null ? `${radar.frequencia_7d.toFixed(1)}x` : "—"}</div><div class="metric-label">Freq. (7d)</div></div>
+  <div class="header-right">
+    <div class="voxx-logo-box">
+      <div class="voxx-logo-text">VOXX</div>
+      <div class="voxx-logo-sub">Gestão de Performance</div>
     </div>
-  </div>` : ""}
-
-  <div class="divider"></div>
-
-  ${google ? `
-  <div class="plataforma-header google">
-    <span style="font-size:15px;">🔍</span>
-    <span class="plataforma-header-name">Google Ads</span>
-    ${google.health_status ? `<span class="badge ${googleStatusBadge(google.health_status)}" style="margin-left:auto;">${google.health_status}</span>` : ""}
   </div>
-  <div class="metrics-3">
-    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl0(google.cost)}</div><div class="metric-label">Investimento</div></div>
-    <div class="metric-card green"><div class="metric-value">${google.conversions || 0}</div><div class="metric-label">Conversões</div></div>
-    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl(google.cost_per_conversion)}</div><div class="metric-label">Custo/Conversão</div></div>
-  </div>
-  <div class="metrics-3">
-    <div class="metric-card blue"><div class="metric-value">${google.clicks || 0}</div><div class="metric-label">Cliques</div></div>
-    <div class="metric-card"><div class="metric-value">R$ ${fmtBrl(google.avg_cpc)}</div><div class="metric-label">CPC médio</div></div>
-    <div class="metric-card ${google.optimization_score && google.optimization_score >= 70 ? "green" : google.optimization_score && google.optimization_score < 50 ? "amber" : ""}"><div class="metric-value">${google.optimization_score ? google.optimization_score + "%" : "—"}</div><div class="metric-label">Optim. Score</div></div>
-  </div>
-  ` : `<p class="texto" style="color:#94a3b8;font-style:italic;">Dados de Google Ads não vinculados a este cliente no momento.</p>`}
 </div>
 
-<!-- ══ 3 — DEMANDAS E EXECUÇÃO (paginável — lista longa) ══ -->
-<div class="section-paginable">
-  <div class="section-title">⚙️ Demandas e Execução</div>
-  <div class="metrics-2" style="margin-bottom:16px;">
-    <div class="metric-card blue"><div class="metric-value">${demandasEmAndamento.length}</div><div class="metric-label">Em andamento</div></div>
-    <div class="metric-card green"><div class="metric-value">${demandasConcluidas.length}</div><div class="metric-label">Concluídas</div></div>
+<!-- ══ 2. BANNER PORTAL VOXX ══ -->
+<a href="https://portal-voxx.com/" class="portal-banner">
+  <div class="portal-banner-left">
+    <div class="portal-banner-icon">📊</div>
+    <div>
+      <div class="portal-banner-title">Acompanhe os dados completos no Portal Voxx</div>
+      <div class="portal-banner-sub">Métricas detalhadas, histórico de ações e acompanhamento completo da sua unidade.</div>
+    </div>
   </div>
+  <div class="portal-banner-btn">ACESSAR PORTAL →</div>
+</a>
 
-  ${demandasConcluidas.length > 0 ? `
-  <div class="sub-label green">✅ Demandas concluídas (${demandasConcluidas.length})</div>
-  ${demandasConcluidas.map(d => `
-  <div class="demanda-item" style="border-color:#bbf7d0;background:#f0fdf4;">
-    <div class="demanda-titulo">${d.titulo}</div>
-    <div class="demanda-meta">Status: <span style="color:#16a34a;font-weight:700;">Concluída</span> · Responsável: Voxx</div>
-  </div>`).join("")}` : ""}
+<div class="body">
 
-  ${demandasEmAndamento.length > 0 ? `
-  <div class="sub-label blue">🔄 Demandas em andamento (${demandasEmAndamento.length})</div>
-  ${demandasEmAndamento.map(d => `
-  <div class="demanda-item">
-    <div class="demanda-titulo">${d.titulo}</div>
-    <div class="demanda-meta">Status: <span style="color:#2563eb;font-weight:700;">${statusDemandaLabel[d.status] || d.status}</span> · Responsável: Voxx</div>
-  </div>`).join("")}` : ""}
-
-  ${demandasAguardando.length > 0 ? `
-  <div class="sub-label amber">⏳ Aguardando cliente (${demandasAguardando.length})</div>
-  ${demandasAguardando.map(d => `
-  <div class="demanda-item" style="border-color:#fde68a;background:#fffbeb;">
-    <div class="demanda-titulo">${d.titulo}</div>
-    <div class="demanda-meta">Aguardando retorno do cliente para prosseguimento.</div>
-  </div>`).join("")}` : ""}
+<!-- ══ 3. RESUMO EXECUTIVO ══ -->
+<div class="section-heading">Resumo Executivo</div>
+<div class="resumo-box">
+  <div class="resumo-label">Situação da unidade · ${dataFmt}</div>
+  <div class="resumo-text">${resumoFinal}</div>
 </div>
 
-${otimizacoesMes.length > 0 ? `
-<!-- ══ 4 — OTIMIZAÇÕES APLICADAS (paginável) ══ -->
-<div class="section-paginable">
-  <div class="section-title">🔧 Otimizações aplicadas no período (${otimizacoesMes.length})</div>
-  ${otimizacoesMes.map(o => `
-  <div class="otimizacao-item">
-    <div class="otimizacao-data">${o.data_acao ? o.data_acao.split("T")[0].split("-").reverse().join("/") : "—"} — ${o.problema || "Otimização de campanha"}</div>
-    <div class="otimizacao-acao"><strong>Ação:</strong> ${o.acoes_implementadas || o.resumo_acao || "—"}</div>
-    ${o.objetivo ? `<div class="otimizacao-impacto">Impacto esperado: ${o.objetivo}</div>` : ""}
+<!-- ══ 4. INDICADORES PRINCIPAIS ══ -->
+<div class="section-heading">Indicadores Principais</div>
+<div class="kpi-grid">
+  <div class="kpi-card dark">
+    <div class="kpi-value">${meta?.new_messaging_connections || meta?.messaging_conversations || 0}</div>
+    <div class="kpi-label">Leads Gerados</div>
+    <div class="kpi-context">Meta Ads</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">R$ ${fmtBrl0(totalInvest)}</div>
+    <div class="kpi-label">Investimento em Mídia</div>
+    <div class="kpi-context">Meta + Google</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">R$ ${fmtBrl(cplMedio)}</div>
+    <div class="kpi-label">CPL Médio</div>
+    <div class="kpi-context">Custo por lead</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">${google?.conversions || 0}</div>
+    <div class="kpi-label">Conversões Google</div>
+    <div class="kpi-context">Google Ads</div>
+  </div>
+</div>
+
+<!-- ══ 5. STATUS DAS CAMPANHAS ══ -->
+<div class="section-heading">Status das Campanhas</div>
+<div class="campanhas-grid">
+  <div class="campanha-card">
+    <div class="campanha-header">
+      <span class="campanha-icon">🎯</span>
+      <span class="campanha-name meta">Meta Ads</span>
+      ${meta ? `<span class="campanha-badge ${meta.classificacao === "ELITE" || meta.classificacao === "SAUDÁVEL" ? "badge-ok" : meta.classificacao === "CRÍTICO" || meta.classificacao === "ALERTA" ? "badge-err" : "badge-warn"}">${meta.classificacao || "—"}</span>` : `<span class="campanha-badge badge-na">Sem dados</span>`}
+    </div>
+    <div class="campanha-rows">
+      <div class="campanha-row"><span class="campanha-row-label">Investimento</span><span class="campanha-row-value">R$ ${fmtBrl0(meta?.amount_spent)}</span></div>
+      <div class="campanha-row"><span class="campanha-row-label">Leads</span><span class="campanha-row-value">${meta?.new_messaging_connections || meta?.messaging_conversations || 0}</span></div>
+      <div class="campanha-row"><span class="campanha-row-label">CPL</span><span class="campanha-row-value">R$ ${fmtBrl(meta?.cost_per_messaging)}</span></div>
+      <div class="campanha-row"><span class="campanha-row-label">Frequência</span><span class="campanha-row-value">${meta?.frequency ? meta.frequency.toFixed(1) + "x" : "—"}</span></div>
+    </div>
+  </div>
+  <div class="campanha-card">
+    <div class="campanha-header">
+      <span class="campanha-icon">🔍</span>
+      <span class="campanha-name google">Google Ads</span>
+      ${google?.health_status ? `<span class="campanha-badge ${google.health_status === "Saudável" ? "badge-ok" : google.health_status === "Crítico" || google.health_status === "Urgente" ? "badge-err" : "badge-warn"}">${google.health_status}</span>` : `<span class="campanha-badge badge-na">Sem dados</span>`}
+    </div>
+    <div class="campanha-rows">
+      <div class="campanha-row"><span class="campanha-row-label">Conversões</span><span class="campanha-row-value">${google?.conversions || 0}</span></div>
+      <div class="campanha-row"><span class="campanha-row-label">Custo por conversão</span><span class="campanha-row-value">R$ ${fmtBrl(google?.cost_per_conversion)}</span></div>
+      <div class="campanha-row"><span class="campanha-row-label">Cliques</span><span class="campanha-row-value">${google?.clicks || 0}</span></div>
+      <div class="campanha-row"><span class="campanha-row-label">CPC médio</span><span class="campanha-row-value">R$ ${fmtBrl(google?.avg_cpc)}</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 6. ATIVIDADE OPERACIONAL ══ -->
+<div class="section-heading">Atividade Operacional</div>
+<div class="atividade-grid">
+  <div class="atividade-card">
+    <div class="atividade-title">Demandas</div>
+    <div class="atividade-row">
+      <span class="atividade-row-label">Concluídas no mês</span>
+      <span class="atividade-row-value green">${demandasConcluidas.length}</span>
+    </div>
+    <div class="atividade-row">
+      <span class="atividade-row-label">Em andamento</span>
+      <span class="atividade-row-value blue">${demandasEmAndamento.length}</span>
+    </div>
+    ${demandasAguardando.length > 0 ? `
+    <div class="atividade-row">
+      <span class="atividade-row-label">Aguardando cliente</span>
+      <span class="atividade-row-value orange">${demandasAguardando.length}</span>
+    </div>` : ""}
+  </div>
+  <div class="atividade-card">
+    <div class="atividade-title">Otimizações & Plano</div>
+    <div class="atividade-row">
+      <span class="atividade-row-label">Otimizações aplicadas</span>
+      <span class="atividade-row-value orange">${otimizacoesMes.length}</span>
+    </div>
+    ${plano ? `
+    <div class="atividade-row">
+      <span class="atividade-row-label">Ações do plano concluídas</span>
+      <span class="atividade-row-value green">${itensConcluidos.length}</span>
+    </div>
+    <div class="atividade-row">
+      <span class="atividade-row-label">Ações em andamento</span>
+      <span class="atividade-row-value blue">${itensAndamento.length}</span>
+    </div>` : `
+    <div class="atividade-row">
+      <span class="atividade-row-label">Monitoramento ativo</span>
+      <span class="atividade-row-value" style="color:#16a34a;font-size:10px;font-weight:700;">✔ Online</span>
+    </div>`}
+  </div>
+</div>
+
+<!-- ══ 7. PRÓXIMOS PASSOS ══ -->
+<div class="section-heading">Próximos Passos</div>
+<div class="passos-box">
+  <div class="passos-label">Direcionamento da gestão</div>
+  ${proximosPassosDinamicos.map(p => `
+  <div class="passo-item">
+    <div class="passo-bullet"></div>
+    <span>${p}</span>
   </div>`).join("")}
 </div>
-` : ""}
 
-${plano ? `
-<!-- ══ 5 — PLANO DE AÇÃO (paginável) ══ -->
-<div class="section-paginable">
-  <div class="section-title">📋 Plano de Ação</div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;page-break-inside:avoid;">
-    <span style="font-size:13px;font-weight:700;color:#4c1d95;">${plano.titulo_plano}</span>
-    <span class="badge badge-yellow">${plano.status_plano}</span>
+<!-- ══ 8. BLOCO FINAL PORTAL VOXX ══ -->
+<div class="portal-final">
+  <div class="portal-final-left">
+    <div class="portal-final-title">Relatório completo disponível no Portal Voxx</div>
+    <div class="portal-final-item"><span>✔</span> Histórico completo de demandas e entregas</div>
+    <div class="portal-final-item"><span>✔</span> Todas as otimizações realizadas no período</div>
+    <div class="portal-final-item"><span>✔</span> Evolução detalhada das campanhas</div>
+    <div class="portal-final-item"><span>✔</span> Plano de ação com prazos e responsáveis</div>
+    <div class="portal-final-item"><span>✔</span> Indicadores atualizados em tempo real</div>
   </div>
-  ${plano.objetivo_geral ? `<p class="texto" style="margin-bottom:12px;">${plano.objetivo_geral}</p>` : ""}
-  <div class="metrics-4" style="margin-bottom:12px;">
-    <div class="metric-card violet"><div class="metric-value">${itensNovos.length}</div><div class="metric-label">Ações abertas</div></div>
-    <div class="metric-card blue"><div class="metric-value">${itensAndamento.length}</div><div class="metric-label">Em andamento</div></div>
-    <div class="metric-card green"><div class="metric-value">${itensConcluidos.length}</div><div class="metric-label">Concluídas</div></div>
-    <div class="metric-card ${itensAtraso.length > 0 ? "red" : ""}"><div class="metric-value">${itensAtraso.length}</div><div class="metric-label">Em atraso</div></div>
-  </div>
-  ${itensAVencer.length > 0 ? `<p style="font-size:11px;color:#d97706;background:#fffbeb;padding:6px 10px;border-radius:6px;margin-bottom:12px;page-break-inside:avoid;">🕐 ${itensAVencer.length} ação(ões) com prazo a vencer em breve</p>` : ""}
-  ${itensPlano.length > 0 ? `
-  <div style="border:1px solid #ede9fe;border-radius:8px;overflow:hidden;">
-    <div style="display:grid;grid-template-columns:1fr 110px 80px 90px;background:#ede9fe;padding:7px 10px;page-break-after:avoid;">
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Ação</span>
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Responsável</span>
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Prazo</span>
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Status</span>
-    </div>
-    ${itensPlano.map((item, idx) => {
-      const ind = calcularIndicadorPrazo(item.prazo, item.status_acao);
-      const prazoStyle = ind === "atraso" ? "color:#dc2626;font-weight:700;" : ind === "a_vencer" ? "color:#d97706;" : "color:#64748b;";
-      const statusBg = item.status_acao === "Concluída" ? "background:#dcfce7;color:#166534;" : item.status_acao === "Em andamento" ? "background:#dbeafe;color:#1d4ed8;" : "background:#f1f5f9;color:#475569;";
-      const prazoFmt = item.prazo ? item.prazo.split("T")[0].split("-").reverse().join("/") : "—";
-      return `<div class="plano-row" style="background:${idx % 2 === 0 ? "#fff" : "#faf5ff"};border-top:1px solid #f1f5f9;">
-        <span style="color:#334155;">${item.acao_proposta}</span>
-        <span style="color:#64748b;">${item.responsavel || "—"}</span>
-        <span style="${prazoStyle}">${prazoFmt}</span>
-        <span><span style="padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;${statusBg}">${item.status_acao || "—"}</span></span>
-      </div>`;
-    }).join("")}
-  </div>
-  ` : ""}
-</div>
-` : ""}
-
-<!-- ══ 6 — AÇÕES REALIZADAS PELA VOXX NO PERÍODO (paginável — histórico completo) ══ -->
-<div class="section-paginable">
-  <div class="section-title">🚀 Ações realizadas pela Voxx no período</div>
-  ${acoesHistoricoMes.length > 0 ? `
-  ${acoesHistoricoMes.map(a => {
-    const dataFmtAcao = (() => {
-      if (!a.data) return "—";
-      try { return new Date(a.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }); }
-      catch { return "—"; }
-    })();
-    return `<div class="acao-voxx-item">
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:3px;">
-        <div class="acao-voxx-tipo">${a.tipo}</div>
-        <div class="acao-voxx-data">${dataFmtAcao}</div>
-      </div>
-      <div class="acao-voxx-desc">${a.descricao}</div>
-      ${a.detalhe ? `<div class="acao-voxx-detalhe">${a.detalhe}</div>` : ""}
-      <div class="acao-voxx-resp">Responsável: ${a.responsavel}</div>
-    </div>`;
-  }).join("")}
-  ` : `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;"><p style="font-size:13px;color:#475569;line-height:1.8;">${acoesVoxxTexto}</p></div>`}
+  <a href="https://portal-voxx.com/" class="portal-final-btn">ACESSAR<br/>PORTAL VOXX</a>
 </div>
 
-<!-- ══ 7 — PRÓXIMOS PASSOS (seção curta, não quebra) ══ -->
-<div class="section-fixed" style="margin-bottom:28px;">
-  <div class="section-title">➡️ Próximos Passos</div>
-  <div class="steps-list">
-    ${proxPassosTexto.split("\n").map(s => s.trim()).filter(Boolean).map(s => `<p>${s}</p>`).join("")}
+</div><!-- /body -->
+
+<!-- ══ 9. RODAPÉ PROFISSIONAL ══ -->
+<div class="footer">
+  <div>
+    <div class="footer-brand">Portal Voxx</div>
+    <div class="footer-sub">Relatório executivo gerado automaticamente</div>
   </div>
+  <div class="footer-date">${dataFmt} às ${format(new Date(), "HH:mm")}</div>
 </div>
 
-</div>
 </body>
 </html>`;
 
