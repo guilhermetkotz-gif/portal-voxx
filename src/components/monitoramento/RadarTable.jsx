@@ -94,28 +94,42 @@ export default function RadarTable({
                   </div>
                 </TableCell>
                 <TableCell className="text-center">
-                  <div className="flex items-center justify-center">
-                    <div className={cn(
-                      "w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg",
-                      row.radarScore < 40 ? "bg-red-100 text-red-700" :
-                      row.radarScore < 60 ? "bg-orange-100 text-orange-700" :
-                      row.radarScore < 80 ? "bg-yellow-100 text-yellow-700" :
-                      "bg-green-100 text-green-700"
-                    )}>
-                      {row.radarScore}
+                  {row.investimentoDiario === 0 ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <AlertCircle className="w-5 h-5 text-slate-400" />
+                      <p className="text-xs text-slate-500">Sem investimento</p>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <div className={cn(
+                        "w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg",
+                        row.radarScore < 40 ? "bg-red-100 text-red-700" :
+                        row.radarScore < 60 ? "bg-orange-100 text-orange-700" :
+                        row.radarScore < 80 ? "bg-yellow-100 text-yellow-700" :
+                        "bg-green-100 text-green-700"
+                      )}>
+                        {row.radarScore}
+                      </div>
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell className="text-center">
-                  <Badge className={cn(
-                    "text-sm font-semibold",
-                    row.prioridade === 'critica' ? "bg-red-100 text-red-800" :
-                    row.prioridade === 'alta' ? "bg-orange-100 text-orange-800" :
-                    row.prioridade === 'media' ? "bg-yellow-100 text-yellow-800" :
-                    "bg-green-100 text-green-800"
-                  )}>
-                    {row.prioridadeLabel}
-                  </Badge>
+                  {row.investimentoDiario === 0 ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <AlertCircle className="w-4 h-4 text-slate-400" />
+                      <p className="text-xs text-slate-500">Sem investimento</p>
+                    </div>
+                  ) : (
+                    <Badge className={cn(
+                      "text-sm font-semibold",
+                      row.prioridade === 'critica' ? "bg-red-100 text-red-800" :
+                      row.prioridade === 'alta' ? "bg-orange-100 text-orange-800" :
+                      row.prioridade === 'media' ? "bg-yellow-100 text-yellow-800" :
+                      "bg-green-100 text-green-800"
+                    )}>
+                      {row.prioridadeLabel}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-right font-bold text-lg">
                   {Math.round(row.leadsOntem)}
