@@ -169,8 +169,8 @@ Deno.serve(async (req) => {
             const ontem = ontemProcessed[accountName] || { cpl: null, leads: null, ctr: null, frequency: null, amountSpent: null, impressions: null };
             const seteDias = seteDiasProcessed[accountName] || { cpl: null, leads: null, ctr: null, frequency: null, amountSpent: null, impressions: null };
 
-            // Calculate 7-day daily average (null-safe)
-            const leads7dMediaDia = seteDias.leads != null && seteDias.leads > 0 ? seteDias.leads / 7 : null;
+            // Calculate 7-day daily average using CADASTROS + WHATS / 7 (null-safe)
+            const leads7dMediaDia = seteDias.leads != null ? seteDias.leads / 7 : null;
 
             // Calculate deltas (null-safe)
             let variacaoCPL = null;
