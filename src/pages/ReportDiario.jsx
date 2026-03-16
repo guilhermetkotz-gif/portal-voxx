@@ -348,6 +348,10 @@ export default function ReportDiario({ user }) {
           meta={getMetaCliente(reportAberto.cliente)}
           radar={getRadarCliente(reportAberto.cliente)}
           google={getGoogleCliente(reportAberto.cliente)}
+          otimizacoes={otimizacoesMeta.filter((o) => {
+            const metaConta = getMetaCliente(reportAberto.cliente);
+            return metaConta && (o.account_name || "").toLowerCase() === (metaConta.account_name || "").toLowerCase();
+          })}
           user={user}
           onClose={() => setReportAberto(null)}
           onSave={(patch) => {
