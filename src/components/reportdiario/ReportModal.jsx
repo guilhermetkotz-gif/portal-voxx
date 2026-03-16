@@ -652,19 +652,63 @@ ${plano ? `
           {plano && (
             <div className="rounded-xl border border-violet-100 bg-violet-50/30 p-4">
               <SectionHeader label="Bloco 5" title="Plano de Ação — Acompanhamento" />
-              <div className="grid grid-cols-4 gap-2 mb-2">
+
+              {/* Nome do plano e status */}
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span className="text-sm font-semibold text-violet-900">{plano.titulo_plano}</span>
+                <Badge className="bg-violet-100 text-violet-700 border-violet-200 text-xs">{plano.status_plano}</Badge>
+              </div>
+              {plano.objetivo_geral && (
+                <p className="text-xs text-slate-500 mb-3 leading-relaxed">{plano.objetivo_geral}</p>
+              )}
+
+              {/* KPIs resumidos */}
+              <div className="grid grid-cols-4 gap-2 mb-3">
                 <MetricBox label="Total" value={itensPlano.length} colorClass="text-slate-700" />
                 <MetricBox label="Andamento" value={itensAndamento.length} colorClass="text-blue-700" />
                 <MetricBox label="Concluídas" value={itensConcluidos.length} colorClass="text-green-700" />
                 <MetricBox label="Atraso" value={itensAtraso.length} colorClass={itensAtraso.length > 0 ? "text-red-700" : "text-slate-700"} />
               </div>
-              {itensAVencer.length > 0 && <p className="text-xs text-amber-600 mt-1">🕐 {itensAVencer.length} ação(ões) a vencer em breve</p>}
-              {itensAndamento.slice(0, 3).map((i) => (
-                <div key={i.id} className="flex items-center gap-2 text-xs text-violet-700 py-1 border-t border-violet-100 mt-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
-                  {i.acao_proposta}
+
+              {itensAVencer.length > 0 && (
+                <p className="text-xs text-amber-600 mb-2">🕐 {itensAVencer.length} ação(ões) com prazo a vencer em breve</p>
+              )}
+
+              {/* Tabela de ações */}
+              {itensPlano.length > 0 && (
+                <div className="border border-violet-100 rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-12 gap-0 bg-violet-100/60 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-violet-700">
+                    <span className="col-span-5">Ação</span>
+                    <span className="col-span-3">Responsável</span>
+                    <span className="col-span-2">Prazo</span>
+                    <span className="col-span-2">Status</span>
+                  </div>
+                  {itensPlano.map((item, idx) => {
+                    const indicador = calcularIndicadorPrazo(item.prazo, item.status_acao);
+                    const statusColor = {
+                      "Nova": "bg-slate-100 text-slate-600",
+                      "Em andamento": "bg-blue-100 text-blue-700",
+                      "Concluída": "bg-green-100 text-green-700",
+                    }[item.status_acao] || "bg-slate-100 text-slate-600";
+                    const prazoColor = indicador === "atraso" ? "text-red-600 font-semibold" : indicador === "a_vencer" ? "text-amber-600" : "text-slate-500";
+
+                    return (
+                      <div key={item.id} className={cn("grid grid-cols-12 gap-0 px-3 py-2 text-xs items-start", idx % 2 === 0 ? "bg-white" : "bg-violet-50/30")}>
+                        <span className="col-span-5 text-slate-700 leading-snug pr-2">{item.acao_proposta}</span>
+                        <span className="col-span-3 text-slate-500">{item.responsavel || "—"}</span>
+                        <span className={cn("col-span-2", prazoColor)}>
+                          {item.prazo ? format(parseISO(item.prazo), "dd/MM/yy") : "—"}
+                        </span>
+                        <span className="col-span-2">
+                          <span className={cn("px-1.5 py-0.5 rounded-full text-[10px] font-medium", statusColor)}>
+                            {item.status_acao || "—"}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
+              )}
             </div>
           )}
 
