@@ -89,7 +89,19 @@ Deno.serve(async (req) => {
 
         const parseNumber = (val) => {
             if (!val) return 0;
-            const str = typeof val === 'string' ? val.replace(/[R$\s]/g, '').replace(',', '.') : String(val);
+            if (typeof val === 'number') return val;
+            // Remove R$, spaces
+            let str = val.replace(/R\$\s*/g, '').trim();
+            // pt-BR format: "6.899,45" → remove dot (thousands), replace comma with dot
+            if (/\d+\.\d{3},\d{2}/.test(str)) {
+                str = str.replace(/\./g, '').replace(',', '.');
+            } else if (/^\d+,\d+$/.test(str)) {
+                // "23,96" → "23.96"
+                str = str.replace(',', '.');
+            } else {
+                // fallback: remove commas
+                str = str.replace(/,/g, '');
+            }
             const num = parseFloat(str);
             return isNaN(num) ? 0 : num;
         };
