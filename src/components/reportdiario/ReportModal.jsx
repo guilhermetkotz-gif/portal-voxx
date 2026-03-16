@@ -455,7 +455,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
     <div class="kpi-context">Meta Ads</div>
   </div>
   <div class="kpi-card">
-    <div class="kpi-value">R$ ${fmtBrl0(totalInvest)}</div>
+    <div class="kpi-value">R$ ${fmtBrl(totalInvest)}</div>
     <div class="kpi-label">Investimento em Mídia</div>
     <div class="kpi-context">Meta + Google</div>
   </div>
