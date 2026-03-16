@@ -633,7 +633,7 @@ ${plano ? `
             </div>
           )}
 
-          {/* ── BLOCO 2b: META ADS — ONTEM ── */}
+          {/* ── META ADS ONTEM ── */}
           {radar && (
             <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-4">
               <SectionHeader label="Bloco 2 · Ontem" title="Meta Ads — Ontem" />
