@@ -636,7 +636,7 @@ ${plano ? `
           {/* ── META ADS ONTEM ── */}
           {radar && (
             <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-4">
-              <SectionHeader label="Bloco 2 · Ontem" title="Meta Ads — Ontem" />
+              <SectionHeader label="2 · Radar" title="Meta Ads — Ontem" />
               <div className="grid grid-cols-3 gap-2 mb-2">
                 <MetricBox label="Leads ontem" value={radar.leads_ontem ?? "—"} colorClass="text-green-700" />
                 <MetricBox label="Inv. diário" value={radar.amount_spent_ontem != null ? `R$ ${(radar.amount_spent_ontem).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"} />
