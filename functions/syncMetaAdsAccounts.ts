@@ -83,6 +83,8 @@ Deno.serve(async (req) => {
         const newMessagingConnectionsIdx = getColIndex('new_messaging_connections');
         const custoEngajamentoIdx = getColIndex('custo_engajamento');
         const leadsRepetidosIdx = getColIndex('leads_repetidos');
+        const leadsIdx = getColIndex('leads');
+        const cadastrosWhatsIdx = getColIndex('cadastros_whats');
         const notaGPTIdx = getColIndex('nota_gpt');
         
         console.log('Column indices:', { accountNameIdx, amountSpentIdx, frequencyIdx, notaGPTIdx });
@@ -182,6 +184,8 @@ Deno.serve(async (req) => {
                 new_messaging_connections: parseNumber(row[newMessagingConnectionsIdx]),
                 custo_engajamento: parseNumber(row[custoEngajamentoIdx]),
                 leads_repetidos_percent: leadsRepetidos,
+                leads: parseNumber(row[leadsIdx]),
+                cadastros_whats: parseNumber(row[cadastrosWhatsIdx]),
                 nota_gpt: notaGPT,
                 classificacao,
                 prioridade,
