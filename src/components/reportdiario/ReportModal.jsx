@@ -58,6 +58,13 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
   // mantido para compatibilidade com textos automáticos
   const demandasExecucao = demandasCliente.filter((d) => d.status === "em_execucao");
 
+  // Otimizações do mês atual
+  const otimizacoesMes = otimizacoes.filter((o) => {
+    if (!o.data_acao) return false;
+    const dt = new Date(o.data_acao);
+    return dt.getMonth() === mesAtual && dt.getFullYear() === anoAtual;
+  });
+
   const itensPlano = plano ? planoItens.filter((i) => i.plano_id === plano.id) : [];
   const itensAndamento = itensPlano.filter((i) => i.status_acao === "Em andamento");
   const itensConcluidos = itensPlano.filter((i) => i.status_acao === "Concluída");
