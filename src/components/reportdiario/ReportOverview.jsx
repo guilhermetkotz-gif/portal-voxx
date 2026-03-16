@@ -380,8 +380,8 @@ ${sectionTitle("📝", "Resumo Automático")}
   const totalLeadsMeta = meta?.new_messaging_connections || meta?.messaging_conversations || 0;
   const totalConversoes = google?.conversions || 0;
   const totalLeads = totalLeadsMeta + totalConversoes;
-  const investMeta = meta?.amount_spent || 0;
-  const investGoogle = google?.cost || 0;
+  const investMeta = parseNum(meta?.amount_spent);
+  const investGoogle = parseNum(google?.cost);
   const totalInvest = investMeta + investGoogle;
   const cplMedio = totalLeads > 0 ? totalInvest / totalLeads : 0;
 
