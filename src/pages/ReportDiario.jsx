@@ -49,9 +49,9 @@ export default function ReportDiario({ user }) {
   });
 
   const { data: planosAtivos = [] } = useQuery({
-    queryKey: ["planosDeAcao"],
+    queryKey: ["planosDeAcaoReport"],
     queryFn: () => base44.entities.PlanoDeAcao.filter({ status_plano: "Em andamento" }, "-created_date", 200),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
   });
 
   const { data: contasMeta = [] } = useQuery({
@@ -73,9 +73,9 @@ export default function ReportDiario({ user }) {
   });
 
   const { data: planoItens = [] } = useQuery({
-    queryKey: ["planoItensAll"],
+    queryKey: ["planoItensAllReport"],
     queryFn: () => base44.entities.PlanoDeAcaoItem.list("-created_date", 1000),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
   });
 
   const { data: otimizacoesMeta = [] } = useQuery({
