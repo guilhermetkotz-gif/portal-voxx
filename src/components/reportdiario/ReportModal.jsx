@@ -228,11 +228,34 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
     const fmtBrl = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtBrl0 = (v) => (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-    const otimizacoesExibir = otimizacoesMes.slice(0, 3);
-    const demandasEmAndamentoExibir = demandasEmAndamento.slice(0, 3);
-    const demandasConcluidasExibir = demandasConcluidas.slice(0, 3);
-    const demandasAguardandoExibir = demandasAguardando.slice(0, 3);
-    const itensPlanoExibir = itensPlano.slice(0, 3);
+    // Monta a lista completa de ações realizadas no mês (histórico real)
+    const acoesHistoricoMes = [
+      ...otimizacoesMes.map(o => ({
+        data: o.data_acao,
+        tipo: "Otimização de campanha",
+        descricao: o.acoes_implementadas || o.resumo_acao || "Otimização aplicada.",
+        detalhe: o.objetivo ? `Impacto esperado: ${o.objetivo}` : null,
+        responsavel: "Equipe de Tráfego Voxx",
+      })),
+      ...demandasConcluidas.map(d => ({
+        data: d.updated_date,
+        tipo: "Entrega operacional",
+        descricao: d.titulo,
+        detalhe: d.descricao ? d.descricao.slice(0, 120) + (d.descricao.length > 120 ? "..." : "") : null,
+        responsavel: "Equipe Voxx",
+      })),
+      ...itensPlano.filter(i => i.status_acao === "Concluída").map(i => ({
+        data: i.updated_date || i.prazo,
+        tipo: "Ação do plano concluída",
+        descricao: i.acao_proposta,
+        detalhe: i.observacoes || null,
+        responsavel: i.responsavel || "Equipe Voxx",
+      })),
+    ].sort((a, b) => {
+      if (!a.data) return 1;
+      if (!b.data) return -1;
+      return new Date(b.data) - new Date(a.data);
+    });
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -240,47 +263,94 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
 <meta charset="UTF-8"/>
 <title>Report Diário Voxx — ${cliente.nome}</title>
 <style>
-  @page { margin: 0; size: A4; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #1e293b; font-size: 13px; line-height: 1.65; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .page { max-width: 780px; margin: 0 auto; padding-bottom: 40px; }
+  /* ── PAGINAÇÃO DINÂMICA ── */
+  @page {
+    size: A4;
+    margin: 14mm 12mm 18mm 12mm;
+  }
+  @page :first {
+    margin-top: 0;
+  }
 
-  /* ── CABEÇALHO ── */
-  .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%); color: #fff; padding: 36px 44px 32px; display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
-  .header-left {}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #fff;
+    color: #1e293b;
+    font-size: 13px;
+    line-height: 1.65;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  /* ── CABEÇALHO PRINCIPAL (apenas p1) ── */
+  .header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #334155 100%);
+    color: #fff;
+    padding: 32px 40px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    page-break-after: avoid;
+  }
   .header-brand { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; opacity: 0.45; margin-bottom: 8px; }
-  .header-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
-  .header-meta { margin-top: 14px; display: flex; flex-direction: column; gap: 4px; }
+  .header-title { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+  .header-meta { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
   .header-meta-row { font-size: 12px; opacity: 0.75; }
   .header-meta-row strong { opacity: 1; }
-  .portal-btn { background: linear-gradient(135deg, #16a34a, #15803d); border-radius: 12px; padding: 14px 18px; text-align: center; text-decoration: none; display: block; min-width: 200px; flex-shrink: 0; }
-  .portal-btn-icon { font-size: 20px; margin-bottom: 4px; }
-  .portal-btn-main { font-size: 13px; font-weight: 800; color: #fff; display: block; letter-spacing: 0.2px; }
+  .portal-btn { background: linear-gradient(135deg, #16a34a, #15803d); border-radius: 12px; padding: 14px 18px; text-align: center; text-decoration: none; display: block; min-width: 190px; flex-shrink: 0; }
+  .portal-btn-icon { font-size: 18px; margin-bottom: 4px; }
+  .portal-btn-main { font-size: 13px; font-weight: 800; color: #fff; display: block; }
   .portal-btn-sub { font-size: 10px; color: rgba(255,255,255,0.75); display: block; margin-top: 3px; line-height: 1.4; }
 
-  /* ── SEÇÕES ── */
-  .section { padding: 24px 44px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; }
-  .section:last-child { border-bottom: none; }
-  .section-title { font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-  .section-title-icon { font-size: 15px; }
+  /* ── CABEÇALHO SIMPLIFICADO (páginas 2+) ── */
+  .mini-header {
+    display: none;
+    background: #0f172a;
+    color: #fff;
+    padding: 8px 40px;
+    font-size: 10px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+  }
+  .mini-header-brand { font-weight: 700; letter-spacing: 1px; opacity: 0.8; }
+  .mini-header-cliente { opacity: 0.65; }
+
+  /* ── SEÇÕES PAGINADAS ── */
+  /* Seções curtas — não quebrar */
+  .section-fixed { padding: 20px 40px; border-bottom: 1px solid #f1f5f9; page-break-inside: avoid; }
+  /* Seções longas — podem ser divididas entre páginas */
+  .section-paginable { padding: 20px 40px; border-bottom: 1px solid #f1f5f9; }
+  .section:last-child, .section-fixed:last-child, .section-paginable:last-child { border-bottom: none; }
+
+  .section-title {
+    font-size: 15px; font-weight: 800; color: #0f172a;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+    /* título nunca fica sozinho no final da página */
+    page-break-after: avoid;
+  }
 
   /* ── TEXTO ── */
   .texto { font-size: 13px; color: #475569; line-height: 1.8; margin-bottom: 12px; }
 
   /* ── BOXES ── */
-  .box-destaque { border-left: 3px solid #22c55e; background: #f0fdf4; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; }
+  .box-destaque { border-left: 3px solid #22c55e; background: #f0fdf4; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; page-break-inside: avoid; }
   .box-destaque-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #16a34a; margin-bottom: 3px; }
   .box-destaque-text { font-size: 12px; color: #166534; line-height: 1.6; }
-  .box-atencao { border-left: 3px solid #f59e0b; background: #fffbeb; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; }
+  .box-atencao { border-left: 3px solid #f59e0b; background: #fffbeb; padding: 10px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; page-break-inside: avoid; }
   .box-atencao-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #b45309; margin-bottom: 3px; }
   .box-atencao-text { font-size: 12px; color: #92400e; line-height: 1.6; }
 
-  /* ── METRICS ── */
-  .metrics-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-  .metrics-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
-  .metrics-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+  /* ── METRICS (nunca quebrar) ── */
+  .metrics-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; page-break-inside: avoid; }
+  .metrics-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; page-break-inside: avoid; }
+  .metrics-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; page-break-inside: avoid; }
   .metric-card { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; text-align: center; }
-  .metric-value { font-size: 18px; font-weight: 800; color: #1e293b; line-height: 1; }
+  .metric-value { font-size: 17px; font-weight: 800; color: #1e293b; line-height: 1; }
   .metric-label { font-size: 10px; color: #64748b; margin-top: 4px; }
   .metric-card.green .metric-value { color: #16a34a; }
   .metric-card.amber .metric-value { color: #d97706; }
@@ -289,7 +359,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
   .metric-card.violet .metric-value { color: #7c3aed; }
 
   /* ── PLATAFORMA HEADER ── */
-  .plataforma-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; }
+  .plataforma-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: 8px; page-break-inside: avoid; }
   .plataforma-header.meta { background: #eff6ff; }
   .plataforma-header.google { background: #faf5ff; }
   .plataforma-header-name { font-size: 13px; font-weight: 800; }
@@ -304,66 +374,91 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
   .badge-blue { background: #dbeafe; color: #1d4ed8; }
   .badge-slate { background: #f1f5f9; color: #475569; }
 
-  /* ── DEMANDAS ── */
-  .demanda-item { padding: 10px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 6px; }
+  /* ── DEMANDAS — cada item evita quebrar no meio ── */
+  .demanda-item { padding: 10px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 6px; page-break-inside: avoid; }
   .demanda-titulo { font-size: 12px; font-weight: 600; color: #1e293b; margin-bottom: 3px; }
   .demanda-meta { font-size: 10px; color: #64748b; }
 
-  /* ── OTIMIZAÇÕES ── */
-  .otimizacao-item { padding: 12px 14px; border-radius: 8px; border: 1px solid #fed7aa; background: #fff7ed; margin-bottom: 8px; }
+  /* ── OTIMIZAÇÕES — cada item evita quebrar no meio ── */
+  .otimizacao-item { padding: 12px 14px; border-radius: 8px; border: 1px solid #fed7aa; background: #fff7ed; margin-bottom: 8px; page-break-inside: avoid; }
   .otimizacao-data { font-size: 10px; font-weight: 700; color: #c2410c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
   .otimizacao-acao { font-size: 12px; color: #431407; line-height: 1.5; }
   .otimizacao-impacto { font-size: 11px; color: #9a3412; margin-top: 4px; font-style: italic; }
 
-  /* ── PLANO ── */
-  .plano-item { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: start; padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; font-size: 11px; }
-  .plano-item:nth-child(even) { background: #faf5ff; }
-  .plano-acao { color: #334155; }
-  .plano-responsavel { color: #64748b; white-space: nowrap; }
-  .plano-prazo { white-space: nowrap; }
-  .plano-prazo.atraso { color: #dc2626; font-weight: 700; }
-  .plano-prazo.a_vencer { color: #d97706; }
-  .plano-prazo.ok { color: #64748b; }
+  /* ── AÇÃO HISTÓRICO VOXX — cada item evita quebrar no meio ── */
+  .acao-voxx-item { padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; margin-bottom: 8px; page-break-inside: avoid; }
+  .acao-voxx-tipo { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #6366f1; margin-bottom: 3px; }
+  .acao-voxx-data { font-size: 10px; color: #64748b; float: right; }
+  .acao-voxx-desc { font-size: 12px; color: #1e293b; font-weight: 600; margin-bottom: 3px; }
+  .acao-voxx-detalhe { font-size: 11px; color: #64748b; line-height: 1.5; }
+  .acao-voxx-resp { font-size: 10px; color: #94a3b8; margin-top: 4px; }
+
+  /* ── PLANO — cada linha evita quebrar no meio ── */
+  .plano-row { display: grid; grid-template-columns: 1fr 110px 80px 90px; padding: 8px 10px; font-size: 11px; align-items: start; page-break-inside: avoid; }
+  .plano-row:nth-child(even) { background: #faf5ff; }
+  .plano-row:nth-child(odd) { background: #fff; }
 
   /* ── SUBSEÇÃO ── */
-  .sub-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; margin-top: 14px; }
+  .sub-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; margin-top: 14px; page-break-after: avoid; }
   .sub-label.green { color: #16a34a; }
   .sub-label.blue { color: #2563eb; }
   .sub-label.amber { color: #b45309; }
   .sub-label.violet { color: #7c3aed; }
 
-  /* ── AÇÕES VOXX ── */
-  .acoes-voxx-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; }
-  .acoes-voxx-box p { font-size: 13px; color: #475569; line-height: 1.8; }
-
   /* ── PRÓXIMOS PASSOS ── */
-  .steps-list p { font-size: 13px; color: #475569; margin-bottom: 7px; padding-left: 20px; position: relative; line-height: 1.6; }
+  .steps-list p { font-size: 13px; color: #475569; margin-bottom: 7px; padding-left: 20px; position: relative; line-height: 1.6; page-break-inside: avoid; }
   .steps-list p::before { content: "→"; position: absolute; left: 0; color: #7c3aed; font-weight: 700; }
 
   /* ── SEPARADOR ── */
   .divider { height: 1px; background: #f1f5f9; margin: 14px 0; }
 
-  /* ── RODAPÉ ── */
-  .footer { background: #f8fafc; border-top: 2px solid #e2e8f0; padding: 14px 44px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-  .footer-brand { font-size: 12px; font-weight: 700; color: #475569; }
-  .footer-sub { font-size: 10px; color: #94a3b8; margin-top: 2px; }
-  .footer-date { font-size: 10px; color: #94a3b8; text-align: right; }
+  /* ── RODAPÉ FIXO EM TODAS AS PÁGINAS ── */
+  .footer-fixed {
+    position: fixed;
+    bottom: 0;
+    left: 0; right: 0;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    padding: 7px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: #94a3b8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .footer-brand { font-weight: 700; color: #475569; }
 
   @media print {
-    @page { margin: 0; }
+    @page {
+      size: A4;
+      margin: 14mm 12mm 18mm 12mm;
+    }
+    @page :first {
+      margin-top: 0;
+    }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .page { max-width: 100%; }
-    .section { page-break-inside: avoid; }
-    .header, .footer { -webkit-print-color-adjust: exact; }
+    .footer-fixed { position: fixed; bottom: 0; }
+    /* Mostrar mini-header nas páginas 2+ via CSS counters não é possível,
+       mas o rodapé fixo garante info em todas as páginas */
   }
 </style>
 </head>
 <body>
 <div class="page">
 
-<!-- ══ CABEÇALHO EDITORIAL ══ -->
+<!-- ══ RODAPÉ FIXO (todas as páginas) ══ -->
+<div class="footer-fixed">
+  <span class="footer-brand">Portal Voxx</span>
+  <span>${cliente.nome} · ${dataFmt}</span>
+  <span>Gerado em ${dataGeracao}</span>
+</div>
+
+<!-- ══ CABEÇALHO EDITORIAL (p1) ══ -->
 <div class="header">
-  <div class="header-left">
+  <div>
     <div class="header-brand">Portal Voxx · Relatório Executivo</div>
     <div class="header-title">Report Diário Voxx</div>
     <div class="header-meta">
@@ -379,9 +474,9 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
   </a>
 </div>
 
-<!-- ══ 1 — RESUMO EXECUTIVO ══ -->
-<div class="section">
-  <div class="section-title"><span class="section-title-icon">📋</span> Resumo Executivo</div>
+<!-- ══ 1 — RESUMO EXECUTIVO (seção curta, não quebra) ══ -->
+<div class="section-fixed">
+  <div class="section-title">📋 Resumo Executivo</div>
   <p class="texto">${resumoExecutivo}</p>
   <div class="box-destaque">
     <div class="box-destaque-label">✅ Destaque positivo do dia</div>
@@ -393,13 +488,13 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
   </div>
 </div>
 
-<!-- ══ 2 — PERFORMANCE DE MÍDIA ══ -->
-<div class="section">
-  <div class="section-title"><span class="section-title-icon">📈</span> Performance de Mídia</div>
+<!-- ══ 2 — PERFORMANCE DE MÍDIA (seção curta, não quebra) ══ -->
+<div class="section-fixed">
+  <div class="section-title">📈 Performance de Mídia</div>
 
   ${meta ? `
   <div class="plataforma-header meta">
-    <span style="font-size:16px;">🎯</span>
+    <span style="font-size:15px;">🎯</span>
     <span class="plataforma-header-name">Meta Ads</span>
     <span class="badge ${metaClassBadge(meta.classificacao)}" style="margin-left:auto;">${meta.classificacao || "—"}</span>
   </div>
@@ -413,7 +508,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
     <div class="metric-card"><div class="metric-value">${meta.nota_gpt ? meta.nota_gpt + "/100" : "—"}</div><div class="metric-label">Nota GPT</div></div>
     <div class="metric-card ${meta.leads_repetidos_percent && meta.leads_repetidos_percent > 25 ? "amber" : ""}"><div class="metric-value">${meta.leads_repetidos_percent ? meta.leads_repetidos_percent.toFixed(0) + "%" : "—"}</div><div class="metric-label">Leads repetidos</div></div>
   </div>
-  ${meta.main_issue ? `<p style="font-size:11px;color:#dc2626;background:#fef2f2;padding:7px 12px;border-radius:6px;margin-top:4px;">⚡ ${meta.main_issue}</p>` : ""}
+  ${meta.main_issue ? `<p style="font-size:11px;color:#dc2626;background:#fef2f2;padding:7px 12px;border-radius:6px;margin-top:4px;page-break-inside:avoid;">⚡ ${meta.main_issue}</p>` : ""}
   ` : `<p class="texto" style="color:#94a3b8;font-style:italic;margin-bottom:12px;">Dados de Meta Ads não vinculados a este cliente no momento.</p>`}
 
   ${radar ? `
@@ -430,7 +525,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
 
   ${google ? `
   <div class="plataforma-header google">
-    <span style="font-size:16px;">🔍</span>
+    <span style="font-size:15px;">🔍</span>
     <span class="plataforma-header-name">Google Ads</span>
     ${google.health_status ? `<span class="badge ${googleStatusBadge(google.health_status)}" style="margin-left:auto;">${google.health_status}</span>` : ""}
   </div>
@@ -447,58 +542,57 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
   ` : `<p class="texto" style="color:#94a3b8;font-style:italic;">Dados de Google Ads não vinculados a este cliente no momento.</p>`}
 </div>
 
-<!-- ══ 3 — DEMANDAS E EXECUÇÃO ══ -->
-<div class="section">
-  <div class="section-title"><span class="section-title-icon">⚙️</span> Demandas e Execução</div>
+<!-- ══ 3 — DEMANDAS E EXECUÇÃO (paginável — lista longa) ══ -->
+<div class="section-paginable">
+  <div class="section-title">⚙️ Demandas e Execução</div>
   <div class="metrics-2" style="margin-bottom:16px;">
     <div class="metric-card blue"><div class="metric-value">${demandasEmAndamento.length}</div><div class="metric-label">Em andamento</div></div>
     <div class="metric-card green"><div class="metric-value">${demandasConcluidas.length}</div><div class="metric-label">Concluídas</div></div>
   </div>
 
-  ${demandasConcluidasExibir.length > 0 ? `
-  <div class="sub-label green">✅ Demandas concluídas</div>
-  ${demandasConcluidasExibir.map(d => `
+  ${demandasConcluidas.length > 0 ? `
+  <div class="sub-label green">✅ Demandas concluídas (${demandasConcluidas.length})</div>
+  ${demandasConcluidas.map(d => `
   <div class="demanda-item" style="border-color:#bbf7d0;background:#f0fdf4;">
     <div class="demanda-titulo">${d.titulo}</div>
     <div class="demanda-meta">Status: <span style="color:#16a34a;font-weight:700;">Concluída</span> · Responsável: Voxx</div>
   </div>`).join("")}` : ""}
 
-  ${demandasEmAndamentoExibir.length > 0 ? `
-  <div class="sub-label blue">🔄 Demandas em andamento</div>
-  ${demandasEmAndamentoExibir.map(d => `
+  ${demandasEmAndamento.length > 0 ? `
+  <div class="sub-label blue">🔄 Demandas em andamento (${demandasEmAndamento.length})</div>
+  ${demandasEmAndamento.map(d => `
   <div class="demanda-item">
     <div class="demanda-titulo">${d.titulo}</div>
     <div class="demanda-meta">Status: <span style="color:#2563eb;font-weight:700;">${statusDemandaLabel[d.status] || d.status}</span> · Responsável: Voxx</div>
   </div>`).join("")}` : ""}
 
-  ${demandasAguardandoExibir.length > 0 ? `
-  <div class="sub-label amber">⏳ Aguardando cliente</div>
-  ${demandasAguardandoExibir.map(d => `
+  ${demandasAguardando.length > 0 ? `
+  <div class="sub-label amber">⏳ Aguardando cliente (${demandasAguardando.length})</div>
+  ${demandasAguardando.map(d => `
   <div class="demanda-item" style="border-color:#fde68a;background:#fffbeb;">
     <div class="demanda-titulo">${d.titulo}</div>
     <div class="demanda-meta">Aguardando retorno do cliente para prosseguimento.</div>
   </div>`).join("")}` : ""}
 </div>
 
-${otimizacoesExibir.length > 0 ? `
-<!-- ══ OTIMIZAÇÕES APLICADAS ══ -->
-<div class="section">
-  <div class="section-title"><span class="section-title-icon">🔧</span> Otimizações aplicadas no período</div>
-  ${otimizacoesExibir.map(o => `
+${otimizacoesMes.length > 0 ? `
+<!-- ══ 4 — OTIMIZAÇÕES APLICADAS (paginável) ══ -->
+<div class="section-paginable">
+  <div class="section-title">🔧 Otimizações aplicadas no período (${otimizacoesMes.length})</div>
+  ${otimizacoesMes.map(o => `
   <div class="otimizacao-item">
     <div class="otimizacao-data">${o.data_acao ? o.data_acao.split("T")[0].split("-").reverse().join("/") : "—"} — ${o.problema || "Otimização de campanha"}</div>
     <div class="otimizacao-acao"><strong>Ação:</strong> ${o.acoes_implementadas || o.resumo_acao || "—"}</div>
     ${o.objetivo ? `<div class="otimizacao-impacto">Impacto esperado: ${o.objetivo}</div>` : ""}
   </div>`).join("")}
-  ${otimizacoesMes.length > 3 ? `<p style="font-size:10px;color:#94a3b8;margin-top:8px;">+ ${otimizacoesMes.length - 3} otimizações adicionais disponíveis no Portal Voxx.</p>` : ""}
 </div>
 ` : ""}
 
 ${plano ? `
-<!-- ══ 4 — PLANO DE AÇÃO ══ -->
-<div class="section">
-  <div class="section-title"><span class="section-title-icon">📋</span> Plano de Ação</div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+<!-- ══ 5 — PLANO DE AÇÃO (paginável) ══ -->
+<div class="section-paginable">
+  <div class="section-title">📋 Plano de Ação</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;page-break-inside:avoid;">
     <span style="font-size:13px;font-weight:700;color:#4c1d95;">${plano.titulo_plano}</span>
     <span class="badge badge-yellow">${plano.status_plano}</span>
   </div>
@@ -509,21 +603,21 @@ ${plano ? `
     <div class="metric-card green"><div class="metric-value">${itensConcluidos.length}</div><div class="metric-label">Concluídas</div></div>
     <div class="metric-card ${itensAtraso.length > 0 ? "red" : ""}"><div class="metric-value">${itensAtraso.length}</div><div class="metric-label">Em atraso</div></div>
   </div>
-  ${itensAVencer.length > 0 ? `<p style="font-size:11px;color:#d97706;background:#fffbeb;padding:6px 10px;border-radius:6px;margin-bottom:12px;">🕐 ${itensAVencer.length} ação(ões) com prazo a vencer em breve</p>` : ""}
-  ${itensPlanoExibir.length > 0 ? `
+  ${itensAVencer.length > 0 ? `<p style="font-size:11px;color:#d97706;background:#fffbeb;padding:6px 10px;border-radius:6px;margin-bottom:12px;page-break-inside:avoid;">🕐 ${itensAVencer.length} ação(ões) com prazo a vencer em breve</p>` : ""}
+  ${itensPlano.length > 0 ? `
   <div style="border:1px solid #ede9fe;border-radius:8px;overflow:hidden;">
-    <div style="display:grid;grid-template-columns:1fr 110px 80px 90px;background:#ede9fe;padding:7px 10px;">
+    <div style="display:grid;grid-template-columns:1fr 110px 80px 90px;background:#ede9fe;padding:7px 10px;page-break-after:avoid;">
       <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Ação</span>
       <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Responsável</span>
       <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Prazo</span>
       <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#5b21b6;">Status</span>
     </div>
-    ${itensPlanoExibir.map((item, idx) => {
+    ${itensPlano.map((item, idx) => {
       const ind = calcularIndicadorPrazo(item.prazo, item.status_acao);
       const prazoStyle = ind === "atraso" ? "color:#dc2626;font-weight:700;" : ind === "a_vencer" ? "color:#d97706;" : "color:#64748b;";
       const statusBg = item.status_acao === "Concluída" ? "background:#dcfce7;color:#166534;" : item.status_acao === "Em andamento" ? "background:#dbeafe;color:#1d4ed8;" : "background:#f1f5f9;color:#475569;";
       const prazoFmt = item.prazo ? item.prazo.split("T")[0].split("-").reverse().join("/") : "—";
-      return `<div style="display:grid;grid-template-columns:1fr 110px 80px 90px;padding:8px 10px;background:${idx % 2 === 0 ? "#fff" : "#faf5ff"};border-top:1px solid #f1f5f9;font-size:11px;align-items:start;">
+      return `<div class="plano-row" style="background:${idx % 2 === 0 ? "#fff" : "#faf5ff"};border-top:1px solid #f1f5f9;">
         <span style="color:#334155;">${item.acao_proposta}</span>
         <span style="color:#64748b;">${item.responsavel || "—"}</span>
         <span style="${prazoStyle}">${prazoFmt}</span>
@@ -531,34 +625,39 @@ ${plano ? `
       </div>`;
     }).join("")}
   </div>
-  ${itensPlano.length > 3 ? `<p style="font-size:10px;color:#94a3b8;margin-top:8px;">+ ${itensPlano.length - 3} ações adicionais disponíveis no Portal Voxx.</p>` : ""}
   ` : ""}
 </div>
 ` : ""}
 
-<!-- ══ 5 — AÇÕES REALIZADAS PELA VOXX ══ -->
-<div class="section">
-  <div class="section-title"><span class="section-title-icon">🚀</span> Ações realizadas pela Voxx</div>
-  <div class="acoes-voxx-box">
-    <p>${acoesVoxxTexto}</p>
-  </div>
+<!-- ══ 6 — AÇÕES REALIZADAS PELA VOXX NO PERÍODO (paginável — histórico completo) ══ -->
+<div class="section-paginable">
+  <div class="section-title">🚀 Ações realizadas pela Voxx no período</div>
+  ${acoesHistoricoMes.length > 0 ? `
+  ${acoesHistoricoMes.map(a => {
+    const dataFmtAcao = (() => {
+      if (!a.data) return "—";
+      try { return new Date(a.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }); }
+      catch { return "—"; }
+    })();
+    return `<div class="acao-voxx-item">
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;margin-bottom:3px;">
+        <div class="acao-voxx-tipo">${a.tipo}</div>
+        <div class="acao-voxx-data">${dataFmtAcao}</div>
+      </div>
+      <div class="acao-voxx-desc">${a.descricao}</div>
+      ${a.detalhe ? `<div class="acao-voxx-detalhe">${a.detalhe}</div>` : ""}
+      <div class="acao-voxx-resp">Responsável: ${a.responsavel}</div>
+    </div>`;
+  }).join("")}
+  ` : `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;"><p style="font-size:13px;color:#475569;line-height:1.8;">${acoesVoxxTexto}</p></div>`}
 </div>
 
-<!-- ══ 6 — PRÓXIMOS PASSOS ══ -->
-<div class="section">
-  <div class="section-title"><span class="section-title-icon">➡️</span> Próximos Passos</div>
+<!-- ══ 7 — PRÓXIMOS PASSOS (seção curta, não quebra) ══ -->
+<div class="section-fixed" style="margin-bottom:28px;">
+  <div class="section-title">➡️ Próximos Passos</div>
   <div class="steps-list">
     ${proxPassosTexto.split("\n").map(s => s.trim()).filter(Boolean).map(s => `<p>${s}</p>`).join("")}
   </div>
-</div>
-
-<!-- ══ RODAPÉ ══ -->
-<div class="footer">
-  <div>
-    <div class="footer-brand">Portal Voxx</div>
-    <div class="footer-sub">Relatório gerado automaticamente</div>
-  </div>
-  <div class="footer-date">${dataGeracao}</div>
 </div>
 
 </div>
