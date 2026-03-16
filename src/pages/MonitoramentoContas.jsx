@@ -1042,6 +1042,8 @@ export default function MonitoramentoContas({ user }) {
                                     <TableHead className="text-right">Investido</TableHead>
                                     <TableHead className="text-right">Conversas</TableHead>
                                     <TableHead className="text-right">Conexões</TableHead>
+                                    <TableHead className="text-right">CADASTROS</TableHead>
+                                    <TableHead className="text-right">CADASTROS + WHATS</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -1097,7 +1099,13 @@ export default function MonitoramentoContas({ user }) {
                                         <TableCell className="text-right font-medium">
                                             {account.new_messaging_connections?.toFixed?.(0) || account.new_messaging_connections || 0}
                                         </TableCell>
-                                    </TableRow>
+                                        <TableCell className="text-right font-medium">
+                                            {account.leads?.toFixed?.(0) || account.leads || 0}
+                                        </TableCell>
+                                        <TableCell className="text-right font-medium">
+                                            {account.cadastros_whats?.toFixed?.(0) || account.cadastros_whats || 0}
+                                        </TableCell>
+                                        </TableRow>
                                 ))}
                             </TableBody>
                         </Table>
