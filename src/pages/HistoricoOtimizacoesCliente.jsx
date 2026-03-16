@@ -13,25 +13,27 @@ export default function HistoricoOtimizacoesCliente() {
     const navigate = useNavigate();
     const urlParams = new URLSearchParams(window.location.search);
     const contaId = urlParams.get('conta_id');
+    const contaName = urlParams.get('conta_name');
 
     const { data: conta, isLoading: loadingConta } = useQuery({
-        queryKey: ['contaMetaAds', contaId],
+        queryKey: ['contaMetaAds', contaId, contaName],
         queryFn: async () => {
             const contas = await base44.entities.ContaMetaAds.list('-updated_date', 500);
-            return contas.find(c => c.id === contaId);
+            // Busca por account_name (prioritário) ou por id
+            return contas.find(c => contaName ? c.account_name === contaName : c.id === contaId);
         },
-        enabled: !!contaId,
+        enabled: !!(contaId || contaName),
         staleTime: 2 * 60 * 1000
     });
 
     const { data: otimizacoes = [], isLoading: loadingOtimizacoes } = useQuery({
-        queryKey: ['metaAdsOtimizacoes', contaId],
+        queryKey: ['metaAdsOtimizacoes', contaName || contaId],
         queryFn: () => base44.entities.MetaAdsOtimizacao.filter(
-            { conta_meta_ads_id: contaId },
+            { account_name: conta?.account_name },
             '-data_acao',
             500
         ),
-        enabled: !!contaId,
+        enabled: !!conta?.account_name,
         staleTime: 60 * 1000
     });
 

@@ -29,7 +29,7 @@ export default function ListaHistoricoOtimizacoes() {
     // Agrupar otimizações por conta e pegar a última
     const contasComOtimizacoes = contas.map(conta => {
         const otimizacoesConta = todasOtimizacoes.filter(
-            o => o.conta_meta_ads_id === conta.id
+            o => o.account_name === conta.account_name
         );
         
         const ultimaOtimizacao = otimizacoesConta.length > 0 ? otimizacoesConta[0] : null;
