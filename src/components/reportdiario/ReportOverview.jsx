@@ -432,9 +432,9 @@ ${sectionTitle("📝", "Resumo Automático")}
             <Button
               size="sm"
               className="mt-3 bg-violet-600 hover:bg-violet-700 text-white"
-              onClick={onAbrirModal}
+              onClick={handleGerarPDFOverview}
             >
-              <FileText className="w-3.5 h-3.5 mr-1.5" /> Gerar Report / PDF
+              <FileText className="w-3.5 h-3.5 mr-1.5" /> Gerar PDF Overview
             </Button>
           </div>
         </div>
