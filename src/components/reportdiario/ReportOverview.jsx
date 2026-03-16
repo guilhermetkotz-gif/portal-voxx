@@ -708,8 +708,8 @@ ${sectionTitle("📝", "Resumo Automático")}
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1.5" /> Voltar
         </Button>
-        <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={onAbrirModal}>
-          <FileText className="w-4 h-4 mr-1.5" /> Gerar Report / PDF
+        <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={handleGerarPDFOverview}>
+          <FileText className="w-4 h-4 mr-1.5" /> Gerar PDF Overview
         </Button>
       </div>
     </div>
