@@ -166,6 +166,37 @@ export default function ReportDiario({ user }) {
     });
   }, [clientes, busca, statusFiltro, reports]);
 
+  // ── Se overview aberto, mostrar overview ──
+  if (overviewAberto) {
+    const ov = overviewAberto;
+    const meta = getMetaCliente(ov.cliente);
+    const radar = getRadarCliente(ov.cliente);
+    const google = getGoogleCliente(ov.cliente);
+    const plano = getPlanoCliente(ov.cliente.id);
+    const report = getReportCliente(ov.cliente.id);
+    const otimizacoesCliente = otimizacoesMeta.filter((o) => {
+      const metaConta = meta;
+      return metaConta && (o.account_name || "").toLowerCase() === (metaConta.account_name || "").toLowerCase();
+    });
+    return (
+      <ReportOverview
+        cliente={ov.cliente}
+        report={report}
+        dataReport={dataFiltro}
+        demandas={demandas}
+        plano={plano || null}
+        planoItens={planoItens}
+        meta={meta}
+        radar={radar}
+        google={google}
+        otimizacoes={otimizacoesCliente}
+        user={user}
+        onBack={() => setOverviewAberto(null)}
+        onAbrirModal={() => setReportAberto({ cliente: ov.cliente, report })}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* ── CABEÇALHO ── */}
