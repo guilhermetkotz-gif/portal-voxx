@@ -12,7 +12,17 @@ import { cn } from "@/lib/utils";
 import { calcularIndicadorPrazo } from "@/components/planoacao/PrazoIndicador";
 
 // ── helpers ──
-const parseNum = (v) => { if (v == null) return 0; if (typeof v === "number") return v; const s = String(v).replace(/,/g, ""); return parseFloat(s) || 0; };
+const parseNum = (v) => {
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  // Remove R$, spaces, then handle pt-BR format: "6.899,45" → 6899.45
+  const s = String(v).replace(/R\$\s*/g, "").trim();
+  // If it has comma as decimal (pt-BR): remove dots (thousands), replace comma with dot
+  if (/\d+\.\d{3},\d{2}/.test(s)) return parseFloat(s.replace(/\./g, "").replace(",", ".")) || 0;
+  // If only comma as decimal: "23,96" → 23.96
+  if (/^\d+,\d+$/.test(s)) return parseFloat(s.replace(",", ".")) || 0;
+  return parseFloat(s.replace(/,/g, "")) || 0;
+};
 const fmtBrl = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtBrl0 = (v) => parseNum(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
