@@ -716,10 +716,10 @@ ${plano ? `
             )}
           </div>
 
-          {/* ── BLOCO 4b: HISTÓRICO DE OTIMIZAÇÕES ── */}
+          {/* ── OTIMIZAÇÕES APLICADAS ── */}
           {otimizacoesMes.length > 0 && (
             <div className="rounded-xl border border-orange-100 bg-orange-50/30 p-4">
-              <SectionHeader label="Bloco 4b" title="Histórico de Otimizações — Meta Ads" />
+              <SectionHeader label="3b" title="Otimizações aplicadas no período" />
               <p className="text-xs text-slate-500 mb-3">Otimizações realizadas no mês atual nas campanhas Meta Ads.</p>
               <div className="space-y-2">
                 {otimizacoesMes.map((o) => (
