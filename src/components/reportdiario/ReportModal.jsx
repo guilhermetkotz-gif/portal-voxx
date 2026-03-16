@@ -684,9 +684,9 @@ ${plano ? `
             </div>
           )}
 
-          {/* ── BLOCO 4: DEMANDAS ── */}
+          {/* ── DEMANDAS E EXECUÇÃO ── */}
           <div className="rounded-xl border border-slate-100 p-4">
-            <SectionHeader label="Bloco 4" title="Demandas Operacionais" />
+            <SectionHeader label="3" title="Demandas e Execução" />
             <div className="grid grid-cols-2 gap-2 mb-3">
               <MetricBox label="Em andamento" value={demandasEmAndamento.length} colorClass="text-blue-700" />
               <MetricBox label="Concluídas" value={demandasConcluidas.length} colorClass="text-green-700" />
