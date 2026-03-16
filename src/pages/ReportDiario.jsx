@@ -346,13 +346,10 @@ export default function ReportDiario({ user }) {
                     size="sm"
                     variant="outline"
                     className="h-8 text-xs"
-                    onClick={() => {
-                      // Abrir modal e copiar resumo imediatamente após
-                      setReportAberto({ cliente, report });
-                    }}
+                    onClick={() => setOverviewAberto({ cliente })}
                   >
                     <FileText className="w-3.5 h-3.5 mr-1" />
-                    Ver Report
+                    Ver Overview
                   </Button>
                   <Button
                     size="sm"
