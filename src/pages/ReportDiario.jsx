@@ -166,8 +166,8 @@ export default function ReportDiario({ user }) {
     });
   }, [clientes, busca, statusFiltro, reports]);
 
-  // ── Se overview aberto, mostrar overview ──
-  if (overviewAberto) {
+  // ── Dados do overview (para usar tanto no overview quanto no modal) ──
+  const overviewData = overviewAberto ? (() => {
     const ov = overviewAberto;
     const meta = getMetaCliente(ov.cliente);
     const radar = getRadarCliente(ov.cliente);
@@ -175,9 +175,14 @@ export default function ReportDiario({ user }) {
     const plano = getPlanoCliente(ov.cliente.id);
     const report = getReportCliente(ov.cliente.id);
     const otimizacoesCliente = otimizacoesMeta.filter((o) => {
-      const metaConta = meta;
-      return metaConta && (o.account_name || "").toLowerCase() === (metaConta.account_name || "").toLowerCase();
+      return meta && (o.account_name || "").toLowerCase() === (meta.account_name || "").toLowerCase();
     });
+    return { ov, meta, radar, google, plano, report, otimizacoesCliente };
+  })() : null;
+
+  // ── Se overview aberto (e modal fechado), mostrar overview ──
+  if (overviewAberto && !reportAberto) {
+    const { ov, meta, radar, google, plano, report, otimizacoesCliente } = overviewData;
     return (
       <ReportOverview
         cliente={ov.cliente}
