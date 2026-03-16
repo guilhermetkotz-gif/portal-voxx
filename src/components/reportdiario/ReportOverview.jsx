@@ -283,7 +283,23 @@ ${[...demandasCliente2].sort((a,b)=>new Date(b.created_date)-new Date(a.created_
   </div>`;
 }).join("")}` : ""}
 
-${plano ? `
+${(() => {
+      if (!plano) return "";
+      const sc2 = {"Nova":"#f1f5f9","Em andamento":"#dbeafe","Concluída":"#dcfce7"};
+      const tc2 = {"Nova":"#475569","Em andamento":"#1d4ed8","Concluída":"#166534"};
+      const rowsHtml = itensPlano2.map((item, idx) => {
+        const ind = calcularIndicadorPrazo(item.prazo, item.status_acao);
+        const pc = ind==="atraso"?"#dc2626":ind==="a_vencer"?"#d97706":"#475569";
+        const pw = ind==="atraso"?"700":"400";
+        return `<div class="table-row" style="grid-template-columns:5fr 2fr 2fr 2fr 2fr;background:${idx%2===0?"#fff":"#faf5ff"};">
+    <span style="font-size:10px;font-weight:500;color:#1e293b;">${item.acao_proposta || "—"}</span>
+    <span style="color:#64748b;">${item.responsavel||"—"}</span>
+    <span style="color:#64748b;">${item.data_abertura?format(parseISO(item.data_abertura),"dd/MM/yy"):"—"}</span>
+    <span style="color:${pc};font-weight:${pw};">${item.prazo?format(parseISO(item.prazo),"dd/MM/yy"):"—"}</span>
+    <span><span class="badge" style="background:${sc2[item.status_acao]||"#f1f5f9"};color:${tc2[item.status_acao]||"#475569"};">${item.status_acao||"—"}</span></span>
+  </div>`;
+      }).join("");
+      return `
 ${sectionTitle("📋", `Plano de Ação — ${plano.titulo_plano} (${itensPlano2.length})`)}
 <div class="kpi-grid-4" style="margin-bottom:10px;">
   ${kpiBox("Em andamento", fmtN(itensAndamento2.length), "#2563eb")}
@@ -291,23 +307,10 @@ ${sectionTitle("📋", `Plano de Ação — ${plano.titulo_plano} (${itensPlano2
   ${kpiBox("Em atraso", fmtN(itensAtraso2.length), itensAtraso2.length > 0 ? "#dc2626" : "#1e293b")}
   ${kpiBox("A vencer", fmtN(itensAVencer2.length), itensAVencer2.length > 0 ? "#d97706" : "#1e293b")}
 </div>
-${itensPlano2.length > 0 ? `
-<div class="table-header" style="grid-template-columns:5fr 2fr 2fr 2fr 2fr;background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">
+${itensPlano2.length > 0 ? `<div class="table-header" style="grid-template-columns:5fr 2fr 2fr 2fr 2fr;background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">
   <span>Ação</span><span>Responsável</span><span>Abertura</span><span>Prazo</span><span>Status</span>
-</div>
-${itensPlano2.map((item,idx) => {
-  const ind = calcularIndicadorPrazo(item.prazo, item.status_acao);
-  const pc = ind==="atraso"?"#dc2626":ind==="a_vencer"?"#d97706":"#475569";
-  const sc2 = {"Nova":"#f1f5f9","Em andamento":"#dbeafe","Concluída":"#dcfce7"};
-  const tc2 = {"Nova":"#475569","Em andamento":"#1d4ed8","Concluída":"#166534"};
-  return `<div class="table-row" style="grid-template-columns:5fr 2fr 2fr 2fr 2fr;background:${idx%2===0?"#fff":"#faf5ff"};">
-    <span style="font-size:10px;font-weight:500;color:#1e293b;">${item.acao_proposta}</span>
-    <span style="color:#64748b;">${item.responsavel||"—"}</span>
-    <span style="color:#64748b;">${item.data_abertura?format(parseISO(item.data_abertura),"dd/MM/yy"):"—"}</span>
-    <span style="color:${pc};font-weight:${ind==="atraso"?"700":"400"};">${item.prazo?format(parseISO(item.prazo),"dd/MM/yy"):"—"}</span>
-    <span><span class="badge" style="background:${sc2[item.status_acao]||"#f1f5f9"};color:${tc2[item.status_acao]||"#475569"};">${item.status_acao||"—"}</span></span>
-  </div>`;
-}).join("")}` : ""}` : ""}
+</div>${rowsHtml}` : "<p style='color:#94a3b8;font-style:italic;font-size:11px;padding:8px 0;'>Nenhuma ação cadastrada neste plano.</p>"}`;
+    })()}
 
 ${sectionTitle("📝", "Resumo Automático")}
 <div style="background:#f8fafc;border-left:3px solid #1e293b;border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:16px;">
