@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
         const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
 
         const encodedSheet = encodeURIComponent(sheetName);
-        const range = `${encodedSheet}!A:V`;
+        const range = `${encodedSheet}!A:X`;
 
         // Fetch data from Google Sheets
         const response = await fetch(
