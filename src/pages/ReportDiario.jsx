@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { calcularIndicadorPrazo } from "@/components/planoacao/PrazoIndicador";
 import ReportModal from "@/components/reportdiario/ReportModal";
+import ReportOverview from "@/components/reportdiario/ReportOverview";
 
 export default function ReportDiario({ user }) {
   const queryClient = useQueryClient();
@@ -26,6 +27,7 @@ export default function ReportDiario({ user }) {
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState("todos");
   const [reportAberto, setReportAberto] = useState(null); // { cliente, report }
+  const [overviewAberto, setOverviewAberto] = useState(null); // { cliente }
 
   // ── Data fetching ──
   const { data: clientes = [] } = useQuery({
