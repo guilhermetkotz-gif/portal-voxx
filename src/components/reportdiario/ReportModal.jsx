@@ -610,10 +610,10 @@ ${plano ? `
             </div>
           </div>
 
-          {/* ── BLOCO 2: META ADS ── */}
+          {/* ── PERFORMANCE DE MÍDIA ── */}
           {meta ? (
             <div className="rounded-xl border border-slate-100 p-4">
-              <SectionHeader label="Bloco 2" title="Meta Ads — Visão Geral" />
+              <SectionHeader label="2" title="Performance de Mídia — Meta Ads" />
               <div className="grid grid-cols-3 gap-2 mb-3">
                 <MetricBox label="Investimento" value={`R$ ${(meta.amount_spent || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`} />
                 <MetricBox label="Leads/Conversas" value={meta.new_messaging_connections || meta.messaging_conversations || 0} colorClass="text-green-700" />
