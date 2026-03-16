@@ -396,6 +396,26 @@ ${radar ? `
   </ul>` : ""}
 </div>
 
+${otimizacoesMes.length > 0 ? `
+<!-- ══ BLOCO 4b — HISTÓRICO DE OTIMIZAÇÕES ══ -->
+<div class="section">
+  <div class="bloco-label">Bloco 4b</div>
+  <div class="bloco-title">Histórico de Otimizações — Meta Ads</div>
+  <p class="texto">Otimizações realizadas no mês atual nas campanhas Meta Ads.</p>
+  <ul class="item-list">
+    ${otimizacoesMes.map(o => `
+    <li style="flex-direction:column;align-items:flex-start;gap:4px;">
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+        <strong>${o.resumo_acao || o.objetivo || "Otimização"}</strong>
+        <span style="font-size:10px;color:#94a3b8;">${o.data_acao ? o.data_acao.split("T")[0].split("-").reverse().join("/") : "—"}</span>
+      </div>
+      ${o.problema ? `<span style="font-size:11px;color:#64748b;"><strong>Problema:</strong> ${o.problema}</span>` : ""}
+      ${o.acoes_implementadas ? `<span style="font-size:11px;color:#64748b;"><strong>Ações:</strong> ${o.acoes_implementadas}</span>` : ""}
+    </li>`).join("")}
+  </ul>
+</div>
+` : ""}
+
 <!-- ══ BLOCO 5 — PLANO DE AÇÃO ══ -->
 ${plano ? `
 <div class="section">
