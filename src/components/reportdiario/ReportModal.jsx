@@ -99,6 +99,42 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
     "Execução das ações previstas no planejamento estratégico.",
   ].filter(Boolean).join("\n");
 
+  // ── Resumo Executivo Dinâmico ──
+  const resumoExecutivo = (() => {
+    const p1 = `Hoje seguimos com o acompanhamento ativo das campanhas e execução das demandas previstas para a unidade.`;
+
+    const p2 = demandasConcluidas.length > 0
+      ? `Foram concluídas ${demandasConcluidas.length} entrega(s) importante(s) no período, fortalecendo a execução das estratégias planejadas.`
+      : itensAndamento.length > 0
+      ? `O plano de ação segue em execução com ${itensAndamento.length} ação(ões) em andamento, mantendo o ritmo das entregas estratégicas.`
+      : null;
+
+    const p3 = (() => {
+      if (meta?.classificacao === "CRÍTICO") return `O principal ponto de atenção está nas campanhas Meta Ads, classificadas como CRÍTICO — análise aprofundada e ações corretivas já em aplicação.`;
+      if (meta?.classificacao === "ALERTA") return `As campanhas Meta Ads estão em estado de ALERTA — monitoramento intensificado com ajustes sendo realizados.`;
+      if (itensAtraso.length > 0) return `Há ${itensAtraso.length} ação(ões) do plano com prazo em atraso que demandam acompanhamento prioritário.`;
+      if (google?.health_status === "Urgente" || google?.health_status === "Crítico") return `As campanhas Google Ads apresentam status ${google.health_status} — intervenções estão em andamento.`;
+      if (demandasAguardando.length > 0) return `Aguardamos retorno do cliente para ${demandasAguardando.length} demanda(s) em aberto, essenciais para o avanço das entregas.`;
+      return null;
+    })();
+
+    const p4 = otimizacoesMes.length > 0
+      ? `No período foram realizadas ${otimizacoesMes.length} otimização(ões) nas campanhas, com foco em melhorar a eficiência das conversões e reduzir custos.`
+      : `Seguimos com otimizações estruturais nas campanhas e ajustes na captação para melhorar a eficiência das conversões.`;
+
+    return [p1, p2, p3, p4].filter(Boolean).join(" ");
+  })();
+
+  // ── Ações Voxx Dinâmico ──
+  const acoesVoxxTexto = (() => {
+    const partes = [];
+    if (otimizacoesMes.length > 0) partes.push(`realizou ${otimizacoesMes.length} otimização(ões) nas campanhas Meta Ads`);
+    if (demandasConcluidas.length > 0) partes.push(`concluiu ${demandasConcluidas.length} demanda(s) operacional(is)`);
+    if (demandasExecucao.length > 0) partes.push(`manteve ${demandasExecucao.length} entrega(s) em execução`);
+    if (partes.length === 0) return `Hoje a equipe Voxx realizou o monitoramento das campanhas, análise de desempenho e acompanhamento das demandas operacionais, aplicando ajustes e otimizações conforme necessário.`;
+    return `Hoje a equipe Voxx ${partes.join(", ")}, garantindo o acompanhamento contínuo de resultados e o avanço das estratégias planejadas para a unidade.`;
+  })();
+
   const destaqueTexto = destaque || destaqueAuto;
   const atencaoTexto = atencao || atencaoAuto;
   const proxPassosTexto = proxPassos || proxPassosAuto;
