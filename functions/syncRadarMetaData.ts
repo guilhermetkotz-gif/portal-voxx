@@ -108,13 +108,16 @@ Deno.serve(async (req) => {
             const amountSpentIdx = getColIndex('amount_spent');
 
             console.error('=== MAPEAMENTO DE COLUNAS ===');
-            console.error('Config mapping messaging_conversations:', colMap.messaging_conversations);
+            console.error('Config mapping:', colMap);
             console.error('Headers encontrados:', headers);
-            console.error('LEADS coluna encontrada (index', leadsIdx, '):', headers[leadsIdx]);
-            console.error('Valor esperado:', colMap.messaging_conversations);
+            console.error('CPL index:', cplIdx, '→', headers[cplIdx]);
+            console.error('LEADS index:', leadsIdx, '→', headers[leadsIdx]);
             
+            if (cplIdx === -1) {
+                console.error('ERRO: Coluna CPL META ADS não encontrada!');
+            }
             if (leadsIdx === -1) {
-                console.error('ERRO: Coluna de leads não encontrada! Verificar mapeamento.');
+                console.error('ERRO: Coluna CADASTROS + WHATS não encontrada!');
             }
 
             const result = {};
