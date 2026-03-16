@@ -334,6 +334,24 @@ export default function ConfigurarPlanilhaModal({ open, onOpenChange, config = n
                       />
                     </div>
                     <div>
+                      <Label className="text-xs">Leads (CADASTROS)</Label>
+                      <Input
+                        value={formData.mapeamento_colunas.leads || ''}
+                        onChange={(e) => updateColuna('leads', e.target.value)}
+                        className="text-sm"
+                        placeholder="leads"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">CADASTROS + WHATS</Label>
+                      <Input
+                        value={formData.mapeamento_colunas.cadastros_whats || ''}
+                        onChange={(e) => updateColuna('cadastros_whats', e.target.value)}
+                        className="text-sm"
+                        placeholder="CADASTROS + WHATS"
+                      />
+                    </div>
+                    <div>
                       <Label className="text-xs">Nota GPT</Label>
                       <Input
                         value={formData.mapeamento_colunas.nota_gpt}
