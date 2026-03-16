@@ -57,7 +57,7 @@ export default function ReportDiario({ user }) {
   const { data: contasMeta = [] } = useQuery({
     queryKey: ["contasMeta"],
     queryFn: () => base44.entities.ContaMetaAds.list("-created_date", 500),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
   });
 
   const { data: radarMeta = [] } = useQuery({
