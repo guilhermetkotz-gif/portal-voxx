@@ -680,7 +680,7 @@ export default function ReportModal({ cliente, report, dataReport, demandas, pla
             <div className="rounded-xl border border-slate-100 p-4">
               <SectionHeader label="2" title="Performance de Mídia — Google Ads" />
               <div className="grid grid-cols-3 gap-2 mb-3">
-                <MetricBox label="Investimento" value={`R$ ${(google.cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
+                <MetricBox label="Investimento" value={`R$ ${(typeof google.cost === "number" ? google.cost : parseFloat(String(google.cost || 0).replace(/,/g, "")) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
                 <MetricBox label="Conversões" value={google.conversions || 0} colorClass="text-green-700" />
                 <MetricBox label="Custo/Conv." value={`R$ ${(google.cost_per_conversion || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
               </div>
