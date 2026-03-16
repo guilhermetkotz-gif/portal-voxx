@@ -421,23 +421,43 @@ ${plano ? `
 <div class="section">
   <div class="bloco-label">Bloco 5</div>
   <div class="bloco-title">Plano de Ação — Acompanhamento</div>
-  <p class="texto">O plano de ação do cliente segue em andamento. Abaixo o status das ações definidas no planejamento estratégico.</p>
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-    <span style="font-size:12px;color:#64748b;">Status do plano:</span>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:${plano.objetivo_geral ? "6px" : "14px"};">
+    <span style="font-size:14px;font-weight:700;color:#4c1d95;">${plano.titulo_plano}</span>
     <span class="badge badge-yellow">${plano.status_plano}</span>
   </div>
+  ${plano.objetivo_geral ? `<p class="texto" style="margin-bottom:14px;">${plano.objetivo_geral}</p>` : ""}
   <div class="metrics-4">
-    <div class="metric-card"><div class="metric-value">${itensPlano.length}</div><div class="metric-label">Total de ações</div></div>
+    <div class="metric-card"><div class="metric-value">${itensPlano.length}</div><div class="metric-label">Total</div></div>
     <div class="metric-card blue"><div class="metric-value">${itensAndamento.length}</div><div class="metric-label">Em andamento</div></div>
     <div class="metric-card green"><div class="metric-value">${itensConcluidos.length}</div><div class="metric-label">Concluídas</div></div>
     <div class="metric-card ${itensAtraso.length > 0 ? "red" : ""}"><div class="metric-value">${itensAtraso.length}</div><div class="metric-label">Em atraso</div></div>
   </div>
   ${itensAVencer.length > 0 ? `<p style="font-size:12px;color:#d97706;margin-bottom:10px;">🕐 ${itensAVencer.length} ação(ões) com prazo a vencer em breve</p>` : ""}
-  ${itensAndamento.length > 0 ? `
-  <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:6px;">Ações prioritárias em andamento</p>
-  <ul class="item-list">
-    ${itensAndamento.slice(0, 3).map(i => `<li>${i.acao_proposta} <span class="badge badge-yellow">Em andamento</span></li>`).join("")}
-  </ul>` : ""}
+  ${itensPlano.length > 0 ? `
+  <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:11px;">
+    <thead>
+      <tr style="background:#ede9fe;color:#5b21b6;">
+        <th style="padding:7px 10px;text-align:left;font-weight:700;letter-spacing:0.5px;">Ação</th>
+        <th style="padding:7px 10px;text-align:left;font-weight:700;letter-spacing:0.5px;">Responsável</th>
+        <th style="padding:7px 10px;text-align:left;font-weight:700;letter-spacing:0.5px;">Prazo</th>
+        <th style="padding:7px 10px;text-align:left;font-weight:700;letter-spacing:0.5px;">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itensPlano.map((item, idx) => {
+        const ind = calcularIndicadorPrazo(item.prazo, item.status_acao);
+        const prazoStyle = ind === "atraso" ? "color:#dc2626;font-weight:700;" : ind === "a_vencer" ? "color:#d97706;" : "color:#64748b;";
+        const statusBg = item.status_acao === "Concluída" ? "background:#dcfce7;color:#166534;" : item.status_acao === "Em andamento" ? "background:#dbeafe;color:#1d4ed8;" : "background:#f1f5f9;color:#475569;";
+        const prazoFmt = item.prazo ? item.prazo.split("T")[0].split("-").reverse().join("/") : "—";
+        return `<tr style="background:${idx % 2 === 0 ? "#fff" : "#f5f3ff"};">
+          <td style="padding:7px 10px;color:#334155;border-bottom:1px solid #f1f5f9;">${item.acao_proposta}</td>
+          <td style="padding:7px 10px;color:#64748b;border-bottom:1px solid #f1f5f9;">${item.responsavel || "—"}</td>
+          <td style="padding:7px 10px;${prazoStyle}border-bottom:1px solid #f1f5f9;">${prazoFmt}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;"><span style="padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;${statusBg}">${item.status_acao || "—"}</span></td>
+        </tr>`;
+      }).join("")}
+    </tbody>
+  </table>` : ""}
 </div>
 ` : ""}
 
