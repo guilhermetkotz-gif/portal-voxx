@@ -405,17 +405,17 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Leads Meta"
-          value={cliente?.leads_meta_mes?.toLocaleString('pt-BR') || '-'}
+          value={(contaMetaAdsAtual?.cadastros_whats ?? contaMetaAdsAtual?.messaging_conversations ?? contaMetaAdsAtual?.new_messaging_connections ?? cliente?.leads_meta_mes)?.toLocaleString('pt-BR') || '-'}
           subtitle="Este mês"
           icon={Users}
           variant="primary"
         />
         <KPICard
           title="CPL Meta"
-          value={formatCurrency(cliente?.custo_por_lead_meta)}
+          value={formatCurrency(contaMetaAdsAtual?.cost_per_new_messaging ?? contaMetaAdsAtual?.cost_per_messaging ?? cliente?.custo_por_lead_meta)}
           subtitle="Custo por lead"
           icon={DollarSign}
-          variant={cliente?.custo_por_lead_meta > (cliente?.cpl_baseline_meta * 1.2) ? 'warning' : 'default'}
+          variant={(contaMetaAdsAtual?.cost_per_new_messaging ?? contaMetaAdsAtual?.cost_per_messaging ?? cliente?.custo_por_lead_meta) > (cliente?.cpl_baseline_meta * 1.2) ? 'warning' : 'default'}
         />
         <KPICard
           title="Leads Google"
