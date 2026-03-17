@@ -134,7 +134,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const { data: todasContasMetaAds = [] } = useQuery({
     queryKey: ['todasContasMetaAds'],
     queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
-    staleTime: 2 * 60 * 1000
+    staleTime: 0
   });
 
   // Buscar conta Google Ads atualizada do cliente
@@ -142,7 +142,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     queryKey: ['googleAdsAccountHome', currentCliente?.google_ads_account_name, currentCliente?.nome],
     queryFn: () => base44.entities.GoogleAdsAccount.list('-data_atualizacao', 500),
     enabled: !!currentCliente,
-    staleTime: 2 * 60 * 1000
+    staleTime: 0
   });
 
   // Calcular percentil da unidade atual
