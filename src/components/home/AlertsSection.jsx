@@ -49,9 +49,10 @@ export default function AlertsSection({ cliente, saldoMeta, gastoDiarioMeta, con
     });
   }
 
-  // CPL alto
-  if (cliente.cpl_baseline_meta && cliente.custo_por_lead_meta) {
-    const cplVariacao = ((cliente.custo_por_lead_meta - cliente.cpl_baseline_meta) / cliente.cpl_baseline_meta) * 100;
+  // CPL alto — usa dados da planilha se disponíveis
+  const cplAtual = contaMetaAdsAtual?.cost_per_new_messaging ?? contaMetaAdsAtual?.cost_per_messaging ?? cliente.custo_por_lead_meta;
+  if (cliente.cpl_baseline_meta && cplAtual) {
+    const cplVariacao = ((cplAtual - cliente.cpl_baseline_meta) / cliente.cpl_baseline_meta) * 100;
     if (cplVariacao > 20) {
       alerts.push({
         type: 'warning',
@@ -61,9 +62,10 @@ export default function AlertsSection({ cliente, saldoMeta, gastoDiarioMeta, con
     }
   }
 
-  // Poucos leads (estimativa simples)
+  // Poucos leads (estimativa simples) — usa dados da planilha se disponíveis
+  const leadsMetaMes = contaMetaAdsAtual?.messaging_conversations ?? contaMetaAdsAtual?.new_messaging_connections ?? cliente.leads_meta_mes;
   const diaDoMes = new Date().getDate();
-  if (diaDoMes > 10 && cliente.leads_meta_mes < (diaDoMes * 0.5)) {
+  if (diaDoMes > 10 && leadsMetaMes !== undefined && leadsMetaMes !== null && leadsMetaMes < (diaDoMes * 0.5)) {
     alerts.push({
       type: 'info',
       title: 'Volume de leads abaixo do ritmo',
