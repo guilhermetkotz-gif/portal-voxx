@@ -230,6 +230,31 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
+  // Users with no clients loaded yet (after loading is done) - render page without sidebar selection
+  if (user?.status === 'ativo' && !loadingClientes && (!clientes || clientes.length === 0) && !isVoxxUser) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Header 
+          title="Resumo Executivo"
+          subtitle="Visão geral da sua conta"
+          user={user}
+          cliente={null}
+          clientes={[]}
+          onChangeCliente={() => {}}
+          notificacoes={[]}
+          onMobileMenuClick={() => setMobileMenuOpen(true)}
+        />
+        <div className="p-4 lg:p-8">
+          {React.cloneElement(children, { 
+            currentCliente: null,
+            selectedClienteId: null,
+            user
+          })}
+        </div>
+      </div>
+    );
+  }
+
   // Base44 admin bypass - skip all checks
   if (user?.role === 'admin') {
     // Admin has full access, skip to main app
