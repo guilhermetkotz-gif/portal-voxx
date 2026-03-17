@@ -233,6 +233,10 @@ export default function Layout({ children, currentPageName }) {
   // Base44 admin bypass - skip all checks
   if (user?.role === 'admin') {
     // Admin has full access, skip to main app
+  } else if (user?.status === 'ativo' && !isVoxxUser && currentPageName === 'AguardandoAprovacao') {
+    // User was approved but is still on AguardandoAprovacao page → redirect to Home
+    navigate(createPageUrl('Home'));
+    return null;
   } else if (user?.status === 'pendente') {
     // 2. User is pendente WITH request → redirect to AguardandoAprovacao
     if (userRequest && userRequest.length > 0) {
