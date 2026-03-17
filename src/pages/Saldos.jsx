@@ -129,29 +129,8 @@ function SaldoCard({
   );
 }
 
-export default function Saldos() {
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    staleTime: 5 * 60 * 1000
-  });
-
-  const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ['clientes', user?.cliente_id],
-    queryFn: async () => {
-      if (user?.tipo_acesso === 'voxx_admin') {
-        return base44.entities.Cliente.list('-updated_date', 200);
-      }
-      if (user?.cliente_id) {
-        return base44.entities.Cliente.filter({ id: user.cliente_id });
-      }
-      return [];
-    },
-    enabled: !!user,
-    staleTime: 60 * 1000
-  });
-
-  const cliente = clientes[0];
+export default function Saldos({ currentCliente }) {
+  const cliente = currentCliente;
 
   if (isLoading) {
     return (
