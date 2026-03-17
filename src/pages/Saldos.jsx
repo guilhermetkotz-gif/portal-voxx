@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Wallet, Calendar, TrendingUp, AlertTriangle, ArrowRight, PiggyBank } from 'lucide-react';
+import { Wallet, Calendar, TrendingUp, AlertTriangle, ArrowRight, PiggyBank } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
