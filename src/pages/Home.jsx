@@ -44,9 +44,9 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   const handleRefreshData = async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries(['clientes']);
-    await queryClient.refetchQueries(['clientes']);
-    setTimeout(() => setIsRefreshing(false), 1000);
+    await queryClient.invalidateQueries();
+    await queryClient.refetchQueries();
+    setTimeout(() => setIsRefreshing(false), 1500);
   };
 
   // User not authenticated → show BoasVindas
