@@ -1,14 +1,17 @@
 import React from 'react';
 import AlertCard from '@/components/ui/AlertCard';
 
-export default function AlertsSection({ cliente }) {
+export default function AlertsSection({ cliente, saldoMeta, gastoDiarioMeta, contaMetaAdsAtual }) {
   const alerts = [];
   
   if (!cliente) return null;
 
-  // Saldo baixo Meta
-  const diasRestantesMeta = cliente.investimento_dia_meta > 0 
-    ? Math.floor(cliente.saldo_meta / cliente.investimento_dia_meta) 
+  // Saldo baixo Meta — usa dados da planilha se disponíveis
+  const saldoMetaEfetivo = saldoMeta ?? cliente.saldo_meta ?? 0;
+  const gastoDiarioMetaEfetivo = gastoDiarioMeta > 0 ? gastoDiarioMeta : cliente.investimento_dia_meta;
+
+  const diasRestantesMeta = gastoDiarioMetaEfetivo > 0
+    ? Math.floor(saldoMetaEfetivo / gastoDiarioMetaEfetivo)
     : null;
   
   if (diasRestantesMeta !== null && diasRestantesMeta < 3) {
