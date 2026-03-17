@@ -132,14 +132,6 @@ function SaldoCard({
 export default function Saldos({ currentCliente }) {
   const cliente = currentCliente;
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
-      </div>
-    );
-  }
-
   if (!cliente) {
     return (
       <Card className="p-8 text-center">
