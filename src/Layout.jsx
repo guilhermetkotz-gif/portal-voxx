@@ -183,36 +183,8 @@ export default function Layout({ children, currentPageName }) {
 
   const pageInfo = pageTitles[currentPageName] || { title: currentPageName, subtitle: "" };
 
-  // Don't show cliente selector - auto-select first cliente for Voxx users
-  // The useEffect above (line 107) will handle the auto-selection
-
-  // Users with no clients but status 'ativo' - allow access but will show message in Home
   const tipoUsuarioAccess = user?.tipo_usuario || user?.tipo_acesso;
   const isVoxxUser = tipoUsuarioAccess === 'voxx_admin' || tipoUsuarioAccess === 'voxx_operacao' || tipoUsuarioAccess === 'voxx_manager';
-  
-  if (user?.status === 'ativo' && (!clientes || clientes.length === 0) && !isVoxxUser) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <Header 
-          title="Resumo Executivo"
-          subtitle="Visão geral da sua conta"
-          user={user}
-          cliente={null}
-          clientes={[]}
-          onChangeCliente={() => {}}
-          notificacoes={[]}
-          onMobileMenuClick={() => setMobileMenuOpen(true)}
-        />
-        <div className="p-4 lg:p-8">
-          {React.cloneElement(children, { 
-            currentCliente: null,
-            selectedClienteId: null,
-            user
-          })}
-        </div>
-      </div>
-    );
-  }
 
   // Show loading state while checking authentication
   if (loadingUser) {
