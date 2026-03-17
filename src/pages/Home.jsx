@@ -254,7 +254,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
       return response.data;
     },
-    staleTime: 2 * 60 * 1000
+    staleTime: 0
   });
 
   const diarioD1ByAccount = sheetData?.diarioD1ByAccount || {};
