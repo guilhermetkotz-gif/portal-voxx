@@ -19,9 +19,38 @@ export default function PlanoDeAcao({ user }) {
   const [filtroCliente, setFiltroCliente] = useState("all");
   const [filtroResponsavel, setFiltroResponsavel] = useState("all");
 
+  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
+  const isVoxx = user?.role === 'admin' || tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_manager' || tipoUsuario === 'voxx_operacao';
+
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes", user?.id, isVoxx],
+    queryFn: async () => {
+      if (isVoxx) {
+        return base44.entities.Cliente.list("-updated_date", 500);
+      }
+      const access = await base44.entities.UserClientAccess.filter({ usuario_id: user.id, status: 'ativo' });
+      if (!access.length) return [];
+      const clienteIds = access.map(a => a.cliente_id);
+      const todos = await base44.entities.Cliente.list("-updated_date", 500);
+      return todos.filter(c => clienteIds.includes(c.id));
+    },
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: planos = [], isLoading: loadingPlanos } = useQuery({
-    queryKey: ["planosDeAcao"],
-    queryFn: () => base44.entities.PlanoDeAcao.list("-created_date", 500),
+    queryKey: ["planosDeAcao", user?.id, isVoxx],
+    queryFn: async () => {
+      if (isVoxx) {
+        return base44.entities.PlanoDeAcao.list("-created_date", 500);
+      }
+      const access = await base44.entities.UserClientAccess.filter({ usuario_id: user.id, status: 'ativo' });
+      if (!access.length) return [];
+      const clienteIds = access.map(a => a.cliente_id);
+      const todos = await base44.entities.PlanoDeAcao.list("-created_date", 500);
+      return todos.filter(p => clienteIds.includes(p.cliente_id));
+    },
+    enabled: !!user,
     staleTime: 60 * 1000,
   });
 
@@ -29,12 +58,6 @@ export default function PlanoDeAcao({ user }) {
     queryKey: ["todosItensPlano"],
     queryFn: () => base44.entities.PlanoDeAcaoItem.list("-created_date", 2000),
     staleTime: 60 * 1000,
-  });
-
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes"],
-    queryFn: () => base44.entities.Cliente.list("-updated_date", 500),
-    staleTime: 5 * 60 * 1000,
   });
 
   const itensPorPlano = useMemo(() => {
