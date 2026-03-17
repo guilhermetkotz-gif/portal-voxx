@@ -591,7 +591,12 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="space-y-4">
           <h3 className="font-semibold text-slate-900">Alertas</h3>
-          <AlertsSection cliente={cliente} />
+          <AlertsSection 
+            cliente={cliente} 
+            saldoMeta={saldoMeta}
+            gastoDiarioMeta={gastoDiarioMeta}
+            contaMetaAdsAtual={contaMetaAdsAtual}
+          />
         </div>
         <RecentDemandas demandas={demandasAbertas} />
         <AcoesVoxxCard acoes={acoes} otimizacoes={otimizacoesMetaAds} demandasConcluidas={demandasConcluidas} />
