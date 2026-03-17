@@ -29,10 +29,24 @@ export default function ReportDiario({ user }) {
   const [reportAberto, setReportAberto] = useState(null); // { cliente, report }
   const [overviewAberto, setOverviewAberto] = useState(null); // { cliente }
 
+  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
+  const isVoxx = user?.role === 'admin' || tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_manager' || tipoUsuario === 'voxx_operacao';
+
   // ── Data fetching ──
   const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes"],
-    queryFn: () => base44.entities.Cliente.filter({ status: "ativo" }, "nome", 500),
+    queryKey: ["clientes", user?.id, isVoxx],
+    queryFn: async () => {
+      if (isVoxx) {
+        return base44.entities.Cliente.filter({ status: "ativo" }, "nome", 500);
+      }
+      // Não-Voxx: apenas clientes atribuídos via UserClientAccess
+      const access = await base44.entities.UserClientAccess.filter({ usuario_id: user.id, status: 'ativo' });
+      if (!access.length) return [];
+      const clienteIds = access.map(a => a.cliente_id);
+      const todos = await base44.entities.Cliente.filter({ status: "ativo" }, "nome", 500);
+      return todos.filter(c => clienteIds.includes(c.id));
+    },
+    enabled: !!user,
     staleTime: 5 * 60 * 1000,
   });
 
