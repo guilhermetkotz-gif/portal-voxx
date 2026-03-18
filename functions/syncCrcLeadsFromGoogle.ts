@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 
 const extractSpreadsheetId = (url) => {
   const match = url?.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
@@ -42,13 +42,14 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'No Oral Sin clients with Google Sheets configured', totalImported: 0 });
     }
 
-    // Pre-load existing leads to check for duplicates
-    const existingLeads = await base44.asServiceRole.entities.CrcLead.filter(
-      { fonte_cadastro: 'google_sheet' },
-      '-created_date',
-      10000
+    // Pre-load existing leads to check for duplicates by phone+unidade
+    const existingLeads = await base44.asServiceRole.entities.CrcLead.list('-created_date', 10000);
+    // Build a Set of "unidade_id|telefone_normalizado" for fast lookup
+    const existingPhoneKeys = new Set(
+      existingLeads
+        .map(l => l.unidade_id && l.telefone ? `${l.unidade_id}|${normalizePhone(l.telefone)}` : null)
+        .filter(Boolean)
     );
-    const existingRowIds = new Set(existingLeads.map(l => l.external_row_id).filter(Boolean));
 
     let totalImported = 0;
     const results = [];
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
       const colLinkAnuncio = mapping.coluna_link_anuncio || 'Link Anúncio';
       const colObservacao = mapping.coluna_observacao || 'Observação';
 
-      // Get sheet metadata to find first sheet name
+      // Get sheet metadata to find ALL sheet names
       const metaRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
@@ -83,83 +84,88 @@ Deno.serve(async (req) => {
       }
 
       const meta = await metaRes.json();
-      const sheetName = meta.sheets[0]?.properties?.title || 'Sheet1';
-
-      // Fetch sheet data
-      const dataRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`,
-        { headers: { 'Authorization': `Bearer ${accessToken}` } }
-      );
-
-      if (!dataRes.ok) {
-        results.push({ cliente: cliente.nome, error: `Sheet data error: ${dataRes.status}` });
-        continue;
-      }
-
-      const sheetData = await dataRes.json();
-      const rows = sheetData.values || [];
-
-      if (rows.length < 2) {
-        results.push({ cliente: cliente.nome, imported: 0, message: 'No data rows' });
-        continue;
-      }
-
-      const headers = rows[0];
-      const findCol = (name) => headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase().trim());
-
-      const idxNome = findCol(colNome);
-      const idxTelefone = findCol(colTelefone);
-      const idxData = findCol(colData);
-      const idxOrigem = findCol(colOrigem);
-      const idxCampanha = findCol(colCampanha);
-      const idxLink = findCol(colLinkAnuncio);
-      const idxObs = findCol(colObservacao);
+      const allSheets = meta.sheets || [];
 
       let imported = 0;
 
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        const rowId = `${spreadsheetId}_row_${i}`;
+      // Iterate over ALL sheets
+      for (const sheet of allSheets) {
+        const sheetName = sheet.properties?.title;
+        if (!sheetName) continue;
 
-        if (existingRowIds.has(rowId)) continue;
+        // Fetch sheet data
+        const dataRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`,
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
 
-        const telefone = normalizePhone(idxTelefone >= 0 ? row[idxTelefone] : '');
-        if (!telefone) continue;
+        if (!dataRes.ok) continue;
 
-        const origemRaw = (idxOrigem >= 0 ? row[idxOrigem] || '' : '').toLowerCase();
-        const isLigacao = origemRaw.includes('liga') || origemRaw.includes('call');
-        const origem = isLigacao ? 'google_ligacao' : 'google_cadastro';
+        const sheetData = await dataRes.json();
+        const rows = sheetData.values || [];
 
-        const dataChegada = parseDate(idxData >= 0 ? row[idxData] : '') || new Date().toISOString();
+        if (rows.length < 2) continue;
 
-        const campanha = idxCampanha >= 0 ? row[idxCampanha] || '' : '';
-        const obs = idxObs >= 0 ? row[idxObs] || '' : '';
-        const observacoes = [campanha ? `Campanha: ${campanha}` : '', obs].filter(Boolean).join(' | ');
+        const headers = rows[0];
+        const findCol = (name) => headers.findIndex(h => h && h.toLowerCase().trim() === name.toLowerCase().trim());
 
-        await base44.asServiceRole.entities.CrcLead.create({
-          unidade_id: cliente.id,
-          nome: idxNome >= 0 ? row[idxNome] || '' : '',
-          telefone,
-          origem,
-          canal: isLigacao ? 'ligacao' : 'formulario',
-          tratamento: 'nao_informado',
-          status: 'sem_contato',
-          fonte_cadastro: 'google_sheet',
-          external_source: 'google_sheets',
-          external_row_id: rowId,
-          external_created_at: dataChegada,
-          data_chegada: dataChegada,
-          link_anuncio: idxLink >= 0 ? row[idxLink] || '' : '',
-          observacoes
-        });
+        const idxNome = findCol(colNome);
+        const idxTelefone = findCol(colTelefone);
+        const idxData = findCol(colData);
+        const idxOrigem = findCol(colOrigem);
+        const idxCampanha = findCol(colCampanha);
+        const idxLink = findCol(colLinkAnuncio);
+        const idxObs = findCol(colObservacao);
 
-        existingRowIds.add(rowId);
-        imported++;
-        totalImported++;
+        // Skip sheet if no phone column found
+        if (idxTelefone < 0) continue;
+
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+
+          const telefone = normalizePhone(row[idxTelefone]);
+          if (!telefone) continue;
+
+          // Deduplicate by phone + unidade
+          const phoneKey = `${cliente.id}|${telefone}`;
+          if (existingPhoneKeys.has(phoneKey)) continue;
+
+          const origemRaw = (idxOrigem >= 0 ? row[idxOrigem] || '' : '').toLowerCase();
+          const isLigacao = origemRaw.includes('liga') || origemRaw.includes('call');
+          const origem = isLigacao ? 'google_ligacao' : 'google_cadastro';
+
+          const dataChegada = parseDate(idxData >= 0 ? row[idxData] : '') || new Date().toISOString();
+
+          const campanha = idxCampanha >= 0 ? row[idxCampanha] || '' : '';
+          const obs = idxObs >= 0 ? row[idxObs] || '' : '';
+          const observacoes = [campanha ? `Campanha: ${campanha}` : '', obs].filter(Boolean).join(' | ');
+
+          await base44.asServiceRole.entities.CrcLead.create({
+            unidade_id: cliente.id,
+            nome: idxNome >= 0 ? row[idxNome] || '' : '',
+            telefone,
+            origem,
+            canal: isLigacao ? 'ligacao' : 'formulario',
+            tratamento: 'nao_informado',
+            status: 'sem_contato',
+            fonte_cadastro: 'google_sheet',
+            external_source: 'google_sheets',
+            external_row_id: `${spreadsheetId}_${sheetName}_row_${i}`,
+            external_created_at: dataChegada,
+            data_chegada: dataChegada,
+            link_anuncio: idxLink >= 0 ? row[idxLink] || '' : '',
+            observacoes
+          });
+
+          // Add to set so we don't import the same phone twice within this run
+          existingPhoneKeys.add(phoneKey);
+          imported++;
+          totalImported++;
+        }
       }
 
-      console.log(`Cliente ${cliente.nome}: ${imported} leads imported`);
-      results.push({ cliente: cliente.nome, imported });
+      console.log(`Cliente ${cliente.nome}: ${imported} leads imported from ${allSheets.length} sheets`);
+      results.push({ cliente: cliente.nome, imported, sheets: allSheets.length });
     }
 
     return Response.json({
