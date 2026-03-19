@@ -53,12 +53,6 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       try {
         const userData = await base44.auth.me();
-        // Update last access
-        if (userData?.id) {
-          await base44.entities.User.update(userData.id, {
-            ultimo_acesso: new Date().toISOString()
-          }).catch(() => {});
-        }
         return userData;
       } catch (error) {
         // User not authenticated
