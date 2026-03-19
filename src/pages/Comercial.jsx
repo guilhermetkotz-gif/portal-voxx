@@ -16,6 +16,7 @@ import DashboardComercial from '@/components/comercial/DashboardComercial';
 import AlertasInteligentes from '@/components/comercial/AlertasInteligentes';
 import PrioritizacaoDia from '@/components/comercial/PrioritizacaoDia';
 import AcaoRapidaMenu from '@/components/comercial/AcaoRapidaMenu';
+import DashboardComercialExecutivo from '@/components/comercial/dashboard/DashboardComercialExecutivo';
 import { isVoxxAdmin, isVoxxOperacao, isVoxxManager } from '@/components/utils/auth';
 import { Plus, Search, LayoutDashboard, KanbanSquare, Calendar, AlertTriangle, Loader2, Users, DollarSign, TrendingUp, Filter, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -341,7 +342,12 @@ export default function Comercial({ user }) {
         </TabsContent>
 
         <TabsContent value="dashboard" className="mt-4">
-          <DashboardComercial />
+          <DashboardComercialExecutivo 
+            leads={leadsFiltrados}
+            onNovoLead={() => setShowNovoLead(true)}
+            onRegistrarInteracao={() => toast.info('Abra um lead para registrar interação')}
+            onAgendarReuniao={() => toast.info('Abra um lead para agendar reunião')}
+          />
         </TabsContent>
       </Tabs>
 
