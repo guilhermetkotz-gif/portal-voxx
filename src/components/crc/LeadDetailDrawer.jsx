@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Phone, ExternalLink, Clock, Edit2, Save, X } from 'lucide-react';
+import RegistrarTentativaModal from './RegistrarTentativaModal';
 import { format } from 'date-fns';
 
 const statusColors = {
