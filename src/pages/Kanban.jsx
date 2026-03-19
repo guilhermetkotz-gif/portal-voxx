@@ -393,33 +393,42 @@ const Kanban = ({ user, selectedClienteId }) => {
             <div className="flex bg-slate-100 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('ativas')}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                   viewMode === 'ativas'
                     ? 'bg-white text-slate-900 shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Demandas Ativas
+                <span className="bg-blue-100 text-blue-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {mesVigenteCounts.ativas}
+                </span>
               </button>
               <button
                 onClick={() => setViewMode('concluidas')}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                   viewMode === 'concluidas'
                     ? 'bg-white text-slate-900 shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Demandas Concluídas
+                <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {mesVigenteCounts.concluidas}
+                </span>
               </button>
               <button
                 onClick={() => setViewMode('finalizadas')}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-2 ${
                   viewMode === 'finalizadas'
                     ? 'bg-white text-slate-900 shadow-sm'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 Demandas Finalizadas
+                <span className="bg-slate-200 text-slate-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                  {mesVigenteCounts.finalizadas}
+                </span>
               </button>
             </div>
           </div>
