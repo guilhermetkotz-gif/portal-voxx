@@ -26,6 +26,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
   const queryClient = useQueryClient();
   const [editField, setEditField] = useState(null);
   const [editData, setEditData] = useState(lead);
+  const [showTentativaModal, setShowTentativaModal] = useState(false);
 
   const { data: tentativas = [] } = useQuery({
     queryKey: ['crcTentativas', lead.id],
