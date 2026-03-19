@@ -63,7 +63,7 @@ export default function Comercial({ user }) {
   });
 
   if (!user) return <div className="flex justify-center items-center h-96"><Loader2 className="w-8 h-8 animate-spin text-violet-600" /></div>;
-  if (!isVoxxAdmin(user) && !isVoxxOperacao(user)) {
+  if (!isVoxxAdmin(user) && !isVoxxOperacao(user) && !isVoxxManager(user) && user?.role !== 'admin') {
     return <div className="flex items-center justify-center h-96"><p className="text-lg text-red-500">Acesso negado. Esta página é apenas para usuários Voxx.</p></div>;
   }
 
