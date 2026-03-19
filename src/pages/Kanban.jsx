@@ -133,9 +133,9 @@ const Kanban = ({ user, selectedClienteId }) => {
 
       // Filtrar por modo de visualização
       if (viewMode === 'ativas') {
-        filteredDemandas = filteredDemandas.filter(d => d.status !== 'concluida');
+        filteredDemandas = filteredDemandas.filter(d => d.status !== 'finalizada');
       } else {
-        filteredDemandas = filteredDemandas.filter(d => d.status === 'concluida');
+        filteredDemandas = filteredDemandas.filter(d => d.status === 'finalizada');
       }
 
       // Aplicar filtros
@@ -395,14 +395,14 @@ const Kanban = ({ user, selectedClienteId }) => {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Demandas Concluídas
+                Demandas Finalizadas
               </button>
             </div>
           </div>
           <p className="text-sm text-slate-600 mt-1">
             {viewMode === 'ativas' 
               ? 'Arraste e solte para reorganizar ou mover entre setores'
-              : 'Visualização de demandas concluídas organizadas por setor'}
+              : 'Visualização de demandas finalizadas organizadas por setor'}
           </p>
         </div>
         <div className="flex gap-2">
