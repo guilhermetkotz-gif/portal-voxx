@@ -245,10 +245,15 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const { data: sheetData } = useQuery({
     queryKey: ['amountSpentFromSheet'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
-      return response.data;
+      try {
+        const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
+        return response.data;
+      } catch {
+        return null;
+      }
     },
-    staleTime: 0
+    staleTime: 5 * 60 * 1000,
+    retry: false
   });
 
   const diarioD1ByAccount = sheetData?.diarioD1ByAccount || {};
