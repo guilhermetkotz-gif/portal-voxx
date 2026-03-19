@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +53,7 @@ const TABS = [
 ];
 
 export default function LeadFichaModal({ lead, open, onClose, user }) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('visao_geral');
   const [formData, setFormData] = useState({});
@@ -135,6 +137,16 @@ export default function LeadFichaModal({ lead, open, onClose, user }) {
     <>
       <Sheet open={open} onOpenChange={onClose}>
         <SheetContent className="w-full max-w-2xl p-0 flex flex-col overflow-hidden" side="right">
+          {/* Botão abrir página completa */}
+          <div className="flex justify-end px-4 pt-3 bg-slate-900">
+            <button
+              onClick={() => { onClose(); navigate(`/LeadDetalhe?id=${lead.id}`); }}
+              className="text-xs text-violet-300 hover:text-white transition-colors flex items-center gap-1"
+            >
+              Abrir completo →
+            </button>
+          </div>
+
           {/* HEADER */}
           <LeadHeader
             lead={formData.id ? formData : lead}

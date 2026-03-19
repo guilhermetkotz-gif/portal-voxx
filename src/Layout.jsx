@@ -33,6 +33,7 @@ const pageTitles = {
         Conta: { title: "Minha Conta", subtitle: "Configurações do perfil" },
         GerenciarAcessos: { title: "Gerenciar Acessos", subtitle: "Controle de usuários e permissões" },
         Comercial: { title: "Comercial", subtitle: "Pipeline de vendas e gestão de leads" },
+        LeadDetalhe: { title: "Lead", subtitle: "Detalhes e histórico do lead" },
         Kanban: { title: "Kanban de Demandas", subtitle: "Gerencie demandas por setor" },
                 MonitoramentoDemandas: { title: "Monitoramento de Demandas", subtitle: "Analytics e KPIs de demandas" },
         GerenciarContas: { title: "Gerenciar Contas", subtitle: "Gestão de clientes e unidades" },
