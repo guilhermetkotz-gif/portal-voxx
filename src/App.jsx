@@ -4,6 +4,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Comercial from './pages/Comercial';
 import PlanoDeAcao from './pages/PlanoDeAcao';
 import PlanoDeAcaoDetalhe from './pages/PlanoDeAcaoDetalhe';
 import ReportDiario from './pages/ReportDiario';
