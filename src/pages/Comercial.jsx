@@ -9,9 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import LeadCard from '@/components/comercial/LeadCard';
+import LeadCardEvoluido from '@/components/comercial/LeadCardEvoluido';
 import NovoLeadModal from '@/components/comercial/NovoLeadModal';
 import AgendaComercial from '@/components/comercial/AgendaComercial';
 import DashboardComercial from '@/components/comercial/DashboardComercial';
+import AlertasInteligentes from '@/components/comercial/AlertasInteligentes';
+import PrioritizacaoDia from '@/components/comercial/PrioritizacaoDia';
+import AcaoRapidaMenu from '@/components/comercial/AcaoRapidaMenu';
 import { isVoxxAdmin, isVoxxOperacao, isVoxxManager } from '@/components/utils/auth';
 import { Plus, Search, LayoutDashboard, KanbanSquare, Calendar, AlertTriangle, Loader2, Users, DollarSign, TrendingUp, Filter, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,6 +42,7 @@ export default function Comercial({ user }) {
   const [filtroOrigem, setFiltroOrigem] = useState('all');
   const [filtroFit, setFiltroFit] = useState('all');
   const [filtroStatus, setFiltroStatus] = useState('all');
+  const [filtroAlerta, setFiltroAlerta] = useState('all');
   const [showFiltros, setShowFiltros] = useState(false);
   const [draggingLeadId, setDraggingLeadId] = useState(null);
 
@@ -67,9 +72,26 @@ export default function Comercial({ user }) {
     return <div className="flex items-center justify-center h-96"><p className="text-lg text-red-500">Acesso negado. Esta página é apenas para usuários Voxx.</p></div>;
   }
 
-  // KPIs
+  // KPIs - Evoluído (Orientação 5)
   const ativos = leads.filter(l => !['fechado_ganho','fechado_perdido'].includes(l.etapa));
-  const valorPotencial = ativos.reduce((s, l) => s + (l.valor_estimado || 0), 0);
+  const leadsEmRisco = leads.filter(l => {
+    if (!l.ultima_interacao || ['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
+    const dias = Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24));
+    return dias > 7;
+  });
+  const leadsQuentes = leads.filter(l => 
+    l.fit_classificacao === 'alto_fit' && l.ultima_interacao &&
+    Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24)) <= 3
+  );
+  const followUpsPendentes = leads.filter(l => {
+    if (['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
+    if (!l.ultima_interacao) return true;
+    const dias = Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24));
+    return dias >= 3;
+  });
+  const valorPotencialReal = leads
+    .filter(l => l.fit_classificacao === 'alto_fit' || l.fit_classificacao === 'medio_fit')
+    .reduce((s, l) => s + (l.valor_estimado || 0), 0);
   const ganhos = leads.filter(l => l.etapa === 'fechado_ganho');
   const taxaConversao = leads.length > 0 ? ((ganhos.length / leads.length) * 100).toFixed(0) : 0;
   const reunioesHoje = reunioes.filter(r => r.data_hora && isSameDay(parseISO(r.data_hora), new Date()));
@@ -93,7 +115,18 @@ export default function Comercial({ user }) {
     const matchOrigem = filtroOrigem === 'all' || l.origem === filtroOrigem;
     const matchFit = filtroFit === 'all' || l.fit_classificacao === filtroFit;
     const matchStatus = filtroStatus === 'all' || getStatusLead(l) === filtroStatus;
-    return matchSearch && matchResp && matchOrigem && matchFit && matchStatus;
+    
+    // Filtros inteligentes (Orientação 8)
+    let matchAlerta = true;
+    if (filtroAlerta !== 'all') {
+      if (filtroAlerta === 'sem_contato') matchAlerta = !l.ultima_interacao && l.etapa === 'novo_lead';
+      if (filtroAlerta === 'quentes') matchAlerta = l.fit_classificacao === 'alto_fit' && l.ultima_interacao && Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24)) <= 3;
+      if (filtroAlerta === 'parados') matchAlerta = l.ultima_interacao && Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24)) > 7;
+      if (filtroAlerta === 'propostas') matchAlerta = l.etapa === 'proposta_enviada' && l.ultima_interacao && Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24)) >= 5;
+      if (filtroAlerta === 'atrasados') matchAlerta = followUpsPendentes.find(lp => lp.id === l.id);
+    }
+    
+    return matchSearch && matchResp && matchOrigem && matchFit && matchStatus && matchAlerta;
   });
 
   const leadsPorEtapa = (etapa) => leadsFiltrados.filter(l => l.etapa === etapa);
