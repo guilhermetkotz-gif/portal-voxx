@@ -352,6 +352,15 @@ export default function Comercial({ user }) {
       </Tabs>
 
       <NovoLeadModal open={showNovoLead} onClose={() => setShowNovoLead(false)} user={user} />
+      
+      {selectedLeadFollowUp && (
+        <FollowUpRapidoModal 
+          lead={selectedLeadFollowUp} 
+          open={showFollowUpRapido} 
+          onClose={() => setShowFollowUpRapido(false)}
+          user={user}
+        />
+      )}
 
       {/* Menu de Ação Rápida - Orientação 6 */}
       <AcaoRapidaMenu
