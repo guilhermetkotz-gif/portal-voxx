@@ -75,7 +75,7 @@ const menuItems = [
 export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingDemandas = 0, onLogout, user }) {
   // Fetch user type permissions
   const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
-  const { data: userPermissions } = useQuery({
+  const { data: userPermissions, isLoading: loadingPermissions } = useQuery({
     queryKey: ['userTypePermissions', tipoUsuario],
     queryFn: async () => {
       if (!tipoUsuario) return null;
