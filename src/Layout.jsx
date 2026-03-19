@@ -257,29 +257,34 @@ export default function Layout({ children, currentPageName }) {
   // Base44 admin bypass - skip all checks
   if (user?.role === 'admin') {
     // Admin has full access, skip to main app
+  } else if (!isVoxxUser && (user?.status === 'pendente' || !user?.status)) {
+    // Pendente OR new user without status yet → redirect away from any page except BoasVindas/AguardandoAprovacao
+    if (currentPageName === 'BoasVindas' || currentPageName === 'AguardandoAprovacao') {
+      // Allow these pages
+      if (userRequest && userRequest.length > 0) {
+        if (currentPageName !== 'AguardandoAprovacao') {
+          navigate(createPageUrl('AguardandoAprovacao'));
+          return null;
+        }
+      } else {
+        if (currentPageName !== 'BoasVindas') {
+          navigate(createPageUrl('BoasVindas'));
+          return null;
+        }
+      }
+      return React.cloneElement(children, { user });
+    }
+    // Any other page → redirect to BoasVindas or AguardandoAprovacao
+    if (userRequest && userRequest.length > 0) {
+      navigate(createPageUrl('AguardandoAprovacao'));
+    } else {
+      navigate(createPageUrl('BoasVindas'));
+    }
+    return null;
   } else if (user?.status === 'ativo' && !isVoxxUser && currentPageName === 'AguardandoAprovacao') {
     // User was approved but is still on AguardandoAprovacao page → redirect to Home
     navigate(createPageUrl('Home'));
     return null;
-  } else if (user?.status === 'pendente' || (!user?.status && !isVoxxUser)) {
-    // Pendente OR new user without status yet → same flow
-    // WITH request → redirect to AguardandoAprovacao
-    if (userRequest && userRequest.length > 0) {
-      if (currentPageName !== 'AguardandoAprovacao') {
-        navigate(createPageUrl('AguardandoAprovacao'));
-        return null;
-      }
-      return React.cloneElement(children, { user });
-    }
-
-    // WITHOUT request → redirect to BoasVindas
-    if (!userRequest || userRequest.length === 0) {
-      if (currentPageName !== 'BoasVindas') {
-        navigate(createPageUrl('BoasVindas'));
-        return null;
-      }
-      return React.cloneElement(children, { user });
-    }
   }
   // Users with status 'ativo' proceed to main app below
 
