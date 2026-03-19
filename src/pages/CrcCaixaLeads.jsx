@@ -68,6 +68,17 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
     refetchOnWindowFocus: true
   });
 
+  // Sync from Google Sheets on page load (once per client session)
+  const syncedRef = useRef(null);
+  useEffect(() => {
+    if (!currentCliente?.id) return;
+    if (syncedRef.current === currentCliente.id) return; // already synced for this client
+    syncedRef.current = currentCliente.id;
+    base44.functions.invoke('syncCrcLeadsFromGoogle', { clienteId: currentCliente.id })
+      .then(() => refetch())
+      .catch(() => {}); // silently fail if sync errors
+  }, [currentCliente?.id]);
+
   const { data: config } = useQuery({
     queryKey: ['crcConfig', currentCliente?.id],
     queryFn: async () => {
