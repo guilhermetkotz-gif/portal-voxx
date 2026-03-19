@@ -5,6 +5,7 @@ import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Comercial from './pages/Comercial';
+import LeadDetalhe from './pages/LeadDetalhe';
 import PlanoDeAcao from './pages/PlanoDeAcao';
 import PlanoDeAcaoDetalhe from './pages/PlanoDeAcaoDetalhe';
 import ReportDiario from './pages/ReportDiario';
@@ -63,6 +64,7 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/Comercial" element={<LayoutWrapper currentPageName="Comercial"><Comercial /></LayoutWrapper>} />
+      <Route path="/LeadDetalhe" element={<LayoutWrapper currentPageName="Comercial"><LeadDetalhe /></LayoutWrapper>} />
       <Route path="/PlanoDeAcao" element={<LayoutWrapper currentPageName="PlanoDeAcao"><PlanoDeAcao /></LayoutWrapper>} />
       <Route path="/PlanoDeAcaoDetalhe" element={<LayoutWrapper currentPageName="PlanoDeAcaoDetalhe"><PlanoDeAcaoDetalhe /></LayoutWrapper>} />
       <Route path="/ReportDiario" element={<LayoutWrapper currentPageName="ReportDiario"><ReportDiario /></LayoutWrapper>} />
