@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Flame, TrendingUp } from 'lucide-react';
 
 export default function PrioritizacaoDia({ leads }) {
+  const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
   // Calcular prioridade: Fit Score + Recência + Etapa + Engajamento
   const calcularPrioridade = (lead) => {
     let score = 0;
@@ -76,7 +78,7 @@ export default function PrioritizacaoDia({ leads }) {
                     <span className="font-semibold text-sm text-slate-900 truncate">{idx + 1}. {lead.nome_empresa}</span>
                     <Badge className={nivel.color} variant="outline">{nivel.label}</Badge>
                   </div>
-                  <p className="text-xs text-slate-500">Fit: {lead.fit_score || '-'}/100 • {lead.etapa?.replace(/_/g, ' ').capitalize()}</p>
+                  <p className="text-xs text-slate-500">Fit: {lead.fit_score || '-'}/100 • {capitalize(lead.etapa?.replace(/_/g, ' ') || '')}</p>
                   {dias !== null && (
                     <p className="text-xs text-slate-500">Última: há {dias} dias</p>
                   )}
