@@ -278,7 +278,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     }
   }
 
-  const totalLeadsGoogle = googleLeadsData?.leads || (cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0);
+  const totalLeadsGoogle = googleLeadsData?.leads ?? ((cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0));
   const diasRestantesMeta = gastoDiarioMeta > 0 
     ? Math.floor(saldoMeta / gastoDiarioMeta) 
     : null;
