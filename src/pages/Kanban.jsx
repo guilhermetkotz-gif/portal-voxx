@@ -262,6 +262,18 @@ const Kanban = ({ user, selectedClienteId }) => {
     }));
   }, [allColumnOrder, allColumnDefinitions]);
 
+  // Contagem de demandas do mês vigente por modo
+  const mesVigenteCounts = React.useMemo(() => {
+    if (!demandas) return { ativas: 0, concluidas: 0, finalizadas: 0 };
+    const inicioMes = moment().tz('America/Sao_Paulo').startOf('month').toISOString();
+    const doMes = demandas.filter(d => d.created_date >= inicioMes);
+    return {
+      ativas: doMes.filter(d => d.status !== 'finalizada' && d.status !== 'concluida').length,
+      concluidas: doMes.filter(d => d.status === 'concluida').length,
+      finalizadas: doMes.filter(d => d.status === 'finalizada').length,
+    };
+  }, [demandas]);
+
   // Get all unique tags from demandas
   const allTags = React.useMemo(() => {
     if (!demandas) return [];
