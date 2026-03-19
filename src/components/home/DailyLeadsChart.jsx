@@ -71,18 +71,37 @@ export default function DailyLeadsChart({ clienteId, clienteNome }) {
           <TrendingUp className="w-4 h-4 text-violet-600" />
           <span className="text-sm font-medium text-slate-700">Histórico Diário de Leads</span>
         </div>
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-          {PERIOD_OPTIONS.map((opt, idx) => (
-            <Button
-              key={idx}
-              size="sm"
-              variant={activePeriod === idx ? 'default' : 'ghost'}
-              className={`h-7 text-xs ${activePeriod === idx ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}
-              onClick={() => setActivePeriod(idx)}
-            >
-              {opt.label}
-            </Button>
-          ))}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+            {PERIOD_OPTIONS.map((opt, idx) => (
+              <Button
+                key={idx}
+                size="sm"
+                variant={activePeriod === idx ? 'default' : 'ghost'}
+                className={`h-7 text-xs ${activePeriod === idx ? 'bg-white shadow-sm text-slate-900' : 'text-slate-600 hover:text-slate-900'}`}
+                onClick={() => setActivePeriod(idx)}
+              >
+                {idx === 3 ? <><CalendarRange className="w-3 h-3 mr-1" />Definir período</> : opt.label}
+              </Button>
+            ))}
+          </div>
+          {isCustom && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-7 text-xs w-36"
+              />
+              <span className="text-xs text-slate-400">até</span>
+              <Input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-7 text-xs w-36"
+              />
+            </div>
+          )}
         </div>
       </div>
 
