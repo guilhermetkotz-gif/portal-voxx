@@ -12,7 +12,7 @@ import LeadCard from '@/components/comercial/LeadCard';
 import NovoLeadModal from '@/components/comercial/NovoLeadModal';
 import AgendaComercial from '@/components/comercial/AgendaComercial';
 import DashboardComercial from '@/components/comercial/DashboardComercial';
-import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
+import { isVoxxAdmin, isVoxxOperacao, isVoxxManager } from '@/components/utils/auth';
 import { Plus, Search, LayoutDashboard, KanbanSquare, Calendar, AlertTriangle, Loader2, Users, DollarSign, TrendingUp, Filter, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { isSameDay, parseISO } from 'date-fns';

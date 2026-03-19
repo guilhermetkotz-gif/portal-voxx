@@ -14,6 +14,7 @@ import ProximaAcaoBlock from '@/components/comercial/ProximaAcaoBlock';
 import RegistrarInteracaoModal from '@/components/comercial/RegistrarInteracaoModal';
 import InteligenciaLeadPanel from '@/components/comercial/InteligenicaLeadPanel';
 import { avaliarTriggers, gerarTarefasFollowUp, calcularTemperaturaLead, calcularScorePrioridade } from '@/lib/comercial/inteligencia';
+import { isVoxxAdmin, isVoxxOperacao, isVoxxManager } from '@/components/utils/auth';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Phone, MapPin, User, Clock, DollarSign, Calendar,
