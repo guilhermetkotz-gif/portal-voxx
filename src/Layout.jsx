@@ -73,7 +73,7 @@ export default function Layout({ children, currentPageName }) {
   const { data: userRequest } = useQuery({
     queryKey: ['userRequest', user?.id],
     queryFn: () => base44.entities.AccessRequest.filter({ usuario_id: user?.id }, '-created_date', 1),
-    enabled: !!user?.id && user?.status === 'pendente',
+    enabled: !!user?.id && (user?.status === 'pendente' || (!user?.status && !isVoxxUser)),
     staleTime: 30 * 1000
   });
 
