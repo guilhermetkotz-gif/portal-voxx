@@ -31,8 +31,8 @@ export default function LeadCardEvoluido({ lead, onFollowUp }) {
   const statusFollowUp = getStatusFollowUp();
 
   return (
-    <Card className="p-3 hover:shadow-md transition-all bg-white border cursor-pointer group">
-      <div className="space-y-2">
+    <Card className="p-3 hover:shadow-md transition-all bg-white border cursor-pointer group relative">
+      <div className="space-y-2 group">
         {/* Cabeçalho com nome e nível */}
         <div className="flex items-start justify-between gap-2 min-w-0">
           <div className="flex-1 min-w-0">
@@ -83,15 +83,15 @@ export default function LeadCardEvoluido({ lead, onFollowUp }) {
         )}
 
         {/* Botão de follow-up rápido */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFollowUp?.(lead);
-          }}
-          className="w-full text-xs py-1.5 rounded bg-violet-50 text-violet-700 font-medium hover:bg-violet-100 transition-colors opacity-0 group-hover:opacity-100"
-        >
-          + Follow-up Rápido
-        </button>
+         <button
+           onClick={(e) => {
+             e.stopPropagation();
+             onFollowUp?.(lead);
+           }}
+           className="w-full text-xs py-1.5 px-2 rounded bg-violet-50 text-violet-700 font-medium hover:bg-violet-100 transition-all duration-200 opacity-0 group-hover:opacity-100 group-hover:scale-100 scale-95"
+         >
+           ⚡ Follow-up Rápido
+         </button>
       </div>
     </Card>
   );
