@@ -19,7 +19,8 @@ const statusOptions = [
   { value: 'em_execucao', label: 'Em Execução' },
   { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
   { value: 'em_revisao', label: 'Em Revisão' },
-  { value: 'concluida', label: 'Concluída' }
+  { value: 'concluida', label: 'Concluída' },
+  { value: 'finalizada', label: 'Finalizada' }
 ];
 
 const setorOptions = [
