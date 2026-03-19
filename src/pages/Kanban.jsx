@@ -438,6 +438,7 @@ const Kanban = ({ user, selectedClienteId }) => {
               : viewMode === 'concluidas'
                 ? 'Visualização de demandas concluídas organizadas por setor'
                 : 'Visualização de demandas finalizadas organizadas por setor'}
+            <span className="ml-2 text-xs text-slate-400">(badges = abertas no mês vigente)</span>
           </p>
         </div>
         <div className="flex gap-2">
