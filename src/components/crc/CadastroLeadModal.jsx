@@ -68,6 +68,9 @@ export default function CadastroLeadModal({ unidadeId, onClose, onSuccess }) {
       alert('Preencha os campos obrigatórios');
       return;
     }
+    if (duplicateWarning) {
+      if (!window.confirm('Este telefone já está cadastrado. Deseja cadastrar mesmo assim?')) return;
+    }
     createMutation.mutate(formData);
   };
 
