@@ -40,7 +40,33 @@ const AuthenticatedApp = () => {
     } else if (authError.type === 'auth_required') {
       // Redirect to login automatically
       navigateToLogin();
-      return null;
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-white">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-slate-200 border-t-violet-600 rounded-full animate-spin mx-auto mb-3"></div>
+            <p className="text-sm text-slate-500">Redirecionando para o login...</p>
+          </div>
+        </div>
+      );
+    } else {
+      // Unknown error (network, domain, etc.) - show message instead of blank screen
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-white p-4">
+          <div className="text-center max-w-sm">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-red-500 text-xl">!</span>
+            </div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">Erro ao carregar o portal</h2>
+            <p className="text-sm text-slate-500 mb-4">{authError.message || 'Não foi possível conectar. Verifique sua conexão e tente novamente.'}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-violet-600 text-white text-sm rounded-lg hover:bg-violet-700"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      );
     }
   }
 
