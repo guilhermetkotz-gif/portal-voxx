@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageSquare, Calendar, FileText, Send, Phone, CheckSquare, Zap, AlertTriangle } from 'lucide-react';
-import { differenceInDays, parseISO } from 'date-fns';
+import { avaliarTriggers } from '@/lib/comercial/inteligencia';
 
 const ACOES_POR_ETAPA = {
   novo_lead: {
@@ -30,19 +30,19 @@ const ACOES_POR_ETAPA = {
   },
   proposta_enviada: {
     titulo: 'Faça o follow-up da proposta',
-    descricao: 'Proposta enviada. Aguarde o retorno e mantenha contato ativo para tirar dúvidas.',
+    descricao: 'Proposta enviada. Mantenha contato ativo para tirar dúvidas e conduzir ao fechamento.',
     acaoPrimaria: { label: 'Registrar Follow-up', icon: Phone, tab: 'interacoes' },
     acoesSecundarias: [{ label: 'Ajustar Proposta', icon: FileText, tab: 'proposta' }]
   },
   negociacao: {
     titulo: 'Negocie e feche',
-    descricao: 'Você está na etapa final! Mantenha o contato próximo e resolva as objeções.',
+    descricao: 'Etapa final! Mantenha o contato próximo e resolva as objeções com velocidade.',
     acaoPrimaria: { label: 'Registrar Negociação', icon: MessageSquare, tab: 'interacoes' },
     acoesSecundarias: [{ label: 'Atualizar Proposta', icon: Send, tab: 'proposta' }]
   },
   fechado_ganho: {
     titulo: 'Lead convertido! 🎉',
-    descricao: 'Parabéns! Este lead foi convertido em cliente. Faça a passagem para o time de CS.',
+    descricao: 'Parabéns! Faça a passagem para o time de CS e crie o plano de ação.',
     acaoPrimaria: { label: 'Registrar Onboarding', icon: CheckSquare, tab: 'interacoes' },
     acoesSecundarias: []
   },
@@ -55,13 +55,33 @@ const ACOES_POR_ETAPA = {
 };
 
 export default function ProximaAcaoBlock({ lead, onTabChange, onRegistrarInteracao, onAgendarReuniao }) {
-  const acao = ACOES_POR_ETAPA[lead.etapa] || ACOES_POR_ETAPA.novo_lead;
+  const triggers = avaliarTriggers(lead);
+  const triggerCritico = triggers.find(t => ['critico', 'alto'].includes(t.nivel));
 
-  const diasSemInteracao = lead.ultima_interacao
-    ? differenceInDays(new Date(), parseISO(lead.ultima_interacao))
-    : 999;
+  // Override da ação se há trigger crítico
+  let acao = ACOES_POR_ETAPA[lead.etapa] || ACOES_POR_ETAPA.novo_lead;
 
-  const alertaInatividade = diasSemInteracao > 7 && !['fechado_ganho', 'fechado_perdido'].includes(lead.etapa);
+  if (triggerCritico?.tipo === 'proposta_sem_resposta') {
+    acao = {
+      ...acao,
+      titulo: '📬 Proposta sem resposta — Aja agora!',
+      descricao: triggerCritico.descricao,
+      acaoPrimaria: { label: 'Registrar Follow-up Urgente', icon: Phone, tab: 'interacoes' },
+    };
+  } else if (triggerCritico?.tipo === 'inatividade_critica') {
+    acao = {
+      ...acao,
+      titulo: '🔴 Lead parado — Reative agora!',
+      descricao: triggerCritico.descricao,
+      acaoPrimaria: { label: 'Registrar Contato', icon: Phone, tab: 'interacoes' },
+    };
+  } else if (triggerCritico?.tipo === 'travado') {
+    acao = {
+      ...acao,
+      titulo: '🔒 Lead travado — Mude a abordagem',
+      descricao: triggerCritico.descricao,
+    };
+  }
 
   const handleAcaoPrimaria = () => {
     if (acao.acaoPrimaria.tab === 'interacoes') onRegistrarInteracao();
@@ -76,47 +96,38 @@ export default function ProximaAcaoBlock({ lead, onTabChange, onRegistrarInterac
   };
 
   return (
-    <div className="mx-0">
-      {alertaInatividade && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-700 text-xs">
-          <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>Sem interação há <strong>{diasSemInteracao} dias</strong>. Este lead pode estar esfriando.</span>
+    <div className="p-4 bg-violet-50">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Zap className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-violet-700 uppercase tracking-wide mb-0.5">Próxima Melhor Ação</p>
+            <p className="font-semibold text-slate-900 text-sm">{acao.titulo}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{acao.descricao}</p>
+          </div>
         </div>
-      )}
 
-      <div className="p-4 bg-violet-50 border-b border-violet-100">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-violet-700 uppercase tracking-wide mb-0.5">Próxima Melhor Ação</p>
-              <p className="font-semibold text-slate-900 text-sm">{acao.titulo}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{acao.descricao}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {acao.acoesSecundarias.map((a, i) => (
-              <button
-                key={i}
-                onClick={() => handleAcaoSecundaria(a)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-violet-200 bg-white text-violet-700 rounded-lg hover:bg-violet-50 transition-colors"
-              >
-                <a.icon className="w-3.5 h-3.5" />
-                {a.label}
-              </button>
-            ))}
-            <Button
-              size="sm"
-              onClick={handleAcaoPrimaria}
-              className="bg-violet-600 hover:bg-violet-700 text-white text-xs h-8"
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {acao.acoesSecundarias.map((a, i) => (
+            <button
+              key={i}
+              onClick={() => handleAcaoSecundaria(a)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium border border-violet-200 bg-white text-violet-700 rounded-lg hover:bg-violet-50 transition-colors"
             >
-              <acao.acaoPrimaria.icon className="w-3.5 h-3.5 mr-1.5" />
-              {acao.acaoPrimaria.label}
-            </Button>
-          </div>
+              <a.icon className="w-3.5 h-3.5" />
+              {a.label}
+            </button>
+          ))}
+          <Button
+            size="sm"
+            onClick={handleAcaoPrimaria}
+            className="bg-violet-600 hover:bg-violet-700 text-white text-xs h-8"
+          >
+            <acao.acaoPrimaria.icon className="w-3.5 h-3.5 mr-1.5" />
+            {acao.acaoPrimaria.label}
+          </Button>
         </div>
       </div>
     </div>
