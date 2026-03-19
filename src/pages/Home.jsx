@@ -6,6 +6,7 @@ import HealthScore from '@/components/ui/HealthScore';
 import AlertsSection from '@/components/home/AlertsSection';
 import RecentDemandas from '@/components/home/RecentDemandas';
 import AcoesVoxxCard from '@/components/home/AcoesVoxxCard';
+import DailyLeadsChart from '@/components/home/DailyLeadsChart';
 import AguardandoAprovacao from '@/pages/AguardandoAprovacao';
 import BoasVindas from '@/pages/BoasVindas';
 import { Card } from "@/components/ui/card";
