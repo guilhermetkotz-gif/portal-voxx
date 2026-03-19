@@ -353,6 +353,18 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
           </Card>
         </div>
       </SheetContent>
+      {showTentativaModal && (
+        <RegistrarTentativaModal
+          lead={lead}
+          onClose={() => setShowTentativaModal(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries(['crcLeads']);
+            queryClient.invalidateQueries(['crcTentativas', lead.id]);
+            setShowTentativaModal(false);
+            onUpdate();
+          }}
+        />
+      )}
     </Sheet>
   );
 }
