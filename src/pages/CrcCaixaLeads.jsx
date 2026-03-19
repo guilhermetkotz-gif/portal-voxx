@@ -223,7 +223,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
           </div>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
             <Input
@@ -232,6 +232,38 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 h-11 text-base border-slate-300 focus:border-violet-500 focus:ring-violet-500"
             />
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-slate-400" />
+              <span className="text-sm text-slate-600 font-medium">Período:</span>
+            </div>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 w-44 text-sm"
+              placeholder="De"
+            />
+            <span className="text-slate-400 text-sm">até</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 w-44 text-sm"
+              placeholder="Até"
+            />
+            {(dateFrom || dateTo) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                className="text-slate-500 hover:text-slate-700 h-9"
+              >
+                <XCircle className="w-4 h-4 mr-1" />
+                Limpar
+              </Button>
+            )}
           </div>
         </div>
 
