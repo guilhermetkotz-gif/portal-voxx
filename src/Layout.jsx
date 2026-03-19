@@ -69,11 +69,15 @@ export default function Layout({ children, currentPageName }) {
     retry: false
   });
 
+  // Calculate isVoxxUser early (before hooks that need it)
+  const tipoUsuarioAccessEarly = user?.tipo_usuario || user?.tipo_acesso;
+  const isVoxxUserEarly = tipoUsuarioAccessEarly === 'voxx_admin' || tipoUsuarioAccessEarly === 'voxx_operacao' || tipoUsuarioAccessEarly === 'voxx_manager';
+
   // Check if user has access request (must be called before any conditional returns)
   const { data: userRequest } = useQuery({
     queryKey: ['userRequest', user?.id],
     queryFn: () => base44.entities.AccessRequest.filter({ usuario_id: user?.id }, '-created_date', 1),
-    enabled: !!user?.id && (user?.status === 'pendente' || (!user?.status && !isVoxxUser)),
+    enabled: !!user?.id && (user?.status === 'pendente' || (!user?.status && !isVoxxUserEarly)),
     staleTime: 30 * 1000
   });
 
