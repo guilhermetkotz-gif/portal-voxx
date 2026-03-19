@@ -111,8 +111,8 @@ export default function Demandas({ currentCliente, selectedClienteId, user }) {
     const matchPrioridade = prioridadeFilter === 'all' || demanda.prioridade === prioridadeFilter;
     
     const matchTab = activeTab === 'abertas' 
-      ? demanda.status !== 'concluida' 
-      : demanda.status === 'concluida';
+      ? demanda.status !== 'finalizada' 
+      : demanda.status === 'finalizada';
 
     return matchSearch && matchStatus && matchSetor && matchPrioridade && matchTab;
   });
@@ -140,10 +140,10 @@ export default function Demandas({ currentCliente, selectedClienteId, user }) {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="abertas">
-              Em Aberto ({demandas.filter(d => d.status !== 'concluida').length})
+              Em Aberto ({demandas.filter(d => d.status !== 'finalizada').length})
             </TabsTrigger>
             <TabsTrigger value="concluidas">
-              Concluídas ({demandas.filter(d => d.status === 'concluida').length})
+              Finalizadas ({demandas.filter(d => d.status === 'finalizada').length})
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -236,7 +236,7 @@ export default function Demandas({ currentCliente, selectedClienteId, user }) {
               ? 'Nenhuma demanda encontrada com os filtros aplicados.'
               : activeTab === 'abertas'
                 ? 'Nenhuma demanda em aberto.'
-                : 'Nenhuma demanda concluída.'}
+                : 'Nenhuma demanda finalizada.'}
           </p>
         </Card>
       ) : (
