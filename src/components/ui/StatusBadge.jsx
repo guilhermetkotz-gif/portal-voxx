@@ -7,7 +7,8 @@ const statusConfig = {
   em_execucao: { label: "Em Execução", color: "bg-violet-100 text-violet-700 border-violet-200" },
   aguardando_cliente: { label: "Aguardando Cliente", color: "bg-amber-100 text-amber-700 border-amber-200" },
   em_revisao: { label: "Em Revisão", color: "bg-cyan-100 text-cyan-700 border-cyan-200" },
-  concluida: { label: "Concluída", color: "bg-emerald-100 text-emerald-700 border-emerald-200" }
+  concluida: { label: "Concluída", color: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  finalizada: { label: "Finalizada", color: "bg-slate-200 text-slate-700 border-slate-300" }
 };
 
 const prioridadeConfig = {
