@@ -140,8 +140,16 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        {/* While loading permissions, show nothing */}
+        {loadingPermissions && tipoUsuario && !collapsed && (
+          <div className="px-3 py-4 text-xs text-slate-500">Carregando menu...</div>
+        )}
         {menuItems.map((item, index) => {
           if (item.divider) {
+            // Don't show dividers if nothing is visible around them
+            const prevVisible = menuItems.slice(0, index).reverse().find(i => !i.divider && isPageAllowed(i.page));
+            const nextVisible = menuItems.slice(index + 1).find(i => !i.divider && isPageAllowed(i.page));
+            if (!prevVisible || !nextVisible) return null;
             return <div key={index} className="h-px bg-slate-800 my-3" />;
           }
 
