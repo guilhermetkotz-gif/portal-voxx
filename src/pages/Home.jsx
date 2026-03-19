@@ -577,6 +577,11 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
         </Card>
       </div>
 
+      {/* Histórico Diário de Leads */}
+      <Card className="p-5">
+        <DailyLeadsChart clienteId={selectedClienteId} clienteNome={cliente?.nome} />
+      </Card>
+
       {/* Alerts, Demandas, Ações */}
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="space-y-4">
