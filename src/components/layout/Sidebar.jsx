@@ -97,7 +97,10 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
       return userPermissions.paginas_permitidas.includes(pageName);
     }
     
-    // While permissions are loading, show basic pages
+    // While permissions are still loading, hide everything (show nothing until loaded)
+    if (!userPermissions && tipoUsuario) return false;
+
+    // If user has no tipo_usuario set at all, show basic pages
     return ['Home', 'Chat', 'Conta', 'Ajuda'].includes(pageName);
   };
 
