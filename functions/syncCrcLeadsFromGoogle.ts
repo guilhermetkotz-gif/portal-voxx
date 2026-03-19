@@ -25,26 +25,36 @@ const parseDate = (dateStr) => {
   return null;
 };
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
+    // Allow filtering by specific clienteId for debugging
+    let body = {};
+    try { body = await req.json(); } catch {}
+    const filterClienteId = body.clienteId || null;
+
     // Get Google Sheets access token via connector
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
-    // Get all Oral Sin clients with a Google Leads Sheet configured
+    // Get ALL clients (any type) that have google_leads_sheet_url configured
     const allClientes = await base44.asServiceRole.entities.Cliente.list('-created_date', 500);
-    const oralSinClientes = allClientes.filter(c =>
-      c.tipo_cliente === 'oral_sin' && c.google_leads_sheet_url
-    );
+    let clientesComPlanilha = allClientes.filter(c => c.google_leads_sheet_url && c.google_leads_sheet_url.trim() !== '');
 
-    if (oralSinClientes.length === 0) {
-      return Response.json({ success: true, message: 'No Oral Sin clients with Google Sheets configured', totalImported: 0 });
+    if (filterClienteId) {
+      clientesComPlanilha = clientesComPlanilha.filter(c => c.id === filterClienteId);
     }
+
+    if (clientesComPlanilha.length === 0) {
+      return Response.json({ success: true, message: 'No clients with Google Sheets URL configured', totalImported: 0 });
+    }
+
+    console.log(`Processing ${clientesComPlanilha.length} clients with Google Sheets configured`);
 
     // Pre-load existing leads to check for duplicates by phone+unidade
     const existingLeads = await base44.asServiceRole.entities.CrcLead.list('-created_date', 10000);
-    // Build a Set of "unidade_id|telefone_normalizado" for fast lookup
     const existingPhoneKeys = new Set(
       existingLeads
         .map(l => l.unidade_id && l.telefone ? `${l.unidade_id}|${normalizePhone(l.telefone)}` : null)
@@ -54,10 +64,10 @@ Deno.serve(async (req) => {
     let totalImported = 0;
     const results = [];
 
-    for (const cliente of oralSinClientes) {
+    for (const cliente of clientesComPlanilha) {
       const spreadsheetId = extractSpreadsheetId(cliente.google_leads_sheet_url);
       if (!spreadsheetId) {
-        results.push({ cliente: cliente.nome, error: 'Invalid Google Sheets URL' });
+        results.push({ cliente: cliente.nome, error: 'Invalid Google Sheets URL', url: cliente.google_leads_sheet_url });
         continue;
       }
 
@@ -79,7 +89,9 @@ Deno.serve(async (req) => {
       });
 
       if (!metaRes.ok) {
-        results.push({ cliente: cliente.nome, error: `Sheet metadata error: ${metaRes.status}` });
+        const errBody = await metaRes.text();
+        results.push({ cliente: cliente.nome, error: `Sheet metadata error: ${metaRes.status} - ${errBody}` });
+        await sleep(1000);
         continue;
       }
 
@@ -88,18 +100,22 @@ Deno.serve(async (req) => {
 
       let imported = 0;
 
-      // Iterate over ALL sheets
       for (const sheet of allSheets) {
         const sheetName = sheet.properties?.title;
         if (!sheetName) continue;
 
-        // Fetch sheet data
+        // Small delay to avoid rate limits
+        await sleep(200);
+
         const dataRes = await fetch(
           `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`,
           { headers: { 'Authorization': `Bearer ${accessToken}` } }
         );
 
-        if (!dataRes.ok) continue;
+        if (!dataRes.ok) {
+          console.log(`Skipping sheet "${sheetName}" for ${cliente.nome}: HTTP ${dataRes.status}`);
+          continue;
+        }
 
         const sheetData = await dataRes.json();
         const rows = sheetData.values || [];
@@ -117,16 +133,16 @@ Deno.serve(async (req) => {
         const idxLink = findCol(colLinkAnuncio);
         const idxObs = findCol(colObservacao);
 
-        // Skip sheet if no phone column found
-        if (idxTelefone < 0) continue;
+        if (idxTelefone < 0) {
+          console.log(`Sheet "${sheetName}" for ${cliente.nome}: no phone column found. Headers: ${headers.join(', ')}`);
+          continue;
+        }
 
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-
           const telefone = normalizePhone(row[idxTelefone]);
           if (!telefone) continue;
 
-          // Deduplicate by phone + unidade
           const phoneKey = `${cliente.id}|${telefone}`;
           if (existingPhoneKeys.has(phoneKey)) continue;
 
@@ -157,7 +173,6 @@ Deno.serve(async (req) => {
             observacoes
           });
 
-          // Add to set so we don't import the same phone twice within this run
           existingPhoneKeys.add(phoneKey);
           imported++;
           totalImported++;
@@ -166,12 +181,15 @@ Deno.serve(async (req) => {
 
       console.log(`Cliente ${cliente.nome}: ${imported} leads imported from ${allSheets.length} sheets`);
       results.push({ cliente: cliente.nome, imported, sheets: allSheets.length });
+
+      // Delay between clients to avoid rate limits
+      await sleep(500);
     }
 
     return Response.json({
       success: true,
       totalImported,
-      processedClients: oralSinClientes.length,
+      processedClients: clientesComPlanilha.length,
       results
     });
 
