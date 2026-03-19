@@ -205,13 +205,13 @@ export default function Layout({ children, currentPageName }) {
     return children;
   }
 
-  // Show loading state for user data
-  if (loadingClientes) {
+  // Show loading state while fetching user data AND until first cliente is selected
+  if (loadingClientes || (clientes.length > 0 && !selectedClienteId)) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-violet-600 mx-auto mb-4" />
-          <p className="text-sm text-slate-500">Carregando seus dados...</p>
+          <p className="text-sm text-slate-500">Carregando sua conta...</p>
         </div>
       </div>
     );
