@@ -133,7 +133,9 @@ const Kanban = ({ user, selectedClienteId }) => {
 
       // Filtrar por modo de visualização
       if (viewMode === 'ativas') {
-        filteredDemandas = filteredDemandas.filter(d => d.status !== 'finalizada');
+        filteredDemandas = filteredDemandas.filter(d => d.status !== 'finalizada' && d.status !== 'concluida');
+      } else if (viewMode === 'concluidas') {
+        filteredDemandas = filteredDemandas.filter(d => d.status === 'concluida');
       } else {
         filteredDemandas = filteredDemandas.filter(d => d.status === 'finalizada');
       }
@@ -395,6 +397,16 @@ const Kanban = ({ user, selectedClienteId }) => {
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
+                Demandas Concluídas
+              </button>
+              <button
+                onClick={() => setViewMode('finalizadas')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'finalizadas'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
                 Demandas Finalizadas
               </button>
             </div>
@@ -402,7 +414,9 @@ const Kanban = ({ user, selectedClienteId }) => {
           <p className="text-sm text-slate-600 mt-1">
             {viewMode === 'ativas' 
               ? 'Arraste e solte para reorganizar ou mover entre setores'
-              : 'Visualização de demandas finalizadas organizadas por setor'}
+              : viewMode === 'concluidas'
+                ? 'Visualização de demandas concluídas organizadas por setor'
+                : 'Visualização de demandas finalizadas organizadas por setor'}
           </p>
         </div>
         <div className="flex gap-2">
