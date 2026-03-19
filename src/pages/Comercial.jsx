@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import LeadCard from '@/components/comercial/LeadCard';
 import LeadCardEvoluido from '@/components/comercial/LeadCardEvoluido';
 import NovoLeadModal from '@/components/comercial/NovoLeadModal';
+import FollowUpRapidoModal from '@/components/comercial/FollowUpRapidoModal';
 import AgendaComercial from '@/components/comercial/AgendaComercial';
 import DashboardComercial from '@/components/comercial/DashboardComercial';
 import AlertasInteligentes from '@/components/comercial/AlertasInteligentes';
@@ -38,6 +39,8 @@ export default function Comercial({ user }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('pipeline');
   const [showNovoLead, setShowNovoLead] = useState(false);
+  const [showFollowUpRapido, setShowFollowUpRapido] = useState(false);
+  const [selectedLeadFollowUp, setSelectedLeadFollowUp] = useState(null);
   const [search, setSearch] = useState('');
   const [filtroResponsavel, setFiltroResponsavel] = useState('all');
   const [filtroOrigem, setFiltroOrigem] = useState('all');
@@ -320,7 +323,10 @@ export default function Comercial({ user }) {
                          >
                            <LeadCardEvoluido 
                              lead={lead} 
-                             onFollowUp={() => toast.info('Agende um follow-up para ' + lead.nome_empresa)}
+                             onFollowUp={(leadData) => {
+                               setSelectedLeadFollowUp(leadData);
+                               setShowFollowUpRapido(true);
+                             }}
                            />
                          </div>
                        ))}
