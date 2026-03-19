@@ -157,6 +157,17 @@ export default function LeadDetalhe({ user }) {
     updateMutation.mutate({ ...formData, ...extraData, fit_score: score, fit_classificacao: classificacao });
   };
 
+  // Gerar follow-ups automáticos — DEVE estar antes dos early returns
+  useEffect(() => {
+    if (!lead || !leadId) return;
+    const novasTarefas = gerarTarefasFollowUp(lead, tarefas);
+    if (novasTarefas.length > 0) {
+      Promise.all(novasTarefas.map(t => base44.entities.TarefaComercial.create(t)))
+        .then(() => queryClient.invalidateQueries({ queryKey: ['tarefasLead', leadId] }))
+        .catch(() => {});
+    }
+  }, [lead?.etapa, lead?.proposta?.data_envio, tarefas.length]);
+
   if (isLoading) return (
     <div className="flex items-center justify-center h-96">
       <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
@@ -169,17 +180,6 @@ export default function LeadDetalhe({ user }) {
       <Button onClick={() => navigate('/Comercial')}>Voltar ao Comercial</Button>
     </div>
   );
-
-  // Gerar follow-ups automáticos ao carregar
-  useEffect(() => {
-    if (!lead || !leadId) return;
-    const novasTarefas = gerarTarefasFollowUp(lead, tarefas);
-    if (novasTarefas.length > 0) {
-      Promise.all(novasTarefas.map(t => base44.entities.TarefaComercial.create(t)))
-        .then(() => queryClient.invalidateQueries({ queryKey: ['tarefasLead', leadId] }))
-        .catch(() => {});
-    }
-  }, [lead?.etapa, lead?.proposta?.data_envio, tarefas.length]);
 
   const currentLead = formData.id ? formData : lead;
   const statusVisual = getStatusVisual(currentLead);
