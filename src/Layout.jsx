@@ -264,8 +264,9 @@ export default function Layout({ children, currentPageName }) {
     // User was approved but is still on AguardandoAprovacao page → redirect to Home
     navigate(createPageUrl('Home'));
     return null;
-  } else if (user?.status === 'pendente') {
-    // 2. User is pendente WITH request → redirect to AguardandoAprovacao
+  } else if (user?.status === 'pendente' || (!user?.status && !isVoxxUser)) {
+    // Pendente OR new user without status yet → same flow
+    // WITH request → redirect to AguardandoAprovacao
     if (userRequest && userRequest.length > 0) {
       if (currentPageName !== 'AguardandoAprovacao') {
         navigate(createPageUrl('AguardandoAprovacao'));
@@ -274,7 +275,7 @@ export default function Layout({ children, currentPageName }) {
       return React.cloneElement(children, { user });
     }
 
-    // 3. User is pendente WITHOUT request → redirect to BoasVindas
+    // WITHOUT request → redirect to BoasVindas
     if (!userRequest || userRequest.length === 0) {
       if (currentPageName !== 'BoasVindas') {
         navigate(createPageUrl('BoasVindas'));
