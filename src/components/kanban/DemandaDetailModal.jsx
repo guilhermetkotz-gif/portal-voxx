@@ -574,7 +574,8 @@ ${statusValidacao}`.trim();
     { value: 'em_execucao', label: 'Em Execução' },
     { value: 'aguardando_cliente', label: 'Aguardando Cliente' },
     { value: 'em_revisao', label: 'Em Revisão' },
-    { value: 'concluida', label: 'Concluída' }
+    { value: 'concluida', label: 'Concluída' },
+    { value: 'finalizada', label: 'Finalizada' }
   ];
 
   const priorityColors = {
@@ -590,6 +591,7 @@ ${statusValidacao}`.trim();
     aguardando_cliente: 'bg-orange-500',
     em_revisao: 'bg-yellow-500',
     concluida: 'bg-green-500',
+    finalizada: 'bg-slate-500',
   };
 
   if (!open) return null;
