@@ -38,8 +38,8 @@ const AuthenticatedApp = () => {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
     } else if (authError.type === 'auth_required') {
-      // Redirect to login automatically - use effect to avoid render-time side effects
-      React.useEffect(() => { navigateToLogin(); }, []);
+      // Redirect to login automatically
+      navigateToLogin();
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-white">
           <div className="text-center">
