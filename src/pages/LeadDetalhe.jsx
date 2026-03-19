@@ -12,6 +12,8 @@ import { Card } from '@/components/ui/card';
 import FitScoreCalculator, { calcularFitScore, FitScoreDisplay } from '@/components/comercial/FitScoreCalculator';
 import ProximaAcaoBlock from '@/components/comercial/ProximaAcaoBlock';
 import RegistrarInteracaoModal from '@/components/comercial/RegistrarInteracaoModal';
+import InteligenciaLeadPanel from '@/components/comercial/InteligenicaLeadPanel';
+import { avaliarTriggers, gerarTarefasFollowUp, calcularTemperaturaLead, calcularScorePrioridade } from '@/lib/comercial/inteligencia';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Phone, MapPin, User, Clock, DollarSign, Calendar,
@@ -168,8 +170,21 @@ export default function LeadDetalhe({ user }) {
     </div>
   );
 
+  // Gerar follow-ups automáticos ao carregar
+  useEffect(() => {
+    if (!lead || !leadId) return;
+    const novasTarefas = gerarTarefasFollowUp(lead, tarefas);
+    if (novasTarefas.length > 0) {
+      Promise.all(novasTarefas.map(t => base44.entities.TarefaComercial.create(t)))
+        .then(() => queryClient.invalidateQueries({ queryKey: ['tarefasLead', leadId] }))
+        .catch(() => {});
+    }
+  }, [lead?.etapa, lead?.proposta?.data_envio, tarefas.length]);
+
   const currentLead = formData.id ? formData : lead;
   const statusVisual = getStatusVisual(currentLead);
+  const temperatura = calcularTemperaturaLead(currentLead, interacoes);
+  const scorePrioridade = calcularScorePrioridade(currentLead, interacoes);
   const etapaIdx = ETAPAS_ORDER.indexOf(currentLead.etapa);
   const proximaEtapa = ETAPAS_ORDER[etapaIdx + 1];
   const diasNoPipeline = lead.created_date ? differenceInDays(new Date(), parseISO(lead.created_date)) : 0;
@@ -314,14 +329,22 @@ export default function LeadDetalhe({ user }) {
           </div>
         )}
 
-        {/* BLOCO 2: PRÓXIMA MELHOR AÇÃO */}
+        {/* BLOCO 2: INTELIGÊNCIA + PRÓXIMA AÇÃO */}
         <Card className="overflow-hidden border-violet-200">
+          <InteligenciaLeadPanel
+            lead={currentLead}
+            interacoes={interacoes}
+            onRegistrarInteracao={() => setShowInteracaoModal(true)}
+            onTabChange={setActiveTab}
+          />
+          <div className="border-t border-violet-100">
           <ProximaAcaoBlock
             lead={currentLead}
             onTabChange={setActiveTab}
             onRegistrarInteracao={() => setShowInteracaoModal(true)}
             onAgendarReuniao={() => { setShowAgendarReuniao(true); setActiveTab('reunioes'); }}
           />
+          </div>
         </Card>
 
         {/* BLOCO 3: TIMELINE + TABS lado a lado */}
