@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, TrendingUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, TrendingUp, CalendarRange } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -14,17 +14,20 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { format, startOfMonth, endOfMonth, subDays, parseISO } from 'date-fns';
+import { format, startOfMonth, subDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const PERIOD_OPTIONS = [
   { label: 'Mês atual', getValue: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
   { label: 'Últimos 7 dias', getValue: () => ({ from: subDays(new Date(), 6), to: new Date() }) },
   { label: 'Últimos 30 dias', getValue: () => ({ from: subDays(new Date(), 29), to: new Date() }) },
+  { label: 'Definir período', getValue: null },
 ];
 
 export default function DailyLeadsChart({ clienteId, clienteNome }) {
   const [activePeriod, setActivePeriod] = useState(0);
+  const [customFrom, setCustomFrom] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [customTo, setCustomTo] = useState(format(new Date(), 'yyyy-MM-dd'));
 
   const period = PERIOD_OPTIONS[activePeriod].getValue();
   const fromStr = format(period.from, 'yyyy-MM-dd');
