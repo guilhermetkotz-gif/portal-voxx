@@ -190,26 +190,19 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const googleCost = contaGoogleAdsAtual?.cost ?? null;
   const demandasAbertas = demandas;
 
-  // Fetch Google leads from sheet if configured
+  // Buscar leads Google direto do banco (fonte_cadastro = 'google_sheet')
   const { data: googleLeadsData, dataUpdatedAt } = useQuery({
     queryKey: ['googleLeadsSheet', selectedClienteId],
     queryFn: async () => {
-      if (!cliente?.google_leads_sheet_url) {
-        return { leads: 0 };
-      }
-      try {
-        const response = await base44.functions.invoke('getGoogleLeadsFromSheet', { 
-          clienteId: selectedClienteId 
-        });
-        return response.data;
-      } catch (error) {
-        console.error('Error fetching Google leads:', error);
-        return { leads: 0 };
-      }
+      const leads = await base44.entities.CrcLead.filter({
+        unidade_id: selectedClienteId,
+        fonte_cadastro: 'google_sheet'
+      });
+      return { leads: leads.length };
     },
-    enabled: !!selectedClienteId && !!cliente?.google_leads_sheet_url,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    refetchInterval: 2 * 60 * 1000 // Refetch every 2 minutes
+    enabled: !!selectedClienteId,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 2 * 60 * 1000
   });
 
   // Detect new Google leads
