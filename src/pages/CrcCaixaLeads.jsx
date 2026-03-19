@@ -191,7 +191,11 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                 Kanban
               </Button>
             </div>
-            <Button variant="outline" onClick={() => queryClient.invalidateQueries(['crcLeads'])}>
+            <Button variant="outline" onClick={async () => {
+              await base44.functions.invoke('syncCrcLeadsFromGoogle', { clienteId: currentCliente?.id });
+              queryClient.invalidateQueries(['crcLeads']);
+              refetch();
+            }}>
               <RefreshCw className="w-4 h-4 mr-2" />
               Atualizar
             </Button>
