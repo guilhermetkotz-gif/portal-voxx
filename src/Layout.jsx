@@ -189,8 +189,7 @@ export default function Layout({ children, currentPageName }) {
 
   const pageInfo = pageTitles[currentPageName] || { title: currentPageName, subtitle: "" };
 
-  const tipoUsuarioAccess = user?.tipo_usuario || user?.tipo_acesso;
-  const isVoxxUser = tipoUsuarioAccess === 'voxx_admin' || tipoUsuarioAccess === 'voxx_operacao' || tipoUsuarioAccess === 'voxx_manager';
+  const isVoxxUser = isVoxxUserEarly;
 
   // Show loading state while checking authentication
   if (loadingUser) {
