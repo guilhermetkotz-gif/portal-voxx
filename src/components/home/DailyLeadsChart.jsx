@@ -29,9 +29,10 @@ export default function DailyLeadsChart({ clienteId, clienteNome }) {
   const [customFrom, setCustomFrom] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [customTo, setCustomTo] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  const period = PERIOD_OPTIONS[activePeriod].getValue();
-  const fromStr = format(period.from, 'yyyy-MM-dd');
-  const toStr = format(period.to, 'yyyy-MM-dd');
+  const isCustom = activePeriod === 3;
+  const period = isCustom ? null : PERIOD_OPTIONS[activePeriod].getValue();
+  const fromStr = isCustom ? customFrom : format(period.from, 'yyyy-MM-dd');
+  const toStr = isCustom ? customTo : format(period.to, 'yyyy-MM-dd');
 
   const { data: historico = [], isLoading } = useQuery({
     queryKey: ['historicoLeads', clienteId, fromStr, toStr],
