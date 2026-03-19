@@ -52,6 +52,7 @@ const PAGINAS_DISPONIVEIS = [
   { nome: 'MonitoramentoDemandas', descricao: 'Monitoramento de Demandas', categoria: 'Análise' },
   { nome: 'MonitoramentoGoogleAds', descricao: 'Monitoramento Google Ads', categoria: 'Análise' },
   { nome: 'GestaoSaldoGoogleAds', descricao: 'Gestão de Saldos Google Ads', categoria: 'Financeiro' },
+  { nome: 'Comercial', descricao: 'Pipeline comercial e gestão de leads', categoria: 'Operacional' },
   { nome: 'PlanoDeAcao', descricao: 'Plano de Ação', categoria: 'Operacional' },
   { nome: 'PlanoDeAcaoDetalhe', descricao: 'Detalhe do Plano de Ação', categoria: 'Operacional' },
   { nome: 'ReportDiario', descricao: 'Report Diário', categoria: 'Operacional' },
