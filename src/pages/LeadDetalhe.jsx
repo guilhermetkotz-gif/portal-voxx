@@ -70,14 +70,6 @@ export default function LeadDetalhe({ user }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  if (user && !isVoxxAdmin(user) && !isVoxxOperacao(user) && !isVoxxManager(user) && user?.role !== 'admin') {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-lg text-red-500">Acesso negado. Esta página é apenas para usuários Voxx.</p>
-      </div>
-    );
-  }
-
   const params = new URLSearchParams(window.location.search);
   const leadId = params.get('id');
 
