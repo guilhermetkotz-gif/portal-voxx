@@ -145,8 +145,8 @@ export default function Comercial({ user }) {
 
   return (
     <div className="space-y-5">
-      {/* HEADER KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* HEADER KPIs - Evoluído */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Card className="p-4 flex items-center gap-3">
           <div className="p-2 bg-violet-100 rounded-lg"><Users className="w-5 h-5 text-violet-600" /></div>
           <div>
@@ -155,35 +155,47 @@ export default function Comercial({ user }) {
           </div>
         </Card>
         <Card className="p-4 flex items-center gap-3">
+          <div className="p-2 bg-red-100 rounded-lg"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+          <div>
+            <p className="text-xs text-slate-500">Em Risco</p>
+            <p className="text-2xl font-bold text-slate-900">{leadsEmRisco.length}</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="p-2 bg-orange-100 rounded-lg"><TrendingUp className="w-5 h-5 text-orange-600" /></div>
+          <div>
+            <p className="text-xs text-slate-500">Leads Quentes</p>
+            <p className="text-2xl font-bold text-slate-900">{leadsQuentes.length}</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg"><Calendar className="w-5 h-5 text-blue-600" /></div>
+          <div>
+            <p className="text-xs text-slate-500">Follow-ups</p>
+            <p className="text-2xl font-bold text-slate-900">{followUpsPendentes.length}</p>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-lg"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
           <div>
-            <p className="text-xs text-slate-500">Valor Potencial</p>
-            <p className="text-xl font-bold text-slate-900">R$ {Math.round(valorPotencial / 1000)}k</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
-          <div>
-            <p className="text-xs text-slate-500">Taxa de Conversão</p>
-            <p className="text-2xl font-bold text-slate-900">{taxaConversao}%</p>
-          </div>
-        </Card>
-        <Card className="p-4 flex items-center gap-3">
-          <div className="p-2 bg-indigo-100 rounded-lg"><Calendar className="w-5 h-5 text-indigo-600" /></div>
-          <div>
-            <p className="text-xs text-slate-500">Reuniões Hoje</p>
-            <p className="text-2xl font-bold text-slate-900">{reunioesHoje.length}</p>
+            <p className="text-xs text-slate-500">Valor Real</p>
+            <p className="text-xl font-bold text-slate-900">R$ {Math.round(valorPotencialReal / 1000)}k</p>
           </div>
         </Card>
       </div>
 
-      {/* Alerta global */}
-      {alertas > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          <span><strong>{alertas} lead{alertas !== 1 ? 's' : ''}</strong> com alerta de inatividade.</span>
-        </div>
-      )}
+      {/* Alertas Inteligentes - Orientação 1 */}
+      <AlertasInteligentes 
+        leads={leads}
+        reunioes={reunioes}
+        onFilterClick={(alerta) => {
+          setFiltroAlerta(alerta);
+          setShowFiltros(true);
+        }}
+      />
+
+      {/* Prioridades do Dia - Orientação 2 */}
+      <PrioritizacaoDia leads={leads} />
 
       {/* TABS */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -255,9 +267,20 @@ export default function Comercial({ user }) {
                   <SelectItem value="parado">🔴 Parado</SelectItem>
                 </SelectContent>
               </Select>
-              {(filtroResponsavel !== 'all' || filtroOrigem !== 'all' || filtroFit !== 'all' || filtroStatus !== 'all') && (
+              <Select value={filtroAlerta} onValueChange={setFiltroAlerta}>
+                <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Filtro Inteligente" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="sem_contato">Sem contato</SelectItem>
+                  <SelectItem value="quentes">Leads quentes</SelectItem>
+                  <SelectItem value="parados">Leads parados</SelectItem>
+                  <SelectItem value="propostas">Propostas enviadas</SelectItem>
+                  <SelectItem value="atrasados">Follow-ups atrasados</SelectItem>
+                </SelectContent>
+              </Select>
+              {(filtroResponsavel !== 'all' || filtroOrigem !== 'all' || filtroFit !== 'all' || filtroStatus !== 'all' || filtroAlerta !== 'all') && (
                 <Button size="sm" variant="ghost" className="h-8 text-xs text-slate-500"
-                  onClick={() => { setFiltroResponsavel('all'); setFiltroOrigem('all'); setFiltroFit('all'); setFiltroStatus('all'); }}>
+                  onClick={() => { setFiltroResponsavel('all'); setFiltroOrigem('all'); setFiltroFit('all'); setFiltroStatus('all'); setFiltroAlerta('all'); }}>
                   Limpar
                 </Button>
               )}
@@ -286,17 +309,20 @@ export default function Comercial({ user }) {
                     </div>
                     <div className="p-2 flex-1 space-y-2 min-h-[80px] max-h-[calc(100vh-320px)] overflow-y-auto">
                       {items.map(lead => (
-                        <div
-                          key={lead.id}
-                          draggable
-                          onDragStart={() => setDraggingLeadId(lead.id)}
-                          onDragEnd={() => setDraggingLeadId(null)}
-                          onClick={() => handleLeadClick(lead)}
-                          className="cursor-pointer"
-                        >
-                          <LeadCard lead={lead} onClick={() => {}} />
-                        </div>
-                      ))}
+                         <div
+                           key={lead.id}
+                           draggable
+                           onDragStart={() => setDraggingLeadId(lead.id)}
+                           onDragEnd={() => setDraggingLeadId(null)}
+                           onClick={() => handleLeadClick(lead)}
+                           className="cursor-pointer"
+                         >
+                           <LeadCardEvoluido 
+                             lead={lead} 
+                             onFollowUp={() => toast.info('Agende um follow-up para ' + lead.nome_empresa)}
+                           />
+                         </div>
+                       ))}
                       {items.length === 0 && (
                         <div className="flex items-center justify-center h-14 text-xs text-slate-300">
                           Sem leads
@@ -320,6 +346,14 @@ export default function Comercial({ user }) {
       </Tabs>
 
       <NovoLeadModal open={showNovoLead} onClose={() => setShowNovoLead(false)} user={user} />
+
+      {/* Menu de Ação Rápida - Orientação 6 */}
+      <AcaoRapidaMenu
+        onNovoLead={() => setShowNovoLead(true)}
+        onRegistrarInteracao={() => toast.info('Abra um lead para registrar interação')}
+        onAgendarReuniao={() => toast.info('Abra um lead para agendar reunião')}
+        onFollowUp={() => toast.info('Abra um lead para criar follow-up')}
+      />
     </div>
   );
 }
