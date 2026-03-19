@@ -31,7 +31,8 @@ import {
   Settings,
   Building2,
   ClipboardList,
-  FileBarChart2
+  FileBarChart2,
+  Briefcase
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -41,6 +42,7 @@ const menuItems = [
   { name: "Performance", icon: BarChart3, page: "Performance" },
   { name: "Saldos & Investimentos", icon: Wallet, page: "Saldos" },
   { name: "Demandas", icon: TicketCheck, page: "Demandas", badge: true },
+  { name: "Comercial", icon: Briefcase, page: "Comercial", voxxOnly: true },
   { name: "Kanban", icon: KanbanSquare, page: "Kanban", voxxOnly: true },
   { name: "Plano de Ação", icon: ClipboardList, page: "PlanoDeAcao", voxxOnly: true },
   { name: "Report Diário", icon: FileBarChart2, page: "ReportDiario", voxxOnly: true },
