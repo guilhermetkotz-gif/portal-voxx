@@ -109,9 +109,11 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
         google: lead.fonte_cadastro === 'google_sheet'
       }[activeTab];
 
-      const leadDate = new Date(lead.data_chegada);
-      const matchDateFrom = !dateFrom || leadDate >= new Date(dateFrom + 'T00:00:00');
-      const matchDateTo = !dateTo || leadDate <= new Date(dateTo + 'T23:59:59');
+      const leadDateRef = lead.fonte_cadastro === 'google_sheet' && lead.external_created_at
+        ? new Date(lead.external_created_at)
+        : new Date(lead.data_chegada);
+      const matchDateFrom = !dateFrom || leadDateRef >= new Date(dateFrom + 'T00:00:00');
+      const matchDateTo = !dateTo || leadDateRef <= new Date(dateTo + 'T23:59:59');
 
       return matchSearch && matchTab && matchDateFrom && matchDateTo;
     })
