@@ -56,6 +56,8 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
   const [activeTab, setActiveTab] = useState('todos');
   const [editingCell, setEditingCell] = useState(null);
   const [viewMode, setViewMode] = useState('list');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [showDetailDrawer, setShowDetailDrawer] = useState(false);
 
   const { data: leads = [], isLoading, refetch } = useQuery({
