@@ -65,7 +65,17 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
     <Sheet open onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Detalhes do Lead</SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle>Detalhes do Lead</SheetTitle>
+            <Button
+              onClick={() => setShowTentativaModal(true)}
+              className="bg-violet-600 hover:bg-violet-700"
+              size="sm"
+            >
+              <Phone className="w-4 h-4 mr-2" />
+              Registrar Tentativa
+            </Button>
+          </div>
         </SheetHeader>
 
         <div className="space-y-6 mt-6">
