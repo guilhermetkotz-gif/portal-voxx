@@ -413,11 +413,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
         <KPICard
           title="Leads Google"
           value={totalLeadsGoogle.toLocaleString('pt-BR') || '-'}
-          subtitle={
-            googleLeadsData?.leads 
-              ? `Da planilha do mês de ${googleLeadsData.month}` 
-              : `${cliente?.leads_google_cadastro || 0} cadastros + ${cliente?.leads_google_ligacao || 0} ligações`
-          }
+          subtitle="Leads via Google Ads (planilha)"
           icon={Users}
           variant="success"
         />
