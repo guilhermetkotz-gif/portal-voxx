@@ -169,6 +169,14 @@ export default function LeadDetalhe({ user }) {
     }
   }, [lead?.etapa, lead?.proposta?.data_envio, tarefas.length]);
 
+  if (user && !isVoxxAdmin(user) && !isVoxxOperacao(user) && !isVoxxManager(user)) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-lg text-red-500">Acesso negado. Esta página é apenas para usuários Voxx.</p>
+      </div>
+    );
+  }
+
   if (isLoading) return (
     <div className="flex items-center justify-center h-96">
       <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
