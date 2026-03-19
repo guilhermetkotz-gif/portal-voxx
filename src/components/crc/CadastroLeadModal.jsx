@@ -175,7 +175,7 @@ export default function CadastroLeadModal({ unidadeId, onClose, onSuccess }) {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={createMutation.isPending || (duplicateWarning && !confirm('Cadastrar mesmo com telefone duplicado?'))}>
+            <Button type="submit" disabled={createMutation.isPending}>
               {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Cadastrar Lead
             </Button>
