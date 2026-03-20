@@ -386,6 +386,111 @@ export default function GerenciarContas({ user }) {
         )}
       </div>
 
+      {/* Modal de Edição */}
+      {clienteParaEditar && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-bold text-slate-900">Editar Cliente</h2>
+              <button onClick={() => setClienteParaEditar(null)} className="p-2 rounded-lg hover:bg-slate-100">
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label>Nome *</Label>
+                  <Input value={editForm.nome || ''} onChange={e => setEditForm({ ...editForm, nome: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Marca</Label>
+                  <Input value={editForm.marca || ''} onChange={e => setEditForm({ ...editForm, marca: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Cidade *</Label>
+                  <Input value={editForm.cidade || ''} onChange={e => setEditForm({ ...editForm, cidade: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Estado *</Label>
+                  <Input value={editForm.estado || ''} onChange={e => setEditForm({ ...editForm, estado: e.target.value })} maxLength={2} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Status</Label>
+                  <Select value={editForm.status || 'ativo'} onValueChange={v => setEditForm({ ...editForm, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ativo">Ativo</SelectItem>
+                      <SelectItem value="pausado">Pausado</SelectItem>
+                      <SelectItem value="encerrado">Encerrado</SelectItem>
+                      <SelectItem value="implantacao">Implantação</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Tipo de Cliente</Label>
+                  <Select value={editForm.tipo_cliente || ''} onValueChange={v => setEditForm({ ...editForm, tipo_cliente: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="oral_sin">Oral Sin</SelectItem>
+                      <SelectItem value="particular">Particular</SelectItem>
+                      <SelectItem value="franquia">Franquia</SelectItem>
+                      <SelectItem value="outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Plano de Serviço</Label>
+                  <Select value={editForm.plano_servico || ''} onValueChange={v => setEditForm({ ...editForm, plano_servico: v })}>
+                    <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="trafego">Tráfego</SelectItem>
+                      <SelectItem value="trafego_criacao">Tráfego + Criação</SelectItem>
+                      <SelectItem value="full">Full Service</SelectItem>
+                      <SelectItem value="personalizado">Personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Responsável Voxx</Label>
+                  <Input value={editForm.responsavel_voxx || ''} onChange={e => setEditForm({ ...editForm, responsavel_voxx: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Data de Início</Label>
+                  <Input type="date" value={editForm.data_inicio || ''} onChange={e => setEditForm({ ...editForm, data_inicio: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Responsável Cliente (Nome)</Label>
+                  <Input value={editForm.responsavel_cliente_nome || ''} onChange={e => setEditForm({ ...editForm, responsavel_cliente_nome: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Telefone do Responsável</Label>
+                  <Input value={editForm.responsavel_cliente_telefone || ''} onChange={e => setEditForm({ ...editForm, responsavel_cliente_telefone: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>E-mail do Responsável</Label>
+                  <Input type="email" value={editForm.responsavel_cliente_email || ''} onChange={e => setEditForm({ ...editForm, responsavel_cliente_email: e.target.value })} />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>Observações</Label>
+                <Textarea rows={3} value={editForm.observacoes || ''} onChange={e => setEditForm({ ...editForm, observacoes: e.target.value })} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 p-6 border-t">
+              <Button variant="outline" onClick={() => setClienteParaEditar(null)}>Cancelar</Button>
+              <Button
+                className="bg-violet-600 hover:bg-violet-700"
+                onClick={() => updateMutation.mutate({ id: clienteParaEditar.id, data: editForm })}
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Salvar Alterações
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Diálogo de Confirmação de Deleção */}
       {clienteParaDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
