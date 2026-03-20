@@ -599,6 +599,7 @@ export default function PlanoDeAcaoDetalhe({ user }) {
         clienteId={plano?.cliente_id}
         clienteNome={plano?.cliente_nome}
         planoAcaoItemId={novaDemandaItem?.id}
+        planoAcaoItem={novaDemandaItem}
       />
     </div>
   );
