@@ -19,8 +19,12 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Phone, MapPin, User, Clock, DollarSign, Calendar,
   MessageSquare, Plus, CheckSquare, Loader2, ArrowRight,
-  FileText, Send, Check, Mail, Users, Target, Zap, AlertTriangle
+  FileText, Send, Check, Mail, Users, Target, Zap, AlertTriangle, Trash2
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+} from '@/components/ui/alert-dialog';
 import { format, parseISO, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
