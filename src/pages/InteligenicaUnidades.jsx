@@ -84,7 +84,7 @@ export default function InteligenicaUnidades({ user }) {
         googleConta,
         radar,
         leadsMes,
-        investimentoMeta,
+        investimentoMeta: investimentoMetaTotal,
         cpl,
         variacao,
         healthStatus,
