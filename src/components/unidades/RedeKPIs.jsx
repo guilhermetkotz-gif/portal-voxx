@@ -2,11 +2,19 @@ import React, { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Users, TrendingUp, DollarSign, Activity, Zap, BarChart3 } from 'lucide-react';
 
-export default function RedeKPIs({ unidades }) {
+export default function RedeKPIs({ unidades, contasMeta = [] }) {
   const kpis = useMemo(() => {
     const ativas = unidades.filter(u => u.status === 'ativo' || !u.status);
     const totalLeads = unidades.reduce((s, u) => s + (u.leadsMes || 0), 0);
-    const totalInvestimento = unidades.reduce((s, u) => s + (u.investimentoMeta || 0) + (u.googleConta?.cost || 0), 0);
+
+    // Somar amount_spent apenas das contas que têm match com alguma unidade oral_sin
+    const contasComMatch = contasMeta.filter(m =>
+      unidades.some(u =>
+        u.meta_ads_account_name?.toLowerCase() === m.account_name?.toLowerCase() ||
+        m.account_name?.toLowerCase().includes(u.nome?.toLowerCase())
+      )
+    );
+    const totalInvestimento = contasComMatch.reduce((s, m) => s + (m.amount_spent || 0), 0);
     const cpls = unidades.filter(u => u.cpl > 0).map(u => u.cpl);
     const cplMedio = cpls.length > 0 ? cpls.reduce((s, v) => s + v, 0) / cpls.length : 0;
     const totalConversoes = unidades.reduce((s, u) => s + (u.googleConta?.conversions || 0), 0);
