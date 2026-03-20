@@ -156,6 +156,15 @@ export default function LeadDetalhe({ user }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tarefasLead', leadId] })
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () => base44.entities.LeadComercial.delete(leadId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leadsComercial'] });
+      toast.success('Lead excluído!');
+      navigate('/Comercial');
+    }
+  });
+
   const handleSave = (extraData = {}) => {
     const qual = formData.qualificacao || {};
     const { score, classificacao } = calcularFitScore(qual);
