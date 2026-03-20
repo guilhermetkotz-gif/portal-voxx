@@ -32,6 +32,8 @@ export default function GerenciarContas({ user }) {
   const [statusFilter, setStatusFilter] = useState('todos');
   const [tipoFilter, setTipoFilter] = useState('todos');
   const [clienteParaDelete, setClienteParaDelete] = useState(null);
+  const [clienteParaEditar, setClienteParaEditar] = useState(null);
+  const [editForm, setEditForm] = useState({});
   const queryClient = useQueryClient();
 
   const { data: clientes = [], isLoading } = useQuery({
