@@ -7,14 +7,8 @@ export default function RedeKPIs({ unidades, contasMeta = [] }) {
     const ativas = unidades.filter(u => u.status === 'ativo' || !u.status);
     const totalLeads = unidades.reduce((s, u) => s + (u.leadsMes || 0), 0);
 
-    // Somar amount_spent apenas das contas que têm match com alguma unidade oral_sin
-    const contasComMatch = contasMeta.filter(m =>
-      unidades.some(u =>
-        u.meta_ads_account_name?.toLowerCase() === m.account_name?.toLowerCase() ||
-        m.account_name?.toLowerCase().includes(u.nome?.toLowerCase())
-      )
-    );
-    const totalInvestimento = contasComMatch.reduce((s, m) => s + (m.amount_spent || 0), 0);
+    // Somar amount_spent de todas as ContaMetaAds (mesma fonte que Monitoramento de Contas)
+    const totalInvestimento = contasMeta.reduce((s, m) => s + (m.amount_spent || 0), 0);
     const cpls = unidades.filter(u => u.cpl > 0).map(u => u.cpl);
     const cplMedio = cpls.length > 0 ? cpls.reduce((s, v) => s + v, 0) / cpls.length : 0;
     const totalConversoes = unidades.reduce((s, u) => s + (u.googleConta?.conversions || 0), 0);
