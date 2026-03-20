@@ -271,6 +271,7 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
                   <SelectItem value="voxx_operacao">voxx_operacao</SelectItem>
                   <SelectItem value="cliente_admin">cliente_admin</SelectItem>
                   <SelectItem value="cliente_usuario">cliente_usuario</SelectItem>
+                  <SelectItem value="oral_sin_franqueadora">oral_sin_franqueadora</SelectItem>
                 </SelectContent>
               </Select>
             </div>
