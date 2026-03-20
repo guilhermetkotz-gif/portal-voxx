@@ -9,6 +9,7 @@ import LeadDetalhe from './pages/LeadDetalhe';
 import PlanoDeAcao from './pages/PlanoDeAcao';
 import PlanoDeAcaoDetalhe from './pages/PlanoDeAcaoDetalhe';
 import ReportDiario from './pages/ReportDiario';
+import InteligenicaUnidades from './pages/InteligenicaUnidades';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -103,6 +104,7 @@ const AuthenticatedApp = () => {
       <Route path="/PlanoDeAcao" element={<LayoutWrapper currentPageName="PlanoDeAcao"><PlanoDeAcao /></LayoutWrapper>} />
       <Route path="/PlanoDeAcaoDetalhe" element={<LayoutWrapper currentPageName="PlanoDeAcaoDetalhe"><PlanoDeAcaoDetalhe /></LayoutWrapper>} />
       <Route path="/ReportDiario" element={<LayoutWrapper currentPageName="ReportDiario"><ReportDiario /></LayoutWrapper>} />
+      <Route path="/InteligenicaUnidades" element={<LayoutWrapper currentPageName="InteligenicaUnidades"><InteligenicaUnidades /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

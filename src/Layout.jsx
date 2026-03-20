@@ -41,7 +41,8 @@ const pageTitles = {
         GerenciarContas: { title: "Gerenciar Contas", subtitle: "Gestão de clientes e unidades" },
         PlanoDeAcao: { title: "Plano de Ação", subtitle: "Acompanhamento de ações por cliente" },
         PlanoDeAcaoDetalhe: { title: "Plano de Ação", subtitle: "Detalhes do plano" },
-        ReportDiario: { title: "Report Diário", subtitle: "Resumo executivo diário por cliente" }
+        ReportDiario: { title: "Report Diário", subtitle: "Resumo executivo diário por cliente" },
+        InteligenicaUnidades: { title: "Inteligência de Unidades", subtitle: "Performance consolidada da rede Oral Sin" }
                 };
 
 export default function Layout({ children, currentPageName }) {
