@@ -50,20 +50,8 @@ export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedClienteId, setSelectedClienteId] = useState(null);
 
-  const { data: user, isLoading: loadingUser, error: userError } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: async () => {
-      try {
-        const userData = await base44.auth.me();
-        return userData;
-      } catch (error) {
-        // User not authenticated
-        return null;
-      }
-    },
-    staleTime: 5 * 60 * 1000,
-    retry: false
-  });
+  // Use AuthContext instead of re-fetching on every navigation (prevents blank screen)
+  const { user, isLoadingAuth: loadingUser } = useAuth();
 
   // Calculate isVoxxUser early (before hooks that need it)
   const tipoUsuarioAccessEarly = user?.tipo_usuario || user?.tipo_acesso;
