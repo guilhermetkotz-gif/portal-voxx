@@ -16,7 +16,7 @@ const ETAPAS = [
 export default function PerformanceFunilDashboard({ leads }) {
   // Distribuição por etapa
   const distribuicao = ETAPAS.map(etapa => ({
-    name: etapa.replace(/_/g, ' ').capitalize(),
+    name: etapa.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
     leads: leads.filter(l => l.etapa === etapa).length,
   }));
 
