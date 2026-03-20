@@ -28,7 +28,17 @@ export default function NovaAcaoModal({ open, onOpenChange, planoId, clienteId, 
 
   useEffect(() => {
     if (itemParaEditar) {
-      setForm({ ...defaultForm(planoId, clienteId), ...itemParaEditar });
+      const merged = { ...defaultForm(planoId, clienteId), ...itemParaEditar };
+      // Garantir que campos string nunca sejam undefined
+      merged.problema_identificado = merged.problema_identificado || "";
+      merged.acao_proposta = merged.acao_proposta || "";
+      merged.observacoes = merged.observacoes || "";
+      merged.demanda_id_relacionada = merged.demanda_id_relacionada || "";
+      merged.prazo = merged.prazo || "";
+      merged.data_abertura = merged.data_abertura || format(new Date(), "yyyy-MM-dd");
+      merged.responsavel = merged.responsavel || "Agência Voxx";
+      merged.status_acao = merged.status_acao || "Nova";
+      setForm(merged);
     } else {
       setForm(defaultForm(planoId, clienteId));
     }
