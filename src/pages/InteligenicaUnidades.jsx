@@ -67,6 +67,7 @@ export default function InteligenicaUnidades({ user }) {
       const investimentoMeta = ultimos30.reduce((s, h) => s + (h.investimento_meta || 0), 0);
 
       const cpl = radar?.cpl_7d || radar?.cpl_ontem || c.custo_por_lead_meta || 0;
+      const investimentoMetaTotal = metaConta?.amount_spent || 0;
       const variacao = radar?.variacao_cpl || 0;
 
       let healthStatus = 'saudavel';
