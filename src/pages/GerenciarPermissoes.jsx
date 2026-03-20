@@ -57,7 +57,7 @@ const PAGINAS_DISPONIVEIS = [
   { nome: 'PlanoDeAcao', descricao: 'Plano de Ação', categoria: 'Operacional' },
   { nome: 'PlanoDeAcaoDetalhe', descricao: 'Detalhe do Plano de Ação', categoria: 'Operacional' },
   { nome: 'ReportDiario', descricao: 'Report Diário', categoria: 'Operacional' },
-  { nome: 'InteligenicaUnidades', descricao: 'Inteligência de Unidades', categoria: 'Análise' },
+  { nome: 'InteligenicaUnidades', descricao: 'Performance VOXX | Oral Sin', categoria: 'Análise' },
   { nome: 'DetalheConta', descricao: 'Detalhe de Conta Meta Ads', categoria: 'Análise' },
   { nome: 'HistoricoOtimizacoesCliente', descricao: 'Histórico de Otimizações', categoria: 'Análise' }
 ];
