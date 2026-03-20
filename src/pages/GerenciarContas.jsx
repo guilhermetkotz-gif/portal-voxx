@@ -42,6 +42,18 @@ export default function GerenciarContas({ user }) {
     staleTime: 2 * 60 * 1000
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Cliente.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todosClientes'] });
+      toast.success('Cliente atualizado com sucesso!');
+      setClienteParaEditar(null);
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar cliente: ' + error.message);
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (clienteId) => {
       await base44.entities.Cliente.delete(clienteId);
