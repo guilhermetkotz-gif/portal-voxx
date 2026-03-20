@@ -72,7 +72,7 @@ export default function InteligenicaUnidades({ user }) {
 
       let healthStatus = 'saudavel';
       if (cpl > 200 || variacao > 30) healthStatus = 'critico';
-      else if (cpl > 120 || variacao > 15 || (radar?.frequencia_7d || 0) > 2.5) healthStatus = 'atencao';
+      else if (cpl > 120 || variacao > 15 || (radar?.frequencia_7d || 0) > 2.8) healthStatus = 'atencao';
 
       let tag = 'estavel';
       if (healthStatus === 'saudavel' && leadsMes > 20) tag = 'alta_performance';
