@@ -57,7 +57,7 @@ const PAGINAS_DISPONIVEIS = [
   { nome: 'PlanoDeAcao', descricao: 'Plano de Ação', categoria: 'Operacional' },
   { nome: 'PlanoDeAcaoDetalhe', descricao: 'Detalhe do Plano de Ação', categoria: 'Operacional' },
   { nome: 'ReportDiario', descricao: 'Report Diário', categoria: 'Operacional' },
-  { nome: 'InteligenicaUnidades', descricao: 'Performance VOXX | Oral Sin', categoria: 'Análise' },
+  { nome: 'InteligenicaUnidades', label: 'Performance VOXX | Oral Sin', descricao: 'Performance VOXX | Oral Sin', categoria: 'Análise' },
   { nome: 'DetalheConta', descricao: 'Detalhe de Conta Meta Ads', categoria: 'Análise' },
   { nome: 'HistoricoOtimizacoesCliente', descricao: 'Histórico de Otimizações', categoria: 'Análise' }
 ];
@@ -447,7 +447,7 @@ export default function GerenciarPermissoes({ user }) {
                                     <Lock className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:text-slate-600" />
                                   )}
                                   <p className={`font-medium truncate ${isPermitida ? 'text-violet-900' : 'text-slate-900'}`}>
-                                    {pagina.nome}
+                                    {pagina.label || pagina.nome}
                                   </p>
                                 </div>
                                 <p className="text-xs text-slate-500">{pagina.descricao}</p>
