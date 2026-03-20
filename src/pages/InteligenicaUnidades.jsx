@@ -145,7 +145,7 @@ export default function InteligenicaUnidades({ user }) {
       </div>
 
       {/* KPIs DA REDE */}
-      <RedeKPIs unidades={unidades} />
+      <RedeKPIs unidades={unidades} contasMeta={contasMeta} />
 
       {/* RANKING */}
       <RankingPanel unidades={unidades} onSelectUnidade={setSelectedUnidade} />
