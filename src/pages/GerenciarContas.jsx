@@ -15,7 +15,9 @@ import {
   MapPin,
   Calendar,
   DollarSign,
-  Trash2
+  Trash2,
+  Loader2,
+  X
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
