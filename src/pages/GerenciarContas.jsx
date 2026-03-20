@@ -21,6 +21,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isVoxxAdmin, isVoxxManager } from '@/components/utils/auth';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Loader2, X } from 'lucide-react';
 
 export default function GerenciarContas({ user }) {
   const [search, setSearch] = useState('');
