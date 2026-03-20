@@ -64,7 +64,7 @@ export default function ReportDiario({ user }) {
 
   const { data: planosAtivos = [] } = useQuery({
     queryKey: ["planosDeAcaoReport"],
-    queryFn: () => base44.entities.PlanoDeAcao.filter({ status_plano: "Em andamento" }, "-created_date", 200),
+    queryFn: () => base44.entities.PlanoDeAcao.list("-created_date", 200).then(all => all.filter(p => ["Aberto", "Em andamento"].includes(p.status_plano))),
     staleTime: 0,
   });
 
