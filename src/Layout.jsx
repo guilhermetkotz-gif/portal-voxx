@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ChatWidget from '@/components/chat/ChatWidget';
 import { Toaster } from '@/components/ui/toaster';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
 
 const pageTitles = {
