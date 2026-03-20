@@ -33,7 +33,7 @@ const SETORES = [
  * Modal de criação de demanda a partir de um item do Plano de Ação.
  * Após criar a demanda, vincula o ID ao PlanoDeAcaoItem.demanda_id_relacionada.
  */
-export default function NovaDemandaPlanoModal({ open, onClose, clienteId, clienteNome, planoAcaoItemId }) {
+export default function NovaDemandaPlanoModal({ open, onClose, clienteId, clienteNome, planoAcaoItemId, planoAcaoItem }) {
   const queryClient = useQueryClient();
   const [fase, setFase] = useState('form'); // 'form' | 'wizard_oral_sin' | 'wizard_universal' | 'wizard_edicao' | 'sucesso'
   const [ultimaDemandaTitulo, setUltimaDemandaTitulo] = useState('');
@@ -208,6 +208,31 @@ export default function NovaDemandaPlanoModal({ open, onClose, clienteId, client
             {planoAcaoItemId && ' · A demanda será vinculada automaticamente ao item do plano.'}
           </DialogDescription>
         </DialogHeader>
+
+        {/* BRIEFING DA AÇÃO */}
+        {fase === 'form' && planoAcaoItem && (
+          <div className="rounded-xl border border-violet-200 bg-violet-50 p-4 space-y-2">
+            <p className="text-xs font-semibold text-violet-700 uppercase tracking-wide mb-2">📋 Contexto da Ação do Plano</p>
+            {planoAcaoItem.problema_identificado && (
+              <div>
+                <p className="text-xs text-violet-500 font-medium">Problema identificado</p>
+                <p className="text-sm text-slate-800">{planoAcaoItem.problema_identificado}</p>
+              </div>
+            )}
+            {planoAcaoItem.acao_proposta && (
+              <div>
+                <p className="text-xs text-violet-500 font-medium">Ação proposta</p>
+                <p className="text-sm text-slate-800 font-semibold">{planoAcaoItem.acao_proposta}</p>
+              </div>
+            )}
+            {planoAcaoItem.observacoes && (
+              <div>
+                <p className="text-xs text-violet-500 font-medium">Observações</p>
+                <p className="text-sm text-slate-600 italic">{planoAcaoItem.observacoes}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* FASE: Formulário padrão */}
         {fase === 'form' && (
