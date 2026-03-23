@@ -60,6 +60,7 @@ const PAGINAS_DISPONIVEIS = [
   { nome: 'FinanceiroFolha', descricao: 'Financeiro — Folha de Pagamento', categoria: 'Financeiro' },
   { nome: 'FinanceiroDocumentos', descricao: 'Financeiro — Documentos', categoria: 'Financeiro' },
   { nome: 'FinanceiroFluxoCaixa', descricao: 'Financeiro — Fluxo de Caixa (DRE)', categoria: 'Financeiro' },
+  { nome: 'FinanceiroCarteira', descricao: 'Financeiro — Carteira de Clientes', categoria: 'Financeiro' },
   { nome: 'Comercial', descricao: 'Pipeline comercial e gestão de leads', categoria: 'Operacional' },
   { nome: 'PlanoDeAcao', descricao: 'Plano de Ação', categoria: 'Operacional' },
   { nome: 'PlanoDeAcaoDetalhe', descricao: 'Detalhe do Plano de Ação', categoria: 'Operacional' },
