@@ -83,6 +83,7 @@ const menuItems = [
   { name: "Custos & Despesas", icon: TrendingDown, page: "FinanceiroCustos" },
   { name: "Folha (CLT + PJ)", icon: Users, page: "FinanceiroFolha" },
   { name: "Documentos Financeiros", icon: FolderOpen, page: "FinanceiroDocumentos" },
+  { name: "Carteira de Clientes", icon: Users, page: "FinanceiroCarteira" },
 ];
 
 export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingDemandas = 0, onLogout, user }) {

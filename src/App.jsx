@@ -16,6 +16,7 @@ import FinanceiroCustos from './pages/FinanceiroCustos';
 import FinanceiroFolha from './pages/FinanceiroFolha';
 import FinanceiroDocumentos from './pages/FinanceiroDocumentos';
 import FinanceiroFluxoCaixa from './pages/FinanceiroFluxoCaixa';
+import FinanceiroCarteira from './pages/FinanceiroCarteira';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -117,6 +118,7 @@ const AuthenticatedApp = () => {
       <Route path="/FinanceiroFolha" element={<LayoutWrapper currentPageName="FinanceiroFolha"><FinanceiroFolha /></LayoutWrapper>} />
       <Route path="/FinanceiroDocumentos" element={<LayoutWrapper currentPageName="FinanceiroDocumentos"><FinanceiroDocumentos /></LayoutWrapper>} />
       <Route path="/FinanceiroFluxoCaixa" element={<LayoutWrapper currentPageName="FinanceiroFluxoCaixa"><FinanceiroFluxoCaixa /></LayoutWrapper>} />
+      <Route path="/FinanceiroCarteira" element={<LayoutWrapper currentPageName="FinanceiroCarteira"><FinanceiroCarteira /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
