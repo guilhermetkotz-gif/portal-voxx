@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Upload, CheckCircle, Clock, FileText, X, Loader2, ArrowDownCircle, RefreshCw } from 'lucide-react';
+import { Plus, Search, Upload, CheckCircle, Clock, FileText, X, Loader2, ArrowDownCircle, RefreshCw, Zap } from 'lucide-react';
+import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
+import GerarLancamentosModal from '@/components/financeiro/GerarLancamentosModal';
 import { format } from 'date-fns';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -17,6 +19,7 @@ const CATEGORIAS = ['Infraestrutura', 'Marketing', 'Ferramentas/SaaS', 'Escritó
 
 const EMPTY = {
   nome: '', categoria: '', tipo: 'fixo', valor: '', recorrente: false,
+  frequencia: 'mensal', data_inicio: '', data_fim: '',
   data_vencimento: '', status: 'pendente', data_pagamento: '',
   observacao_pagamento: '', comprovante_pagamento: '',
 };
@@ -29,6 +32,7 @@ export default function FinanceiroCustos() {
   const [filtroTipo, setFiltroTipo] = useState('all');
   const [filtroComp, setFiltroComp] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  const [showGerar, setShowGerar] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -100,9 +104,14 @@ export default function FinanceiroCustos() {
             <p className="text-slate-500 text-sm">Controle de gastos operacionais</p>
           </div>
         </div>
-        <Button onClick={() => { setForm(EMPTY); setShowModal(true); }} className="bg-red-600 hover:bg-red-700">
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowGerar(true)}>
+            <Zap className="w-4 h-4" /> Gerar lançamentos do mês
+          </Button>
+          <Button onClick={() => { setForm(EMPTY); setShowModal(true); }} className="bg-red-600 hover:bg-red-700">
           <Plus className="w-4 h-4" /> Nova Despesa
         </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -167,14 +176,14 @@ export default function FinanceiroCustos() {
         ) : filtered.length === 0 ? (
           <Card className="p-8 text-center text-slate-400">Nenhuma despesa encontrada.</Card>
         ) : filtered.map(c => (
-          <Card key={c.id} className="p-4 hover:shadow-sm transition-shadow">
+          <Card key={c.id} className={`p-4 hover:shadow-sm transition-shadow ${c.is_previsto ? 'opacity-70 border-dashed' : ''}`}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${c.status === 'pago' ? 'bg-emerald-100' : 'bg-amber-100'}`}>
-                  {c.status === 'pago' ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <Clock className="w-4 h-4 text-amber-600" />}
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${c.status === 'pago' ? 'bg-emerald-100' : c.status === 'previsto' ? 'bg-slate-100' : 'bg-amber-100'}`}>
+                  {c.status === 'pago' ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : c.status === 'previsto' ? <RefreshCw className="w-4 h-4 text-slate-400" /> : <Clock className="w-4 h-4 text-amber-600" />}
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900">{c.nome}</p>
+                  <p className={`font-semibold ${c.is_previsto ? 'text-slate-400' : 'text-slate-900'}`}>{c.nome} {c.is_previsto && <span className="text-[10px] bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 ml-1">PREVISTO</span>}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {c.categoria && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{c.categoria}</span>}
                     <span className={`text-xs px-2 py-0.5 rounded-full ${c.tipo === 'fixo' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{c.tipo}</span>
@@ -184,7 +193,7 @@ export default function FinanceiroCustos() {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-lg font-bold text-slate-900">{fmt(c.valor)}</span>
-                <Badge className={c.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>{c.status === 'pago' ? 'Pago' : 'Pendente'}</Badge>
+                <Badge className={c.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : c.status === 'previsto' ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'}>{c.status === 'pago' ? 'Pago' : c.status === 'previsto' ? 'Previsto' : 'Pendente'}</Badge>
                 {c.comprovante_pagamento ? (
                   <a href={c.comprovante_pagamento} target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 h-7 text-xs">
@@ -261,6 +270,7 @@ export default function FinanceiroCustos() {
               <Label>Observação</Label>
               <Input value={form.observacao_pagamento} onChange={e => setForm(f => ({ ...f, observacao_pagamento: e.target.value }))} placeholder="Observações..." />
             </div>
+            <RecorrenciaForm form={form} setForm={setForm} />
             <div>
               <Label>Comprovante de Pagamento</Label>
               {form.comprovante_pagamento ? (
@@ -288,6 +298,12 @@ export default function FinanceiroCustos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <GerarLancamentosModal
+        open={showGerar}
+        onClose={() => setShowGerar(false)}
+        onDone={() => qc.invalidateQueries({ queryKey: ['fin-custos'] })}
+      />
     </div>
   );
 }

@@ -9,7 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Upload, CheckCircle, Clock, FileText, X, Loader2, Users } from 'lucide-react';
+import { Plus, Upload, CheckCircle, Clock, FileText, X, Loader2, Users, Zap, RefreshCw } from 'lucide-react';
+import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
+import GerarLancamentosModal from '@/components/financeiro/GerarLancamentosModal';
 import { format } from 'date-fns';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -18,6 +20,7 @@ const EMPTY = {
   nome: '', tipo_vinculo: 'clt', salario: '', vale_alimentacao: '', vale_transporte: '',
   outros_beneficios: '', tipo_servico: '', valor_pj: '', data_pagamento: '',
   status: 'pendente', holerite_url: '', comprovante_pagamento_url: '', nota_fiscal_url: '',
+  recorrente: false, frequencia: 'mensal', data_inicio: '', data_fim: '',
 };
 
 function DocUpload({ label, url, onUpload, onRemove, loading }) {
@@ -49,6 +52,7 @@ export default function FinanceiroFolha() {
   const qc = useQueryClient();
   const [mes, setMes] = useState(format(new Date(), 'yyyy-MM'));
   const [showModal, setShowModal] = useState(false);
+  const [showGerar, setShowGerar] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [uploadingField, setUploadingField] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -117,19 +121,20 @@ export default function FinanceiroFolha() {
 
   const FolhaCard = ({ item }) => {
     const isCLT = item.tipo_vinculo === 'clt';
+    const isPrevisto = item.is_previsto;
     const valorTotal = isCLT
       ? (item.salario || 0) + (item.vale_alimentacao || 0) + (item.vale_transporte || 0) + (item.outros_beneficios || 0)
       : (item.valor_pj || 0);
 
     return (
-      <Card className="p-4 hover:shadow-sm transition-shadow">
+      <Card className={`p-4 hover:shadow-sm transition-shadow ${isPrevisto ? 'opacity-70 border-dashed' : ''}`}>
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${item.status === 'pago' ? 'bg-emerald-100' : 'bg-amber-100'}`}>
               {item.status === 'pago' ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : <Clock className="w-4 h-4 text-amber-600" />}
             </div>
             <div>
-              <p className="font-semibold text-slate-900">{item.nome}</p>
+              <p className={`font-semibold ${isPrevisto ? 'text-slate-400' : 'text-slate-900'}`}>{item.nome} {isPrevisto && <span className="text-[10px] bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 ml-1">PREVISTO</span>}</p>
               <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
                 {isCLT ? (
                   <>Salário: {fmt(item.salario)} · VA: {fmt(item.vale_alimentacao)} · VT: {fmt(item.vale_transporte)}</>
@@ -141,8 +146,8 @@ export default function FinanceiroFolha() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-lg font-bold text-slate-900">{fmt(valorTotal)}</span>
-            <Badge className={item.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
-              {item.status === 'pago' ? 'Pago' : 'Pendente'}
+            <Badge className={item.status === 'pago' ? 'bg-emerald-100 text-emerald-700' : item.status === 'previsto' ? 'bg-slate-100 text-slate-500' : 'bg-amber-100 text-amber-700'}>
+              {item.status === 'pago' ? 'Pago' : item.status === 'previsto' ? 'Previsto' : 'Pendente'}
             </Badge>
             {item.comprovante_pagamento_url ? (
               <a href={item.comprovante_pagamento_url} target="_blank" rel="noopener noreferrer">
@@ -178,6 +183,9 @@ export default function FinanceiroFolha() {
         <div className="flex items-center gap-2">
           <input type="month" value={mes} onChange={e => setMes(e.target.value)}
             className="border border-input rounded-md px-3 py-1.5 text-sm bg-white" />
+          <Button variant="outline" onClick={() => setShowGerar(true)}>
+            <Zap className="w-4 h-4" /> Gerar lançamentos do mês
+          </Button>
           <Button onClick={() => { setForm(EMPTY); setShowModal(true); }} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4" /> Adicionar
           </Button>
@@ -269,6 +277,7 @@ export default function FinanceiroFolha() {
               </div>
             </div>
 
+            <RecorrenciaForm form={form} setForm={setForm} />
             <div className="border-t pt-3 space-y-3">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Documentos</p>
               {form.tipo_vinculo === 'clt' && (
@@ -297,6 +306,12 @@ export default function FinanceiroFolha() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
+
+      <GerarLancamentosModal
+        open={showGerar}
+        onClose={() => setShowGerar(false)}
+        onDone={() => qc.invalidateQueries({ queryKey: ['fin-folha'] })}
+      />
+      </div>
+      );
+      }
