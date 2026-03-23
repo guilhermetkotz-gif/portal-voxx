@@ -78,6 +78,7 @@ const menuItems = [
   { name: "Gerenciar Chats", icon: MessageCircle, page: "GerenciarChats", voxxOnly: true },
   { divider: true },
   { name: "💰 Financeiro — Visão Geral", icon: DollarSign, page: "FinanceiroVisaoGeral" },
+  { name: "Fluxo de Caixa (DRE)", icon: Activity, page: "FinanceiroFluxoCaixa" },
   { name: "Receitas (Clientes)", icon: TrendingUp, page: "FinanceiroReceitas" },
   { name: "Custos & Despesas", icon: TrendingDown, page: "FinanceiroCustos" },
   { name: "Folha (CLT + PJ)", icon: Users, page: "FinanceiroFolha" },

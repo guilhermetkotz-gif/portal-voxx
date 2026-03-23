@@ -47,7 +47,8 @@ const pageTitles = {
         FinanceiroReceitas: { title: "Receitas", subtitle: "Controle de faturamento por cliente" },
         FinanceiroCustos: { title: "Custos & Despesas", subtitle: "Controle de gastos operacionais" },
         FinanceiroFolha: { title: "Folha de Pagamento", subtitle: "CLT + PJ — gestão de equipe" },
-        FinanceiroDocumentos: { title: "Documentos Financeiros", subtitle: "Central de comprovantes e documentos" }
+        FinanceiroDocumentos: { title: "Documentos Financeiros", subtitle: "Central de comprovantes e documentos" },
+        FinanceiroFluxoCaixa: { title: "Fluxo de Caixa (DRE)", subtitle: "Demonstrativo de resultado — visão executiva" }
                 };
 
 export default function Layout({ children, currentPageName }) {
