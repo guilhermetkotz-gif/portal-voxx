@@ -42,7 +42,12 @@ const pageTitles = {
         PlanoDeAcao: { title: "Plano de Ação", subtitle: "Acompanhamento de ações por cliente" },
         PlanoDeAcaoDetalhe: { title: "Plano de Ação", subtitle: "Detalhes do plano" },
         ReportDiario: { title: "Report Diário", subtitle: "Resumo executivo diário por cliente" },
-        InteligenicaUnidades: { title: "Inteligência de Unidades", subtitle: "Performance consolidada da rede Oral Sin" }
+        InteligenicaUnidades: { title: "Inteligência de Unidades", subtitle: "Performance consolidada da rede Oral Sin" },
+        FinanceiroVisaoGeral: { title: "Financeiro — Visão Geral", subtitle: "Dashboard financeiro VOXX" },
+        FinanceiroReceitas: { title: "Receitas", subtitle: "Controle de faturamento por cliente" },
+        FinanceiroCustos: { title: "Custos & Despesas", subtitle: "Controle de gastos operacionais" },
+        FinanceiroFolha: { title: "Folha de Pagamento", subtitle: "CLT + PJ — gestão de equipe" },
+        FinanceiroDocumentos: { title: "Documentos Financeiros", subtitle: "Central de comprovantes e documentos" }
                 };
 
 export default function Layout({ children, currentPageName }) {

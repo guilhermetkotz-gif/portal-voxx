@@ -32,7 +32,12 @@ import {
   Building2,
   ClipboardList,
   FileBarChart2,
-  Briefcase
+  Briefcase,
+  DollarSign,
+  TrendingDown,
+  FolderOpen,
+  Users,
+  Receipt
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -71,6 +76,12 @@ const menuItems = [
   { name: "Gerenciar Contas", icon: Building2, page: "GerenciarContas", adminOnly: true },
   { name: "Gerenciar Acessos", icon: Shield, page: "GerenciarAcessos", adminOnly: true },
   { name: "Gerenciar Chats", icon: MessageCircle, page: "GerenciarChats", voxxOnly: true },
+  { divider: true },
+  { name: "💰 Financeiro — Visão Geral", icon: DollarSign, page: "FinanceiroVisaoGeral" },
+  { name: "Receitas (Clientes)", icon: TrendingUp, page: "FinanceiroReceitas" },
+  { name: "Custos & Despesas", icon: TrendingDown, page: "FinanceiroCustos" },
+  { name: "Folha (CLT + PJ)", icon: Users, page: "FinanceiroFolha" },
+  { name: "Documentos Financeiros", icon: FolderOpen, page: "FinanceiroDocumentos" },
 ];
 
 export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingDemandas = 0, onLogout, user }) {

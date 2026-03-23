@@ -10,6 +10,11 @@ import PlanoDeAcao from './pages/PlanoDeAcao';
 import PlanoDeAcaoDetalhe from './pages/PlanoDeAcaoDetalhe';
 import ReportDiario from './pages/ReportDiario';
 import InteligenicaUnidades from './pages/InteligenicaUnidades';
+import FinanceiroVisaoGeral from './pages/FinanceiroVisaoGeral';
+import FinanceiroReceitas from './pages/FinanceiroReceitas';
+import FinanceiroCustos from './pages/FinanceiroCustos';
+import FinanceiroFolha from './pages/FinanceiroFolha';
+import FinanceiroDocumentos from './pages/FinanceiroDocumentos';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -105,6 +110,11 @@ const AuthenticatedApp = () => {
       <Route path="/PlanoDeAcaoDetalhe" element={<LayoutWrapper currentPageName="PlanoDeAcaoDetalhe"><PlanoDeAcaoDetalhe /></LayoutWrapper>} />
       <Route path="/ReportDiario" element={<LayoutWrapper currentPageName="ReportDiario"><ReportDiario /></LayoutWrapper>} />
       <Route path="/InteligenicaUnidades" element={<LayoutWrapper currentPageName="InteligenicaUnidades"><InteligenicaUnidades /></LayoutWrapper>} />
+      <Route path="/FinanceiroVisaoGeral" element={<LayoutWrapper currentPageName="FinanceiroVisaoGeral"><FinanceiroVisaoGeral /></LayoutWrapper>} />
+      <Route path="/FinanceiroReceitas" element={<LayoutWrapper currentPageName="FinanceiroReceitas"><FinanceiroReceitas /></LayoutWrapper>} />
+      <Route path="/FinanceiroCustos" element={<LayoutWrapper currentPageName="FinanceiroCustos"><FinanceiroCustos /></LayoutWrapper>} />
+      <Route path="/FinanceiroFolha" element={<LayoutWrapper currentPageName="FinanceiroFolha"><FinanceiroFolha /></LayoutWrapper>} />
+      <Route path="/FinanceiroDocumentos" element={<LayoutWrapper currentPageName="FinanceiroDocumentos"><FinanceiroDocumentos /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
