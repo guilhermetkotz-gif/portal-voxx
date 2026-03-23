@@ -328,7 +328,7 @@ export default function GerenciarPermissoes({ user }) {
 
       {/* Tabs por Tipo de Usuário */}
       <Tabs value={tipoAtivo} onValueChange={setTipoAtivo}>
-        <TabsList className="grid w-full grid-cols-6 mb-6">
+        <TabsList className="grid w-full grid-cols-7 mb-6">
           {TIPOS_USUARIO.map(tipo => (
             <TabsTrigger key={tipo.value} value={tipo.value}>
               <Users className="w-4 h-4 mr-2" />
