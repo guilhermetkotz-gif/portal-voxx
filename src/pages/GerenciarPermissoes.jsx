@@ -16,6 +16,7 @@ const TIPOS_USUARIO = [
   { value: 'voxx_admin', label: 'Voxx Admin', color: 'bg-purple-100 text-purple-700', description: 'Acesso total ao sistema' },
   { value: 'voxx_manager', label: 'Voxx Manager', color: 'bg-blue-100 text-blue-700', description: 'Gestão de clientes e equipe' },
   { value: 'voxx_operacao', label: 'Voxx Operação', color: 'bg-indigo-100 text-indigo-700', description: 'Operação e execução' },
+  { value: 'voxx_financeiro', label: 'Voxx Financeiro', color: 'bg-emerald-100 text-emerald-700', description: 'Acesso ao módulo financeiro VOXX' },
   { value: 'cliente_admin', label: 'Cliente Admin', color: 'bg-green-100 text-green-700', description: 'Administrador do cliente' },
   { value: 'cliente_usuario', label: 'Cliente Usuário', color: 'bg-slate-100 text-slate-700', description: 'Usuário padrão do cliente' },
   { value: 'oral_sin_franqueadora', label: 'Oral Sin Franqueadora', color: 'bg-orange-100 text-orange-700', description: 'Acesso franqueadora Oral Sin' }
