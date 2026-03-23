@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle } from 'lucide-react';
+import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
 import { format } from 'date-fns';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -19,7 +20,7 @@ const STATUS_CONFIG = {
   em_atraso: { label: 'Em Atraso', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
 };
 
-const EMPTY = { cliente_nome: '', valor_mensal: '', tipo_contrato: 'mensal', data_cobranca: '', status: 'a_vencer', data_recebimento: '', observacao_recebimento: '', comprovante_recebimento: '' };
+const EMPTY = { cliente_nome: '', cliente_financeiro_id: '', valor_mensal: '', tipo_contrato: 'mensal', data_cobranca: '', status: 'a_vencer', data_recebimento: '', observacao_recebimento: '', comprovante_recebimento: '' };
 
 export default function FinanceiroReceitas() {
   const qc = useQueryClient();
@@ -203,7 +204,23 @@ export default function FinanceiroReceitas() {
           <div className="grid gap-3 py-2">
             <div>
               <Label>Cliente *</Label>
-              <Input value={form.cliente_nome} onChange={e => setForm(f => ({ ...f, cliente_nome: e.target.value }))} placeholder="Nome do cliente" />
+              <ClienteFinanceiroSelect
+                value={form.cliente_nome}
+                onChange={(cliente) => {
+                  if (!cliente) { setForm(f => ({ ...f, cliente_nome: '', cliente_financeiro_id: '' })); return; }
+                  const dataCobranca = cliente.dia_cobranca
+                    ? `${form.mes_referencia || new Date().toISOString().slice(0, 7)}-${String(cliente.dia_cobranca).padStart(2, '0')}`
+                    : form.data_cobranca;
+                  setForm(f => ({
+                    ...f,
+                    cliente_nome: cliente.nome + (cliente.unidade ? ` — ${cliente.unidade}` : ''),
+                    cliente_financeiro_id: cliente.id,
+                    valor_mensal: cliente.valor_mensal?.toString() || f.valor_mensal,
+                    tipo_contrato: cliente.tipo_contrato || f.tipo_contrato,
+                    data_cobranca: dataCobranca,
+                  }));
+                }}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
