@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Users, CheckCircle, Clock, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, AlertCircle, Users, CheckCircle, Clock, ArrowUpCircle, ArrowDownCircle, UserPlus, UserMinus, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Link } from 'react-router-dom';
@@ -24,6 +24,11 @@ export default function FinanceiroVisaoGeral() {
     queryKey: ['fin-folha', mesAtual],
     queryFn: () => base44.entities.FinanceiroFolha.filter({ mes_referencia: mesAtual }),
   });
+  const { data: clientesFinanceiros = [] } = useQuery({
+    queryKey: ['clientesFinanceiros'],
+    queryFn: () => base44.entities.ClienteFinanceiro.list('-created_date', 500),
+    staleTime: 60 * 1000
+  });
 
   const kpis = useMemo(() => {
     const mrr = receitas.reduce((s, r) => s + (r.valor_mensal || 0), 0);
@@ -39,7 +44,16 @@ export default function FinanceiroVisaoGeral() {
       return s + (f.valor_pj || 0);
     }, 0);
     const lucro = recebido - custoTotal - folhaTotal;
-    return { mrr, recebido, pendente, atraso, inadimplencia, custoFixo, custoVariavel, custoTotal, folhaTotal, lucro };
+    const clientesAtivos = clientesFinanceiros.filter(c => c.status === 'ativo').length;
+    const clientesNovos = clientesFinanceiros.filter(c => {
+      if (!c.data_inicio) return false;
+      return c.data_inicio.startsWith(mesAtual);
+    }).length;
+    const clientesPerdidos = clientesFinanceiros.filter(c => {
+      if (c.status !== 'encerrado' || !c.data_fim) return false;
+      return c.data_fim.startsWith(mesAtual);
+    }).length;
+    return { mrr, recebido, pendente, atraso, inadimplencia, custoFixo, custoVariavel, custoTotal, folhaTotal, lucro, clientesAtivos, clientesNovos, clientesPerdidos };
   }, [receitas, custos, folha]);
 
   const alertas = useMemo(() => {
@@ -65,6 +79,13 @@ export default function FinanceiroVisaoGeral() {
     { label: 'Custo Variável', value: fmt(kpis.custoVariavel), icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
     { label: 'Folha Total', value: fmt(kpis.folhaTotal), icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
     { label: 'Lucro Estimado', value: fmt(kpis.lucro), icon: TrendingUp, color: kpis.lucro >= 0 ? 'text-emerald-600' : 'text-red-600', bg: kpis.lucro >= 0 ? 'bg-emerald-50' : 'bg-red-50', border: kpis.lucro >= 0 ? 'border-emerald-200' : 'border-red-200' },
+  ];
+
+  const carteiraCards = [
+    { label: 'Clientes Ativos', value: kpis.clientesAtivos, icon: Users, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200' },
+    { label: 'Novos no Mês', value: kpis.clientesNovos, icon: UserPlus, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+    { label: 'Perdidos no Mês', value: kpis.clientesPerdidos, icon: UserMinus, color: kpis.clientesPerdidos > 0 ? 'text-red-600' : 'text-slate-500', bg: kpis.clientesPerdidos > 0 ? 'bg-red-50' : 'bg-slate-50', border: kpis.clientesPerdidos > 0 ? 'border-red-200' : 'border-slate-200' },
+    { label: 'Crescimento Líquido', value: kpis.clientesNovos - kpis.clientesPerdidos >= 0 ? `+${kpis.clientesNovos - kpis.clientesPerdidos}` : kpis.clientesNovos - kpis.clientesPerdidos, icon: Activity, color: kpis.clientesNovos - kpis.clientesPerdidos >= 0 ? 'text-emerald-600' : 'text-red-600', bg: kpis.clientesNovos - kpis.clientesPerdidos >= 0 ? 'bg-emerald-50' : 'bg-red-50', border: kpis.clientesNovos - kpis.clientesPerdidos >= 0 ? 'border-emerald-200' : 'border-red-200' },
   ];
 
   const chartData = [
@@ -145,6 +166,30 @@ export default function FinanceiroVisaoGeral() {
             ))}
           </div>
         </Card>
+      </div>
+
+      {/* Carteira de Clientes */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <Users className="w-4 h-4 text-violet-500" /> Carteira de Clientes — Mês Atual
+          </h2>
+          <Link to="/FinanceiroCarteira" className="text-xs text-violet-600 hover:underline">Ver detalhes →</Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {carteiraCards.map((kpi, i) => {
+            const Icon = kpi.icon;
+            return (
+              <Card key={i} className={`p-4 border ${kpi.border}`}>
+                <div className={`w-8 h-8 ${kpi.bg} rounded-lg flex items-center justify-center mb-2`}>
+                  <Icon className={`w-4 h-4 ${kpi.color}`} />
+                </div>
+                <p className="text-[10px] text-slate-500 mb-0.5">{kpi.label}</p>
+                <p className={`text-lg font-bold ${kpi.color}`}>{kpi.value}</p>
+              </Card>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
