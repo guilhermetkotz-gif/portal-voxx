@@ -16,6 +16,7 @@ import AgendaComercial from '@/components/comercial/AgendaComercial';
 import DashboardComercial from '@/components/comercial/DashboardComercial';
 import AlertasInteligentes from '@/components/comercial/AlertasInteligentes';
 import PrioritizacaoDia from '@/components/comercial/PrioritizacaoDia';
+import CentralNotificacoes from '@/components/comercial/CentralNotificacoes';
 import AcaoRapidaMenu from '@/components/comercial/AcaoRapidaMenu';
 import DashboardComercialExecutivo from '@/components/comercial/dashboard/DashboardComercialExecutivo';
 import { isVoxxAdmin, isVoxxOperacao, isVoxxManager } from '@/components/utils/auth';
@@ -191,6 +192,11 @@ export default function Comercial({ user }) {
             <p className="text-xl font-bold text-slate-900">R$ {Math.round(valorPotencialReal / 1000)}k</p>
           </div>
         </Card>
+      </div>
+
+      {/* Central de Notificações */}
+      <div className="flex justify-end">
+        <CentralNotificacoes leads={leads} />
       </div>
 
       {/* Alertas Inteligentes - Orientação 1 */}
