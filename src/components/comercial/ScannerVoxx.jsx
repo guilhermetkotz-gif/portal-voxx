@@ -168,7 +168,12 @@ Retorne APENAS o JSON.`,
     let gmnResult = null;
     const gmnLink = formData.gmn_link || lead.gmn_link;
     if (gmnLink) {
-      gmnResult = await analyzeGoogleMyBusiness(gmnLink, nome);
+      gmnResult = await analyzeGoogleMyBusiness(
+        gmnLink,
+        nome,
+        formData.nota_google || null,
+        formData.total_avaliacoes_google || null
+      );
     }
 
     // 3. Gerar mensagem WhatsApp incluindo GMN se disponível
@@ -459,6 +464,21 @@ Retorne APENAS o JSON.`,
                 )}
               </div>
 
+              {gmn.name_found && (
+                <div className={`flex items-center gap-2 p-2.5 rounded-lg border mt-3 text-xs ${
+                  gmn.name_mismatch
+                    ? 'bg-red-50 border-red-200 text-red-700'
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                }`}>
+                  <span>{gmn.name_mismatch ? '⚠️' : '✅'}</span>
+                  <span>
+                    {gmn.name_mismatch
+                      ? `Atenção: o perfil encontrado é "${gmn.name_found}" — pode não corresponder ao lead`
+                      : `Perfil validado: "${gmn.name_found}"`
+                    }
+                  </span>
+                </div>
+              )}
               {lead.gmn_link && (
                 <a href={lead.gmn_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-600 hover:underline mt-3">
                   <ExternalLink className="w-3 h-3" /> Ver no Google
