@@ -316,11 +316,9 @@ Retorne APENAS o JSON.`,
             Salvar Dados
           </Button>
         </div>
-        {(formData.gmn_link || lead?.gmn_link) && (
-          <p className="text-[11px] text-violet-600 flex items-center gap-1">
-            <MapPin className="w-3 h-3" /> A análise incluirá o Google Meu Negócio
-          </p>
-        )}
+        <p className="text-[11px] text-violet-500 flex items-center gap-1">
+          <MapPin className="w-3 h-3" /> O checklist GMN será incluído na análise se preenchido
+        </p>
       </Card>
 
       {/* RESULTADO DA ANÁLISE */}
@@ -572,7 +570,7 @@ Retorne APENAS o JSON.`,
           <Loader2 className="w-10 h-10 text-violet-500 animate-spin mx-auto mb-3" />
           <p className="font-semibold text-slate-700">Analisando presença digital...</p>
           <p className="text-sm text-slate-400 mt-1">
-            {(formData.gmn_link || lead?.gmn_link) ? 'Analisando Instagram, Meta Ads e Google Meu Negócio...' : 'Aguarde, isso pode levar alguns segundos.'}
+            {Object.values(gmnChecklist).some(v => v !== null) ? 'Analisando Instagram, Meta Ads e Checklist GMN...' : 'Aguarde, isso pode levar alguns segundos.'}
           </p>
         </Card>
       )}
