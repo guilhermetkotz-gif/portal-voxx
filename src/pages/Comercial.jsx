@@ -77,15 +77,20 @@ export default function Comercial({ user }) {
   }
 
   // KPIs - Evoluído (Orientação 5)
+  const diasSemAtividade = (l) => {
+    const ref = l.ultima_interacao || l.created_date;
+    if (!ref) return 999;
+    return Math.floor((Date.now() - new Date(ref)) / (1000 * 60 * 60 * 24));
+  };
   const ativos = leads.filter(l => !['fechado_ganho','fechado_perdido'].includes(l.etapa));
   const leadsEmRisco = leads.filter(l => {
-    if (!l.ultima_interacao || ['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
-    const dias = Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24));
-    return dias > 7;
+    if (['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
+    return diasSemAtividade(l) > 7;
   });
-  const leadsQuentes = leads.filter(l => 
-    l.fit_classificacao === 'alto_fit' && l.ultima_interacao &&
-    Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24)) <= 3
+  const leadsQuentes = leads.filter(l =>
+    l.fit_classificacao === 'alto_fit' &&
+    !['fechado_ganho', 'fechado_perdido'].includes(l.etapa) &&
+    diasSemAtividade(l) <= 3
   );
   const followUpsPendentes = leads.filter(l => {
     if (['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;

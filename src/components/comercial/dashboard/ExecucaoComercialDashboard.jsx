@@ -4,30 +4,29 @@ import { Badge } from '@/components/ui/badge';
 import { Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function ExecucaoComercialDashboard({ leads, interacoes = [], reunioes = [] }) {
+  // Usa ultima_interacao ou created_date como referência de última atividade
+  const diasSemAtividade = (l) => {
+    const ref = l.ultima_interacao || l.created_date;
+    if (!ref) return 999;
+    return Math.floor((Date.now() - new Date(ref)) / (1000 * 60 * 60 * 24));
+  };
+
   // Follow-ups pendentes (sem interação há 3+ dias)
   const followUpsPendentes = leads.filter(l => {
     if (['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
-    if (!l.ultima_interacao) return true;
-    const dias = Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24));
-    return dias >= 3;
+    return diasSemAtividade(l) >= 3;
   });
 
   // Follow-ups atrasados (7+ dias)
-  const followUpsAtrasados = followUpsPendentes.filter(l => {
-    if (!l.ultima_interacao) return true;
-    const dias = Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24));
-    return dias >= 7;
-  });
+  const followUpsAtrasados = followUpsPendentes.filter(l => diasSemAtividade(l) >= 7);
 
-  // Leads sem contato
-  const semContato = leads.filter(l => !l.ultima_interacao && l.etapa === 'novo_lead');
+  // Leads sem contato (nunca teve interação registrada)
+  const semContato = leads.filter(l => !l.ultima_interacao && !['fechado_ganho', 'fechado_perdido'].includes(l.etapa));
 
-  // Leads parados (7+ dias sem atualização)
+  // Leads parados (7+ dias sem atividade)
   const leadsParados = leads.filter(l => {
     if (['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
-    if (!l.ultima_interacao) return false;
-    const dias = Math.floor((Date.now() - new Date(l.ultima_interacao)) / (1000 * 60 * 60 * 24));
-    return dias >= 7;
+    return diasSemAtividade(l) >= 7;
   });
 
   // Interações realizadas (últimos 7 dias) — já filtradas no pai
