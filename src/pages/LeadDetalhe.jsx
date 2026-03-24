@@ -78,8 +78,9 @@ export default function LeadDetalhe({ user }) {
 
   const params = new URLSearchParams(window.location.search);
   const leadId = params.get('id');
+  const tabParam = params.get('tab');
 
-  const [activeTab, setActiveTab] = useState('visao_geral');
+  const [activeTab, setActiveTab] = useState(tabParam || 'visao_geral');
   const [formData, setFormData] = useState({});
   const [showInteracaoModal, setShowInteracaoModal] = useState(false);
   const [showAgendarReuniao, setShowAgendarReuniao] = useState(false);
