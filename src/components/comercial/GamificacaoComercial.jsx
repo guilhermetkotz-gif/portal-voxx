@@ -173,19 +173,34 @@ export default function GamificacaoComercial({ leads = [], user }) {
   }, [interacoes, reunioes, leads, user?.email]);
 
   // ── Missões diárias ──────────────────────────────────────────────────────
+  // Quando um usuário é selecionado no ranking, os painéis superiores mostram os dados dele
+  const emailDisplay = selectedUser?.email || user?.email;
+  const nomeDisplay = selectedUser?.nome || user?.full_name || 'Você';
+
+  const interacoesHojeDisplay = useMemo(() => {
+    return interacoes.filter(i => i.created_date && isAfter(parseISO(i.created_date), hoje) && i.autor === emailDisplay);
+  }, [interacoes, hoje, emailDisplay]);
+
+  const scoreDisplay = useMemo(() => {
+    if (!selectedUser) return meuScore;
+    return { hoje: selectedUser.scoreHoje, semana: selectedUser.scoreSemana };
+  }, [selectedUser, meuScore]);
+
+  const nivelDisplay = useMemo(() => getNivel(scoreDisplay.semana), [scoreDisplay.semana]);
+
   const missoes = useMemo(() => {
     return MISSOES_DIARIAS.map(m => {
       let progresso = 0;
       if (m.id === 'scanner') {
         progresso = leads.filter(l =>
-          l.responsavel_voxx === user?.email && l.voxx_analise?.voxx_score
+          l.responsavel_voxx === emailDisplay && l.voxx_analise?.voxx_score
         ).length;
       } else {
-        progresso = minhasInteracoesHoje.filter(i => m.tipo.includes(i.tipo)).length;
+        progresso = interacoesHojeDisplay.filter(i => m.tipo.includes(i.tipo)).length;
       }
       return { ...m, progresso: Math.min(progresso, m.meta), completa: progresso >= m.meta };
-      });
-  }, [minhasInteracoesHoje, leads, user?.email]);
+    });
+  }, [interacoesHojeDisplay, leads, emailDisplay]);
 
   const xpGanhoHoje = missoes.filter(m => m.completa).reduce((s, m) => s + m.xp, 0);
   const xpTotalPossivel = missoes.reduce((s, m) => s + m.xp, 0);
@@ -215,48 +230,37 @@ export default function GamificacaoComercial({ leads = [], user }) {
   }, [selectedUser, interacoes, leads, hoje, semana]);
 
   const leadsEsquecidos = leads.filter(l => {
-    if (l.responsavel_voxx !== user?.email) return false;
+    if (l.responsavel_voxx !== emailDisplay) return false;
     if (['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
     const ref = l.ultima_interacao || l.created_date;
     if (!ref) return true;
     return Math.floor((Date.now() - new Date(ref)) / (1000 * 60 * 60 * 24)) > 7;
   }).slice(0, 5);
 
-  const proximoNivel = NIVEIS[NIVEIS.indexOf(meuNivel) + 1];
+  const proximoNivel = NIVEIS[NIVEIS.indexOf(nivelDisplay) + 1];
 
   return (
     <div className="space-y-5">
       {/* Meu Score */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Painel principal */}
-        <Card className={`p-5 col-span-1 ${meuNivel.bg} border-2 border-current`} style={{ borderColor: undefined }}>
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Seu Nível</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-2xl">{meuNivel.emoji}</span>
-                <span className={`text-xl font-black ${meuNivel.cor}`}>{meuNivel.nome}</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-3xl font-black text-slate-900">{meuScore.semana}</p>
-              <p className="text-xs text-slate-400">pts esta semana</p>
-            </div>
-          </div>
-
+        <Card className={`p-5 col-span-1 ${nivelDisplay.bg} border-2`}>
+          {selectedUser && (
+            <p className="text-[11px] font-semibold text-violet-500 mb-2">👁 Visualizando: {nomeDisplay}</p>
+          )}
           {proximoNivel && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-slate-500">
-                <span>{meuScore.semana} pts</span>
+                <span>{scoreDisplay.semana} pts</span>
                 <span>{proximoNivel.nome} → {proximoNivel.min} pts</span>
               </div>
-              <ProgressBar value={meuScore.semana - meuNivel.min} max={meuNivel.max - meuNivel.min} color="bg-violet-500" />
+              <ProgressBar value={scoreDisplay.semana - nivelDisplay.min} max={nivelDisplay.max - nivelDisplay.min} color="bg-violet-500" />
             </div>
           )}
 
           <div className="flex gap-3 mt-3 pt-3 border-t border-slate-200">
             <div className="text-center flex-1">
-              <p className="text-lg font-bold text-slate-800">{meuScore.hoje}</p>
+              <p className="text-lg font-bold text-slate-800">{scoreDisplay.hoje}</p>
               <p className="text-[10px] text-slate-400">pts hoje</p>
             </div>
             <div className="text-center flex-1">
@@ -264,7 +268,7 @@ export default function GamificacaoComercial({ leads = [], user }) {
               <p className="text-[10px] text-slate-400">XP missões</p>
             </div>
             <div className="text-center flex-1">
-              <p className="text-lg font-bold text-slate-800">{minhasInteracoesHoje.length}</p>
+              <p className="text-lg font-bold text-slate-800">{interacoesHojeDisplay.length}</p>
               <p className="text-[10px] text-slate-400">ações hoje</p>
             </div>
           </div>
@@ -305,7 +309,7 @@ export default function GamificacaoComercial({ leads = [], user }) {
         {/* Leads esquecidos / alertas */}
         <Card className="p-5 col-span-1">
           <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5 mb-3">
-            <AlertTriangle className="w-4 h-4 text-amber-500" /> Meus Leads Esquecidos
+            <AlertTriangle className="w-4 h-4 text-amber-500" /> {selectedUser ? `Leads Esquecidos de ${nomeDisplay}` : 'Meus Leads Esquecidos'}
           </p>
           {leadsEsquecidos.length === 0 ? (
             <div className="text-center py-6">
