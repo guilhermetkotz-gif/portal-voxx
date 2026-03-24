@@ -17,18 +17,23 @@ export default function InteligenicaUnidades({ user }) {
   const [selectedUnidade, setSelectedUnidade] = useState(null);
 
   const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
-  const { data: userPermissions } = useQuery({
+  
+  // Trusted user types that don't need permission lookup
+  const trustedUserTypes = ['oral_sin_franqueadora'];
+  const isTrustedUser = trustedUserTypes.includes(tipoUsuario);
+  
+  const { data: userPermissions, isLoading: loadingPermissions } = useQuery({
     queryKey: ['userTypePermissions', tipoUsuario],
     queryFn: async () => {
-      if (!tipoUsuario) return null;
+      if (!tipoUsuario || isTrustedUser) return null;
       const perms = await base44.entities.UserTypePermissions.filter({ tipo_usuario: tipoUsuario });
       return perms[0] || null;
     },
-    enabled: !!tipoUsuario,
+    enabled: !!tipoUsuario && !isTrustedUser,
     staleTime: 5 * 60 * 1000
   });
 
-  const hasAccess = user?.role === 'admin' || (
+  const hasAccess = user?.role === 'admin' || isTrustedUser || (
     userPermissions?.paginas_permitidas
       ? userPermissions.paginas_permitidas.includes('InteligenicaUnidades')
       : !tipoUsuario
@@ -131,10 +136,7 @@ export default function InteligenicaUnidades({ user }) {
     return [...filtered].sort((a, b) => (order[a.healthStatus] ?? 3) - (order[b.healthStatus] ?? 3));
   }, [filtered]);
 
-  // Still loading permissions - don't flash unauthorized
-  const loadingPermissions = !!tipoUsuario && userPermissions === undefined;
-
-  if (loadingPermissions) {
+  if (loadingPermissions && !isTrustedUser) {
     return (
       <div className="flex items-center justify-center h-96">
         <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
