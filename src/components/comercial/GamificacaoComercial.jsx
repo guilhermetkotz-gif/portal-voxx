@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import {
   Trophy, Zap, Target, Star, AlertTriangle, TrendingUp,
-  MessageCircle, Calendar, FileText, CheckCircle2, Users, Crown
+  MessageCircle, Calendar, FileText, CheckCircle2, Users, Crown, X, ChevronRight, Activity
 } from 'lucide-react';
 import { startOfDay, startOfWeek, parseISO, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -84,7 +84,9 @@ export default function GamificacaoComercial({ leads = [], user }) {
   });
 
   // ── Cálculo de score por usuário ─────────────────────────────────────────
-  const { ranking, meuScore, minhasInteracoesHoje, meuNivel } = useMemo(() => {
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const { ranking, meuScore, minhasInteracoesHoje, meuNivel, leadsEmRisco: leadsRisco } = useMemo(() => {
     const interacoesHoje = interacoes.filter(i => i.created_date && isAfter(parseISO(i.created_date), hoje));
     const interacoesSemana = interacoes.filter(i => i.created_date && isAfter(parseISO(i.created_date), semana));
     const reunioesSemana = reunioes.filter(r => r.created_date && isAfter(parseISO(r.created_date), semana));
@@ -165,6 +167,8 @@ export default function GamificacaoComercial({ leads = [], user }) {
       minhasInteracoesHoje: interacoesHojeMeu,
       meuNivel: nivel,
       leadsEmRisco,
+      allInteracoesHoje: interacoesHoje,
+      allInteracoesSemana: interacoesSemana,
     };
   }, [interacoes, reunioes, leads, user?.email]);
 
@@ -187,6 +191,29 @@ export default function GamificacaoComercial({ leads = [], user }) {
   const xpTotalPossivel = missoes.reduce((s, m) => s + m.xp, 0);
 
   // ── Leads esquecidos (meus) ──────────────────────────────────────────────
+  // Detalhes do usuário selecionado
+  const userDetail = useMemo(() => {
+    if (!selectedUser) return null;
+    const interacoesHoje = interacoes.filter(i => i.created_date && isAfter(parseISO(i.created_date), hoje));
+    const interacoesSemana = interacoes.filter(i => i.created_date && isAfter(parseISO(i.created_date), semana));
+    const minhasHoje = interacoesHoje.filter(i => i.autor === selectedUser.email);
+    const minhasSemana = interacoesSemana.filter(i => i.autor === selectedUser.email);
+    const meusLeads = leads.filter(l => l.responsavel_voxx === selectedUser.email && !['fechado_ganho','fechado_perdido'].includes(l.etapa));
+    const leadsEsq = leads.filter(l => {
+      if (l.responsavel_voxx !== selectedUser.email) return false;
+      if (['fechado_ganho','fechado_perdido'].includes(l.etapa)) return false;
+      const ref = l.ultima_interacao || l.created_date;
+      if (!ref) return true;
+      return Math.floor((Date.now() - new Date(ref)) / (1000 * 60 * 60 * 24)) > 7;
+    });
+    // Score breakdown por tipo
+    const breakdown = {};
+    minhasSemana.forEach(i => {
+      breakdown[i.tipo] = (breakdown[i.tipo] || 0) + 1;
+    });
+    return { minhasHoje, minhasSemana, meusLeads, leadsEsq, breakdown };
+  }, [selectedUser, interacoes, leads, hoje, semana]);
+
   const leadsEsquecidos = leads.filter(l => {
     if (l.responsavel_voxx !== user?.email) return false;
     if (['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
@@ -323,8 +350,17 @@ export default function GamificacaoComercial({ leads = [], user }) {
               {ranking.map((u, i) => {
                 const nivel = getNivel(u.scoreSemana);
                 const isMe = u.email === user?.email;
+                const isSelected = selectedUser?.email === u.email;
                 return (
-                  <div key={u.email} className={`flex items-center gap-3 p-2.5 rounded-lg ${isMe ? 'bg-violet-50 border border-violet-200' : 'bg-slate-50'}`}>
+                  <div
+                    key={u.email}
+                    onClick={() => setSelectedUser(isSelected ? null : u)}
+                    className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
+                      isSelected ? 'bg-violet-100 border border-violet-400' :
+                      isMe ? 'bg-violet-50 border border-violet-200 hover:bg-violet-100' :
+                      'bg-slate-50 hover:bg-slate-100'
+                    }`}
+                  >
                     <span className={`text-sm font-black w-5 text-center ${i === 0 ? 'text-amber-500' : i === 1 ? 'text-slate-500' : i === 2 ? 'text-amber-700' : 'text-slate-400'}`}>
                       {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
                     </span>
@@ -335,8 +371,9 @@ export default function GamificacaoComercial({ leads = [], user }) {
                       </p>
                       <p className="text-[11px] text-slate-400">{nivel.nome}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex items-center gap-1">
                       <p className="text-sm font-bold text-slate-900">{u.scoreSemana} pts</p>
+                      <ChevronRight className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isSelected ? 'rotate-90' : ''}`} />
                     </div>
                   </div>
                 );
@@ -364,23 +401,115 @@ export default function GamificacaoComercial({ leads = [], user }) {
                 .map((u, i) => {
                   const nivel = getNivel(u.scoreSemana);
                   const isMe = u.email === user?.email;
+                  const isSelected = selectedUser?.email === u.email;
                   return (
-                    <div key={u.email} className={`flex items-center gap-3 p-2.5 rounded-lg ${isMe ? 'bg-violet-50 border border-violet-200' : 'bg-slate-50'}`}>
-                      <span className="text-sm font-bold w-5 text-center text-slate-400">#{i + 1}</span>
-                      <span className="text-base">{nivel.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-semibold truncate ${isMe ? 'text-violet-800' : 'text-slate-800'}`}>
-                          {u.nome} {isMe && <span className="text-xs text-violet-500">(você)</span>}
-                        </p>
-                        <p className="text-[11px] text-slate-400">{u.scoreHoje} pts hoje</p>
-                      </div>
+                    <div
+                      key={u.email}
+                      onClick={() => setSelectedUser(isSelected ? null : u)}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg cursor-pointer transition-colors ${
+                        isSelected ? 'bg-violet-100 border border-violet-400' :
+                        isMe ? 'bg-violet-50 border border-violet-200 hover:bg-violet-100' :
+                        'bg-slate-50 hover:bg-slate-100'
+                      }`}
+                    >
+                    <span className="text-sm font-bold w-5 text-center text-slate-400">#{i + 1}</span>
+                    <span className="text-base">{nivel.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold truncate ${isMe ? 'text-violet-800' : 'text-slate-800'}`}>
+                        {u.nome} {isMe && <span className="text-xs text-violet-500">(você)</span>}
+                      </p>
+                      <p className="text-[11px] text-slate-400">{u.scoreHoje} pts hoje</p>
                     </div>
+                    <ChevronRight className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isSelected ? 'rotate-90' : ''}`} />
+                  </div>
                   );
                 })}
             </div>
           )}
         </Card>
       </div>
+
+      {/* Painel de detalhes do usuário selecionado */}
+      {selectedUser && userDetail && (
+        <Card className="p-5 border-violet-200 bg-violet-50">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-violet-600" />
+              <p className="text-sm font-bold text-violet-900">
+                {selectedUser.nome} — Detalhes de Performance
+              </p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${getNivel(selectedUser.scoreSemana).bg} ${getNivel(selectedUser.scoreSemana).cor}`}>
+                {getNivel(selectedUser.scoreSemana).emoji} {getNivel(selectedUser.scoreSemana).nome}
+              </span>
+            </div>
+            <button onClick={() => setSelectedUser(null)} className="text-slate-400 hover:text-slate-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            {[
+              { label: 'Score Hoje', value: selectedUser.scoreHoje, color: 'text-violet-700' },
+              { label: 'Score Semana', value: selectedUser.scoreSemana, color: 'text-violet-900' },
+              { label: 'Ações Hoje', value: userDetail.minhasHoje.length, color: 'text-blue-700' },
+              { label: 'Leads Ativos', value: userDetail.meusLeads.length, color: 'text-slate-700' },
+            ].map(item => (
+              <div key={item.label} className="bg-white rounded-lg p-3 text-center border border-violet-100">
+                <p className={`text-2xl font-black ${item.color}`}>{item.value}</p>
+                <p className="text-[11px] text-slate-500">{item.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Breakdown de ações esta semana */}
+            <div className="bg-white rounded-lg p-4 border border-violet-100">
+              <p className="text-xs font-bold text-slate-600 mb-3 uppercase tracking-wide">Ações por tipo (semana)</p>
+              {Object.keys(userDetail.breakdown).length === 0 ? (
+                <p className="text-sm text-slate-400">Nenhuma ação registrada.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {Object.entries(userDetail.breakdown).map(([tipo, qtd]) => (
+                    <div key={tipo} className="flex items-center justify-between">
+                      <span className="text-xs text-slate-600 capitalize">{tipo.replace('_', ' ')}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-800">{qtd}x</span>
+                        <span className="text-xs text-violet-600">+{(PONTOS[tipo] || 5) * qtd} pts</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Leads esquecidos do usuário */}
+            <div className="bg-white rounded-lg p-4 border border-violet-100">
+              <p className="text-xs font-bold text-slate-600 mb-3 uppercase tracking-wide">
+                Leads esquecidos ({userDetail.leadsEsq.length})
+              </p>
+              {userDetail.leadsEsq.length === 0 ? (
+                <div className="flex items-center gap-2 text-emerald-600">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <p className="text-sm">Nenhum lead esquecido!</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {userDetail.leadsEsq.slice(0, 5).map(l => {
+                    const dias = Math.floor((Date.now() - new Date(l.ultima_interacao || l.created_date)) / (1000 * 60 * 60 * 24));
+                    return (
+                      <div key={l.id} onClick={() => navigate(`/LeadDetalhe?id=${l.id}`)} className="flex items-center justify-between cursor-pointer hover:bg-red-50 p-1.5 rounded">
+                        <p className="text-xs text-slate-700 truncate">{l.nome_empresa}</p>
+                        <span className="text-[10px] text-red-600 font-bold flex-shrink-0 ml-2">{dias}d</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
 
       {/* Tabela de pontuação */}
       <Card className="p-5">
