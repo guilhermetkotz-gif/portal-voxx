@@ -46,8 +46,9 @@ export default function ScannerVoxx({ lead, formData, setFormData, onSave }) {
   const [analisando, setAnalisando] = useState(false);
   const [mensagemEditada, setMensagemEditada] = useState('');
   const [gmnChecklist, setGmnChecklist] = useState(lead?.gmn_analise?.checklist || EMPTY_GMN);
+  const [localAnalise, setLocalAnalise] = useState(null);
 
-  const analise = lead?.voxx_analise || null;
+  const analise = localAnalise || lead?.voxx_analise || null;
   const hasAnalise = !!analise;
 
   const classification = analise?.lead_classification || 'Crítico';
@@ -178,6 +179,12 @@ REGRAS DA MENSAGEM:
 
     await base44.entities.LeadComercial.update(lead.id, updateData);
 
+    const analiseLocal = {
+      ...result,
+      checklist_gmn: gmnChecklist,
+      data_analise: new Date().toISOString(),
+    };
+    setLocalAnalise(analiseLocal);
     setMensagemEditada(result.whatsapp_message || '');
     queryClient.invalidateQueries({ queryKey: ['leadDetalhe', lead.id] });
     queryClient.invalidateQueries({ queryKey: ['leadsComercial'] });
@@ -186,6 +193,7 @@ REGRAS DA MENSAGEM:
   };
 
   const handleLimparAnalise = async () => {
+    setLocalAnalise(null);
     await base44.entities.LeadComercial.update(lead.id, {
       voxx_analise: null,
       score_oportunidade: null,
