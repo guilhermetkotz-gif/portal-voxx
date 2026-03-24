@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Zap, Copy, MessageCircle, RefreshCw, Trash2, AlertCircle, ExternalLink, Star, MapPin } from 'lucide-react';
-import { toast } from 'sonner';
+import GmnChecklist from './GmnChecklist';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -26,81 +20,61 @@ const CRITERIO_LABELS = {
   reputacao_google: 'Reputação Google',
 };
 
-async function analyzeGoogleMyBusiness(gmn_link, nome, localidade) {
-  const prompt = `Você é um especialista em presença digital e marketing local.
+const EMPTY_GMN = {
+  rating: null, reviews_count: null, reviews_response: null,
+  photos_quantity: null, photos_type: null,
+  has_description: null, has_services: null, has_hours: null,
+  posting_frequency: null,
+  has_website: null, has_whatsapp: null, has_call_button: null,
+  has_qna: null,
+};
 
-ACESSE DIRETAMENTE esta URL do Google Meu Negócio:
-${gmn_link}
+async function analyzeGmnFromChecklist(checklist, nome) {
+  const prompt = `Você está analisando o Google Meu Negócio de "${nome}" com base em dados fornecidos manualmente.
+NÃO invente informações. Use APENAS os dados abaixo.
 
-NOME DO LEAD: "${nome}"
-LOCALIDADE: "${localidade}"
+DADOS DO CHECKLIST:
+- Nota média: ${checklist.rating ?? 'não informado'}
+- Qtd. avaliações: ${checklist.reviews_count ?? 'não informado'}
+- Respostas a avaliações: ${checklist.reviews_response ?? 'não informado'}
+- Quantidade de fotos: ${checklist.photos_quantity ?? 'não informado'}
+- Tipo de fotos: ${checklist.photos_type ?? 'não informado'}
+- Descrição estratégica: ${checklist.has_description === true ? 'sim' : checklist.has_description === false ? 'não' : 'não informado'}
+- Serviços cadastrados: ${checklist.has_services === true ? 'sim' : checklist.has_services === false ? 'não' : 'não informado'}
+- Horário atualizado: ${checklist.has_hours === true ? 'sim' : checklist.has_hours === false ? 'não' : 'não informado'}
+- Frequência de postagens: ${checklist.posting_frequency ?? 'não informado'}
+- Site vinculado: ${checklist.has_website === true ? 'sim' : checklist.has_website === false ? 'não' : 'não informado'}
+- Botão/link WhatsApp: ${checklist.has_whatsapp === true ? 'sim' : checklist.has_whatsapp === false ? 'não' : 'não informado'}
+- Botão de ligação: ${checklist.has_call_button === true ? 'sim' : checklist.has_call_button === false ? 'não' : 'não informado'}
+- Seção Q&A: ${checklist.has_qna === true ? 'sim' : checklist.has_qna === false ? 'não' : 'não informado'}
 
-== REGRA ANTI-ALUCINAÇÃO (OBRIGATÓRIA) ==
-NUNCA invente, estime ou arredonde dados numéricos (nota, avaliações, etc).
-Se não conseguir identificar com precisão:
-- Use 0 para números
-- É melhor não informar do que informar errado
-Essa regra é absoluta. Violação gera inconsistência no diagnóstico.
+PRIORIDADES DE FALHA (em ordem):
+1. Ausência de WhatsApp ou site = FALHA CRÍTICA
+2. Sem ligação = falha de contato
+3. Respostas padrão ou inexistentes = perda de humanização
+4. Fotos de banco ou poucas = perda de confiança
+5. Sem postagens = perfil inativo
+6. Nota < 4.5 = risco de autoridade
+7. Poucas avaliações = baixa prova social
 
-== VALIDAÇÃO DE PERFIL ==
-Extraia o nome real do perfil. Valide por correlação com "${nome}" na localidade "${localidade}".
-Se cidade/bairro não bater ou negócio for diferente, retorne name_mismatch: true.
+CALCULE o gmn_score (0-100) com os pesos:
+- Conversão (site + whatsapp + ligação): 25%
+- Avaliações (nota + qtd + respostas): 30%
+- Conteúdo (fotos qtd + tipo + postagens): 25%
+- Estrutura (descrição + serviços + horário + qna): 20%
 
-== CRITÉRIOS DE ANÁLISE (por prioridade) ==
-
-1. CONVERSÃO (peso máximo) — analise se o perfil tem:
-   - Site vinculado ao perfil GMN
-   - Botão/link direto para WhatsApp
-   - Botão de ligação claro
-   - Estrutura que facilita o paciente entrar em contato
-
-2. AVALIAÇÕES (peso alto) — apenas se você tiver certeza absoluta:
-   - Nota média real da página
-   - Volume real de avaliações
-
-3. CONTEÚDO (peso médio) — fotos, posts, frequência
-
-4. ENGAJAMENTO (peso médio) — respostas a reviews, postagens
-
-== FALHAS A DETECTAR ==
-Se não houver site vinculado → inclua: "Perfil sem site vinculado"
-Se não houver WhatsApp → inclua: "Ausência de acesso direto ao WhatsApp"
-Se estrutura de conversão for fraca → inclua: "Perfil não otimizado para conversão"
-
-== SCORE GMN (0-100) ==
-Conversão: 35% | Avaliações: 25% | Conteúdo: 25% | Engajamento: 15%
-
-Retorne APENAS JSON válido:
-{
-  "gmn_score": 0,
-  "rating": 0,
-  "reviews_count": 0,
-  "has_website": false,
-  "has_whatsapp": false,
-  "conversion_structure": "",
-  "name_found": "",
-  "name_mismatch": false,
-  "diagnosis": "",
-  "failures": [],
-  "impact": "",
-  "opportunity": ""
-}`;
+Gere:
+1. diagnosis: diagnóstico geral (2-3 frases diretas)
+2. failures: lista de falhas encontradas (só as que realmente existem nos dados)
+3. impact: impacto no negócio (perda de pacientes)
+4. opportunity: oportunidade de melhoria`;
 
   return await base44.integrations.Core.InvokeLLM({
     prompt,
-    add_context_from_internet: true,
-    model: 'gemini_3_flash',
     response_json_schema: {
       type: 'object',
       properties: {
         gmn_score: { type: 'number' },
-        rating: { type: 'number' },
-        reviews_count: { type: 'number' },
-        has_website: { type: 'boolean' },
-        has_whatsapp: { type: 'boolean' },
-        conversion_structure: { type: 'string' },
-        name_found: { type: 'string' },
-        name_mismatch: { type: 'boolean' },
         diagnosis: { type: 'string' },
         failures: { type: 'array', items: { type: 'string' } },
         impact: { type: 'string' },
@@ -117,8 +91,9 @@ export default function ScannerVoxx({ lead, formData, setFormData, onSave }) {
 
   const hasAnalise = !!lead?.score_oportunidade;
   const hasGmn = !!lead?.gmn_analise?.gmn_score;
-  const temperatura = lead?.temperatura_lead;
-  const tempCfg = TEMP_CONFIG[temperatura] || TEMP_CONFIG['Frio'];
+  const [gmnChecklist, setGmnChecklist] = useState(
+    lead?.gmn_analise?.checklist || EMPTY_GMN
+  );
 
   const buildWhatsAppMessage = (analise, gmnAnalise, nome) => {
     const falhasDigitais = (analise.falhas_identificadas || []).join(', ');
@@ -188,18 +163,16 @@ Retorne APENAS o JSON.`,
       }
     });
 
-    // 2. Análise GMN (se link informado)
+    // 2. Análise GMN (se checklist preenchido)
     let gmnResult = null;
-    const gmnLink = formData.gmn_link || lead.gmn_link;
-    if (gmnLink) {
-      gmnResult = await analyzeGoogleMyBusiness(
-        gmnLink,
-        nome,
-        lead.cidade || lead.estado || ''
-      );
-      // Sobrescrever SEMPRE com os valores confirmados pelo usuário — não confiar na IA
-      if (formData.nota_google) gmnResult.rating = Number(formData.nota_google);
-      if (formData.total_avaliacoes_google) gmnResult.reviews_count = Number(formData.total_avaliacoes_google);
+    const hasChecklistData = Object.values(gmnChecklist).some(v => v !== null && v !== undefined);
+    if (hasChecklistData) {
+      const aiResult = await analyzeGmnFromChecklist(gmnChecklist, nome);
+      gmnResult = {
+        ...aiResult,
+        ...gmnChecklist,
+        checklist: gmnChecklist,
+      };
     }
 
     // 3. Gerar mensagem WhatsApp incluindo GMN se disponível
@@ -226,13 +199,10 @@ Retorne APENAS o JSON.`,
       },
       link_instagram: formData.link_instagram,
       link_biblioteca_ads: formData.link_biblioteca_ads,
-      gmn_link: gmnLink || undefined,
-      nota_google: formData.nota_google ? Number(formData.nota_google) : undefined,
-      total_avaliacoes_google: formData.total_avaliacoes_google ? Number(formData.total_avaliacoes_google) : undefined,
-    };
-
     if (gmnResult) {
       updateData.gmn_analise = gmnResult;
+      updateData.nota_google = gmnChecklist.rating || undefined;
+      updateData.total_avaliacoes_google = gmnChecklist.reviews_count || undefined;
     }
 
     await base44.entities.LeadComercial.update(lead.id, updateData);
