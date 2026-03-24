@@ -26,29 +26,28 @@ const CRITERIO_LABELS = {
   reputacao_google: 'Reputação Google',
 };
 
-async function analyzeGoogleMyBusiness(gmn_link, nome, notaConfirmada, avaliacoesConfirmadas) {
-  const dadosConfirmados = [];
-  if (notaConfirmada) dadosConfirmados.push(`- rating = ${notaConfirmada} (CONFIRMADO PELO USUÁRIO — NÃO altere)`);
-  if (avaliacoesConfirmadas) dadosConfirmados.push(`- reviews_count = ${avaliacoesConfirmadas} (CONFIRMADO PELO USUÁRIO — NÃO altere)`);
-
+async function analyzeGoogleMyBusiness(gmn_link, nome, localidade) {
   const prompt = `Você é um especialista em presença digital e marketing local.
 
 ACESSE DIRETAMENTE esta URL do Google Meu Negócio e extraia os dados reais:
 ${gmn_link}
 
-NOME DO LEAD NO SISTEMA: "${nome}"
+NOME DO LEAD: "${nome}"
+LOCALIDADE: "${localidade}"
 
-INSTRUÇÕES CRÍTICAS:
-1. Acesse o link acima e leia os dados DIRETAMENTE desta página específica.
-2. Extraia o nome real do perfil encontrado no Google Meu Negócio.
-3. Valide por correlação se o nome do Google corresponde ao lead "${nome}" (não precisa ser idêntico — mesmo negócio, mesma localidade, nomes similares são válidos). Se não houver nenhuma correlação, retorne name_mismatch: true.
-${dadosConfirmados.length > 0 ? `4. DADOS CONFIRMADOS PELO USUÁRIO (use exatamente estes valores):\n${dadosConfirmados.join('\n')}` : '4. Extraia nota e número de avaliações diretamente da página.'}
+INSTRUÇÕES:
+1. Acesse o link acima e leia os dados reais desta página específica.
+2. Extraia o nome real do perfil encontrado.
+3. Valide por correlação se o perfil corresponde ao lead "${nome}" na localidade "${localidade}".
+   - Considere válido se o nome for similar E a cidade/bairro bater.
+   - Se o perfil for de outra cidade ou negócio diferente, retorne name_mismatch: true.
+4. Extraia nota e total de avaliações diretamente da página (esses valores serão revisados pelo sistema).
 
 Calcule gmn_score (0-100):
-- Avaliações (30%): nota < 4.5 = alerta; < 50 avaliações = baixa autoridade
+- Avaliações (30%): nota < 4.5 alerta; < 50 avaliações baixa autoridade
 - Conteúdo/fotos/posts (25%)
 - Estrutura: horários, serviços, descrição (25%)
-- Engajamento: respostas, postagens recentes (20%)
+- Engajamento (20%)
 
 Retorne APENAS JSON:
 {
@@ -171,9 +170,11 @@ Retorne APENAS o JSON.`,
       gmnResult = await analyzeGoogleMyBusiness(
         gmnLink,
         nome,
-        formData.nota_google || null,
-        formData.total_avaliacoes_google || null
+        lead.cidade || lead.estado || ''
       );
+      // Sobrescrever SEMPRE com os valores confirmados pelo usuário — não confiar na IA
+      if (formData.nota_google) gmnResult.rating = Number(formData.nota_google);
+      if (formData.total_avaliacoes_google) gmnResult.reviews_count = Number(formData.total_avaliacoes_google);
     }
 
     // 3. Gerar mensagem WhatsApp incluindo GMN se disponível
