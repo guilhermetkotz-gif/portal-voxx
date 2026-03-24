@@ -129,6 +129,17 @@ export default function InteligenicaUnidades({ user }) {
     return [...filtered].sort((a, b) => (order[a.healthStatus] ?? 3) - (order[b.healthStatus] ?? 3));
   }, [filtered]);
 
+  // Still loading permissions - don't flash unauthorized
+  const loadingPermissions = !!tipoUsuario && userPermissions === undefined;
+
+  if (loadingPermissions) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+      </div>
+    );
+  }
+
   if (!hasAccess && user) {
     return (
       <div className="flex items-center justify-center h-96">

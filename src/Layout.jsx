@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import ClienteSelector from '@/components/auth/ClienteSelector';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from '@/components/utils/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ChatWidget from '@/components/chat/ChatWidget';
 import { Toaster } from '@/components/ui/toaster';
@@ -54,6 +54,7 @@ const pageTitles = {
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedClienteId, setSelectedClienteId] = useState(null);
@@ -251,6 +252,14 @@ export default function Layout({ children, currentPageName }) {
       </div>
     );
   }
+
+  // Redirect oral_sin_franqueadora from Home to InteligenicaUnidades
+  const tipoUsuarioLayout = user?.tipo_usuario || user?.tipo_acesso;
+  useEffect(() => {
+    if (tipoUsuarioLayout === 'oral_sin_franqueadora' && (location.pathname === '/' || currentPageName === 'Home')) {
+      navigate(createPageUrl('InteligenicaUnidades'));
+    }
+  }, [tipoUsuarioLayout, location.pathname, currentPageName]);
 
   // Base44 admin bypass - skip all checks
   if (user?.role === 'admin') {
