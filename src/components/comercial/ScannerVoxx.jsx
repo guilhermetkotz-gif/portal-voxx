@@ -435,14 +435,13 @@ Retorne APENAS o JSON.`,
                 <MapPin className="w-4 h-4 text-blue-600" />
                 <p className="text-sm font-semibold text-blue-800">Google Meu Negócio</p>
                 <div className="ml-auto flex items-center gap-3">
-                  {gmn.rating > 0 && (
+                  {gmn.rating > 0 ? (
                     <div className="flex items-center gap-1 text-amber-600">
                       <Star className="w-3.5 h-3.5 fill-amber-400" />
                       <span className="text-sm font-bold">{gmn.rating}</span>
                       {gmn.reviews_count > 0 && <span className="text-xs text-slate-400">({gmn.reviews_count} avaliações)</span>}
                     </div>
-                  )}
-                  {(!gmn.rating || gmn.rating === 0) && (
+                  ) : (
                     <span className="text-xs text-slate-400 italic">Nota não validada</span>
                   )}
                   <div className="text-center">
@@ -459,7 +458,6 @@ Retorne APENAS o JSON.`,
                 />
               </div>
 
-              {/* Conversão */}
               {(gmn.has_website !== undefined || gmn.has_whatsapp !== undefined) && (
                 <div className="flex gap-2 mb-3">
                   <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${
@@ -529,6 +527,7 @@ Retorne APENAS o JSON.`,
                   </span>
                 </div>
               )}
+
               {lead.gmn_link && (
                 <a href={lead.gmn_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-600 hover:underline mt-3">
                   <ExternalLink className="w-3 h-3" /> Ver no Google
