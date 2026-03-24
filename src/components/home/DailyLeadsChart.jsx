@@ -51,8 +51,9 @@ export default function DailyLeadsChart({ clienteId, clienteNome }) {
     }
   });
 
-  const totalMeta = historico.reduce((sum, d) => sum + (d.leads_meta || 0), 0);
-  const totalGoogle = historico.reduce((sum, d) => sum + (d.leads_google || 0), 0);
+  // Use o primeiro e último registro para pegar os valores acumulados (não somar ao longo dos dias)
+  const totalMeta = historico.length > 0 ? (historico[historico.length - 1]?.leads_meta || 0) : 0;
+  const totalGoogle = historico.length > 0 ? (historico[historico.length - 1]?.leads_google || 0) : 0;
   const totalGeral = totalMeta + totalGoogle;
 
   if (isLoading) {
