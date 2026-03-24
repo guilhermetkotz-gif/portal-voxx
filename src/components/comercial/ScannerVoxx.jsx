@@ -12,8 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import {
   Zap, Loader2, MapPin, AlertCircle, MessageCircle, Copy, ExternalLink,
-  RefreshCw, Trash2, Star, Instagram, TrendingUp, BarChart2, AlertTriangle
+  RefreshCw, Trash2, Star, Instagram, TrendingUp, BarChart2, AlertTriangle, FileDown
 } from 'lucide-react';
+import { gerarPDFScannerVoxx } from './ScannerVoxxPDF';
 import { toast } from 'sonner';
 
 const EMPTY_GMN = {
@@ -441,6 +442,9 @@ REGRAS DA MENSAGEM:
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleAnalisar} disabled={analisando} className="gap-1.5 text-xs">
               <RefreshCw className="w-3.5 h-3.5" /> Reanalisar
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => gerarPDFScannerVoxx(lead, analise)} className="gap-1.5 text-xs text-violet-700 border-violet-200 hover:bg-violet-50">
+              <FileDown className="w-3.5 h-3.5" /> Exportar PDF
             </Button>
             <Button variant="outline" size="sm" onClick={handleLimparAnalise} className="gap-1.5 text-xs text-red-600 hover:text-red-700 border-red-200">
               <Trash2 className="w-3.5 h-3.5" /> Excluir Análise
