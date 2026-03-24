@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Flame, MessageCircle, Calendar, Phone, Zap } from 'lucide-react';
 
 export default function PrioritizacaoDia({ leads, onRegistrarContato, onAgendarReuniao }) {
@@ -63,79 +62,68 @@ export default function PrioritizacaoDia({ leads, onRegistrarContato, onAgendarR
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <h3 className="font-semibold text-slate-900 text-sm">🎯 PRIORIDADES DO DIA</h3>
-        <Flame className="w-4 h-4 text-orange-600" />
+        <h3 className="font-semibold text-slate-900 text-sm">🎯 Prioridades do Dia</h3>
+        <Flame className="w-4 h-4 text-orange-500" />
       </div>
-      <div className="space-y-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2">
         {leadsPrioritizados.map((lead, idx) => {
           const nivel = getNivelLead(lead);
-          const dias = lead.ultima_interacao 
+          const dias = lead.ultima_interacao
             ? Math.floor((Date.now() - new Date(lead.ultima_interacao)) / (1000 * 60 * 60 * 24))
             : null;
-          
           const voxxScore = lead.voxx_analise?.voxx_score ?? lead.score_oportunidade ?? null;
           const voxxClass = lead.voxx_analise?.lead_classification ?? null;
 
           return (
-            <Card key={lead.id} className="p-3 hover:shadow-md transition-all">
+            <Card key={lead.id} className="p-3 hover:shadow-md transition-all border border-slate-200">
+              {/* Header clicável */}
               <div
-                className="flex items-start justify-between gap-2 cursor-pointer"
+                className="cursor-pointer"
                 onClick={() => navigate(`/LeadDetalhe?id=${lead.id}`)}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm text-slate-900 truncate">{idx + 1}. {lead.nome_empresa}</span>
-                    <Badge className={nivel.color} variant="outline">{nivel.label}</Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
-                    <p className="text-xs text-slate-500">{capitalize(lead.etapa?.replace(/_/g, ' ') || '')}</p>
-                    {lead.fit_score > 0 && (
-                      <span className={`text-xs font-semibold ${
-                        lead.fit_classificacao === 'alto_fit' ? 'text-emerald-600' :
-                        lead.fit_classificacao === 'medio_fit' ? 'text-amber-600' : 'text-slate-500'
-                      }`}>
-                        Fit {lead.fit_score}/100
-                      </span>
-                    )}
-                    {voxxScore !== null && (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600">
-                        <Zap className="w-3 h-3" /> Voxx {voxxScore}{voxxClass ? ` · ${voxxClass}` : ''}
-                      </span>
-                    )}
-                    {dias !== null && (
-                      <p className="text-xs text-slate-400">Última: há {dias}d</p>
-                    )}
-                  </div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-bold text-slate-400">#{idx + 1}</span>
+                  <Badge className={`${nivel.color} text-[10px] px-1.5 py-0`} variant="outline">{nivel.label}</Badge>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-lg font-bold text-violet-600">{lead.prioridade}</p>
-                  <p className="text-xs text-slate-400">pts</p>
+                <p className="font-semibold text-sm text-slate-900 truncate leading-tight mb-1">{lead.nome_empresa}</p>
+                <p className="text-[11px] text-slate-500 truncate">{capitalize(lead.etapa?.replace(/_/g, ' ') || '')}</p>
+                <div className="flex flex-wrap gap-x-2 mt-1">
+                  {lead.fit_score > 0 && (
+                    <span className={`text-[11px] font-semibold ${
+                      lead.fit_classificacao === 'alto_fit' ? 'text-emerald-600' :
+                      lead.fit_classificacao === 'medio_fit' ? 'text-amber-600' : 'text-slate-400'
+                    }`}>Fit {lead.fit_score}</span>
+                  )}
+                  {voxxScore !== null && (
+                    <span className="text-[11px] font-semibold text-violet-600 flex items-center gap-0.5">
+                      <Zap className="w-2.5 h-2.5" />{voxxScore}{voxxClass ? ` ${voxxClass}` : ''}
+                    </span>
+                  )}
+                  {dias !== null && (
+                    <span className="text-[11px] text-slate-400">{dias}d atrás</span>
+                  )}
                 </div>
               </div>
 
               {/* Ações */}
-              <div className="flex gap-1.5 mt-2.5 pt-2.5 border-t border-slate-100">
+              <div className="flex gap-1 mt-2 pt-2 border-t border-slate-100">
                 {(lead.whatsapp_lead || lead.telefone) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs gap-1 text-green-700 border-green-200 hover:bg-green-50"
+                  <button
+                    title="WhatsApp"
+                    className="flex-1 flex items-center justify-center gap-1 h-6 text-[11px] rounded border border-green-200 text-green-700 hover:bg-green-50 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       const numero = (lead.whatsapp_lead || lead.telefone)?.replace(/\D/g, '');
-                      const msg = lead.mensagem_whatsapp_sugerida
-                        ? encodeURIComponent(lead.mensagem_whatsapp_sugerida)
-                        : '';
+                      const msg = lead.mensagem_whatsapp_sugerida ? encodeURIComponent(lead.mensagem_whatsapp_sugerida) : '';
                       window.open(`https://wa.me/${numero}${msg ? `?text=${msg}` : ''}`, '_blank');
                     }}
                   >
-                    <MessageCircle className="w-3 h-3" /> WhatsApp
-                  </Button>
+                    <MessageCircle className="w-3 h-3" /> WA
+                  </button>
                 )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs gap-1 text-violet-700 border-violet-200 hover:bg-violet-50"
+                <button
+                  title="Agendar Reunião"
+                  className="flex-1 flex items-center justify-center gap-1 h-6 text-[11px] rounded border border-violet-200 text-violet-700 hover:bg-violet-50 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onAgendarReuniao) onAgendarReuniao(lead);
@@ -143,19 +131,18 @@ export default function PrioritizacaoDia({ leads, onRegistrarContato, onAgendarR
                   }}
                 >
                   <Calendar className="w-3 h-3" /> Reunião
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 text-xs gap-1 text-blue-700 border-blue-200 hover:bg-blue-50"
+                </button>
+                <button
+                  title="Registrar Contato"
+                  className="flex-1 flex items-center justify-center gap-1 h-6 text-[11px] rounded border border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onRegistrarContato) onRegistrarContato(lead);
                     else navigate(`/LeadDetalhe?id=${lead.id}`);
                   }}
                 >
-                  <Phone className="w-3 h-3" /> Registrar
-                </Button>
+                  <Phone className="w-3 h-3" /> Contato
+                </button>
               </div>
             </Card>
           );
