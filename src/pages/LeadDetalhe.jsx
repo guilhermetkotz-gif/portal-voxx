@@ -96,7 +96,7 @@ export default function LeadDetalhe({ user }) {
 
   useEffect(() => {
     if (lead) setFormData(lead);
-  }, [lead?.id]);
+  }, [lead?.id, lead?.updated_date]);
 
   const { data: interacoes = [] } = useQuery({
     queryKey: ['interacoesComercial', leadId],
