@@ -54,6 +54,7 @@ const TIPO_ICONS = {
 
 const TABS = [
   { id: 'visao_geral', label: 'Visão Geral' },
+  { id: 'scanner', label: '🔍 Scanner Voxx' },
   { id: 'interacoes', label: 'Interações' },
   { id: 'reunioes', label: 'Reuniões' },
   { id: 'briefing', label: 'Briefing' },
@@ -61,7 +62,6 @@ const TABS = [
   { id: 'plano', label: 'Plano de Serviços' },
   { id: 'proposta', label: 'Proposta' },
   { id: 'tarefas', label: 'Tarefas' },
-  { id: 'scanner', label: '🔍 Scanner Voxx' },
 ];
 
 function getStatusVisual(lead) {
