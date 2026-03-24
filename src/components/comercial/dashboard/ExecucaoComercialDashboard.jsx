@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
-export default function ExecucaoComercialDashboard({ leads, interacoes = [] }) {
+export default function ExecucaoComercialDashboard({ leads, interacoes = [], reunioes = [] }) {
   // Follow-ups pendentes (sem interação há 3+ dias)
   const followUpsPendentes = leads.filter(l => {
     if (['fechado_ganho', 'fechado_perdido'].includes(l.etapa)) return false;
@@ -30,11 +30,11 @@ export default function ExecucaoComercialDashboard({ leads, interacoes = [] }) {
     return dias >= 7;
   });
 
-  // Interações realizadas (últimos 7 dias)
-  const interacoesUltimos7d = interacoes.length || 0;
+  // Interações realizadas (últimos 7 dias) — já filtradas no pai
+  const interacoesUltimos7d = interacoes.length;
 
-  // Reuniões agendadas
-  const reunioesAgendadas = 0; // placeholder, viria de dados reais
+  // Reuniões agendadas (futuras)
+  const reunioesAgendadas = reunioes.filter(r => r.data_hora && new Date(r.data_hora) >= new Date()).length;
 
   return (
     <div className="space-y-4">

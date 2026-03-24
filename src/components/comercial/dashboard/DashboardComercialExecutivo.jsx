@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +25,22 @@ export default function DashboardComercialExecutivo({ leads, onNovoLead, onRegis
     const matchOrigem = filtroOrigem === 'all' || l.origem === filtroOrigem;
     const matchEtapa = filtroEtapa === 'all' || l.etapa === filtroEtapa;
     return matchResp && matchOrigem && matchEtapa;
+  });
+
+  const { data: interacoes = [] } = useQuery({
+    queryKey: ['interacoesComercial7d'],
+    queryFn: async () => {
+      const sete = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const all = await base44.entities.InteracaoComercial.list('-created_date', 200);
+      return all.filter(i => i.created_date >= sete);
+    },
+    staleTime: 60 * 1000
+  });
+
+  const { data: reunioes = [] } = useQuery({
+    queryKey: ['reunioesComercialAgendadas'],
+    queryFn: () => base44.entities.ReuniaoComercial.filter({ status: 'agendada' }, 'data_hora', 50),
+    staleTime: 60 * 1000
   });
 
   const responsaveis = [...new Set(leads.map(l => l.responsavel_voxx).filter(Boolean))];
@@ -113,7 +131,7 @@ export default function DashboardComercialExecutivo({ leads, onNovoLead, onRegis
       {/* BLOCOS DO DASHBOARD */}
       <VersaoGeralDashboard leads={leadsFiltrados} periodo={periodo} />
       <PerformanceFunilDashboard leads={leadsFiltrados} />
-      <ExecucaoComercialDashboard leads={leadsFiltrados} interacoes={[]} />
+      <ExecucaoComercialDashboard leads={leadsFiltrados} interacoes={interacoes} reunioes={reunioes} />
       <InteligenciaRiscoDashboard leads={leadsFiltrados} />
     </div>
   );
