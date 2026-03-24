@@ -47,6 +47,24 @@ export default function MonitoramentoGoogleAds() {
     retry: false
   });
 
+  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
+  const { data: userPermissions } = useQuery({
+    queryKey: ['userTypePermissions', tipoUsuario],
+    queryFn: async () => {
+      if (!tipoUsuario) return null;
+      const perms = await base44.entities.UserTypePermissions.filter({ tipo_usuario: tipoUsuario });
+      return perms[0] || null;
+    },
+    enabled: !!tipoUsuario,
+    staleTime: 5 * 60 * 1000
+  });
+
+  const hasAccess = user?.role === 'admin' || (
+    userPermissions?.paginas_permitidas
+      ? userPermissions.paginas_permitidas.includes('MonitoramentoGoogleAds')
+      : !tipoUsuario
+  );
+
   const { data: accounts = [], isLoading, refetch: refetchAccounts } = useQuery({
     queryKey: ['google-ads-accounts'],
     staleTime: 2 * 60 * 1000,
@@ -261,6 +279,17 @@ export default function MonitoramentoGoogleAds() {
       setIsRefreshing(false);
     }
   };
+
+  if (!hasAccess && user) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <p className="text-xl font-semibold text-slate-700 mb-2">Acesso não autorizado</p>
+          <p className="text-slate-500">Você não tem permissão para acessar esta página.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
