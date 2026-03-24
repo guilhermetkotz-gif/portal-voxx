@@ -26,33 +26,41 @@ const CRITERIO_LABELS = {
   reputacao_google: 'Reputação Google',
 };
 
-async function analyzeGoogleMyBusiness(gmn_link, nome) {
-  const prompt = `Você é um especialista em presença digital e marketing local. Analise o Google Meu Negócio da empresa abaixo com base na URL fornecida e retorne um JSON com diagnóstico completo.
+async function analyzeGoogleMyBusiness(gmn_link, nome, notaConfirmada, avaliacoesConfirmadas) {
+  const dadosConfirmados = [];
+  if (notaConfirmada) dadosConfirmados.push(`- rating = ${notaConfirmada} (CONFIRMADO PELO USUÁRIO — NÃO altere)`);
+  if (avaliacoesConfirmadas) dadosConfirmados.push(`- reviews_count = ${avaliacoesConfirmadas} (CONFIRMADO PELO USUÁRIO — NÃO altere)`);
 
-EMPRESA: ${nome}
-LINK GMN: ${gmn_link}
+  const prompt = `Você é um especialista em presença digital e marketing local.
 
-Avalie os seguintes critérios e calcule um score de 0 a 100:
+ACESSE DIRETAMENTE esta URL do Google Meu Negócio e extraia os dados reais:
+${gmn_link}
 
-1. Avaliações (peso 30%): nota média e volume
-   - Nota < 4.5 → alerta
-   - < 50 avaliações → baixa autoridade
+NOME DO LEAD NO SISTEMA: "${nome}"
 
-2. Conteúdo - fotos e posts (peso 25%): existência de fotos reais, frequência de atualização
+INSTRUÇÕES CRÍTICAS:
+1. Acesse o link acima e leia os dados DIRETAMENTE desta página específica.
+2. Extraia o nome real do perfil encontrado no Google Meu Negócio.
+3. Valide por correlação se o nome do Google corresponde ao lead "${nome}" (não precisa ser idêntico — mesmo negócio, mesma localidade, nomes similares são válidos). Se não houver nenhuma correlação, retorne name_mismatch: true.
+${dadosConfirmados.length > 0 ? `4. DADOS CONFIRMADOS PELO USUÁRIO (use exatamente estes valores):\n${dadosConfirmados.join('\n')}` : '4. Extraia nota e número de avaliações diretamente da página.'}
 
-3. Estrutura (peso 25%): horários definidos, serviços descritos, descrição estratégica, informações completas
+Calcule gmn_score (0-100):
+- Avaliações (30%): nota < 4.5 = alerta; < 50 avaliações = baixa autoridade
+- Conteúdo/fotos/posts (25%)
+- Estrutura: horários, serviços, descrição (25%)
+- Engajamento: respostas, postagens recentes (20%)
 
-4. Engajamento (peso 20%): respostas da empresa aos reviews, postagens recentes, frequência
-
-Retorne APENAS o JSON:
+Retorne APENAS JSON:
 {
-  "gmn_score": <0-100>,
-  "rating": <nota_media ou 0 se desconhecida>,
-  "reviews_count": <numero ou 0>,
-  "diagnosis": "<resumo direto e estratégico em 2-3 frases>",
-  "failures": ["<falha 1>", "<falha 2>", "<falha 3>"],
-  "impact": "<consequência real no negócio em 1 frase>",
-  "opportunity": "<ganho potencial com melhoria em 1 frase>"
+  "gmn_score": 0,
+  "rating": 0,
+  "reviews_count": 0,
+  "name_found": "",
+  "name_mismatch": false,
+  "diagnosis": "",
+  "failures": [],
+  "impact": "",
+  "opportunity": ""
 }`;
 
   return await base44.integrations.Core.InvokeLLM({
@@ -65,6 +73,8 @@ Retorne APENAS o JSON:
         gmn_score: { type: 'number' },
         rating: { type: 'number' },
         reviews_count: { type: 'number' },
+        name_found: { type: 'string' },
+        name_mismatch: { type: 'boolean' },
         diagnosis: { type: 'string' },
         failures: { type: 'array', items: { type: 'string' } },
         impact: { type: 'string' },
