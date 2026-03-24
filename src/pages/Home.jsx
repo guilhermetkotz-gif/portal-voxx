@@ -406,7 +406,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Leads Meta"
-          value={(contaMetaAdsAtual?.new_messaging_connections ?? contaMetaAdsAtual?.messaging_conversations ?? cliente?.leads_meta_mes)?.toLocaleString('pt-BR') || '-'}
+          value={(contaMetaAdsAtual?.cadastros_whats ?? contaMetaAdsAtual?.new_messaging_connections ?? contaMetaAdsAtual?.messaging_conversations ?? cliente?.leads_meta_mes)?.toLocaleString('pt-BR') || '-'}
           subtitle="Este mês"
           icon={Users}
           variant="primary"

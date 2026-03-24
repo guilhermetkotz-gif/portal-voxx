@@ -80,9 +80,11 @@ export default function InteligenicaUnidades({ user }) {
       );
 
       const historicoDaUnidade = historicoLeads.filter(h => h.cliente_id === c.id);
-      const ultimos30 = historicoDaUnidade.slice(0, 30);
-      const leadsMes = ultimos30.reduce((s, h) => s + (h.leads_total || 0), 0);
-      const investimentoMeta = ultimos30.reduce((s, h) => s + (h.investimento_meta || 0), 0);
+      // Usar dados diretos da ContaMetaAds: cadastros_whats = cadastro + whats (fonte correta)
+      const leadsMes = metaConta?.cadastros_whats
+        || ((metaConta?.leads || 0) + (metaConta?.new_messaging_connections || 0))
+        || c.leads_meta_mes
+        || 0;
 
       const cpl = radar?.cpl_7d || radar?.cpl_ontem || c.custo_por_lead_meta || 0;
       const investimentoMetaTotal = metaConta?.amount_spent || 0;
