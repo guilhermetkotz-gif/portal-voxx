@@ -482,6 +482,12 @@ Retorne APENAS o JSON.`,
 
               {gmn.diagnosis && (
                 <div className="p-3 bg-blue-50 rounded-lg mb-3">
+                  <p className="text-xs font-semibold text-blue-700 mb-1">Diagnóstico</p>
+                  <p className="text-sm text-blue-800">{gmn.diagnosis}</p>
+                </div>
+              )}
+
+              {gmn.failures?.length > 0 && (
                 <div className="space-y-1.5 mb-3">
                   <p className="text-xs font-semibold text-slate-500 mb-1">Falhas identificadas</p>
                   {gmn.failures.map((f, i) => (
