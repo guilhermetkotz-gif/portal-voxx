@@ -19,8 +19,9 @@ import PrioritizacaoDia from '@/components/comercial/PrioritizacaoDia';
 import CentralNotificacoes from '@/components/comercial/CentralNotificacoes';
 import AcaoRapidaMenu from '@/components/comercial/AcaoRapidaMenu';
 import DashboardComercialExecutivo from '@/components/comercial/dashboard/DashboardComercialExecutivo';
+import GamificacaoComercial from '@/components/comercial/GamificacaoComercial';
 import { isVoxxAdmin, isVoxxOperacao, isVoxxManager } from '@/components/utils/auth';
-import { Plus, Search, LayoutDashboard, KanbanSquare, Calendar, AlertTriangle, Loader2, Users, DollarSign, TrendingUp, Filter, ChevronDown } from 'lucide-react';
+import { Plus, Search, LayoutDashboard, KanbanSquare, Calendar, AlertTriangle, Loader2, Users, DollarSign, TrendingUp, Filter, ChevronDown, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
 import { isSameDay, parseISO } from 'date-fns';
 
@@ -223,6 +224,7 @@ export default function Comercial({ user }) {
             <TabsTrigger value="pipeline" className="gap-1.5"><KanbanSquare className="w-4 h-4" /> Pipeline</TabsTrigger>
             <TabsTrigger value="agenda" className="gap-1.5"><Calendar className="w-4 h-4" /> Agenda</TabsTrigger>
             <TabsTrigger value="dashboard" className="gap-1.5"><LayoutDashboard className="w-4 h-4" /> Dashboard</TabsTrigger>
+            <TabsTrigger value="gamificacao" className="gap-1.5"><Trophy className="w-4 h-4" /> Ranking</TabsTrigger>
           </TabsList>
           {activeTab === 'pipeline' && (
             <div className="flex items-center gap-2">
@@ -369,6 +371,10 @@ export default function Comercial({ user }) {
             onRegistrarInteracao={() => toast.info('Abra um lead para registrar interação')}
             onAgendarReuniao={() => toast.info('Abra um lead para agendar reunião')}
           />
+        </TabsContent>
+
+        <TabsContent value="gamificacao" className="mt-4">
+          <GamificacaoComercial leads={leads} user={user} />
         </TabsContent>
       </Tabs>
 
