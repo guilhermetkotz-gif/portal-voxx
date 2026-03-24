@@ -128,7 +128,12 @@ export default function GerenciarAcessos({ user }) {
 
   const tipoAcessoLabels = {
     voxx_admin: 'Voxx Admin',
+    voxx_manager: 'Voxx Manager',
     voxx_operacao: 'Voxx Operação',
+    voxx_financeiro: 'Voxx Financeiro',
+    cliente_admin: 'Cliente Admin',
+    cliente_usuario: 'Cliente Usuário',
+    oral_sin_franqueadora: 'Oral Sin Franqueadora',
     cliente: 'Cliente'
   };
 
@@ -235,7 +240,7 @@ export default function GerenciarAcessos({ user }) {
                         {usuario.status || 'pendente'}
                       </Badge>
                       <Badge variant="outline">
-                        {tipoAcessoLabels[usuario.tipo_acesso] || usuario.tipo_acesso || 'N/A'}
+                        {tipoAcessoLabels[usuario.tipo_usuario || usuario.tipo_acesso] || usuario.tipo_usuario || usuario.tipo_acesso || 'N/A'}
                       </Badge>
                     </div>
                     <p className="text-sm text-slate-500 mb-2">{usuario.email}</p>
