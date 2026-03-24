@@ -284,7 +284,9 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     }
   }
 
-  const totalLeadsGoogle = googleLeadsData?.leads ?? ((cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0));
+  const leadsGoogleSheet = googleLeadsData?.leads ?? 0;
+  const leadsGoogleCliente = (cliente?.leads_google_cadastro || 0) + (cliente?.leads_google_ligacao || 0);
+  const totalLeadsGoogle = leadsGoogleSheet > 0 ? leadsGoogleSheet : leadsGoogleCliente;
   const diasRestantesMeta = gastoDiarioMeta > 0 
     ? Math.floor(saldoMeta / gastoDiarioMeta) 
     : null;
