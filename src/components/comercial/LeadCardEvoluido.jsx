@@ -1,9 +1,11 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, Flame, Clock, AlertCircle } from 'lucide-react';
+import { MapPin, Phone, Clock, AlertCircle, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function LeadCardEvoluido({ lead, onFollowUp }) {
+  const navigate = useNavigate();
   const getNivelLead = () => {
     if (!lead.fit_classificacao) return { emoji: '❓', label: 'Indefinido', color: 'text-slate-500' };
     if (lead.fit_classificacao === 'alto_fit') return { emoji: '🔥', label: 'Quente', color: 'text-red-600' };
@@ -88,15 +90,21 @@ export default function LeadCardEvoluido({ lead, onFollowUp }) {
         )}
 
         {/* Botão de follow-up rápido */}
-         <button
-           onClick={(e) => {
-             e.stopPropagation();
-             onFollowUp?.(lead);
-           }}
-           className="w-full text-xs py-1.5 px-2 rounded bg-violet-50 text-violet-700 font-medium hover:bg-violet-100 transition-all duration-200 opacity-0 group-hover:opacity-100 group-hover:scale-100 scale-95"
-         >
-           ⚡ Follow-up Rápido
-         </button>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+          <button
+            onClick={(e) => { e.stopPropagation(); onFollowUp?.(lead); }}
+            className="flex-1 text-xs py-1.5 px-2 rounded bg-violet-50 text-violet-700 font-medium hover:bg-violet-100 transition-colors"
+          >
+            ⚡ Follow-up
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/LeadDetalhe?id=${lead.id}&tab=scanner`); }}
+            className="text-xs py-1.5 px-2 rounded bg-slate-100 text-slate-600 hover:bg-violet-100 hover:text-violet-700 transition-colors flex items-center gap-1"
+            title="Scanner Voxx"
+          >
+            <Zap className="w-3 h-3" /> 🔍
+          </button>
+        </div>
       </div>
     </Card>
   );
