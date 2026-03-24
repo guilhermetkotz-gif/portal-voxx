@@ -286,26 +286,21 @@ Retorne APENAS o JSON.`,
               onChange={e => setFormData({ ...formData, gmn_link: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <Label className="text-xs">Nota Google (0-5)</Label>
-              <Input
-                type="number" step="0.1" min="0" max="5"
-                placeholder="4.2"
-                value={formData.nota_google || ''}
-                onChange={e => setFormData({ ...formData, nota_google: e.target.value })}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Qtd. Avaliações</Label>
-              <Input
-                type="number"
-                placeholder="120"
-                value={formData.total_avaliacoes_google || ''}
-                onChange={e => setFormData({ ...formData, total_avaliacoes_google: e.target.value })}
-              />
-            </div>
+        </div>
+
+        {/* GMN Checklist */}
+        <div className="border-t border-slate-100 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">🔍 Checklist Google Meu Negócio</p>
+            <button
+              type="button"
+              onClick={() => setGmnChecklist(EMPTY_GMN)}
+              className="text-[10px] text-slate-400 hover:text-slate-600 underline"
+            >
+              Limpar
+            </button>
           </div>
+          <GmnChecklist value={gmnChecklist} onChange={setGmnChecklist} />
         </div>
 
         <div className="flex gap-2">
