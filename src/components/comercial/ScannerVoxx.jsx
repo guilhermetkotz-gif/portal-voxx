@@ -310,10 +310,10 @@ REGRAS DA MENSAGEM:
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">🔥 VOXX Score</p>
                 <div className="flex items-end gap-2">
-                  <span className={`text-6xl font-black ${classCfg.text}`}>{analise.voxx_score}</span>
+                  <span className={`text-6xl font-black ${classCfg.text}`}>{analise.voxx_score ?? '—'}</span>
                   <span className="text-slate-400 text-xl mb-2">/100</span>
                 </div>
-                <ScoreBar value={analise.voxx_score} />
+                <ScoreBar value={analise.voxx_score ?? 0} />
               </div>
               <div className="text-right space-y-2">
                 <div>
@@ -340,9 +340,12 @@ REGRAS DA MENSAGEM:
           {/* SUBSCORES */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Instagram', icon: Instagram, value: analise.instagram_score, color: 'text-pink-600', bar: 'bg-pink-400', weight: '40%' },
-              { label: 'GMN', icon: MapPin, value: analise.gmn_score, color: 'text-blue-600', bar: 'bg-blue-400', weight: '35%' },
-              { label: 'Ads', icon: BarChart2, value: analise.ads_score, color: 'text-violet-600', bar: 'bg-violet-400', weight: '25%' },
+              { label: 'Instagram', icon: Instagram, value: analise.instagram_score ?? 0,
+              color: 'text-pink-600', bar: 'bg-pink-400', weight: '40%' },
+            { label: 'GMN', icon: MapPin, value: analise.gmn_score ?? 0,
+              color: 'text-blue-600', bar: 'bg-blue-400', weight: '35%' },
+            { label: 'Ads', icon: BarChart2, value: analise.ads_score ?? 0,
+              color: 'text-violet-600', bar: 'bg-violet-400', weight: '25%' },
             ].map(({ label, icon: Icon, value, color, bar, weight }) => (
               <Card key={label} className="p-4">
                 <div className="flex items-center gap-1.5 mb-2">
@@ -350,7 +353,7 @@ REGRAS DA MENSAGEM:
                   <span className="text-xs font-semibold text-slate-600">{label}</span>
                   <span className="text-[10px] text-slate-400 ml-auto">{weight}</span>
                 </div>
-                <p className={`text-3xl font-black ${color}`}>{value ?? '—'}</p>
+                <p className={`text-3xl font-black ${color}`}>{value}</p>
                 <ScoreBar value={value ?? 0} color={bar} />
               </Card>
             ))}
