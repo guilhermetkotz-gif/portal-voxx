@@ -16,6 +16,24 @@ export default function InteligenicaUnidades({ user }) {
   const [filtroStatus, setFiltroStatus] = useState('all');
   const [selectedUnidade, setSelectedUnidade] = useState(null);
 
+  const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
+  const { data: userPermissions } = useQuery({
+    queryKey: ['userTypePermissions', tipoUsuario],
+    queryFn: async () => {
+      if (!tipoUsuario) return null;
+      const perms = await base44.entities.UserTypePermissions.filter({ tipo_usuario: tipoUsuario });
+      return perms[0] || null;
+    },
+    enabled: !!tipoUsuario,
+    staleTime: 5 * 60 * 1000
+  });
+
+  const hasAccess = user?.role === 'admin' || (
+    userPermissions?.paginas_permitidas
+      ? userPermissions.paginas_permitidas.includes('InteligenicaUnidades')
+      : !tipoUsuario
+  );
+
   const { data: clientes = [], isLoading: loadingClientes } = useQuery({
     queryKey: ['clientes_unidades'],
     queryFn: () => base44.entities.Cliente.filter({ tipo_cliente: 'oral_sin' }, 'nome', 500),
@@ -110,6 +128,17 @@ export default function InteligenicaUnidades({ user }) {
     const order = { critico: 0, atencao: 1, saudavel: 2 };
     return [...filtered].sort((a, b) => (order[a.healthStatus] ?? 3) - (order[b.healthStatus] ?? 3));
   }, [filtered]);
+
+  if (!hasAccess && user) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <p className="text-xl font-semibold text-slate-700 mb-2">Acesso não autorizado</p>
+          <p className="text-slate-500">Você não tem permissão para acessar esta página.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loadingClientes) {
     return (
