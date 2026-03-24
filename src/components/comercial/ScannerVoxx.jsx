@@ -199,6 +199,8 @@ Retorne APENAS o JSON.`,
       },
       link_instagram: formData.link_instagram,
       link_biblioteca_ads: formData.link_biblioteca_ads,
+    };
+
     if (gmnResult) {
       updateData.gmn_analise = gmnResult;
       updateData.nota_google = gmnChecklist.rating || undefined;
