@@ -64,6 +64,14 @@ export default function Layout({ children, currentPageName }) {
 
   // Calculate isVoxxUser early (before hooks that need it)
   const tipoUsuarioAccessEarly = user?.tipo_usuario || user?.tipo_acesso;
+  const tipoUsuarioLayout = tipoUsuarioAccessEarly;
+
+  // Redirect oral_sin_franqueadora from Home to InteligenicaUnidades (must be before any return)
+  useEffect(() => {
+    if (tipoUsuarioLayout === 'oral_sin_franqueadora' && (location.pathname === '/' || currentPageName === 'Home')) {
+      navigate(createPageUrl('InteligenicaUnidades'));
+    }
+  }, [tipoUsuarioLayout, location.pathname, currentPageName]);
   const isVoxxUserEarly = tipoUsuarioAccessEarly === 'voxx_admin' || tipoUsuarioAccessEarly === 'voxx_operacao' || tipoUsuarioAccessEarly === 'voxx_manager';
 
   // Check if user has access request (must be called before any conditional returns)
@@ -252,14 +260,6 @@ export default function Layout({ children, currentPageName }) {
       </div>
     );
   }
-
-  // Redirect oral_sin_franqueadora from Home to InteligenicaUnidades
-  const tipoUsuarioLayout = user?.tipo_usuario || user?.tipo_acesso;
-  useEffect(() => {
-    if (tipoUsuarioLayout === 'oral_sin_franqueadora' && (location.pathname === '/' || currentPageName === 'Home')) {
-      navigate(createPageUrl('InteligenicaUnidades'));
-    }
-  }, [tipoUsuarioLayout, location.pathname, currentPageName]);
 
   // Base44 admin bypass - skip all checks
   if (user?.role === 'admin') {
