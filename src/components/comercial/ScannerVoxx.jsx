@@ -45,6 +45,7 @@ function ScoreBar({ value, color }) {
 export default function ScannerVoxx({ lead, formData, setFormData, onSave }) {
   const queryClient = useQueryClient();
   const [analisando, setAnalisando] = useState(false);
+  const [salvandoDados, setSalvandoDados] = useState(false);
   const [mensagemEditada, setMensagemEditada] = useState('');
   const [gmnChecklist, setGmnChecklist] = useState(lead?.gmn_analise?.checklist || EMPTY_GMN);
   const [localAnalise, setLocalAnalise] = useState(null);
@@ -299,7 +300,26 @@ REGRAS DA MENSAGEM:
             {analisando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
             {hasAnalise ? 'Reanalisar 360°' : 'Analisar — VOXX Score 360°'}
           </Button>
-          <Button variant="outline" onClick={() => onSave()} size="sm">Salvar Dados</Button>
+          <Button
+          variant="outline"
+          size="sm"
+          disabled={salvandoDados}
+          onClick={async () => {
+            setSalvandoDados(true);
+            await base44.entities.LeadComercial.update(lead.id, {
+              link_instagram: formData.link_instagram,
+              link_biblioteca_ads: formData.link_biblioteca_ads,
+              gmn_link: formData.gmn_link,
+              whatsapp_lead: formData.whatsapp_lead,
+            });
+            queryClient.invalidateQueries({ queryKey: ['leadDetalhe', lead.id] });
+            toast.success('Dados salvos!');
+            setSalvandoDados(false);
+          }}
+        >
+          {salvandoDados ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+          Salvar Dados
+        </Button>
         </div>
       </Card>
 
