@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Clock, AlertCircle, Zap, Thermometer } from 'lucide-react';
 
 export default function ExecucaoComercialDashboard({ leads, interacoes = [], reunioes = [] }) {
   // Usa ultima_interacao ou created_date como referência de última atividade
@@ -35,49 +35,43 @@ export default function ExecucaoComercialDashboard({ leads, interacoes = [], reu
   // Reuniões agendadas (futuras)
   const reunioesAgendadas = reunioes.filter(r => r.data_hora && new Date(r.data_hora) >= new Date()).length;
 
+  // Temperatura do Scanner Voxx
+  const tempCount = (temp) => leads.filter(l => l.temperatura_lead === temp).length;
+  const comScanner = leads.filter(l => l.score_oportunidade != null);
+  const topOportunidades = [...comScanner].sort((a, b) => (b.score_oportunidade || 0) - (a.score_oportunidade || 0)).slice(0, 3);
+
   return (
     <div className="space-y-4">
       <h3 className="font-semibold text-slate-900 text-sm">⚙️ EXECUÇÃO COMERCIAL</h3>
-      
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* Follow-ups */}
-        <Card className="p-4 space-y-3">
-          <p className="text-xs font-semibold text-slate-700">Follow-ups</p>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-2 bg-amber-50 rounded">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-600" />
-                <span className="text-xs text-slate-700">Pendentes</span>
-              </div>
-              <Badge className="bg-amber-100 text-amber-700 text-xs">{followUpsPendentes.length}</Badge>
-            </div>
-            <div className="flex items-center justify-between p-2 bg-red-50 rounded">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600" />
-                <span className="text-xs text-slate-700">Atrasados</span>
-              </div>
-              <Badge className="bg-red-100 text-red-700 text-xs">{followUpsAtrasados.length}</Badge>
-            </div>
-          </div>
-        </Card>
 
-        {/* Atividade do Time */}
-        <Card className="p-4 space-y-3">
-          <p className="text-xs font-semibold text-slate-700">Atividade do Time</p>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
-              <span className="text-xs text-slate-700">Interações (7d)</span>
-              <Badge className="bg-blue-100 text-blue-700 text-xs">{interacoesUltimos7d}</Badge>
-            </div>
-            <div className="flex items-center justify-between p-2 bg-indigo-50 rounded">
-              <span className="text-xs text-slate-700">Reuniões</span>
-              <Badge className="bg-indigo-100 text-indigo-700 text-xs">{reunioesAgendadas}</Badge>
-            </div>
+      {/* Temperatura Scanner */}
+      {comScanner.length > 0 && (
+        <Card className="p-4">
+          <p className="text-xs font-semibold text-slate-700 mb-3 flex items-center gap-1"><Zap className="w-3.5 h-3.5 text-violet-500" /> Scanner Voxx — Temperatura</p>
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            {[['Fervendo','🔥','bg-red-100 text-red-700'],['Quente','🌡️','bg-orange-100 text-orange-700'],['Morno','☕','bg-amber-100 text-amber-700'],['Frio','❄️','bg-blue-100 text-blue-700']].map(([t, e, cls]) => (
+              <div key={t} className={`p-2 rounded-lg text-center ${cls}`}>
+                <p className="text-base">{e}</p>
+                <p className="text-xs font-bold">{tempCount(t)}</p>
+                <p className="text-[10px]">{t}</p>
+              </div>
+            ))}
           </div>
+          {topOportunidades.length > 0 && (
+            <div>
+              <p className="text-[10px] text-slate-400 mb-1.5">Top oportunidades</p>
+              {topOportunidades.map(l => (
+                <div key={l.id} className="flex items-center justify-between text-xs py-1 border-b last:border-0">
+                  <span className="text-slate-700 truncate">{l.nome_empresa}</span>
+                  <Badge className="bg-violet-100 text-violet-700 text-[10px] ml-2">{l.score_oportunidade}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
-      </div>
+      )}
 
-      {/* Leads sem contato e parados */}
+      {/* Follow-ups */}
       <div className="grid lg:grid-cols-2 gap-4">
         <Card className="p-4">
           <div className="flex items-start justify-between mb-3">
