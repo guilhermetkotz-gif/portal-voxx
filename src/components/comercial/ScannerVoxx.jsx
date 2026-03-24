@@ -141,7 +141,8 @@ REGRAS DA MENSAGEM:
 
     const result = await base44.integrations.Core.InvokeLLM({
       prompt,
-      model: 'claude_sonnet_4_6',
+      model: 'gemini_3_flash',
+      add_context_from_internet: true,
       response_json_schema: {
         type: 'object',
         properties: {
