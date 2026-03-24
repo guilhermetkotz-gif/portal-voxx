@@ -1,24 +1,20 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import GmnChecklist from './GmnChecklist';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const TEMP_CONFIG = {
-  'Fervendo': { color: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', emoji: '🔥' },
-  'Quente':   { color: 'bg-orange-500', text: 'text-orange-700', bg: 'bg-orange-50', border: 'border-orange-200', emoji: '🌡️' },
-  'Morno':    { color: 'bg-amber-400', text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200', emoji: '☕' },
-  'Frio':     { color: 'bg-blue-400', text: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-200', emoji: '❄️' },
-};
-
-const CRITERIO_LABELS = {
-  bio_instagram: 'Bio Instagram',
-  stories_instagram: 'Stories',
-  feed_instagram: 'Feed',
-  anuncios_meta: 'Anúncios Meta',
-  reputacao_google: 'Reputação Google',
-};
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Zap, Loader2, MapPin, AlertCircle, MessageCircle, Copy, ExternalLink,
+  RefreshCw, Trash2, Star, Instagram, TrendingUp, BarChart2, AlertTriangle
+} from 'lucide-react';
+import { toast } from 'sonner';
 
 const EMPTY_GMN = {
   rating: null, reviews_count: null, reviews_response: null,
@@ -29,195 +25,169 @@ const EMPTY_GMN = {
   has_qna: null,
 };
 
-async function analyzeGmnFromChecklist(checklist, nome) {
-  const prompt = `Você está analisando o Google Meu Negócio de "${nome}" com base em dados fornecidos manualmente.
-NÃO invente informações. Use APENAS os dados abaixo.
+const CLASSIFICATION_CONFIG = {
+  'Estruturado': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-800', label: 'Estruturado (escala)' },
+  'Ajustável':   { bg: 'bg-blue-50',    border: 'border-blue-200',    text: 'text-blue-700',    badge: 'bg-blue-100 text-blue-800',    label: 'Ajustável (oportunidade)' },
+  'Desorganizado': { bg: 'bg-amber-50', border: 'border-amber-200',   text: 'text-amber-700',   badge: 'bg-amber-100 text-amber-800',  label: 'Desorganizado (problema claro)' },
+  'Crítico':     { bg: 'bg-red-50',     border: 'border-red-200',     text: 'text-red-700',     badge: 'bg-red-100 text-red-800',      label: 'Crítico (alta perda de pacientes)' },
+};
 
-DADOS DO CHECKLIST:
-- Nota média: ${checklist.rating ?? 'não informado'}
-- Qtd. avaliações: ${checklist.reviews_count ?? 'não informado'}
-- Respostas a avaliações: ${checklist.reviews_response ?? 'não informado'}
-- Quantidade de fotos: ${checklist.photos_quantity ?? 'não informado'}
-- Tipo de fotos: ${checklist.photos_type ?? 'não informado'}
-- Descrição estratégica: ${checklist.has_description === true ? 'sim' : checklist.has_description === false ? 'não' : 'não informado'}
-- Serviços cadastrados: ${checklist.has_services === true ? 'sim' : checklist.has_services === false ? 'não' : 'não informado'}
-- Horário atualizado: ${checklist.has_hours === true ? 'sim' : checklist.has_hours === false ? 'não' : 'não informado'}
-- Frequência de postagens: ${checklist.posting_frequency ?? 'não informado'}
-- Site vinculado: ${checklist.has_website === true ? 'sim' : checklist.has_website === false ? 'não' : 'não informado'}
-- Botão/link WhatsApp: ${checklist.has_whatsapp === true ? 'sim' : checklist.has_whatsapp === false ? 'não' : 'não informado'}
-- Botão de ligação: ${checklist.has_call_button === true ? 'sim' : checklist.has_call_button === false ? 'não' : 'não informado'}
-- Seção Q&A: ${checklist.has_qna === true ? 'sim' : checklist.has_qna === false ? 'não' : 'não informado'}
-
-PRIORIDADES DE FALHA (em ordem):
-1. Ausência de WhatsApp ou site = FALHA CRÍTICA
-2. Sem ligação = falha de contato
-3. Respostas padrão ou inexistentes = perda de humanização
-4. Fotos de banco ou poucas = perda de confiança
-5. Sem postagens = perfil inativo
-6. Nota < 4.5 = risco de autoridade
-7. Poucas avaliações = baixa prova social
-
-CALCULE o gmn_score (0-100) com os pesos:
-- Conversão (site + whatsapp + ligação): 25%
-- Avaliações (nota + qtd + respostas): 30%
-- Conteúdo (fotos qtd + tipo + postagens): 25%
-- Estrutura (descrição + serviços + horário + qna): 20%
-
-Gere:
-1. diagnosis: diagnóstico geral (2-3 frases diretas)
-2. failures: lista de falhas encontradas (só as que realmente existem nos dados)
-3. impact: impacto no negócio (perda de pacientes)
-4. opportunity: oportunidade de melhoria`;
-
-  return await base44.integrations.Core.InvokeLLM({
-    prompt,
-    response_json_schema: {
-      type: 'object',
-      properties: {
-        gmn_score: { type: 'number' },
-        diagnosis: { type: 'string' },
-        failures: { type: 'array', items: { type: 'string' } },
-        impact: { type: 'string' },
-        opportunity: { type: 'string' },
-      }
-    }
-  });
+function ScoreBar({ value, color }) {
+  const barColor = color || (value >= 80 ? 'bg-emerald-500' : value >= 60 ? 'bg-blue-500' : value >= 40 ? 'bg-amber-400' : 'bg-red-500');
+  return (
+    <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
+      <div className={`h-1.5 rounded-full transition-all ${barColor}`} style={{ width: `${Math.min(value, 100)}%` }} />
+    </div>
+  );
 }
 
 export default function ScannerVoxx({ lead, formData, setFormData, onSave }) {
   const queryClient = useQueryClient();
   const [analisando, setAnalisando] = useState(false);
   const [mensagemEditada, setMensagemEditada] = useState('');
+  const [gmnChecklist, setGmnChecklist] = useState(lead?.gmn_analise?.checklist || EMPTY_GMN);
 
-  const hasAnalise = !!lead?.score_oportunidade;
-  const hasGmn = !!lead?.gmn_analise?.gmn_score;
-  const [gmnChecklist, setGmnChecklist] = useState(
-    lead?.gmn_analise?.checklist || EMPTY_GMN
-  );
+  const analise = lead?.voxx_analise || null;
+  const hasAnalise = !!analise;
 
-  const buildWhatsAppMessage = (analise, gmnAnalise, nome) => {
-    const falhasDigitais = (analise.falhas_identificadas || []).join(', ');
-    const falhasGmn = gmnAnalise ? (gmnAnalise.failures || []).join(', ') : '';
-    const todasFalhas = [falhasDigitais, falhasGmn].filter(Boolean).join(', ');
-
-    const prompt = `Você é um consultor de marketing digital da agência Voxx. Crie uma mensagem de WhatsApp para ${nome}.
-
-FALHAS IDENTIFICADAS NA PRESENÇA DIGITAL:
-${todasFalhas || 'Presença digital fraca, sem destaques'}
-
-${gmnAnalise ? `FALHAS NO GOOGLE MEU NEGÓCIO:\n- Tem site: ${gmnAnalise.has_website ? 'sim' : 'não'}\n- Tem WhatsApp direto: ${gmnAnalise.has_whatsapp ? 'sim' : 'não'}\nImpacto: ${gmnAnalise.impact || ''}` : ''}
-
-REGRAS OBRIGATÓRIAS DA MENSAGEM:
-- Tom de especialista, não de vendedor
-- Máximo 3 parágrafos curtos
-- NÃO usar números (nota, avaliações) a menos que sejam 100% confirmados
-- Focar nas falhas estruturais encontradas
-- Linguagem direta, comercial e humanizada
-- Estrutura: Abertura > Falhas encontradas (bullet) > Impacto (perda de pacientes) > Convite para conversa
-- Finalizar convidando para um diagnóstico gratuito`;
-
-    return base44.integrations.Core.InvokeLLM({ prompt });
-  };
+  const classification = analise?.lead_classification || 'Crítico';
+  const classCfg = CLASSIFICATION_CONFIG[classification] || CLASSIFICATION_CONFIG['Crítico'];
+  const isAltaPrioridade = analise?.lead_priority === 'ALTA PRIORIDADE';
 
   const handleAnalisar = async () => {
     setAnalisando(true);
     const nome = lead.nome_empresa || lead.nome_contato || 'o cliente';
     const segmento = lead.segmento || lead.briefing?.segmento || 'não informado';
 
-    // 1. Análise principal (presença digital)
-    const mainResult = await base44.integrations.Core.InvokeLLM({
-      prompt: `Você é um especialista em marketing digital. Analise a presença digital da empresa abaixo e retorne um JSON.
+    // Build GMN checklist summary
+    const gmnSummary = Object.values(gmnChecklist).some(v => v !== null) ? `
+CHECKLIST GOOGLE MEU NEGÓCIO:
+- Nota média: ${gmnChecklist.rating ?? 'não informado'}
+- Qtd. avaliações: ${gmnChecklist.reviews_count ?? 'não informado'}
+- Respostas a avaliações: ${gmnChecklist.reviews_response ?? 'não informado'}
+- Qtd. fotos: ${gmnChecklist.photos_quantity ?? 'não informado'}
+- Tipo de fotos: ${gmnChecklist.photos_type ?? 'não informado'}
+- Descrição estratégica: ${gmnChecklist.has_description === true ? 'sim' : gmnChecklist.has_description === false ? 'não' : 'não informado'}
+- Serviços cadastrados: ${gmnChecklist.has_services === true ? 'sim' : gmnChecklist.has_services === false ? 'não' : 'não informado'}
+- Horário atualizado: ${gmnChecklist.has_hours === true ? 'sim' : gmnChecklist.has_hours === false ? 'não' : 'não informado'}
+- Freq. postagens: ${gmnChecklist.posting_frequency ?? 'não informado'}
+- Site vinculado: ${gmnChecklist.has_website === true ? 'sim' : gmnChecklist.has_website === false ? 'não' : 'não informado'}
+- WhatsApp no perfil: ${gmnChecklist.has_whatsapp === true ? 'sim' : gmnChecklist.has_whatsapp === false ? 'não' : 'não informado'}
+- Botão de ligação: ${gmnChecklist.has_call_button === true ? 'sim' : gmnChecklist.has_call_button === false ? 'não' : 'não informado'}
+- Q&A: ${gmnChecklist.has_qna === true ? 'sim' : gmnChecklist.has_qna === false ? 'não' : 'não informado'}` : 'GMN: não informado';
+
+    const prompt = `Você é o motor de análise VOXX SCORE 360°. Analise a presença digital abaixo e retorne o JSON solicitado.
 
 EMPRESA: ${nome}
-CIDADE: ${lead.cidade || ''}
 SEGMENTO: ${segmento}
-Instagram: ${formData.link_instagram || 'não informado'}
-Biblioteca de Anúncios Meta: ${formData.link_biblioteca_ads || 'não informado'}
-Nota Google: ${formData.nota_google || 'não informado'}
-Total de Avaliações Google: ${formData.total_avaliacoes_google || 'não informado'}
+CIDADE: ${lead.cidade || 'não informado'}
 
-Avalie cada critério de 0 a 2:
-- bio_instagram: qualidade da bio — 0=sem perfil/péssima, 1=básica, 2=boa
-- stories_instagram: atividade nos stories — 0=inativo, 1=esporádico, 2=ativo
-- feed_instagram: qualidade e frequência do feed — 0=ruim, 1=básico, 2=bom
-- anuncios_meta: presença de anúncios ativos — 0=sem anúncios, 1=poucos/fracos, 2=ativos (PESO ALTO)
-- reputacao_google: nota <3.5=0, 3.5-4.2=1, >4.2=2; sem avaliações=0, <50=1, >50=2 — tire a média
+INSTAGRAM: ${formData.link_instagram || 'não informado'}
+BIBLIOTECA DE ANÚNCIOS META: ${formData.link_biblioteca_ads || 'não informado'}
+${gmnSummary}
 
-score_oportunidade: soma ponderada (anuncios_meta peso 2.5x, reputacao_google peso 1.5x, resto 1x) / total_possivel * 100 — inteiro 0-100
-temperatura_lead: "Fervendo">=80, "Quente">=60, "Morno">=40, "Frio"<40
-falhas_identificadas: array com falhas detectadas (critérios com pontuação 0 ou 1)
+━━━ REGRAS DE CÁLCULO ━━━
 
-Retorne APENAS o JSON.`,
+INSTAGRAM_SCORE (0-100): baseado em posicionamento, conteúdo, consistência, estratégia.
+GMN_SCORE (0-100): pesos — Conversão(site+whatsapp+ligação)=25%, Avaliações(nota+qtd+respostas)=30%, Conteúdo(fotos+postagens)=25%, Estrutura(descrição+serviços+horário+qna)=20%
+ADS_SCORE (0-100): existência e qualidade de campanhas. Se não roda tráfego = 0.
+
+VOXX_SCORE = (instagram_score * 0.40) + (gmn_score * 0.35) + (ads_score * 0.25) — arredondado, inteiro
+
+CLASSIFICAÇÃO pelo voxx_score:
+80-100 → "Estruturado"
+60-79  → "Ajustável"
+40-59  → "Desorganizado"
+0-39   → "Crítico"
+
+GATILHOS CRÍTICOS (sobrescrevem a prioridade):
+Se QUALQUER um for verdadeiro: sem WhatsApp no GMN, sem site no GMN, Instagram sem consistência, não roda tráfego
+→ lead_priority = "ALTA PRIORIDADE"
+Caso contrário: lead_priority = "Monitorar"
+
+FALHAS CONSOLIDADAS: liste TODAS as falhas reais dos 3 canais em ordem de impacto (conversão > conteúdo > estrutura). Máximo 7 itens. NÃO invente.
+
+DIAGNÓSTICO: 1 parágrafo direto, comercial, explicando o estado atual da presença digital e o impacto em captação de pacientes.
+
+MENSAGEM WHATSAPP — use exatamente este template preenchendo com as falhas reais:
+"Olá, tudo bem?
+
+Fiz uma análise da presença digital da clínica e identifiquei alguns pontos que podem estar fazendo vocês perderem pacientes hoje.
+
+[Se GMN tiver falha crítica, falar do Google primeiro. Se Instagram for o maior problema, falar do Instagram primeiro.]
+
+No Google, encontramos falhas importantes na estrutura de conversão:
+- [falha GMN 1]
+- [falha GMN 2]
+
+No Instagram, o perfil ainda não está sendo explorado de forma estratégica:
+- [falha Instagram 1]
+- [falha Instagram 2]
+
+Isso impacta diretamente pacientes que já estão buscando tratamento e prontos para decidir.
+
+Hoje, quem tem uma estrutura digital mais ajustada acaba ficando com esses pacientes.
+
+Temos uma estratégia pronta para corrigir esses pontos e aumentar a entrada de pacientes de forma previsível.
+
+Faz sentido te mostrar isso em 15 minutos?"
+
+REGRAS DA MENSAGEM:
+- Nunca citar números de nota ou avaliações
+- Focar em falhas estruturais
+- Tom de especialista, não de vendedor
+- Se não há dado do GMN, focar apenas no Instagram/Ads`;
+
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt,
+      model: 'claude_sonnet_4_6',
       response_json_schema: {
         type: 'object',
         properties: {
-          bio_instagram: { type: 'number' },
-          stories_instagram: { type: 'number' },
-          feed_instagram: { type: 'number' },
-          anuncios_meta: { type: 'number' },
-          reputacao_google: { type: 'number' },
-          score_oportunidade: { type: 'number' },
-          temperatura_lead: { type: 'string' },
-          falhas_identificadas: { type: 'array', items: { type: 'string' } },
+          instagram_score: { type: 'number' },
+          gmn_score: { type: 'number' },
+          ads_score: { type: 'number' },
+          voxx_score: { type: 'number' },
+          lead_classification: { type: 'string' },
+          lead_priority: { type: 'string' },
+          main_failures: { type: 'array', items: { type: 'string' } },
+          diagnosis: { type: 'string' },
+          whatsapp_message: { type: 'string' },
         }
       }
     });
 
-    // 2. Análise GMN (se checklist preenchido)
-    let gmnResult = null;
-    const hasChecklistData = Object.values(gmnChecklist).some(v => v !== null && v !== undefined);
-    if (hasChecklistData) {
-      const aiResult = await analyzeGmnFromChecklist(gmnChecklist, nome);
-      gmnResult = {
-        ...aiResult,
-        ...gmnChecklist,
-        checklist: gmnChecklist,
-      };
-    }
-
-    // 3. Gerar mensagem WhatsApp incluindo GMN se disponível
-    const analiseParaMensagem = {
-      score_oportunidade: mainResult.score_oportunidade,
-      temperatura_lead: mainResult.temperatura_lead,
-      falhas_identificadas: mainResult.falhas_identificadas || [],
-    };
-    const mensagem = await buildWhatsAppMessage(analiseParaMensagem, gmnResult, nome);
-
-    // 4. Salvar tudo
     const updateData = {
-      score_oportunidade: mainResult.score_oportunidade,
-      temperatura_lead: mainResult.temperatura_lead,
-      falhas_identificadas: mainResult.falhas_identificadas || [],
-      mensagem_whatsapp_sugerida: mensagem,
-      data_analise: new Date().toISOString(),
-      criterios_analise: {
-        bio_instagram: mainResult.bio_instagram,
-        stories_instagram: mainResult.stories_instagram,
-        feed_instagram: mainResult.feed_instagram,
-        anuncios_meta: mainResult.anuncios_meta,
-        reputacao_google: mainResult.reputacao_google,
+      voxx_analise: {
+        ...result,
+        checklist_gmn: gmnChecklist,
+        data_analise: new Date().toISOString(),
       },
+      // Compatibilidade com campos antigos
+      score_oportunidade: result.voxx_score,
+      temperatura_lead: result.voxx_score >= 80 ? 'Fervendo' : result.voxx_score >= 60 ? 'Quente' : result.voxx_score >= 40 ? 'Morno' : 'Frio',
+      falhas_identificadas: result.main_failures || [],
+      mensagem_whatsapp_sugerida: result.whatsapp_message,
+      data_analise: new Date().toISOString(),
       link_instagram: formData.link_instagram,
       link_biblioteca_ads: formData.link_biblioteca_ads,
     };
 
-    if (gmnResult) {
-      updateData.gmn_analise = gmnResult;
-      updateData.nota_google = gmnChecklist.rating || undefined;
-      updateData.total_avaliacoes_google = gmnChecklist.reviews_count || undefined;
-    }
+    if (gmnChecklist.rating) updateData.nota_google = gmnChecklist.rating;
+    if (gmnChecklist.reviews_count) updateData.total_avaliacoes_google = gmnChecklist.reviews_count;
 
     await base44.entities.LeadComercial.update(lead.id, updateData);
 
-    setMensagemEditada(mensagem || '');
+    setMensagemEditada(result.whatsapp_message || '');
     queryClient.invalidateQueries({ queryKey: ['leadDetalhe', lead.id] });
     queryClient.invalidateQueries({ queryKey: ['leadsComercial'] });
-    toast.success('Análise concluída!');
+    toast.success('VOXX Score 360° gerado!');
     setAnalisando(false);
   };
 
   const handleLimparAnalise = async () => {
     await base44.entities.LeadComercial.update(lead.id, {
+      voxx_analise: null,
       score_oportunidade: null,
       temperatura_lead: null,
       falhas_identificadas: null,
@@ -244,28 +214,30 @@ Retorne APENAS o JSON.`,
     window.open(`https://wa.me/${numero}?text=${msg}`, '_blank');
   };
 
-  const criterios = lead?.criterios_analise || {};
-  const gmn = lead?.gmn_analise;
+  // Critical triggers derived from checklist
+  const criticalTriggers = [];
+  if (gmnChecklist.has_whatsapp === false) criticalTriggers.push('Sem WhatsApp no Google');
+  if (gmnChecklist.has_website === false) criticalTriggers.push('Sem site no Google');
+  if (!formData.link_biblioteca_ads) criticalTriggers.push('Não roda tráfego pago');
 
   return (
     <div className="space-y-5 max-w-3xl">
       {/* DADOS DE ENTRADA */}
       <Card className="p-5 space-y-4">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Dados de Presença Digital</p>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+          <Zap className="w-3.5 h-3.5 text-violet-500" /> Scanner Voxx 360° — Dados de Entrada
+        </p>
         <div className="grid md:grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label className="text-xs">WhatsApp (com DDI, só números)</Label>
+            <Label className="text-xs">WhatsApp (DDI + número)</Label>
             <Input
               placeholder="5511999999999"
               value={formData.whatsapp_lead || formData.telefone?.replace(/\D/g, '') || ''}
               onChange={e => setFormData({ ...formData, whatsapp_lead: e.target.value })}
             />
-            {!formData.whatsapp_lead && formData.telefone && (
-              <p className="text-[10px] text-slate-400">Preenchido automaticamente a partir do telefone cadastrado</p>
-            )}
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Link Instagram</Label>
+            <Label className="text-xs flex items-center gap-1"><Instagram className="w-3 h-3" /> Instagram</Label>
             <Input
               placeholder="https://instagram.com/..."
               value={formData.link_instagram || ''}
@@ -273,7 +245,7 @@ Retorne APENAS o JSON.`,
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Biblioteca de Anúncios (Meta)</Label>
+            <Label className="text-xs flex items-center gap-1"><BarChart2 className="w-3 h-3" /> Biblioteca de Anúncios (Meta Ads)</Label>
             <Input
               placeholder="https://facebook.com/ads/library/..."
               value={formData.link_biblioteca_ads || ''}
@@ -281,7 +253,7 @@ Retorne APENAS o JSON.`,
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Link do Google Meu Negócio</Label>
+            <Label className="text-xs flex items-center gap-1"><MapPin className="w-3 h-3" /> Link Google Meu Negócio</Label>
             <Input
               placeholder="https://maps.google.com/..."
               value={formData.gmn_link || ''}
@@ -294,235 +266,147 @@ Retorne APENAS o JSON.`,
         <div className="border-t border-slate-100 pt-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">🔍 Checklist Google Meu Negócio</p>
-            <button
-              type="button"
-              onClick={() => setGmnChecklist(EMPTY_GMN)}
-              className="text-[10px] text-slate-400 hover:text-slate-600 underline"
-            >
+            <button type="button" onClick={() => setGmnChecklist(EMPTY_GMN)} className="text-[10px] text-slate-400 hover:text-slate-600 underline">
               Limpar
             </button>
           </div>
           <GmnChecklist value={gmnChecklist} onChange={setGmnChecklist} />
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            onClick={handleAnalisar}
-            disabled={analisando}
-            className="bg-violet-600 hover:bg-violet-700 gap-2"
-          >
+        {/* Critical triggers preview */}
+        {criticalTriggers.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {criticalTriggers.map((t, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 border border-red-200 rounded text-[11px] text-red-700">
+                <AlertTriangle className="w-3 h-3" /> {t}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-1">
+          <Button onClick={handleAnalisar} disabled={analisando} className="bg-violet-600 hover:bg-violet-700 gap-2">
             {analisando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            {hasAnalise ? 'Reanalisar' : 'Analisar Presença Digital'}
+            {hasAnalise ? 'Reanalisar 360°' : 'Analisar — VOXX Score 360°'}
           </Button>
-          <Button variant="outline" onClick={() => onSave()} size="sm">
-            Salvar Dados
-          </Button>
+          <Button variant="outline" onClick={() => onSave()} size="sm">Salvar Dados</Button>
         </div>
-        <p className="text-[11px] text-violet-500 flex items-center gap-1">
-          <MapPin className="w-3 h-3" /> O checklist GMN será incluído na análise se preenchido
-        </p>
       </Card>
 
-      {/* RESULTADO DA ANÁLISE */}
-      {hasAnalise && (
+      {/* RESULTADO */}
+      {hasAnalise && analise && (
         <>
-          {/* Score + Temperatura */}
-          <div className="grid grid-cols-2 gap-4">
-            <Card className={`p-5 ${tempCfg.bg} ${tempCfg.border} border`}>
-              <p className="text-xs font-semibold text-slate-500 mb-1">Temperatura do Lead</p>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{tempCfg.emoji}</span>
-                <span className={`text-xl font-bold ${tempCfg.text}`}>{temperatura}</span>
+          {/* VOXX SCORE — PRINCIPAL */}
+          <Card className={`p-6 ${classCfg.bg} ${classCfg.border} border-2`}>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">🔥 VOXX Score</p>
+                <div className="flex items-end gap-2">
+                  <span className={`text-6xl font-black ${classCfg.text}`}>{analise.voxx_score}</span>
+                  <span className="text-slate-400 text-xl mb-2">/100</span>
+                </div>
+                <ScoreBar value={analise.voxx_score} />
               </div>
-              {lead.data_analise && (
-                <p className="text-[10px] text-slate-400 mt-2">
-                  Analisado em {format(parseISO(lead.data_analise), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                </p>
-              )}
-            </Card>
+              <div className="text-right space-y-2">
+                <div>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${classCfg.badge}`}>
+                    {analise.lead_classification}
+                  </span>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{CLASSIFICATION_CONFIG[analise.lead_classification]?.label}</p>
+                </div>
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold ${
+                  isAltaPrioridade ? 'bg-red-600 border-red-600 text-white' : 'bg-slate-100 border-slate-200 text-slate-600'
+                }`}>
+                  {isAltaPrioridade && <AlertTriangle className="w-3.5 h-3.5" />}
+                  {analise.lead_priority}
+                </div>
+              </div>
+            </div>
+            {analise.data_analise && (
+              <p className="text-[10px] text-slate-400">
+                Analisado em {format(parseISO(analise.data_analise), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+              </p>
+            )}
+          </Card>
 
-            <Card className="p-5">
-              <p className="text-xs font-semibold text-slate-500 mb-1">Score de Oportunidade</p>
-              <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold text-slate-900">{lead.score_oportunidade}</span>
-                <span className="text-slate-400 mb-1">/100</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2 mt-2">
-                <div
-                  className={`h-2 rounded-full ${lead.score_oportunidade >= 80 ? 'bg-red-500' : lead.score_oportunidade >= 60 ? 'bg-orange-500' : lead.score_oportunidade >= 40 ? 'bg-amber-400' : 'bg-blue-400'}`}
-                  style={{ width: `${lead.score_oportunidade}%` }}
-                />
-              </div>
-            </Card>
+          {/* SUBSCORES */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'Instagram', icon: Instagram, value: analise.instagram_score, color: 'text-pink-600', bar: 'bg-pink-400', weight: '40%' },
+              { label: 'GMN', icon: MapPin, value: analise.gmn_score, color: 'text-blue-600', bar: 'bg-blue-400', weight: '35%' },
+              { label: 'Ads', icon: BarChart2, value: analise.ads_score, color: 'text-violet-600', bar: 'bg-violet-400', weight: '25%' },
+            ].map(({ label, icon: Icon, value, color, bar, weight }) => (
+              <Card key={label} className="p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Icon className={`w-3.5 h-3.5 ${color}`} />
+                  <span className="text-xs font-semibold text-slate-600">{label}</span>
+                  <span className="text-[10px] text-slate-400 ml-auto">{weight}</span>
+                </div>
+                <p className={`text-3xl font-black ${color}`}>{value ?? '—'}</p>
+                <ScoreBar value={value ?? 0} color={bar} />
+              </Card>
+            ))}
           </div>
 
-          {/* Critérios presença digital */}
-          {Object.keys(criterios).length > 0 && (
-            <Card className="p-5">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Avaliação por Critério — Presença Digital</p>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {Object.entries(CRITERIO_LABELS).map(([key, label]) => {
-                  const val = criterios[key] ?? '-';
-                  const color = val === 2 ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : val === 1 ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-red-600 bg-red-50 border-red-200';
-                  return (
-                    <div key={key} className={`p-3 rounded-lg border text-center ${typeof val === 'number' ? color : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
-                      <p className="text-[10px] font-semibold mb-1">{label}</p>
-                      <p className="text-xl font-bold">{val}/2</p>
-                      {key === 'anuncios_meta' && <p className="text-[9px] mt-0.5 opacity-60">peso alto</p>}
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          )}
-
-          {/* Falhas presença digital */}
-          {lead.falhas_identificadas?.length > 0 && (
-            <Card className="p-5">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5 text-red-500" /> Falhas — Presença Digital
+          {/* ALERTAS CRÍTICOS */}
+          {isAltaPrioridade && analise.main_failures?.length > 0 && (
+            <Card className="p-4 border-red-200 bg-red-50">
+              <p className="text-xs font-bold text-red-700 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5" /> Gatilhos Críticos — Alta Prioridade
               </p>
-              <div className="space-y-2">
-                {lead.falhas_identificadas.map((f, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2.5 bg-red-50 rounded-lg border border-red-100">
-                    <AlertCircle className="w-3.5 h-3.5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-red-700">{f}</span>
+              <div className="space-y-1.5">
+                {analise.main_failures.slice(0, 3).map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm text-red-800">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
+                    {f}
                   </div>
                 ))}
               </div>
             </Card>
           )}
 
-          {/* BLOCO GMN */}
-          {hasGmn && gmn && (
-            <Card className="p-5 border-blue-200">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="w-4 h-4 text-blue-600" />
-                <p className="text-sm font-semibold text-blue-800">Google Meu Negócio</p>
-                <div className="ml-auto flex items-center gap-3">
-                  {gmn.rating > 0 ? (
-                    <div className="flex items-center gap-1 text-amber-600">
-                      <Star className="w-3.5 h-3.5 fill-amber-400" />
-                      <span className="text-sm font-bold">{gmn.rating}</span>
-                      {gmn.reviews_count > 0 && <span className="text-xs text-slate-400">({gmn.reviews_count} avaliações)</span>}
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-400 italic">Nota não validada</span>
-                  )}
-                  <div className="text-center">
-                    <span className={`text-2xl font-bold ${gmn.gmn_score >= 70 ? 'text-emerald-600' : gmn.gmn_score >= 40 ? 'text-amber-600' : 'text-red-600'}`}>{gmn.gmn_score}</span>
-                    <span className="text-xs text-slate-400">/100</span>
+          {/* TODAS AS FALHAS */}
+          {analise.main_failures?.length > 0 && (
+            <Card className="p-5">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-500" /> Falhas Consolidadas
+              </p>
+              <div className="space-y-2">
+                {analise.main_failures.map((f, i) => (
+                  <div key={i} className="flex items-start gap-2 p-2.5 bg-slate-50 rounded-lg border border-slate-200">
+                    <span className="text-xs font-bold text-slate-400 w-4 flex-shrink-0">{i + 1}.</span>
+                    <span className="text-sm text-slate-700">{f}</span>
                   </div>
-                </div>
+                ))}
               </div>
-
-              <div className="w-full bg-slate-100 rounded-full h-1.5 mb-4">
-                <div
-                  className={`h-1.5 rounded-full ${gmn.gmn_score >= 70 ? 'bg-emerald-500' : gmn.gmn_score >= 40 ? 'bg-amber-400' : 'bg-red-500'}`}
-                  style={{ width: `${gmn.gmn_score}%` }}
-                />
-              </div>
-
-              {(gmn.has_website !== undefined || gmn.has_whatsapp !== undefined) && (
-                <div className="flex gap-2 mb-3">
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${
-                    gmn.has_website ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'
-                  }`}>
-                    <span>{gmn.has_website ? '✅' : '❌'}</span> Site vinculado
-                  </div>
-                  <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${
-                    gmn.has_whatsapp ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'
-                  }`}>
-                    <span>{gmn.has_whatsapp ? '✅' : '❌'}</span> WhatsApp
-                  </div>
-                  {gmn.conversion_structure && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs bg-slate-50 border-slate-200 text-slate-600">
-                      {gmn.conversion_structure}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {gmn.diagnosis && (
-                <div className="p-3 bg-blue-50 rounded-lg mb-3">
-                  <p className="text-xs font-semibold text-blue-700 mb-1">Diagnóstico</p>
-                  <p className="text-sm text-blue-800">{gmn.diagnosis}</p>
-                </div>
-              )}
-
-              {gmn.failures?.length > 0 && (
-                <div className="space-y-1.5 mb-3">
-                  <p className="text-xs font-semibold text-slate-500 mb-1">Falhas identificadas</p>
-                  {gmn.failures.map((f, i) => (
-                    <div key={i} className="flex items-start gap-2 p-2 bg-red-50 rounded border border-red-100">
-                      <AlertCircle className="w-3.5 h-3.5 text-red-500 mt-0.5 flex-shrink-0" />
-                      <span className="text-xs text-red-700">{f}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                {gmn.impact && (
-                  <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
-                    <p className="text-[10px] font-semibold text-amber-700 mb-1">⚠️ Impacto</p>
-                    <p className="text-xs text-amber-800">{gmn.impact}</p>
-                  </div>
-                )}
-                {gmn.opportunity && (
-                  <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                    <p className="text-[10px] font-semibold text-emerald-700 mb-1">✅ Oportunidade</p>
-                    <p className="text-xs text-emerald-800">{gmn.opportunity}</p>
-                  </div>
-                )}
-              </div>
-
-              {gmn.name_found && (
-                <div className={`flex items-center gap-2 p-2.5 rounded-lg border mt-3 text-xs ${
-                  gmn.name_mismatch
-                    ? 'bg-red-50 border-red-200 text-red-700'
-                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                }`}>
-                  <span>{gmn.name_mismatch ? '⚠️' : '✅'}</span>
-                  <span>
-                    {gmn.name_mismatch
-                      ? `Atenção: o perfil encontrado é "${gmn.name_found}" — pode não corresponder ao lead`
-                      : `Perfil validado: "${gmn.name_found}"`
-                    }
-                  </span>
-                </div>
-              )}
-
-              {lead.gmn_link && (
-                <a href={lead.gmn_link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-blue-600 hover:underline mt-3">
-                  <ExternalLink className="w-3 h-3" /> Ver no Google
-                </a>
-              )}
             </Card>
           )}
 
-          {/* Mensagem WhatsApp */}
+          {/* DIAGNÓSTICO */}
+          {analise.diagnosis && (
+            <Card className="p-5 border-violet-200 bg-violet-50">
+              <p className="text-xs font-bold text-violet-700 uppercase tracking-wide mb-2">🧠 Diagnóstico VOXX</p>
+              <p className="text-sm text-violet-900 leading-relaxed">{analise.diagnosis}</p>
+            </Card>
+          )}
+
+          {/* MENSAGEM WHATSAPP */}
           <Card className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1">
-                <MessageCircle className="w-3.5 h-3.5 text-green-500" /> Mensagem Sugerida (WhatsApp)
-                {hasGmn && <span className="text-[10px] text-blue-500 ml-1">· inclui GMN</span>}
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+                <MessageCircle className="w-3.5 h-3.5 text-green-500" /> Mensagem Unificada (WhatsApp)
               </p>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={handleCopiarMensagem} className="gap-1 h-7 text-xs">
                   <Copy className="w-3 h-3" /> Copiar
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleAbrirWhatsApp}
-                  className="gap-1 h-7 text-xs bg-green-600 hover:bg-green-700"
-                >
+                <Button size="sm" onClick={handleAbrirWhatsApp} className="gap-1 h-7 text-xs bg-green-600 hover:bg-green-700">
                   <ExternalLink className="w-3 h-3" /> Abrir WhatsApp
                 </Button>
               </div>
             </div>
             <Textarea
-              rows={6}
+              rows={10}
               value={mensagemEditada || lead?.mensagem_whatsapp_sugerida || ''}
               onChange={e => setMensagemEditada(e.target.value)}
               className="text-sm resize-none"
@@ -530,16 +414,11 @@ Retorne APENAS o JSON.`,
             />
             {mensagemEditada && mensagemEditada !== lead?.mensagem_whatsapp_sugerida && (
               <div className="flex justify-end mt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-xs h-7"
-                  onClick={async () => {
-                    await base44.entities.LeadComercial.update(lead.id, { mensagem_whatsapp_sugerida: mensagemEditada });
-                    queryClient.invalidateQueries({ queryKey: ['leadDetalhe', lead.id] });
-                    toast.success('Mensagem salva!');
-                  }}
-                >
+                <Button size="sm" variant="outline" className="text-xs h-7" onClick={async () => {
+                  await base44.entities.LeadComercial.update(lead.id, { mensagem_whatsapp_sugerida: mensagemEditada });
+                  queryClient.invalidateQueries({ queryKey: ['leadDetalhe', lead.id] });
+                  toast.success('Mensagem salva!');
+                }}>
                   Salvar edição
                 </Button>
               </div>
@@ -560,20 +439,24 @@ Retorne APENAS o JSON.`,
 
       {/* Estado vazio */}
       {!hasAnalise && !analisando && (
-        <Card className="p-8 text-center border-dashed">
-          <Zap className="w-10 h-10 text-violet-300 mx-auto mb-3" />
-          <p className="font-semibold text-slate-600 mb-1">Nenhuma análise realizada</p>
-          <p className="text-sm text-slate-400 mb-4">Preencha os dados acima e clique em "Analisar Presença Digital" para gerar o diagnóstico completo.</p>
+        <Card className="p-10 text-center border-dashed">
+          <Zap className="w-12 h-12 text-violet-300 mx-auto mb-3" />
+          <p className="font-bold text-slate-700 mb-1">Scanner Voxx 360°</p>
+          <p className="text-sm text-slate-400 mb-1">Analisa Instagram + GMN + Tráfego em um único Score.</p>
+          <p className="text-xs text-slate-400">Preencha os dados acima e clique em "Analisar" para gerar o diagnóstico completo.</p>
         </Card>
       )}
 
       {analisando && (
-        <Card className="p-8 text-center">
-          <Loader2 className="w-10 h-10 text-violet-500 animate-spin mx-auto mb-3" />
-          <p className="font-semibold text-slate-700">Analisando presença digital...</p>
-          <p className="text-sm text-slate-400 mt-1">
-            {Object.values(gmnChecklist).some(v => v !== null) ? 'Analisando Instagram, Meta Ads e Checklist GMN...' : 'Aguarde, isso pode levar alguns segundos.'}
-          </p>
+        <Card className="p-10 text-center">
+          <Loader2 className="w-12 h-12 text-violet-500 animate-spin mx-auto mb-3" />
+          <p className="font-bold text-slate-700">Calculando VOXX Score 360°...</p>
+          <p className="text-sm text-slate-400 mt-1">Analisando Instagram, Google Meu Negócio e Tráfego...</p>
+          <div className="flex justify-center gap-4 mt-4 text-xs text-slate-400">
+            <span>📸 Instagram 40%</span>
+            <span>📍 GMN 35%</span>
+            <span>📊 Ads 25%</span>
+          </div>
         </Card>
       )}
     </div>
