@@ -204,7 +204,11 @@ export default function Comercial({ user }) {
       />
 
       {/* Prioridades do Dia - Orientação 2 */}
-      <PrioritizacaoDia leads={leads} />
+      <PrioritizacaoDia
+        leads={leads}
+        onRegistrarContato={(lead) => { setSelectedLeadFollowUp(lead); setShowFollowUpRapido(true); }}
+        onAgendarReuniao={(lead) => navigate(`/LeadDetalhe?id=${lead.id}&tab=reunioes`)}
+      />
 
       {/* TABS */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
