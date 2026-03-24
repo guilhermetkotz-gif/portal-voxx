@@ -121,27 +121,25 @@ export default function ScannerVoxx({ lead, formData, setFormData, onSave }) {
   const tempCfg = TEMP_CONFIG[temperatura] || TEMP_CONFIG['Frio'];
 
   const buildWhatsAppMessage = (analise, gmnAnalise, nome) => {
-    const prompt = `Você é um consultor de marketing digital da agência Voxx. Crie uma mensagem de WhatsApp consultiva, direta e personalizada para ${nome}, com base na análise abaixo.
+    const falhasDigitais = (analise.falhas_identificadas || []).join(', ');
+    const falhasGmn = gmnAnalise ? (gmnAnalise.failures || []).join(', ') : '';
+    const todasFalhas = [falhasDigitais, falhasGmn].filter(Boolean).join(', ');
 
-ANÁLISE DE PRESENÇA DIGITAL:
-Score de Oportunidade: ${analise.score_oportunidade}/100
-Temperatura: ${analise.temperatura_lead}
-Falhas identificadas: ${(analise.falhas_identificadas || []).join(', ')}
+    const prompt = `Você é um consultor de marketing digital da agência Voxx. Crie uma mensagem de WhatsApp para ${nome}.
 
-${gmnAnalise ? `ANÁLISE GOOGLE MEU NEGÓCIO:
-Score GMN: ${gmnAnalise.gmn_score}/100
-Nota: ${gmnAnalise.rating}
-Avaliações: ${gmnAnalise.reviews_count}
-Diagnóstico: ${gmnAnalise.diagnosis}
-Falhas GMN: ${(gmnAnalise.failures || []).join(', ')}` : ''}
+FALHAS IDENTIFICADAS NA PRESENÇA DIGITAL:
+${todasFalhas || 'Presença digital fraca, sem destaques'}
 
-Regras da mensagem:
+${gmnAnalise ? `FALHAS NO GOOGLE MEU NEGÓCIO:\n- Tem site: ${gmnAnalise.has_website ? 'sim' : 'não'}\n- Tem WhatsApp direto: ${gmnAnalise.has_whatsapp ? 'sim' : 'não'}\nImpacto: ${gmnAnalise.impact || ''}` : ''}
+
+REGRAS OBRIGATÓRIAS DA MENSAGEM:
 - Tom de especialista, não de vendedor
-- Máximo 3 parágrafos
-- Sem emojis excessivos
-- Mencionar falhas específicas encontradas
-- Se houver análise GMN, incluir trecho sobre o Google da empresa
-- Finalizar com proposta de diagnóstico gratuito`;
+- Máximo 3 parágrafos curtos
+- NÃO usar números (nota, avaliações) a menos que sejam 100% confirmados
+- Focar nas falhas estruturais encontradas
+- Linguagem direta, comercial e humanizada
+- Estrutura: Abertura > Falhas encontradas (bullet) > Impacto (perda de pacientes) > Convite para conversa
+- Finalizar convidando para um diagnóstico gratuito`;
 
     return base44.integrations.Core.InvokeLLM({ prompt });
   };
