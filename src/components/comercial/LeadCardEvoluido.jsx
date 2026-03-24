@@ -58,17 +58,22 @@ export default function LeadCardEvoluido({ lead, onFollowUp }) {
           <span className="text-slate-600 capitalize truncate">{lead.etapa?.replace(/_/g, ' ')}</span>
         </div>
 
-        {/* Última interação com cor */}
-        <div className="flex items-center gap-1 text-xs">
-          <Clock className={`w-3 h-3 ${
-            getTempoUltimaInteracao() === 'Hoje' ? 'text-green-600' :
-            getTempoUltimaInteracao() === 'Ontem' ? 'text-amber-600' :
-            'text-slate-500'
-          }`} />
-          <span className="text-slate-600">Última: {getTempoUltimaInteracao()}</span>
-        </div>
+        {/* Temperatura Scanner Voxx */}
+        {lead.temperatura_lead && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs">
+              {lead.temperatura_lead === 'Fervendo' ? '🔥' : lead.temperatura_lead === 'Quente' ? '🌡️' : lead.temperatura_lead === 'Morno' ? '☕' : '❄️'}
+            </span>
+            <span className={`text-xs font-medium ${
+              lead.temperatura_lead === 'Fervendo' ? 'text-red-600' :
+              lead.temperatura_lead === 'Quente' ? 'text-orange-600' :
+              lead.temperatura_lead === 'Morno' ? 'text-amber-600' : 'text-blue-600'
+            }`}>{lead.temperatura_lead}</span>
+            <span className="text-[10px] text-slate-400 ml-auto">{lead.score_oportunidade}/100</span>
+          </div>
+        )}
 
-        {/* Status do Follow-up */}
+        {/* Última interação com cor */}
         <div className="flex items-center gap-1 text-xs">
           <span>{statusFollowUp.emoji}</span>
           <span className={`font-medium ${statusFollowUp.color}`}>{statusFollowUp.label}</span>
