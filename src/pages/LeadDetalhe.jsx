@@ -13,6 +13,7 @@ import FitScoreCalculator, { calcularFitScore, FitScoreDisplay } from '@/compone
 import ProximaAcaoBlock from '@/components/comercial/ProximaAcaoBlock';
 import RegistrarInteracaoModal from '@/components/comercial/RegistrarInteracaoModal';
 import InteligenciaLeadPanel from '@/components/comercial/InteligenicaLeadPanel';
+import ScannerVoxx from '@/components/comercial/ScannerVoxx';
 import { avaliarTriggers, gerarTarefasFollowUp, calcularTemperaturaLead, calcularScorePrioridade } from '@/lib/comercial/inteligencia';
 import { isVoxxAdmin, isVoxxOperacao, isVoxxManager } from '@/components/utils/auth';
 import { toast } from 'sonner';
@@ -60,6 +61,7 @@ const TABS = [
   { id: 'plano', label: 'Plano de Serviços' },
   { id: 'proposta', label: 'Proposta' },
   { id: 'tarefas', label: 'Tarefas' },
+  { id: 'scanner', label: '🔍 Scanner Voxx' },
 ];
 
 function getStatusVisual(lead) {
@@ -776,6 +778,16 @@ export default function LeadDetalhe({ user }) {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* SCANNER VOXX */}
+            {activeTab === 'scanner' && (
+              <ScannerVoxx
+                lead={currentLead}
+                formData={formData}
+                setFormData={setFormData}
+                onSave={() => handleSave()}
+              />
             )}
           </div>
         </Card>
