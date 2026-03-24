@@ -29,31 +29,55 @@ const CRITERIO_LABELS = {
 async function analyzeGoogleMyBusiness(gmn_link, nome, localidade) {
   const prompt = `Você é um especialista em presença digital e marketing local.
 
-ACESSE DIRETAMENTE esta URL do Google Meu Negócio e extraia os dados reais:
+ACESSE DIRETAMENTE esta URL do Google Meu Negócio:
 ${gmn_link}
 
 NOME DO LEAD: "${nome}"
 LOCALIDADE: "${localidade}"
 
-INSTRUÇÕES:
-1. Acesse o link acima e leia os dados reais desta página específica.
-2. Extraia o nome real do perfil encontrado.
-3. Valide por correlação se o perfil corresponde ao lead "${nome}" na localidade "${localidade}".
-   - Considere válido se o nome for similar E a cidade/bairro bater.
-   - Se o perfil for de outra cidade ou negócio diferente, retorne name_mismatch: true.
-4. Extraia nota e total de avaliações diretamente da página (esses valores serão revisados pelo sistema).
+== REGRA ANTI-ALUCINAÇÃO (OBRIGATÓRIA) ==
+NUNCA invente, estime ou arredonde dados numéricos (nota, avaliações, etc).
+Se não conseguir identificar com precisão:
+- Use 0 para números
+- É melhor não informar do que informar errado
+Essa regra é absoluta. Violação gera inconsistência no diagnóstico.
 
-Calcule gmn_score (0-100):
-- Avaliações (30%): nota < 4.5 alerta; < 50 avaliações baixa autoridade
-- Conteúdo/fotos/posts (25%)
-- Estrutura: horários, serviços, descrição (25%)
-- Engajamento (20%)
+== VALIDAÇÃO DE PERFIL ==
+Extraia o nome real do perfil. Valide por correlação com "${nome}" na localidade "${localidade}".
+Se cidade/bairro não bater ou negócio for diferente, retorne name_mismatch: true.
 
-Retorne APENAS JSON:
+== CRITÉRIOS DE ANÁLISE (por prioridade) ==
+
+1. CONVERSÃO (peso máximo) — analise se o perfil tem:
+   - Site vinculado ao perfil GMN
+   - Botão/link direto para WhatsApp
+   - Botão de ligação claro
+   - Estrutura que facilita o paciente entrar em contato
+
+2. AVALIAÇÕES (peso alto) — apenas se você tiver certeza absoluta:
+   - Nota média real da página
+   - Volume real de avaliações
+
+3. CONTEÚDO (peso médio) — fotos, posts, frequência
+
+4. ENGAJAMENTO (peso médio) — respostas a reviews, postagens
+
+== FALHAS A DETECTAR ==
+Se não houver site vinculado → inclua: "Perfil sem site vinculado"
+Se não houver WhatsApp → inclua: "Ausência de acesso direto ao WhatsApp"
+Se estrutura de conversão for fraca → inclua: "Perfil não otimizado para conversão"
+
+== SCORE GMN (0-100) ==
+Conversão: 35% | Avaliações: 25% | Conteúdo: 25% | Engajamento: 15%
+
+Retorne APENAS JSON válido:
 {
   "gmn_score": 0,
   "rating": 0,
   "reviews_count": 0,
+  "has_website": false,
+  "has_whatsapp": false,
+  "conversion_structure": "",
   "name_found": "",
   "name_mismatch": false,
   "diagnosis": "",
@@ -72,6 +96,9 @@ Retorne APENAS JSON:
         gmn_score: { type: 'number' },
         rating: { type: 'number' },
         reviews_count: { type: 'number' },
+        has_website: { type: 'boolean' },
+        has_whatsapp: { type: 'boolean' },
+        conversion_structure: { type: 'string' },
         name_found: { type: 'string' },
         name_mismatch: { type: 'boolean' },
         diagnosis: { type: 'string' },
@@ -417,6 +444,9 @@ Retorne APENAS o JSON.`,
                       {gmn.reviews_count > 0 && <span className="text-xs text-slate-400">({gmn.reviews_count} avaliações)</span>}
                     </div>
                   )}
+                  {(!gmn.rating || gmn.rating === 0) && (
+                    <span className="text-xs text-slate-400 italic">Nota não validada</span>
+                  )}
                   <div className="text-center">
                     <span className={`text-2xl font-bold ${gmn.gmn_score >= 70 ? 'text-emerald-600' : gmn.gmn_score >= 40 ? 'text-amber-600' : 'text-red-600'}`}>{gmn.gmn_score}</span>
                     <span className="text-xs text-slate-400">/100</span>
@@ -431,14 +461,29 @@ Retorne APENAS o JSON.`,
                 />
               </div>
 
-              {gmn.diagnosis && (
-                <div className="p-3 bg-blue-50 rounded-lg mb-3">
-                  <p className="text-xs font-semibold text-blue-700 mb-1">Diagnóstico</p>
-                  <p className="text-sm text-blue-800">{gmn.diagnosis}</p>
+              {/* Conversão */}
+              {(gmn.has_website !== undefined || gmn.has_whatsapp !== undefined) && (
+                <div className="flex gap-2 mb-3">
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${
+                    gmn.has_website ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'
+                  }`}>
+                    <span>{gmn.has_website ? '✅' : '❌'}</span> Site vinculado
+                  </div>
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium ${
+                    gmn.has_whatsapp ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'
+                  }`}>
+                    <span>{gmn.has_whatsapp ? '✅' : '❌'}</span> WhatsApp
+                  </div>
+                  {gmn.conversion_structure && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs bg-slate-50 border-slate-200 text-slate-600">
+                      {gmn.conversion_structure}
+                    </div>
+                  )}
                 </div>
               )}
 
-              {gmn.failures?.length > 0 && (
+              {gmn.diagnosis && (
+                <div className="p-3 bg-blue-50 rounded-lg mb-3">
                 <div className="space-y-1.5 mb-3">
                   <p className="text-xs font-semibold text-slate-500 mb-1">Falhas identificadas</p>
                   {gmn.failures.map((f, i) => (
