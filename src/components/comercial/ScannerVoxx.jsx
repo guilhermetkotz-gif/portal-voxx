@@ -158,9 +158,12 @@ Retorne APENAS o JSON, sem texto extra.`;
             <Label className="text-xs">WhatsApp (com DDI, só números)</Label>
             <Input
               placeholder="5511999999999"
-              value={formData.whatsapp_lead || ''}
+              value={formData.whatsapp_lead || formData.telefone?.replace(/\D/g, '') || ''}
               onChange={e => setFormData({ ...formData, whatsapp_lead: e.target.value })}
             />
+            {!formData.whatsapp_lead && formData.telefone && (
+              <p className="text-[10px] text-slate-400">Preenchido automaticamente a partir do telefone cadastrado</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Link Instagram</Label>
