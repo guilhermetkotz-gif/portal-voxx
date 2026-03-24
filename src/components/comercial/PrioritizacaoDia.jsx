@@ -1,9 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Flame, TrendingUp } from 'lucide-react';
 
 export default function PrioritizacaoDia({ leads }) {
+  const navigate = useNavigate();
   const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
   // Calcular prioridade: Fit Score + Recência + Etapa + Engajamento
@@ -71,7 +73,7 @@ export default function PrioritizacaoDia({ leads }) {
             : null;
           
           return (
-            <Card key={lead.id} className="p-3 hover:shadow-md transition-all cursor-pointer">
+            <Card key={lead.id} className="p-3 hover:shadow-md transition-all cursor-pointer" onClick={() => navigate(`/LeadDetalhe?id=${lead.id}`)}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
