@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Calendar, List, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Calendar, List, Clock, AlertTriangle, UserCheck } from 'lucide-react';
 import {
   format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   addWeeks, subWeeks, addMonths, subMonths, eachDayOfInterval,
@@ -146,6 +146,10 @@ function VisualizacaoMes({ reunioes, currentDate, onClickDia, onClickEvento }) {
   );
 }
 
+function hasRegistro(r) {
+  return !!(r.summary || r.discussion_points || r.pending_items || r.next_steps);
+}
+
 function VisualizacaoLista({ reunioes, onClickEvento }) {
   const sorted = [...reunioes].sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
   const grouped = {};
@@ -176,6 +180,7 @@ function VisualizacaoLista({ reunioes, onClickEvento }) {
               const sc = STATUS_COLORS[r.status] || STATUS_COLORS.agendada;
               const start = parseISO(r.start_datetime);
               const end = parseISO(r.end_datetime);
+              const semRegistro = r.status === 'realizada' && !hasRegistro(r);
               return (
                 <button
                   key={r.id}
@@ -184,8 +189,21 @@ function VisualizacaoLista({ reunioes, onClickEvento }) {
                 >
                   <div className={`w-1 self-stretch rounded-full ${sc.bg}`} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm text-slate-800 truncate">{r.titulo}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-sm text-slate-800 truncate">{r.titulo}</p>
+                      {semRegistro && (
+                        <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 font-medium">
+                          <AlertTriangle className="w-2.5 h-2.5" /> Sem registro
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500">{r.unidade_nome} · {TIPOS_LABEL[r.tipo_reuniao]}</p>
+                    {r.followup_owner_nome && (
+                      <p className="text-xs text-violet-600 flex items-center gap-1 mt-0.5">
+                        <UserCheck className="w-3 h-3" /> Follow-up: {r.followup_owner_nome}
+                        {r.followup_date ? ` · ${r.followup_date}` : ''}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-xs font-medium text-slate-700">{format(start, 'HH:mm')} – {format(end, 'HH:mm')}</p>

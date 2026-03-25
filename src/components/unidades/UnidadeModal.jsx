@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import LeadsChart from './LeadsChart';
 import InsightAutomatico from './InsightAutomatico';
 import { X, MapPin, User, TrendingUp, DollarSign, Zap, Activity, CheckCircle, Clock, AlertTriangle, Loader2, Target } from 'lucide-react';
+import HistoricoReunioes from '@/components/agenda/HistoricoReunioes';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -21,6 +22,7 @@ const TABS = [
   { id: 'acoes', label: 'Ações do Mês' },
   { id: 'demandas', label: 'Demandas' },
   { id: 'plano', label: 'Plano de Ação' },
+  { id: 'reunioes', label: '📅 Reuniões' },
 ];
 
 export default function UnidadeModal({ unidade, onClose, user }) {
@@ -259,6 +261,26 @@ export default function UnidadeModal({ unidade, onClose, user }) {
                                 {isAtrasado ? '⚠️ ' : ''}Prazo: {item.prazo}
                               </span>
                             )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className="text-xs text-slate-400">Responsável: {item.responsavel}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* REUNIÕES */}
+          {activeTab === 'reunioes' && (
+            <div>
+              <h3 className="font-semibold text-slate-800 mb-4">Histórico de Reuniões</h3>
+              <HistoricoReunioes unidadeId={unidade.id} />
+            </div>
+          )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3 mt-2">
