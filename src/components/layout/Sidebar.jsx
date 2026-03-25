@@ -48,6 +48,7 @@ const menuItems = [
   { name: "Saldos & Investimentos", icon: Wallet, page: "Saldos" },
   { name: "Demandas", icon: TicketCheck, page: "Demandas", badge: true },
   { name: "Agenda VOXX", icon: CalendarDays, page: "AgendaVoxx", voxxOnly: true },
+  { name: "Dashboard Agenda", icon: BarChart3, page: "AgendaDashboard", voxxOnly: true },
   { name: "Comercial", icon: Briefcase, page: "Comercial", voxxOnly: true },
   { name: "Kanban", icon: KanbanSquare, page: "Kanban", voxxOnly: true },
   { name: "Plano de Ação", icon: ClipboardList, page: "PlanoDeAcao", voxxOnly: true },

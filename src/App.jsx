@@ -18,6 +18,7 @@ import FinanceiroDocumentos from './pages/FinanceiroDocumentos';
 import FinanceiroFluxoCaixa from './pages/FinanceiroFluxoCaixa';
 import FinanceiroCarteira from './pages/FinanceiroCarteira';
 import AgendaVoxx from './pages/AgendaVoxx';
+import AgendaDashboard from './pages/AgendaDashboard';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -121,6 +122,7 @@ const AuthenticatedApp = () => {
       <Route path="/FinanceiroFluxoCaixa" element={<LayoutWrapper currentPageName="FinanceiroFluxoCaixa"><FinanceiroFluxoCaixa /></LayoutWrapper>} />
       <Route path="/FinanceiroCarteira" element={<LayoutWrapper currentPageName="FinanceiroCarteira"><FinanceiroCarteira /></LayoutWrapper>} />
       <Route path="/AgendaVoxx" element={<LayoutWrapper currentPageName="AgendaVoxx"><AgendaVoxx /></LayoutWrapper>} />
+      <Route path="/AgendaDashboard" element={<LayoutWrapper currentPageName="AgendaDashboard"><AgendaDashboard /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Calendar, Clock, Building2, Users, Target, Edit2,
   CheckCircle, XCircle, X, AlertTriangle, UserCheck, Loader2, Save,
-  RefreshCw, Plus
+  RefreshCw, Plus, TrendingUp
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -97,6 +97,20 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
   }, [reuniao?.id, open]);
 
   if (!reuniao) return null;
+
+  const RESULTADOS = [
+    { value: 'avancou', label: '🟢 Avançou' },
+    { value: 'proposta_enviada', label: '📄 Proposta enviada' },
+    { value: 'aguardando', label: '⏳ Aguardando' },
+    { value: 'perdido', label: '🔴 Perdido' },
+    { value: 'fechado', label: '🏆 Fechado!' },
+  ];
+
+  const saveMeetingResult = async (v) => {
+    await base44.entities.AgendaReuniao.update(reuniao.id, { meeting_result: v });
+    queryClient.invalidateQueries({ queryKey: ['agenda_reunioes'] });
+    onStatusChange();
+  };
 
   const start = parseISO(reuniao.start_datetime);
   const end = parseISO(reuniao.end_datetime);
@@ -378,6 +392,28 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
                     <Button size="sm" variant="outline" onClick={() => setShowRegistroForm(false)}>Cancelar</Button>
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Resultado reunião comercial */}
+          {reuniao.tipo_reuniao === 'comercial' && reuniao.status === 'realizada' && (
+            <div className="border border-violet-200 rounded-xl p-4 space-y-3 bg-violet-50/30">
+              <p className="text-xs font-semibold text-violet-700 uppercase tracking-wider flex items-center gap-2">
+                <TrendingUp className="w-3.5 h-3.5" /> Resultado comercial
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[{value:'avancou',label:'🟢 Avançou'},{value:'proposta_enviada',label:'📄 Proposta'},{value:'aguardando',label:'⏳ Aguardando'},{value:'perdido',label:'🔴 Perdido'},{value:'fechado',label:'🏆 Fechado'}].map(opt => (
+                  <button key={opt.value} onClick={() => saveMeetingResult(opt.value)}
+                    className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
+                      reuniao.meeting_result === opt.value
+                        ? 'bg-violet-600 text-white border-violet-600'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300'
+                    }`}>{opt.label}</button>
+                ))}
+              </div>
+              {reuniao.linked_lead_nome && (
+                <p className="text-xs text-violet-600">🔗 Lead vinculado: <span className="font-medium">{reuniao.linked_lead_nome}</span></p>
               )}
             </div>
           )}
