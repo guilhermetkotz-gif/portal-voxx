@@ -50,8 +50,11 @@ export default function FinanceiroVisaoGeral() {
       return c.data_inicio.startsWith(mesAtual);
     }).length;
     const clientesPerdidos = clientesFinanceiros.filter(c => {
-      if (c.status !== 'encerrado' || !c.data_fim) return false;
-      return c.data_fim.startsWith(mesAtual);
+      if (c.status !== 'encerrado') return false;
+      // Usa data_fim se disponível, senão usa updated_date (quando o status foi alterado)
+      const dataReferencia = c.data_fim || (c.updated_date ? c.updated_date.substring(0, 10) : null);
+      if (!dataReferencia) return false;
+      return dataReferencia.startsWith(mesAtual);
     }).length;
     return { mrr, recebido, pendente, atraso, inadimplencia, custoFixo, custoVariavel, custoTotal, folhaTotal, lucro, clientesAtivos, clientesNovos, clientesPerdidos };
   }, [receitas, custos, folha]);
