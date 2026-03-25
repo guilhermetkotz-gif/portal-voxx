@@ -34,6 +34,7 @@ const pageTitles = {
         Ajuda: { title: "Central de Ajuda", subtitle: "Playbook e FAQ" },
         Conta: { title: "Minha Conta", subtitle: "Configurações do perfil" },
         GerenciarAcessos: { title: "Gerenciar Acessos", subtitle: "Controle de usuários e permissões" },
+        AgendaVoxx: { title: "Agenda VOXX", subtitle: "Reuniões e organização da equipe" },
         Comercial: { title: "Comercial", subtitle: "Pipeline de vendas e gestão de leads" },
         LeadDetalhe: { title: "Lead", subtitle: "Detalhes e histórico do lead" },
         Kanban: { title: "Kanban de Demandas", subtitle: "Gerencie demandas por setor" },
