@@ -352,18 +352,18 @@ export default function Layout({ children, currentPageName }) {
             user
           })}
         </div>
-        </main>
+      </main>
 
-        {/* Chat Widget for all authenticated users */}
-        {user && (
+      {/* Chat Widget for all authenticated users */}
+      {user && (
         <ChatWidget user={user} currentCliente={currentCliente} />
-        )}
+      )}
 
-        {/* Lembretes de reunião globais */}
-        {user && <ReuniaoLembrete user={user} />}
+      {/* Lembretes de reunião globais */}
+      {user && <ReuniaoLembrete user={user} />}
 
-        {/* Toaster for notifications */}
-        <Toaster />
-        </div>
-        );
-        }
+      {/* Toaster for notifications */}
+      <Toaster />
+    </div>
+  );
+}
