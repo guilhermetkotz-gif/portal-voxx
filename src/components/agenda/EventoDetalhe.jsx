@@ -93,7 +93,8 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
       setShowNaoRealizadaForm(false);
       setShowReagendarForm(false);
       setShowSugerirProxima(false);
-      }, [reuniao?.id, open]);
+    }
+  }, [reuniao?.id, open]);
 
   if (!reuniao) return null;
 
@@ -380,7 +381,6 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
               )}
             </div>
           )}
-        </div>
 
           {/* Sugerir próxima reunião */}
           {showSugerirProxima && reuniao.status === 'realizada' && (
@@ -395,6 +395,7 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
               </div>
             </div>
           )}
+        </div>
 
         <div className="flex justify-end pt-2 border-t">
           <Button variant="outline" size="sm" onClick={onEdit}>
