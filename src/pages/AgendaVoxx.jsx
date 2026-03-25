@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Plus, CalendarDays, Calendar, List, Clock, AlertTriangle, UserCheck } from 'lucide-react';
+import AgendaAlertas from '@/components/agenda/AgendaAlertas';
 import {
   format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   addWeeks, subWeeks, addMonths, subMonths, eachDayOfInterval,
@@ -227,6 +228,7 @@ export default function AgendaVoxx({ user }) {
   const [defaultModalDate, setDefaultModalDate] = useState(null);
   const [editingReuniao, setEditingReuniao] = useState(null);
   const [detalheReuniao, setDetalheReuniao] = useState(null);
+  const [cloneData, setCloneData] = useState(null);
   const [filtroUsuario, setFiltroUsuario] = useState('all');
   const [filtroUnidade, setFiltroUnidade] = useState('all');
   const [filtroStatus, setFiltroStatus] = useState('all');
@@ -317,8 +319,14 @@ export default function AgendaVoxx({ user }) {
     setDetalheReuniao(reuniao);
   };
 
-  const handleEditFromDetalhe = () => {
-    setEditingReuniao(detalheReuniao);
+  const handleEditFromDetalhe = (opts) => {
+    if (opts?.clone) {
+      // Clonar reunião para criar próxima
+      setCloneData(opts.reuniao);
+      setEditingReuniao(null);
+    } else {
+      setEditingReuniao(detalheReuniao);
+    }
     setDetalheReuniao(null);
     setModalOpen(true);
   };
@@ -420,6 +428,8 @@ export default function AgendaVoxx({ user }) {
         </div>
       </div>
 
+      <AgendaAlertas reunioes={reunioes} onClickReuniao={setDetalheReuniao} />
+
       {/* Calendário */}
       <div className="bg-white border-b min-h-[600px]">
         {isLoading ? (
@@ -449,10 +459,11 @@ export default function AgendaVoxx({ user }) {
       {/* Modais */}
       <NovaReuniaoModal
         open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditingReuniao(null); }}
+        onClose={() => { setModalOpen(false); setEditingReuniao(null); setCloneData(null); }}
         onSaved={refresh}
         reuniao={editingReuniao}
         defaultDate={defaultModalDate}
+        cloneFrom={cloneData}
       />
 
       <EventoDetalhe

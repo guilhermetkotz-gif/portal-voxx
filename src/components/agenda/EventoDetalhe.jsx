@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Calendar, Clock, Building2, Users, Target, Edit2,
-  CheckCircle, XCircle, X, AlertTriangle, UserCheck, Loader2, Save
+  CheckCircle, XCircle, X, AlertTriangle, UserCheck, Loader2, Save,
+  RefreshCw, Plus
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -55,6 +56,9 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
 
   const [showRegistroForm, setShowRegistroForm] = useState(false);
   const [showNaoRealizadaForm, setShowNaoRealizadaForm] = useState(false);
+  const [showReagendarForm, setShowReagendarForm] = useState(false);
+  const [showSugerirProxima, setShowSugerirProxima] = useState(false);
+  const [reagendar, setReagendar] = useState({ start_datetime: '', end_datetime: '', reschedule_reason: '' });
 
   const { data: voxxUsers = [] } = useQuery({
     queryKey: ['voxx_users_agenda'],
@@ -84,10 +88,12 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
         non_completion_reason: reuniao.non_completion_reason || '',
         non_completion_notes: reuniao.non_completion_notes || '',
       });
+      setReagendar({ start_datetime: '', end_datetime: '', reschedule_reason: '' });
       setShowRegistroForm(false);
       setShowNaoRealizadaForm(false);
-    }
-  }, [reuniao?.id, open]);
+      setShowReagendarForm(false);
+      setShowSugerirProxima(false);
+      }, [reuniao?.id, open]);
 
   if (!reuniao) return null;
 
@@ -100,8 +106,23 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
     setLoadingStatus(true);
     await base44.entities.AgendaReuniao.update(reuniao.id, { status });
     setLoadingStatus(false);
-    if (status === 'realizada') setShowRegistroForm(true);
+    if (status === 'realizada') { setShowRegistroForm(true); setShowSugerirProxima(true); }
     if (status === 'nao_realizada') setShowNaoRealizadaForm(true);
+    onStatusChange();
+  };
+
+  const saveReagendar = async () => {
+    if (!reagendar.start_datetime || !reagendar.end_datetime) return;
+    setSavingRegistro(true);
+    await base44.entities.AgendaReuniao.update(reuniao.id, {
+      status: 'reagendada',
+      rescheduled_from: reuniao.start_datetime,
+      reschedule_reason: reagendar.reschedule_reason,
+      start_datetime: new Date(reagendar.start_datetime).toISOString(),
+      end_datetime: new Date(reagendar.end_datetime).toISOString(),
+    });
+    setSavingRegistro(false);
+    setShowReagendarForm(false);
     onStatusChange();
   };
 
@@ -187,20 +208,53 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
           </div>
 
           {/* Ações de status */}
-          {reuniao.status === 'agendada' && (
+          {(reuniao.status === 'agendada' || reuniao.status === 'reagendada') && (
             <div className="border rounded-xl p-3 space-y-2 bg-slate-50">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Ação rápida</p>
-              <div className="flex gap-2 flex-wrap">
-                <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => changeStatus('realizada')} disabled={loadingStatus}>
-                  <CheckCircle className="w-3.5 h-3.5" /> Marcar como realizada
-                </Button>
-                <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => changeStatus('nao_realizada')} disabled={loadingStatus}>
-                  <XCircle className="w-3.5 h-3.5" /> Não realizada
-                </Button>
-                <Button size="sm" variant="outline" className="text-slate-500" onClick={() => changeStatus('cancelada')} disabled={loadingStatus}>
-                  <X className="w-3.5 h-3.5" /> Cancelar
-                </Button>
-              </div>
+              {!showReagendarForm ? (
+                <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => changeStatus('realizada')} disabled={loadingStatus}>
+                    <CheckCircle className="w-3.5 h-3.5" /> Marcar como realizada
+                  </Button>
+                  <Button size="sm" variant="outline" className="border-amber-200 text-amber-700 hover:bg-amber-50" onClick={() => setShowReagendarForm(true)} disabled={loadingStatus}>
+                    <RefreshCw className="w-3.5 h-3.5" /> Reagendar
+                  </Button>
+                  <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => changeStatus('nao_realizada')} disabled={loadingStatus}>
+                    <XCircle className="w-3.5 h-3.5" /> Não realizada
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-slate-500" onClick={() => changeStatus('cancelada')} disabled={loadingStatus}>
+                    <X className="w-3.5 h-3.5" /> Cancelar
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-amber-700">Reagendamento</p>
+                  {reuniao.rescheduled_from && (
+                    <p className="text-xs text-slate-500">Data original: {new Date(reuniao.rescheduled_from).toLocaleString('pt-BR')}</p>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Novo início</Label>
+                      <Input type="datetime-local" className="mt-1 bg-white" value={reagendar.start_datetime} onChange={e => setReagendar(f => ({ ...f, start_datetime: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Novo término</Label>
+                      <Input type="datetime-local" className="mt-1 bg-white" value={reagendar.end_datetime} onChange={e => setReagendar(f => ({ ...f, end_datetime: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Motivo do reagendamento</Label>
+                    <Input className="mt-1 bg-white" placeholder="Ex: cliente indisponível" value={reagendar.reschedule_reason} onChange={e => setReagendar(f => ({ ...f, reschedule_reason: e.target.value }))} />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={saveReagendar} disabled={savingRegistro || !reagendar.start_datetime}>
+                      {savingRegistro && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      <Save className="w-3.5 h-3.5" /> Confirmar reagendamento
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowReagendarForm(false)}>Cancelar</Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -327,6 +381,20 @@ export default function EventoDetalhe({ reuniao, open, onClose, onEdit, onStatus
             </div>
           )}
         </div>
+
+          {/* Sugerir próxima reunião */}
+          {showSugerirProxima && reuniao.status === 'realizada' && (
+            <div className="bg-violet-50 border border-violet-200 rounded-xl p-4">
+              <p className="text-sm font-semibold text-violet-800 mb-2">📅 Deseja agendar a próxima reunião?</p>
+              <p className="text-xs text-violet-600 mb-3">A próxima reunião já virá preenchida com mesma unidade, participantes e tipo.</p>
+              <div className="flex gap-2">
+                <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => { onClose(); onEdit({ clone: true, reuniao }); }}>
+                  <Plus className="w-3.5 h-3.5" /> Agendar próxima
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowSugerirProxima(false)}>Depois</Button>
+              </div>
+            </div>
+          )}
 
         <div className="flex justify-end pt-2 border-t">
           <Button variant="outline" size="sm" onClick={onEdit}>
