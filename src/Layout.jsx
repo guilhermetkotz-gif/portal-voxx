@@ -12,6 +12,7 @@ import { getAccessibleClienteIds, isVoxxAdmin, isVoxxOperacao, logAction } from 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ChatWidget from '@/components/chat/ChatWidget';
+import ReuniaoLembrete from '@/components/agenda/ReuniaoLembrete';
 import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
@@ -357,6 +358,9 @@ export default function Layout({ children, currentPageName }) {
         {user && (
         <ChatWidget user={user} currentCliente={currentCliente} />
         )}
+
+        {/* Lembretes de reunião globais */}
+        {user && <ReuniaoLembrete user={user} />}
 
         {/* Toaster for notifications */}
         <Toaster />
