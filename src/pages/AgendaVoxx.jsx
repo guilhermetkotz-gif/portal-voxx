@@ -16,6 +16,7 @@ import {
 import { ptBR } from 'date-fns/locale';
 import NovaReuniaoModal from '@/components/agenda/NovaReuniaoModal';
 import EventoDetalhe from '@/components/agenda/EventoDetalhe';
+import HistoricoGeralReunioes from '@/components/agenda/HistoricoGeralReunioes';
 
 const STATUS_COLORS = {
   agendada:      { bg: 'bg-blue-500',   text: 'text-white',     border: 'border-blue-600' },
@@ -337,6 +338,7 @@ function VisualizacaoLista({ reunioes, onClickEvento }) {
 export default function AgendaVoxx({ user }) {
   const queryClient = useQueryClient();
   const [view, setView] = useState('semana');
+  const [mainTab, setMainTab] = useState('calendario');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [modalOpen, setModalOpen] = useState(false);
   const [defaultModalDate, setDefaultModalDate] = useState(null);
@@ -469,6 +471,28 @@ export default function AgendaVoxx({ user }) {
 
   return (
     <div className="space-y-0 -m-4 lg:-m-8">
+      {/* Tabs principais */}
+      <div className="flex border-b bg-white px-4 lg:px-8">
+        {[{ key: 'calendario', label: 'Calendário' }, { key: 'historico', label: 'Histórico de Reuniões' }].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setMainTab(tab.key)}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              mainTab === tab.key
+                ? 'border-violet-600 text-violet-700'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {mainTab === 'historico' && (
+        <HistoricoGeralReunioes user={user} />
+      )}
+
+      {mainTab === 'calendario' && <>
       {/* Topo */}
       <div className="flex items-center justify-between gap-3 px-4 lg:px-8 py-4 border-b bg-white sticky top-0 z-10 flex-wrap gap-y-2">
         <div className="flex items-center gap-3">
@@ -610,6 +634,7 @@ export default function AgendaVoxx({ user }) {
         onEdit={handleEditFromDetalhe}
         onStatusChange={refresh}
       />
+      </> /* fim mainTab === 'calendario' */}
     </div>
   );
 }
