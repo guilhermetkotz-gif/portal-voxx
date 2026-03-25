@@ -81,27 +81,33 @@ function ObservacaoModal({ receita, user, onClose, onSaved }) {
   );
 }
 
-function InadimplenciaView({ receitas }) {
+function InadimplenciaView() {
   const [filtroUnidade, setFiltroUnidade] = useState('');
-  const [filtroFaixa, setFiltroFaixa] = useState('all');
+  const [filtroPeriodo, setFiltroPeriodo] = useState('all');
   const [obsTarget, setObsTarget] = useState(null);
   const { user } = useAuth();
 
+  const { data: todasReceitas = [], isLoading } = useQuery({
+    queryKey: ['fin-receitas-inadimplencia'],
+    queryFn: () => base44.entities.FinanceiroReceita.filter({}, '-created_date', 1000),
+  });
+
   const inadimplentes = useMemo(() => {
-    return receitas
+    const mesAtual = format(new Date(), 'yyyy-MM');
+    const limite30 = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+
+    return todasReceitas
       .filter(r => r.status === 'em_atraso' || r.status === 'a_vencer')
-      .map(r => ({ ...r, dias: r.status === 'em_atraso' ? diasAtraso(r.data_cobranca) : 0 }))
+      .map(r => ({ ...r, dias: diasAtraso(r.data_cobranca) }))
       .filter(r => {
         const matchUnidade = !filtroUnidade || r.cliente_nome?.toLowerCase().includes(filtroUnidade.toLowerCase());
-        const matchFaixa = filtroFaixa === 'all'
-          || (filtroFaixa === '0' && r.status === 'a_vencer')
-          || (filtroFaixa === '1-15' && r.dias >= 1 && r.dias <= 15)
-          || (filtroFaixa === '16-30' && r.dias >= 16 && r.dias <= 30)
-          || (filtroFaixa === '30+' && r.dias > 30);
-        return matchUnidade && matchFaixa;
+        const matchPeriodo = filtroPeriodo === 'all'
+          || (filtroPeriodo === 'mes_atual' && r.mes_referencia === mesAtual)
+          || (filtroPeriodo === '30dias' && r.data_cobranca && r.data_cobranca >= limite30);
+        return matchUnidade && matchPeriodo;
       })
       .sort((a, b) => b.dias - a.dias);
-  }, [receitas, filtroUnidade, filtroFaixa]);
+  }, [todasReceitas, filtroUnidade, filtroPeriodo]);
 
   const totalAtraso = inadimplentes.filter(r => r.status === 'em_atraso').reduce((s, r) => s + (r.valor_mensal || 0), 0);
   const totalPendente = inadimplentes.filter(r => r.status === 'a_vencer').reduce((s, r) => s + (r.valor_mensal || 0), 0);
@@ -110,9 +116,33 @@ function InadimplenciaView({ receitas }) {
     ? Math.round(inadimplentes.filter(r => r.status === 'em_atraso').reduce((s, r) => s + r.dias, 0) / qtdInadimplentes)
     : 0;
 
+  const dist = {
+    ate7: inadimplentes.filter(r => r.dias >= 0 && r.dias <= 7).length,
+    ate30: inadimplentes.filter(r => r.dias >= 8 && r.dias <= 30).length,
+    mais30: inadimplentes.filter(r => r.dias > 30).length,
+  };
+
+  // Agrupar por mes_referencia
+  const porMes = useMemo(() => {
+    const grupos = {};
+    inadimplentes.forEach(r => {
+      const key = r.mes_referencia || 'sem-mes';
+      if (!grupos[key]) grupos[key] = [];
+      grupos[key].push(r);
+    });
+    return Object.entries(grupos).sort(([a], [b]) => b.localeCompare(a));
+  }, [inadimplentes]);
+
+  function labelMes(mesRef) {
+    if (!mesRef || mesRef === 'sem-mes') return 'Sem mês';
+    const [ano, mes] = mesRef.split('-');
+    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    return `${nomes[parseInt(mes) - 1]} ${ano}`;
+  }
+
   return (
     <div className="space-y-5">
-      {/* Resumo */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4 border-red-200 bg-red-50">
           <p className="text-xs text-red-500 mb-1">Total em Atraso</p>
@@ -132,76 +162,101 @@ function InadimplenciaView({ receitas }) {
         </Card>
       </div>
 
+      {/* Distribuição de atraso */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <span className="text-xs text-slate-500 font-medium">Distribuição:</span>
+        <span className="inline-flex items-center gap-1.5 text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded-full px-3 py-1">
+          <span className="w-2 h-2 rounded-full bg-amber-400" /> 0–7 dias: <strong>{dist.ate7}</strong>
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-xs bg-orange-50 border border-orange-200 text-orange-700 rounded-full px-3 py-1">
+          <span className="w-2 h-2 rounded-full bg-orange-400" /> 8–30 dias: <strong>{dist.ate30}</strong>
+        </span>
+        <span className="inline-flex items-center gap-1.5 text-xs bg-red-50 border border-red-200 text-red-700 rounded-full px-3 py-1">
+          <span className="w-2 h-2 rounded-full bg-red-500" /> +30 dias: <strong>{dist.mais30}</strong>
+        </span>
+      </div>
+
       {/* Filtros */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input placeholder="Filtrar unidade..." value={filtroUnidade} onChange={e => setFiltroUnidade(e.target.value)} className="pl-9 w-52" />
         </div>
-        <Select value={filtroFaixa} onValueChange={setFiltroFaixa}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Faixa de atraso" /></SelectTrigger>
+        <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Período" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as faixas</SelectItem>
-            <SelectItem value="0">Pendente (a vencer)</SelectItem>
-            <SelectItem value="1-15">1 a 15 dias</SelectItem>
-            <SelectItem value="16-30">16 a 30 dias</SelectItem>
-            <SelectItem value="30+">Mais de 30 dias</SelectItem>
+            <SelectItem value="all">Todos os períodos</SelectItem>
+            <SelectItem value="mes_atual">Mês atual</SelectItem>
+            <SelectItem value="30dias">Últimos 30 dias</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-slate-500">{inadimplentes.length} registros</span>
       </div>
 
-      {/* Lista */}
-      {inadimplentes.length === 0 ? (
+      {/* Lista agrupada por mês */}
+      {isLoading ? (
+        <Card className="p-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></Card>
+      ) : porMes.length === 0 ? (
         <Card className="p-10 text-center text-slate-400">
           <CheckCircle className="w-8 h-8 mx-auto mb-2 text-emerald-400" />
-          Nenhuma inadimplência encontrada para os filtros selecionados.
+          Nenhuma inadimplência encontrada.
         </Card>
       ) : (
-        <div className="space-y-2">
-          {inadimplentes.map(r => {
-            const isAtraso = r.status === 'em_atraso';
-            return (
-              <Card key={r.id} className={`p-4 border-l-4 ${isAtraso ? 'border-l-red-500' : 'border-l-amber-400'}`}>
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="flex items-start gap-3">
-                    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${isAtraso ? 'bg-red-500' : 'bg-amber-400'}`} />
-                    <div>
-                      <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
-                      <div className="flex items-center gap-3 mt-1 flex-wrap">
-                        <span className="text-sm font-bold text-slate-800">{fmt(r.valor_mensal)}</span>
-                        <span className="text-xs text-slate-500">Venc.: {r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—'}</span>
-                        {isAtraso && (
-                          <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
-                            {r.dias} {r.dias === 1 ? 'dia' : 'dias'} em atraso
-                          </Badge>
-                        )}
-                        {!isAtraso && (
-                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">A Vencer</Badge>
-                        )}
+        <div className="space-y-6">
+          {porMes.map(([mesRef, itens]) => (
+            <div key={mesRef}>
+              <div className="flex items-center gap-3 mb-2">
+                <h3 className="text-sm font-semibold text-slate-700">{labelMes(mesRef)}</h3>
+                <span className="text-xs text-slate-400">{itens.length} registro{itens.length !== 1 ? 's' : ''} · {fmt(itens.reduce((s, r) => s + (r.valor_mensal || 0), 0))}</span>
+                <div className="flex-1 h-px bg-slate-200" />
+              </div>
+              <div className="space-y-2">
+                {itens.map(r => {
+                  const isAtraso = r.status === 'em_atraso';
+                  const faixaColor = r.dias > 30 ? 'bg-red-500' : r.dias >= 8 ? 'bg-orange-400' : 'bg-amber-400';
+                  return (
+                    <Card key={r.id} className={`p-4 border-l-4 ${isAtraso ? 'border-l-red-500' : 'border-l-amber-400'}`}>
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex items-start gap-3">
+                          <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${faixaColor}`} />
+                          <div>
+                            <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
+                            <div className="flex items-center gap-3 mt-1 flex-wrap">
+                              <span className="text-sm font-bold text-slate-800">{fmt(r.valor_mensal)}</span>
+                              <span className="text-xs text-slate-500">Venc.: {r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—'}</span>
+                              {isAtraso ? (
+                                <Badge className={`text-xs ${r.dias > 30 ? 'bg-red-100 text-red-700 border-red-200' : r.dias >= 8 ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
+                                  {r.dias} {r.dias === 1 ? 'dia' : 'dias'} em atraso
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">A Vencer</Badge>
+                              )}
+                            </div>
+                            {r.observacao_recebimento && (
+                              <p className="text-xs text-slate-500 mt-1.5 bg-slate-50 rounded px-2 py-1 border border-slate-100">
+                                💬 {r.observacao_recebimento}
+                                {r.observacao_data && <span className="text-slate-400 ml-1">· {r.observacao_data.split('-').reverse().join('/')}</span>}
+                                {r.observacao_usuario && <span className="text-slate-400 ml-1">· {r.observacao_usuario}</span>}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setObsTarget(r)}
+                          className={`h-7 text-xs gap-1 ${r.observacao_recebimento ? 'border-violet-200 text-violet-600' : 'text-slate-500'}`}
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          {r.observacao_recebimento ? 'Ver obs.' : 'Obs.'}
+                        </Button>
                       </div>
-                      {r.observacao_recebimento && (
-                        <p className="text-xs text-slate-500 mt-1.5 bg-slate-50 rounded px-2 py-1 border border-slate-100">
-                          💬 {r.observacao_recebimento}
-                          {r.observacao_data && <span className="text-slate-400 ml-1">· {r.observacao_data.split('-').reverse().join('/')}</span>}
-                          {r.observacao_usuario && <span className="text-slate-400 ml-1">· {r.observacao_usuario}</span>}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setObsTarget(r)}
-                    className={`h-7 text-xs gap-1 ${r.observacao_recebimento ? 'border-violet-200 text-violet-600' : 'text-slate-500'}`}
-                  >
-                    <MessageSquare className="w-3 h-3" />
-                    {r.observacao_recebimento ? 'Ver obs.' : 'Obs.'}
-                  </Button>
-                </div>
-              </Card>
-            );
-          })}
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -352,7 +407,7 @@ export default function FinanceiroReceitas() {
       </div>
 
       {view === 'inadimplencia' ? (
-        <InadimplenciaView receitas={receitas} />
+        <InadimplenciaView />
       ) : (
         <>
           {/* KPIs */}
