@@ -23,7 +23,15 @@ const TIPOS_REUNIAO = [
 
 const toDatetimeLocal = (dt) => {
   if (!dt) return '';
-  return new Date(dt).toISOString().slice(0, 16);
+  const d = new Date(dt);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
+const dateToLocalInput = (date) => {
+  const d = new Date(date);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 const fromDatetimeLocal = (str) => str ? new Date(str).toISOString() : '';
@@ -32,11 +40,11 @@ export default function NovaReuniaoModal({ open, onClose, onSaved, reuniao = nul
   const isEdit = !!reuniao;
 
   const defaultStart = defaultDate
-    ? new Date(defaultDate).toISOString().slice(0, 16)
-    : new Date().toISOString().slice(0, 16);
+    ? dateToLocalInput(defaultDate)
+    : dateToLocalInput(new Date());
   const defaultEnd = defaultDate
-    ? (() => { const d = new Date(defaultDate); d.setHours(d.getHours() + 1); return d.toISOString().slice(0, 16); })()
-    : (() => { const d = new Date(); d.setHours(d.getHours() + 1); return d.toISOString().slice(0, 16); })();
+    ? (() => { const d = new Date(defaultDate); d.setHours(d.getHours() + 1); return dateToLocalInput(d); })()
+    : (() => { const d = new Date(); d.setHours(d.getHours() + 1); return dateToLocalInput(d); })();
 
   const [form, setForm] = useState({
     titulo: '',

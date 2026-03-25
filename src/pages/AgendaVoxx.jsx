@@ -84,13 +84,19 @@ function VisualizacaoSemana({ reunioes, currentDate, onClickDia, onClickEvento }
         {days.map(day => (
           <div key={day.toISOString()} className="border-r last:border-r-0 relative">
             {hours.map(h => (
-              <div key={h} className="h-14 border-b hover:bg-slate-50 cursor-pointer" onClick={() => { const d = new Date(day); d.setHours(h); onClickDia(d); }} />
+              <div key={h} className="h-14 border-b hover:bg-slate-50 cursor-pointer" onClick={() => { const d = new Date(day); d.setHours(h, 0, 0, 0); onClickDia(d); }} />
             ))}
-            <div className="absolute top-0 left-0 right-0 p-0.5">
-              {eventosDia(day).map(r => (
-                <EventoPill key={r.id} reuniao={r} onClick={onClickEvento} />
-              ))}
-            </div>
+            {eventosDia(day).map(r => {
+              const start = parseISO(r.start_datetime);
+              const hour = start.getHours();
+              const minutes = start.getMinutes();
+              const topPx = ((hour - 7) * 56) + (minutes / 60 * 56);
+              return (
+                <div key={r.id} className="absolute left-0.5 right-0.5" style={{ top: `${Math.max(0, topPx)}px` }}>
+                  <EventoPill reuniao={r} onClick={onClickEvento} />
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
