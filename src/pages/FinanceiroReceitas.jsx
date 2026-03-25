@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
@@ -9,23 +9,218 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw } from 'lucide-react';
+import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle } from 'lucide-react';
 import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
-import { format } from 'date-fns';
+import { format, differenceInDays, parseISO } from 'date-fns';
+import { useAuth } from '@/lib/AuthContext';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const today = format(new Date(), 'yyyy-MM-dd');
 
 const STATUS_CONFIG = {
-  a_vencer: { label: 'A Vencer', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock },
-  pago: { label: 'Pago', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle },
-  em_atraso: { label: 'Em Atraso', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
+  a_vencer: { label: 'A Vencer', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock, dot: 'bg-amber-400' },
+  pago:     { label: 'Pago',     color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle, dot: 'bg-emerald-500' },
+  em_atraso:{ label: 'Em Atraso',color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle, dot: 'bg-red-500' },
+  previsto: { label: 'Previsto', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: Clock, dot: 'bg-slate-400' },
 };
 
 const EMPTY = { cliente_nome: '', cliente_financeiro_id: '', valor_mensal: '', tipo_contrato: 'mensal', data_cobranca: '', status: 'a_vencer', data_recebimento: '', observacao_recebimento: '', comprovante_recebimento: '', recorrente: false, frequencia: 'mensal', data_inicio: '', data_fim: '' };
 
+function diasAtraso(data_cobranca) {
+  if (!data_cobranca) return 0;
+  const diff = differenceInDays(new Date(), parseISO(data_cobranca));
+  return Math.max(0, diff);
+}
+
+function ObservacaoModal({ receita, user, onClose, onSaved }) {
+  const qc = useQueryClient();
+  const [texto, setTexto] = useState(receita?.observacao_recebimento || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await base44.entities.FinanceiroReceita.update(receita.id, {
+      observacao_recebimento: texto,
+      observacao_data: format(new Date(), 'yyyy-MM-dd'),
+      observacao_usuario: user?.full_name || user?.email || '',
+    });
+    qc.invalidateQueries({ queryKey: ['fin-receitas'] });
+    setSaving(false);
+    onSaved?.();
+    onClose();
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Observação — {receita?.cliente_nome}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          {receita?.observacao_data && (
+            <p className="text-xs text-slate-400">
+              Última edição: {receita.observacao_data?.split('-').reverse().join('/')}
+              {receita.observacao_usuario ? ` · ${receita.observacao_usuario}` : ''}
+            </p>
+          )}
+          <textarea
+            className="w-full border border-input rounded-md px-3 py-2 text-sm min-h-[120px] resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+            placeholder="Adicione uma observação sobre esta receita (cobranças, acordos, contatos...)..."
+            value={texto}
+            onChange={e => setTexto(e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-violet-600 hover:bg-violet-700">
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />} Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InadimplenciaView({ receitas }) {
+  const [filtroUnidade, setFiltroUnidade] = useState('');
+  const [filtroFaixa, setFiltroFaixa] = useState('all');
+  const [obsTarget, setObsTarget] = useState(null);
+  const { user } = useAuth();
+
+  const inadimplentes = useMemo(() => {
+    return receitas
+      .filter(r => r.status === 'em_atraso' || r.status === 'a_vencer')
+      .map(r => ({ ...r, dias: r.status === 'em_atraso' ? diasAtraso(r.data_cobranca) : 0 }))
+      .filter(r => {
+        const matchUnidade = !filtroUnidade || r.cliente_nome?.toLowerCase().includes(filtroUnidade.toLowerCase());
+        const matchFaixa = filtroFaixa === 'all'
+          || (filtroFaixa === '0' && r.status === 'a_vencer')
+          || (filtroFaixa === '1-15' && r.dias >= 1 && r.dias <= 15)
+          || (filtroFaixa === '16-30' && r.dias >= 16 && r.dias <= 30)
+          || (filtroFaixa === '30+' && r.dias > 30);
+        return matchUnidade && matchFaixa;
+      })
+      .sort((a, b) => b.dias - a.dias);
+  }, [receitas, filtroUnidade, filtroFaixa]);
+
+  const totalAtraso = inadimplentes.filter(r => r.status === 'em_atraso').reduce((s, r) => s + (r.valor_mensal || 0), 0);
+  const totalPendente = inadimplentes.filter(r => r.status === 'a_vencer').reduce((s, r) => s + (r.valor_mensal || 0), 0);
+  const qtdInadimplentes = inadimplentes.filter(r => r.status === 'em_atraso').length;
+  const mediaDias = qtdInadimplentes > 0
+    ? Math.round(inadimplentes.filter(r => r.status === 'em_atraso').reduce((s, r) => s + r.dias, 0) / qtdInadimplentes)
+    : 0;
+
+  return (
+    <div className="space-y-5">
+      {/* Resumo */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4 border-red-200 bg-red-50">
+          <p className="text-xs text-red-500 mb-1">Total em Atraso</p>
+          <p className="text-xl font-bold text-red-700">{fmt(totalAtraso)}</p>
+        </Card>
+        <Card className="p-4 border-amber-200 bg-amber-50">
+          <p className="text-xs text-amber-600 mb-1">Total Pendente</p>
+          <p className="text-xl font-bold text-amber-700">{fmt(totalPendente)}</p>
+        </Card>
+        <Card className="p-4 border-red-200 bg-red-50">
+          <p className="text-xs text-red-500 mb-1">Clientes Inadimplentes</p>
+          <p className="text-xl font-bold text-red-700">{qtdInadimplentes}</p>
+        </Card>
+        <Card className="p-4 border-slate-200">
+          <p className="text-xs text-slate-500 mb-1">Média de Dias em Atraso</p>
+          <p className="text-xl font-bold text-slate-700">{mediaDias} dias</p>
+        </Card>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Input placeholder="Filtrar unidade..." value={filtroUnidade} onChange={e => setFiltroUnidade(e.target.value)} className="pl-9 w-52" />
+        </div>
+        <Select value={filtroFaixa} onValueChange={setFiltroFaixa}>
+          <SelectTrigger className="w-44"><SelectValue placeholder="Faixa de atraso" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as faixas</SelectItem>
+            <SelectItem value="0">Pendente (a vencer)</SelectItem>
+            <SelectItem value="1-15">1 a 15 dias</SelectItem>
+            <SelectItem value="16-30">16 a 30 dias</SelectItem>
+            <SelectItem value="30+">Mais de 30 dias</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-sm text-slate-500">{inadimplentes.length} registros</span>
+      </div>
+
+      {/* Lista */}
+      {inadimplentes.length === 0 ? (
+        <Card className="p-10 text-center text-slate-400">
+          <CheckCircle className="w-8 h-8 mx-auto mb-2 text-emerald-400" />
+          Nenhuma inadimplência encontrada para os filtros selecionados.
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {inadimplentes.map(r => {
+            const isAtraso = r.status === 'em_atraso';
+            return (
+              <Card key={r.id} className={`p-4 border-l-4 ${isAtraso ? 'border-l-red-500' : 'border-l-amber-400'}`}>
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${isAtraso ? 'bg-red-500' : 'bg-amber-400'}`} />
+                    <div>
+                      <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap">
+                        <span className="text-sm font-bold text-slate-800">{fmt(r.valor_mensal)}</span>
+                        <span className="text-xs text-slate-500">Venc.: {r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—'}</span>
+                        {isAtraso && (
+                          <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
+                            {r.dias} {r.dias === 1 ? 'dia' : 'dias'} em atraso
+                          </Badge>
+                        )}
+                        {!isAtraso && (
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">A Vencer</Badge>
+                        )}
+                      </div>
+                      {r.observacao_recebimento && (
+                        <p className="text-xs text-slate-500 mt-1.5 bg-slate-50 rounded px-2 py-1 border border-slate-100">
+                          💬 {r.observacao_recebimento}
+                          {r.observacao_data && <span className="text-slate-400 ml-1">· {r.observacao_data.split('-').reverse().join('/')}</span>}
+                          {r.observacao_usuario && <span className="text-slate-400 ml-1">· {r.observacao_usuario}</span>}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setObsTarget(r)}
+                    className={`h-7 text-xs gap-1 ${r.observacao_recebimento ? 'border-violet-200 text-violet-600' : 'text-slate-500'}`}
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    {r.observacao_recebimento ? 'Ver obs.' : 'Obs.'}
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {obsTarget && (
+        <ObservacaoModal
+          receita={obsTarget}
+          user={user}
+          onClose={() => setObsTarget(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function FinanceiroReceitas() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [mes, setMes] = useState(format(new Date(), 'yyyy-MM'));
+  const [view, setView] = useState('lista'); // 'lista' | 'inadimplencia'
   const [search, setSearch] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('all');
   const [filtroComp, setFiltroComp] = useState('all');
@@ -37,6 +232,7 @@ export default function FinanceiroReceitas() {
   const [showConfirmGerar, setShowConfirmGerar] = useState(false);
   const [gerarResultado, setGerarResultado] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [obsTarget, setObsTarget] = useState(null);
 
   const { data: receitas = [], isLoading } = useQuery({
     queryKey: ['fin-receitas', mes],
@@ -46,9 +242,9 @@ export default function FinanceiroReceitas() {
   const filtered = receitas.filter(r => {
     const matchSearch = !search || r.cliente_nome?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filtroStatus === 'all' || r.status === filtroStatus;
-    const matchComp = filtroComp === 'all' ||
-      (filtroComp === 'com' && r.comprovante_recebimento) ||
-      (filtroComp === 'sem' && !r.comprovante_recebimento);
+    const matchComp = filtroComp === 'all'
+      || (filtroComp === 'com' && r.comprovante_recebimento)
+      || (filtroComp === 'sem' && !r.comprovante_recebimento);
     return matchSearch && matchStatus && matchComp;
   }).sort((a, b) => {
     if (!a.data_cobranca && !b.data_cobranca) return 0;
@@ -112,6 +308,7 @@ export default function FinanceiroReceitas() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-100 rounded-xl">
@@ -133,94 +330,153 @@ export default function FinanceiroReceitas() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 border-slate-200">
-          <p className="text-xs text-slate-500 mb-1">Total MRR</p>
-          <p className="text-xl font-bold text-slate-900">{fmt(totais.total)}</p>
-        </Card>
-        <Card className="p-4 border-emerald-200 bg-emerald-50">
-          <p className="text-xs text-emerald-600 mb-1">Recebido</p>
-          <p className="text-xl font-bold text-emerald-700">{fmt(totais.pago)}</p>
-        </Card>
-        <Card className="p-4 border-amber-200 bg-amber-50">
-          <p className="text-xs text-amber-600 mb-1">Pendente / Atraso</p>
-          <p className="text-xl font-bold text-amber-700">{fmt(totais.pendente)}</p>
-        </Card>
-        <Card className={`p-4 ${totais.semComp > 0 ? 'border-orange-200 bg-orange-50' : 'border-slate-200'}`}>
-          <p className="text-xs text-slate-500 mb-1">Pagos sem comprovante</p>
-          <p className={`text-xl font-bold ${totais.semComp > 0 ? 'text-orange-600' : 'text-slate-700'}`}>{totais.semComp}</p>
-        </Card>
+      {/* Toggle de visualização */}
+      <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+        <button
+          onClick={() => setView('lista')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'lista' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <List className="w-4 h-4" /> Lista
+        </button>
+        <button
+          onClick={() => setView('inadimplencia')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'inadimplencia' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+        >
+          <AlertTriangle className="w-4 h-4" /> Inadimplência
+          {receitas.filter(r => r.status === 'em_atraso').length > 0 && (
+            <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">
+              {receitas.filter(r => r.status === 'em_atraso').length}
+            </span>
+          )}
+        </button>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <input type="month" value={mes} onChange={e => setMes(e.target.value)}
-          className="border border-input rounded-md px-3 py-1.5 text-sm bg-white" />
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-48" />
-        </div>
-        <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-          <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            <SelectItem value="pago">✅ Pago</SelectItem>
-            <SelectItem value="a_vencer">🟡 A Vencer</SelectItem>
-            <SelectItem value="em_atraso">🔴 Em Atraso</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filtroComp} onValueChange={setFiltroComp}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Comprovante" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="com">Com comprovante</SelectItem>
-            <SelectItem value="sem">Sem comprovante</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        {isLoading ? (
-          <Card className="p-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></Card>
-        ) : filtered.length === 0 ? (
-          <Card className="p-8 text-center text-slate-400">Nenhuma receita encontrada. <br /><span className="text-sm">Clique em "Nova Receita" para começar.</span></Card>
-        ) : filtered.map(r => {
-          const sc = STATUS_CONFIG[r.status] || STATUS_CONFIG.a_vencer;
-          const Icon = sc.icon;
-          return (
-            <Card key={r.id} className="p-4 hover:shadow-sm transition-shadow">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${sc.color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
-                    <p className="text-xs text-slate-500">{r.tipo_contrato} · Cobrança: {r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—'}{r.data_recebimento && ` · Recebido: ${r.data_recebimento}`}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-lg font-bold text-slate-900">{fmt(r.valor_mensal)}</span>
-                  <Badge className={sc.color}>{sc.label}</Badge>
-                  {r.comprovante_recebimento ? (
-                    <a href={r.comprovante_recebimento} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 h-7 text-xs">
-                        <FileText className="w-3 h-3" /> Comprovante
-                      </Button>
-                    </a>
-                  ) : (
-                    <span className="text-xs text-amber-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Sem comprovante</span>
-                  )}
-                  <Button variant="outline" size="sm" onClick={() => openEdit(r)} className="h-7 text-xs">Editar</Button>
-                  <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(r)} className="text-red-400 h-7 px-2">
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
+      {view === 'inadimplencia' ? (
+        <InadimplenciaView receitas={receitas} />
+      ) : (
+        <>
+          {/* KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="p-4 border-slate-200">
+              <p className="text-xs text-slate-500 mb-1">Total MRR</p>
+              <p className="text-xl font-bold text-slate-900">{fmt(totais.total)}</p>
             </Card>
-          );
-        })}
-      </div>
+            <Card className="p-4 border-emerald-200 bg-emerald-50">
+              <p className="text-xs text-emerald-600 mb-1">Recebido</p>
+              <p className="text-xl font-bold text-emerald-700">{fmt(totais.pago)}</p>
+            </Card>
+            <Card className="p-4 border-amber-200 bg-amber-50">
+              <p className="text-xs text-amber-600 mb-1">Pendente / Atraso</p>
+              <p className="text-xl font-bold text-amber-700">{fmt(totais.pendente)}</p>
+            </Card>
+            <Card className={`p-4 ${totais.semComp > 0 ? 'border-orange-200 bg-orange-50' : 'border-slate-200'}`}>
+              <p className="text-xs text-slate-500 mb-1">Pagos sem comprovante</p>
+              <p className={`text-xl font-bold ${totais.semComp > 0 ? 'text-orange-600' : 'text-slate-700'}`}>{totais.semComp}</p>
+            </Card>
+          </div>
 
+          {/* Filtros */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <input type="month" value={mes} onChange={e => setMes(e.target.value)}
+              className="border border-input rounded-md px-3 py-1.5 text-sm bg-white" />
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Input placeholder="Buscar cliente..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-48" />
+            </div>
+            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+              <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="pago">✅ Pago</SelectItem>
+                <SelectItem value="a_vencer">🟡 A Vencer</SelectItem>
+                <SelectItem value="em_atraso">🔴 Em Atraso</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filtroComp} onValueChange={setFiltroComp}>
+              <SelectTrigger className="w-44"><SelectValue placeholder="Comprovante" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="com">Com comprovante</SelectItem>
+                <SelectItem value="sem">Sem comprovante</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Lista */}
+          <div className="space-y-2">
+            {isLoading ? (
+              <Card className="p-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></Card>
+            ) : filtered.length === 0 ? (
+              <Card className="p-8 text-center text-slate-400">Nenhuma receita encontrada. <br /><span className="text-sm">Clique em "Nova Receita" para começar.</span></Card>
+            ) : filtered.map(r => {
+              const sc = STATUS_CONFIG[r.status] || STATUS_CONFIG.a_vencer;
+              const Icon = sc.icon;
+              return (
+                <Card key={r.id} className="p-4 hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${sc.color}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
+                          {r.observacao_recebimento && (
+                            <span title={r.observacao_recebimento} className="text-violet-500 cursor-pointer" onClick={() => setObsTarget(r)}>
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          {r.tipo_contrato} · Cobrança: {r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—'}
+                          {r.data_recebimento && ` · Recebido: ${r.data_recebimento.split('-').reverse().join('/')}`}
+                        </p>
+                        {r.observacao_recebimento && (
+                          <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">💬 {r.observacao_recebimento}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-lg font-bold text-slate-900">{fmt(r.valor_mensal)}</span>
+                      <Badge className={sc.color}>{sc.label}</Badge>
+                      {r.status === 'em_atraso' && r.data_cobranca && (
+                        <Badge className="bg-red-50 text-red-600 border-red-200 text-xs">{diasAtraso(r.data_cobranca)}d atraso</Badge>
+                      )}
+                      {r.comprovante_recebimento ? (
+                        <a href={r.comprovante_recebimento} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 h-7 text-xs">
+                            <FileText className="w-3 h-3" /> Comprovante
+                          </Button>
+                        </a>
+                      ) : (
+                        <span className="text-xs text-amber-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Sem comprovante</span>
+                      )}
+                      <Button variant="outline" size="sm" onClick={() => setObsTarget(r)} className={`h-7 text-xs gap-1 ${r.observacao_recebimento ? 'border-violet-200 text-violet-600' : ''}`}>
+                        <MessageSquare className="w-3 h-3" /> Obs.
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => openEdit(r)} className="h-7 text-xs">Editar</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(r)} className="text-red-400 h-7 px-2">
+                        <X className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Modal observação */}
+      {obsTarget && (
+        <ObservacaoModal
+          receita={obsTarget}
+          user={user}
+          onClose={() => setObsTarget(null)}
+        />
+      )}
+
+      {/* Confirm gerar recorrentes */}
       <AlertDialog open={showConfirmGerar} onOpenChange={setShowConfirmGerar}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -242,6 +498,7 @@ export default function FinanceiroReceitas() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Resultado gerar recorrentes */}
       <AlertDialog open={!!gerarResultado} onOpenChange={open => !open && setGerarResultado(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -259,6 +516,7 @@ export default function FinanceiroReceitas() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Confirm excluir */}
       <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -280,6 +538,7 @@ export default function FinanceiroReceitas() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Modal novo/editar receita */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -293,7 +552,7 @@ export default function FinanceiroReceitas() {
                 onChange={(cliente) => {
                   if (!cliente) { setForm(f => ({ ...f, cliente_nome: '', cliente_financeiro_id: '' })); return; }
                   const dataCobranca = cliente.dia_cobranca
-                    ? `${form.mes_referencia || new Date().toISOString().slice(0, 7)}-${String(cliente.dia_cobranca).padStart(2, '0')}`
+                    ? `${mes}-${String(cliente.dia_cobranca).padStart(2, '0')}`
                     : form.data_cobranca;
                   setForm(f => ({
                     ...f,
@@ -375,10 +634,6 @@ export default function FinanceiroReceitas() {
                 </div>
               </div>
             )}
-            <div>
-              <Label>Observação</Label>
-              <Input value={form.observacao_recebimento} onChange={e => setForm(f => ({ ...f, observacao_recebimento: e.target.value }))} placeholder="Observações..." />
-            </div>
             <div>
               <Label>Comprovante de Recebimento</Label>
               {form.comprovante_recebimento ? (
