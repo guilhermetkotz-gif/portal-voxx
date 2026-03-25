@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ChevronLeft, ChevronRight, Plus, CalendarDays, Calendar, List, Clock, AlertTriangle, UserCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, CalendarDays, Calendar, List, Clock, AlertTriangle, UserCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import AgendaAlertas from '@/components/agenda/AgendaAlertas';
 import {
   format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
@@ -34,46 +34,128 @@ const TIPOS_LABEL = {
   resultados: 'Resultados', estrategico: 'Estratégico', operacional: 'Operacional', retencao: 'Retenção',
 };
 
-function EventoPill({ reuniao, onClick }) {
+function hasRegistro(r) {
+  return !!(r.summary || r.discussion_points || r.pending_items || r.next_steps);
+}
+
+function isCritical(r) {
+  if (r.status === 'nao_realizada') return true;
+  if (r.status === 'realizada' && !hasRegistro(r)) return true;
+  if (r.followup_date && new Date(r.followup_date) < new Date() && r.status !== 'cancelada') return true;
+  return false;
+}
+
+function EventoPill({ reuniao, onClick, onDragStart }) {
   const sc = STATUS_COLORS[reuniao.status] || STATUS_COLORS.agendada;
   const start = parseISO(reuniao.start_datetime);
+  const critical = isCritical(reuniao);
+  const temRegistro = hasRegistro(reuniao);
+  const realizada = reuniao.status === 'realizada';
+
   return (
     <button
+      draggable
+      onDragStart={(e) => { e.stopPropagation(); onDragStart && onDragStart(e, reuniao); }}
       onClick={(e) => { e.stopPropagation(); onClick(reuniao); }}
-      className={`w-full text-left rounded px-1.5 py-0.5 mb-0.5 truncate text-xs font-medium ${sc.bg} ${sc.text} hover:opacity-90 transition-opacity`}
+      className={`w-full text-left rounded-md px-1.5 py-1 mb-0.5 text-xs font-medium transition-all hover:brightness-95 active:scale-[0.98] ${sc.bg} ${sc.text} ${
+        critical ? 'ring-2 ring-red-400 ring-offset-1' : ''
+      }`}
     >
-      {format(start, 'HH:mm')} {reuniao.titulo}
+      <div className="flex items-center justify-between gap-1">
+        <span className="font-semibold truncate">{format(start, 'HH:mm')} {reuniao.titulo}</span>
+        <span className="shrink-0 opacity-90">
+          {realizada ? (
+            temRegistro
+              ? <CheckCircle2 className="w-3 h-3 inline text-green-200" />
+              : <AlertCircle className="w-3 h-3 inline text-yellow-200" />
+          ) : null}
+          {reuniao.followup_date && <span className="ml-0.5">📌</span>}
+        </span>
+      </div>
+      {reuniao.unidade_nome && (
+        <div className="truncate opacity-80 text-[10px]">{reuniao.unidade_nome}</div>
+      )}
+      {reuniao.participantes_nomes?.length > 0 && (
+        <div className="truncate opacity-70 text-[10px]">
+          {reuniao.participantes_nomes.slice(0, 2).map(n => n.split(' ')[0]).join(', ')}
+          {reuniao.participantes_nomes.length > 2 ? ` +${reuniao.participantes_nomes.length - 2}` : ''}
+        </div>
+      )}
     </button>
   );
 }
 
-function VisualizacaoSemana({ reunioes, currentDate, onClickDia, onClickEvento }) {
+function VisualizacaoSemana({ reunioes, currentDate, onClickDia, onClickEvento, onReschedule }) {
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from({ length: 14 }, (_, i) => i + 7); // 7h–20h
+  const [currentTimeTop, setCurrentTimeTop] = useState(null);
+  const [dragOver, setDragOver] = useState(null); // {dayIdx, hour}
+  const [draggingId, setDraggingId] = useState(null);
+  const gridRef = useRef(null);
+
+  useEffect(() => {
+    const calcTop = () => {
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      if (h < 7 || h > 20) { setCurrentTimeTop(null); return; }
+      setCurrentTimeTop(((h - 7) * 56) + (m / 60 * 56));
+    };
+    calcTop();
+    const iv = setInterval(calcTop, 60000);
+    return () => clearInterval(iv);
+  }, []);
 
   const eventosDia = (day) => reunioes.filter(r => isSameDay(parseISO(r.start_datetime), day));
+
+  const handleDragStart = (e, reuniao) => {
+    e.dataTransfer.setData('reuniaoId', reuniao.id);
+    setDraggingId(reuniao.id);
+  };
+
+  const handleDrop = (e, day, hour) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('reuniaoId');
+    setDragOver(null);
+    setDraggingId(null);
+    if (id && onReschedule) onReschedule(id, day, hour);
+  };
+
+  const isToday = isSameDay(currentDate, new Date());
+  const todayDayIdx = days.findIndex(d => isSameDay(d, new Date()));
 
   return (
     <div className="overflow-x-auto">
       {/* Header dos dias */}
       <div className="grid grid-cols-8 border-b bg-slate-50">
         <div className="p-2 text-xs text-slate-400 text-center border-r">Hora</div>
-        {days.map(day => (
-          <div key={day.toISOString()} className="p-2 text-center border-r last:border-r-0">
-            <p className="text-xs text-slate-500">{format(day, 'EEE', { locale: ptBR })}</p>
-            <button
-              onClick={() => onClickDia(day)}
-              className={`w-8 h-8 mx-auto mt-1 rounded-full flex items-center justify-center text-sm font-semibold
-                ${isSameDay(day, new Date()) ? 'bg-violet-600 text-white' : 'text-slate-700 hover:bg-slate-200'}`}
-            >
-              {format(day, 'd')}
-            </button>
-          </div>
-        ))}
+        {days.map((day, di) => {
+          const count = eventosDia(day).length;
+          const isT = isSameDay(day, new Date());
+          return (
+            <div key={day.toISOString()} className="p-2 text-center border-r last:border-r-0">
+              <p className="text-xs text-slate-500 capitalize">{format(day, 'EEE', { locale: ptBR })}</p>
+              <button
+                onClick={() => onClickDia(day)}
+                className={`w-8 h-8 mx-auto mt-0.5 rounded-full flex items-center justify-center text-sm font-bold
+                  ${isT ? 'bg-violet-600 text-white' : 'text-slate-700 hover:bg-slate-200'}`}
+              >
+                {format(day, 'd')}
+              </button>
+              {count > 0 && (
+                <span className={`mt-0.5 inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  isT ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'
+                }`}>{count} {count === 1 ? 'reunião' : 'reuniões'}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
-      {/* Eventos agrupados por dia (simplificado) */}
-      <div className="grid grid-cols-8 min-h-[500px]">
+
+      {/* Grid */}
+      <div className="grid grid-cols-8 min-h-[780px]" ref={gridRef}>
+        {/* Coluna de horas */}
         <div className="border-r">
           {hours.map(h => (
             <div key={h} className="h-14 border-b flex items-start px-2 pt-1">
@@ -81,19 +163,49 @@ function VisualizacaoSemana({ reunioes, currentDate, onClickDia, onClickEvento }
             </div>
           ))}
         </div>
-        {days.map(day => (
+
+        {days.map((day, di) => (
           <div key={day.toISOString()} className="border-r last:border-r-0 relative">
+            {/* Células clicáveis */}
             {hours.map(h => (
-              <div key={h} className="h-14 border-b hover:bg-slate-50 cursor-pointer" onClick={() => { const d = new Date(day); d.setHours(h, 0, 0, 0); onClickDia(d); }} />
+              <div
+                key={h}
+                className={`h-14 border-b cursor-pointer transition-colors ${
+                  dragOver?.di === di && dragOver?.h === h ? 'bg-violet-50' : 'hover:bg-slate-50'
+                }`}
+                onClick={() => { const d = new Date(day); d.setHours(h, 0, 0, 0); onClickDia(d); }}
+                onDragOver={(e) => { e.preventDefault(); setDragOver({ di, h }); }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={(e) => handleDrop(e, day, h)}
+              />
             ))}
+
+            {/* Linha de horário atual */}
+            {isSameDay(day, new Date()) && currentTimeTop !== null && (
+              <div className="absolute left-0 right-0 z-10 pointer-events-none" style={{ top: `${currentTimeTop}px` }}>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-red-500 shrink-0 -ml-1" />
+                  <div className="flex-1 h-px bg-red-400" />
+                </div>
+              </div>
+            )}
+
+            {/* Eventos */}
             {eventosDia(day).map(r => {
               const start = parseISO(r.start_datetime);
-              const hour = start.getHours();
-              const minutes = start.getMinutes();
-              const topPx = ((hour - 7) * 56) + (minutes / 60 * 56);
+              const end = parseISO(r.end_datetime);
+              const hourF = start.getHours();
+              const minutesF = start.getMinutes();
+              const topPx = ((hourF - 7) * 56) + (minutesF / 60 * 56);
+              const durationMin = (end - start) / 60000;
+              const heightPx = Math.max(28, (durationMin / 60) * 56 - 2);
               return (
-                <div key={r.id} className="absolute left-0.5 right-0.5" style={{ top: `${Math.max(0, topPx)}px` }}>
-                  <EventoPill reuniao={r} onClick={onClickEvento} />
+                <div
+                  key={r.id}
+                  className="absolute left-0.5 right-0.5"
+                  style={{ top: `${Math.max(0, topPx)}px`, height: `${heightPx}px` }}
+                >
+                  <EventoPill reuniao={r} onClick={onClickEvento} onDragStart={handleDragStart} />
                 </div>
               );
             })}
@@ -151,10 +263,6 @@ function VisualizacaoMes({ reunioes, currentDate, onClickDia, onClickEvento }) {
       ))}
     </div>
   );
-}
-
-function hasRegistro(r) {
-  return !!(r.summary || r.discussion_points || r.pending_items || r.next_steps);
 }
 
 function VisualizacaoLista({ reunioes, onClickEvento }) {
@@ -238,6 +346,7 @@ export default function AgendaVoxx({ user }) {
   const [filtroUsuario, setFiltroUsuario] = useState('all');
   const [filtroUnidade, setFiltroUnidade] = useState('all');
   const [filtroStatus, setFiltroStatus] = useState('all');
+  const [filtroProblemas, setFiltroProblemas] = useState(false);
 
   // Range de datas para busca
   const rangeStart = useMemo(() => {
@@ -290,8 +399,11 @@ export default function AgendaVoxx({ user }) {
     if (filtroStatus !== 'all') {
       list = list.filter(r => r.status === filtroStatus);
     }
+    if (filtroProblemas) {
+      list = list.filter(r => isCritical(r));
+    }
     return list;
-  }, [reunioes, rangeStart, rangeEnd, filtroUsuario, filtroUnidade, filtroStatus]);
+  }, [reunioes, rangeStart, rangeEnd, filtroUsuario, filtroUnidade, filtroStatus, filtroProblemas]);
 
   const navigate = (dir) => {
     if (view === 'semana') setCurrentDate(d => dir > 0 ? addWeeks(d, 1) : subWeeks(d, 1));
@@ -308,11 +420,29 @@ export default function AgendaVoxx({ user }) {
     return format(currentDate, "MMMM 'de' yyyy", { locale: ptBR });
   }, [view, currentDate]);
 
+
+
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['agenda_reunioes'] });
     setModalOpen(false);
     setEditingReuniao(null);
     setDetalheReuniao(null);
+  };
+
+  const handleReschedule = async (reuniaoId, newDay, newHour) => {
+    const r = reunioes.find(x => x.id === reuniaoId);
+    if (!r) return;
+    const oldStart = parseISO(r.start_datetime);
+    const oldEnd = parseISO(r.end_datetime);
+    const durMin = (oldEnd - oldStart) / 60000;
+    const newStart = new Date(newDay);
+    newStart.setHours(newHour, 0, 0, 0);
+    const newEnd = new Date(newStart.getTime() + durMin * 60000);
+    await base44.entities.AgendaReuniao.update(reuniaoId, {
+      start_datetime: newStart.toISOString(),
+      end_datetime: newEnd.toISOString(),
+    });
+    queryClient.invalidateQueries({ queryKey: ['agenda_reunioes'] });
   };
 
   const handleClickDia = (date) => {
@@ -446,6 +576,7 @@ export default function AgendaVoxx({ user }) {
             currentDate={currentDate}
             onClickDia={handleClickDia}
             onClickEvento={handleClickEvento}
+            onReschedule={handleReschedule}
           />
         ) : view === 'mes' ? (
           <VisualizacaoMes
