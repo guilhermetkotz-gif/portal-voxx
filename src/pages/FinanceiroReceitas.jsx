@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle } from 'lucide-react';
 import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
 import { format, differenceInDays, parseISO } from 'date-fns';
+import { jsPDF } from 'jspdf';
 import { useAuth } from '@/lib/AuthContext';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -79,6 +80,94 @@ function ObservacaoModal({ receita, user, onClose, onSaved }) {
       </DialogContent>
     </Dialog>
   );
+}
+
+function gerarPDFInadimplencia(inadimplentes) {
+  const doc = new jsPDF();
+  const hoje = format(new Date(), 'dd/MM/yyyy');
+  const nomeArquivo = `relatorio_inadimplencia_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+
+  const totalValor = inadimplentes.reduce((s, r) => s + (r.valor_mensal || 0), 0);
+  const qtd = inadimplentes.length;
+
+  // Cabeçalho
+  doc.setFillColor(220, 38, 38);
+  doc.rect(0, 0, 210, 28, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Relatório de Inadimplência', 14, 12);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Gerado em: ${hoje}`, 14, 21);
+
+  // Resumo
+  doc.setTextColor(30, 30, 30);
+  doc.setFillColor(254, 242, 242);
+  doc.rect(10, 33, 190, 22, 'F');
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RESUMO', 14, 41);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Total Inadimplente: ${totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, 48);
+  doc.text(`Unidades Inadimplentes: ${qtd}`, 110, 48);
+
+  // Cabeçalho da tabela
+  let y = 62;
+  doc.setFillColor(241, 245, 249);
+  doc.rect(10, y - 5, 190, 8, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(80, 80, 80);
+  doc.text('Unidade', 14, y);
+  doc.text('Valor', 80, y);
+  doc.text('Vencimento', 108, y);
+  doc.text('Atraso', 138, y);
+  doc.text('Observação', 158, y);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 30, 30);
+  y += 7;
+
+  inadimplentes.forEach((r, i) => {
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
+    if (i % 2 === 0) {
+      doc.setFillColor(249, 250, 251);
+      doc.rect(10, y - 4, 190, 7, 'F');
+    }
+    doc.setFontSize(8);
+    const nome = r.cliente_nome?.length > 28 ? r.cliente_nome.substring(0, 26) + '...' : (r.cliente_nome || '—');
+    const valor = (r.valor_mensal || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const venc = r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—';
+    const dias = r.dias > 0 ? `${r.dias} dia${r.dias !== 1 ? 's' : ''}` : '0 dias';
+    const obs = r.observacao_recebimento ? (r.observacao_recebimento.length > 22 ? r.observacao_recebimento.substring(0, 20) + '...' : r.observacao_recebimento) : 'Sem observação';
+    doc.text(nome, 14, y);
+    doc.text(valor, 80, y);
+    doc.text(venc, 108, y);
+    // Colorir dias de atraso
+    if (r.dias > 30) doc.setTextColor(185, 28, 28);
+    else if (r.dias >= 8) doc.setTextColor(194, 65, 12);
+    else doc.setTextColor(161, 98, 7);
+    doc.text(dias, 138, y);
+    doc.setTextColor(30, 30, 30);
+    doc.text(obs, 158, y);
+    y += 7;
+  });
+
+  // Rodapé
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Página ${i} de ${pageCount}`, 14, 290);
+    doc.text('Documento gerado automaticamente — uso interno', 100, 290);
+  }
+
+  doc.save(nomeArquivo);
 }
 
 function InadimplenciaView() {
@@ -191,6 +280,15 @@ function InadimplenciaView() {
           </SelectContent>
         </Select>
         <span className="text-sm text-slate-500">{inadimplentes.length} registros</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => gerarPDFInadimplencia(inadimplentes)}
+          disabled={inadimplentes.length === 0}
+          className="ml-auto gap-1.5 border-red-200 text-red-600 hover:bg-red-50"
+        >
+          <FileText className="w-4 h-4" /> Gerar relatório PDF
+        </Button>
       </div>
 
       {/* Lista agrupada por mês */}
