@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { Loader2, BarChart3, CalendarDays, ArrowLeft } from 'lucide-react';
+import { Loader2, BarChart3, ArrowLeft } from 'lucide-react';
 import AgendaDashboardKPIs from '@/components/agenda/AgendaDashboardKPIs';
 import AgendaPerformanceUsuarios from '@/components/agenda/AgendaPerformanceUsuarios';
 import AgendaAtividadeUnidades from '@/components/agenda/AgendaAtividadeUnidades';
@@ -41,7 +41,7 @@ export default function AgendaDashboard() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const reunioes = React.useMemo(() => {
+  const reunioes = useMemo(() => {
     const now = new Date();
     if (periodo === 'tudo') return todasReunioes;
     if (periodo === 'mes') {
@@ -60,13 +60,21 @@ export default function AgendaDashboard() {
     return todasReunioes;
   }, [todasReunioes, periodo]);
 
-  // Métricas adicionais
   const realizadas = reunioes.filter(r => r.status === 'realizada');
   const semRegistro = realizadas.filter(r => !hasRegistro(r));
   const taxaQualidade = realizadas.length > 0 ? Math.round(((realizadas.length - semRegistro.length) / realizadas.length) * 100) : 0;
   const comerciais = reunioes.filter(r => r.tipo_reuniao === 'comercial' && r.status === 'realizada');
+  const propostas = reunioes.filter(r => r.status === 'realizada' && (r.meeting_result === 'proposta_enviada' || r.meeting_result === 'avancou')).length;
   const convertidas = comerciais.filter(r => r.meeting_result === 'fechado');
   const taxaConversao = comerciais.length > 0 ? Math.round((convertidas.length / comerciais.length) * 100) : 0;
+
+  // Insights automáticos
+  const insights = [];
+  if (taxaQualidade < 60) insights.push({ emoji: '⚠️', text: `Apenas ${taxaQualidade}% das reuniões têm registro — priorize documentar.` });
+  if (taxaQualidade >= 80) insights.push({ emoji: '✅', text: `Excelente taxa de qualidade (${taxaQualidade}%). Time operando bem!` });
+  if (convertidas.length > 0) insights.push({ emoji: '💼', text: `${convertidas.length} fechamento${convertidas.length > 1 ? 's' : ''} no período — taxa de conversão de ${taxaConversao}%.` });
+  if (semRegistro.length > 3) insights.push({ emoji: '🔴', text: `${semRegistro.length} reuniões sem registro — risco de perda de informação estratégica.` });
+  if (propostas > 0) insights.push({ emoji: '📄', text: `${propostas} proposta${propostas > 1 ? 's' : ''} gerada${propostas > 1 ? 's' : ''} no período.` });
 
   if (isLoading) return (
     <div className="flex items-center justify-center h-64">
@@ -103,60 +111,67 @@ export default function AgendaDashboard() {
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs: Produção + Qualidade */}
       <AgendaDashboardKPIs reunioes={reunioes} />
 
-      {/* Métricas adicionais */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-slate-900">{taxaQualidade}%</p>
-          <p className="text-xs text-slate-500 mt-0.5">Taxa de qualidade</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">com registro completo</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-slate-900">{semRegistro.length}</p>
-          <p className="text-xs text-slate-500 mt-0.5">Sem registro</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">reuniões realizadas</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-slate-900">{comerciais.length}</p>
-          <p className="text-xs text-slate-500 mt-0.5">Reuniões comerciais</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">realizadas</p>
-        </div>
-        <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
-          <p className="text-2xl font-bold text-violet-600">{taxaConversao}%</p>
-          <p className="text-xs text-slate-500 mt-0.5">Taxa de conversão</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">comercial → fechado</p>
+      {/* Comercial */}
+      <div>
+        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">🤝 Comercial</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-slate-900">{comerciais.length}</p>
+            <p className="text-xs text-slate-500 mt-0.5">Reuniões comerciais</p>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-blue-600">{propostas}</p>
+            <p className="text-xs text-slate-500 mt-0.5">Propostas geradas</p>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-green-600">{convertidas.length}</p>
+            <p className="text-xs text-slate-500 mt-0.5">Fechamentos</p>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+            <p className="text-2xl font-bold text-violet-600">{taxaConversao}%</p>
+            <p className="text-xs text-slate-500 mt-0.5">Taxa de conversão</p>
+          </div>
         </div>
       </div>
 
-      {/* Grid principal */}
+      {/* Grid: Alertas + Unidades */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Alertas gerenciais */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-            🚨 Alertas Gerenciais
-          </h2>
+          <h2 className="text-sm font-bold text-slate-800 mb-4">🎯 Ações recomendadas hoje</h2>
           <AgendaAlertasGerenciais reunioes={reunioes} voxxUsers={voxxUsers} />
         </div>
-
-        {/* Atividade por unidade */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <h2 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-            🏥 Atividade por Unidade
-          </h2>
+          <h2 className="text-sm font-bold text-slate-800 mb-4">🏥 Tempo sem contato por unidade</h2>
           <div className="max-h-72 overflow-y-auto">
             <AgendaAtividadeUnidades reunioes={reunioes} />
           </div>
         </div>
       </div>
 
-      {/* Performance por usuário */}
+      {/* Insights automáticos */}
+      {insights.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+          <h2 className="text-sm font-bold text-slate-800 mb-3">💡 Insights automáticos</h2>
+          <div className="space-y-2">
+            {insights.map((ins, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                <span className="shrink-0">{ins.emoji}</span>
+                <span>{ins.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Ranking */}
       <div className="bg-white rounded-xl border border-slate-200 p-5">
-        <h2 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+        <h2 className="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
           🏆 Ranking & Performance por Usuário
-          <span className="text-xs font-normal text-slate-400 ml-auto">pontuação = +15 realizada, +5 com registro, -5 não realizada, -3 sem registro</span>
         </h2>
+        <p className="text-xs text-slate-400 mb-4">Nível: Fechador ≥ 150pts · Consultivo ≥ 60pts · Operacional</p>
         <AgendaPerformanceUsuarios reunioes={reunioes} voxxUsers={voxxUsers} />
       </div>
     </div>
