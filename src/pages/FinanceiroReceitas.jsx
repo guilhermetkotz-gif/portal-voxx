@@ -191,7 +191,7 @@ export default function FinanceiroReceitas() {
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
-                    <p className="text-xs text-slate-500">{r.tipo_contrato} · Cobrança: {r.data_cobranca || '—'}{r.data_recebimento && ` · Recebido: ${r.data_recebimento}`}</p>
+                    <p className="text-xs text-slate-500">{r.tipo_contrato} · Cobrança: {r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—'}{r.data_recebimento && ` · Recebido: ${r.data_recebimento}`}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
