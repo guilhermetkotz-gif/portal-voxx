@@ -46,6 +46,11 @@ export default function FinanceiroReceitas() {
       (filtroComp === 'com' && r.comprovante_recebimento) ||
       (filtroComp === 'sem' && !r.comprovante_recebimento);
     return matchSearch && matchStatus && matchComp;
+  }).sort((a, b) => {
+    if (!a.data_cobranca && !b.data_cobranca) return 0;
+    if (!a.data_cobranca) return 1;
+    if (!b.data_cobranca) return -1;
+    return a.data_cobranca.localeCompare(b.data_cobranca);
   });
 
   const totais = {
