@@ -69,12 +69,16 @@ export default function Layout({ children, currentPageName }) {
   const tipoUsuarioLayout = tipoUsuarioAccessEarly;
 
   // Redirect oral_sin_franqueadora from Home to InteligenicaUnidades (must be before any return)
+  // Redirect voxx_financeiro from Home to FinanceiroVisaoGeral
   useEffect(() => {
     if (tipoUsuarioLayout === 'oral_sin_franqueadora' && (location.pathname === '/' || currentPageName === 'Home')) {
       navigate(createPageUrl('InteligenicaUnidades'));
     }
+    if (tipoUsuarioLayout === 'voxx_financeiro' && (location.pathname === '/' || currentPageName === 'Home')) {
+      navigate(createPageUrl('FinanceiroVisaoGeral'));
+    }
   }, [tipoUsuarioLayout, location.pathname, currentPageName]);
-  const isVoxxUserEarly = tipoUsuarioAccessEarly === 'voxx_admin' || tipoUsuarioAccessEarly === 'voxx_operacao' || tipoUsuarioAccessEarly === 'voxx_manager';
+  const isVoxxUserEarly = tipoUsuarioAccessEarly === 'voxx_admin' || tipoUsuarioAccessEarly === 'voxx_operacao' || tipoUsuarioAccessEarly === 'voxx_manager' || tipoUsuarioAccessEarly === 'voxx_financeiro';
 
   // Check if user has access request (must be called before any conditional returns)
   const { data: userRequest } = useQuery({
@@ -100,7 +104,7 @@ export default function Layout({ children, currentPageName }) {
       }
       
       // Voxx users see ALL clients automatically ONLY if tipo_usuario is correctly set
-      if (tipoUsuario && (tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager')) {
+      if (tipoUsuario && (tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager' || tipoUsuario === 'voxx_financeiro')) {
         return base44.entities.Cliente.list('-updated_date', 500);
       }
       
