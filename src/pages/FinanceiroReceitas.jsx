@@ -34,7 +34,7 @@ export default function FinanceiroReceitas() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [gerando, setGerando] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const { data: receitas = [], isLoading } = useQuery({
     queryKey: ['fin-receitas', mes],
@@ -93,9 +93,9 @@ export default function FinanceiroReceitas() {
   };
 
   const handleDelete = async () => {
-    await base44.entities.FinanceiroReceita.delete(deleteId);
+    await base44.entities.FinanceiroReceita.delete(deleteTarget.id);
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
-    setDeleteId(null);
+    setDeleteTarget(null);
   };
 
   const openEdit = (r) => {
@@ -209,7 +209,7 @@ export default function FinanceiroReceitas() {
                     <span className="text-xs text-amber-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Sem comprovante</span>
                   )}
                   <Button variant="outline" size="sm" onClick={() => openEdit(r)} className="h-7 text-xs">Editar</Button>
-                  <Button variant="ghost" size="sm" onClick={() => setDeleteId(r.id)} className="text-red-400 h-7 px-2">
+                  <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(r)} className="text-red-400 h-7 px-2">
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>
@@ -219,15 +219,23 @@ export default function FinanceiroReceitas() {
         })}
       </div>
 
-      <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir receita?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita. A receita será removida permanentemente.</AlertDialogDescription>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <X className="w-5 h-5 text-red-600" />
+              </div>
+              <AlertDialogTitle className="text-lg">Excluir receita?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-slate-600">
+              Você está prestes a excluir a receita de <strong className="text-slate-900">{deleteTarget?.cliente_nome}</strong>{deleteTarget?.valor_mensal ? ` — ${fmt(deleteTarget.valor_mensal)}` : ''}.<br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogCancel className="border-slate-200">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">Sim, excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
