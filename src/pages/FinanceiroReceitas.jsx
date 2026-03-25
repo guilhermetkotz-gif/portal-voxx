@@ -34,6 +34,8 @@ export default function FinanceiroReceitas() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [gerando, setGerando] = useState(false);
+  const [showConfirmGerar, setShowConfirmGerar] = useState(false);
+  const [gerarResultado, setGerarResultado] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const { data: receitas = [], isLoading } = useQuery({
@@ -84,12 +86,12 @@ export default function FinanceiroReceitas() {
   };
 
   const handleGerarRecorrentes = async () => {
-    if (!confirm(`Gerar receitas recorrentes para ${mes}? Lançamentos já existentes não serão duplicados.`)) return;
+    setShowConfirmGerar(false);
     setGerando(true);
     const res = await base44.functions.invoke('gerarReceitasRecorrentes', { mes_referencia: mes });
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setGerando(false);
-    alert(res.data?.message || 'Concluído!');
+    setGerarResultado(res.data?.message || 'Concluído!');
   };
 
   const handleDelete = async () => {
@@ -121,7 +123,7 @@ export default function FinanceiroReceitas() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleGerarRecorrentes} disabled={gerando}>
+          <Button variant="outline" onClick={() => setShowConfirmGerar(true)} disabled={gerando}>
             {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Gerar Recorrentes ({mes})
           </Button>
@@ -218,6 +220,44 @@ export default function FinanceiroReceitas() {
           );
         })}
       </div>
+
+      <AlertDialog open={showConfirmGerar} onOpenChange={setShowConfirmGerar}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <RefreshCw className="w-5 h-5 text-violet-600" />
+              </div>
+              <AlertDialogTitle className="text-lg">Gerar receitas recorrentes?</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-slate-600">
+              Serão gerados lançamentos recorrentes para o mês <strong className="text-slate-900">{mes}</strong>.<br />
+              Lançamentos já existentes não serão duplicados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleGerarRecorrentes} className="bg-violet-600 hover:bg-violet-700 text-white">Sim, gerar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!gerarResultado} onOpenChange={open => !open && setGerarResultado(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-5 h-5 text-emerald-600" />
+              </div>
+              <AlertDialogTitle className="text-lg">Concluído!</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-slate-600">{gerarResultado}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogAction onClick={() => setGerarResultado(null)} className="bg-emerald-600 hover:bg-emerald-700 text-white">OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
