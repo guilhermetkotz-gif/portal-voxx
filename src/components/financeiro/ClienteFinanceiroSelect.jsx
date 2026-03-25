@@ -31,7 +31,8 @@ export default function ClienteFinanceiroSelect({ value, onChange }) {
   });
 
   const filtered = clientes.filter(c =>
-    !query || c.nome?.toLowerCase().includes(query.toLowerCase()) || c.unidade?.toLowerCase().includes(query.toLowerCase())
+    c.status !== 'encerrado' &&
+    (!query || c.nome?.toLowerCase().includes(query.toLowerCase()) || c.unidade?.toLowerCase().includes(query.toLowerCase()))
   ).slice(0, 8);
 
   // Close dropdown on outside click
