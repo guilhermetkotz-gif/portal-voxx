@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle } from 'lucide-react';
+import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw } from 'lucide-react';
 import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
 import { format } from 'date-fns';
 
@@ -20,7 +20,7 @@ const STATUS_CONFIG = {
   em_atraso: { label: 'Em Atraso', color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle },
 };
 
-const EMPTY = { cliente_nome: '', cliente_financeiro_id: '', valor_mensal: '', tipo_contrato: 'mensal', data_cobranca: '', status: 'a_vencer', data_recebimento: '', observacao_recebimento: '', comprovante_recebimento: '' };
+const EMPTY = { cliente_nome: '', cliente_financeiro_id: '', valor_mensal: '', tipo_contrato: 'mensal', data_cobranca: '', status: 'a_vencer', data_recebimento: '', observacao_recebimento: '', comprovante_recebimento: '', recorrente: false, frequencia: 'mensal', data_inicio: '', data_fim: '' };
 
 export default function FinanceiroReceitas() {
   const qc = useQueryClient();
@@ -32,6 +32,7 @@ export default function FinanceiroReceitas() {
   const [form, setForm] = useState(EMPTY);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [gerando, setGerando] = useState(false);
 
   const { data: receitas = [], isLoading } = useQuery({
     queryKey: ['fin-receitas', mes],
@@ -75,6 +76,15 @@ export default function FinanceiroReceitas() {
     setUploading(false);
   };
 
+  const handleGerarRecorrentes = async () => {
+    if (!confirm(`Gerar receitas recorrentes para ${mes}? Lançamentos já existentes não serão duplicados.`)) return;
+    setGerando(true);
+    const res = await base44.functions.invoke('gerarReceitasRecorrentes', { mes_referencia: mes });
+    qc.invalidateQueries({ queryKey: ['fin-receitas'] });
+    setGerando(false);
+    alert(res.data?.message || 'Concluído!');
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Excluir esta receita?')) return;
     await base44.entities.FinanceiroReceita.delete(id);
@@ -103,9 +113,15 @@ export default function FinanceiroReceitas() {
             <p className="text-slate-500 text-sm">Controle de faturamento por cliente</p>
           </div>
         </div>
-        <Button onClick={openNew} className="bg-emerald-600 hover:bg-emerald-700">
-          <Plus className="w-4 h-4" /> Nova Receita
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleGerarRecorrentes} disabled={gerando}>
+            {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Gerar Recorrentes ({mes})
+          </Button>
+          <Button onClick={openNew} className="bg-emerald-600 hover:bg-emerald-700">
+            <Plus className="w-4 h-4" /> Nova Receita
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -259,6 +275,36 @@ export default function FinanceiroReceitas() {
               <div>
                 <Label>Data de Recebimento</Label>
                 <Input type="date" value={form.data_recebimento} onChange={e => setForm(f => ({ ...f, data_recebimento: e.target.value }))} />
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2 pt-5">
+                <input type="checkbox" id="recorrente" checked={!!form.recorrente} onChange={e => setForm(f => ({ ...f, recorrente: e.target.checked }))} className="w-4 h-4" />
+                <Label htmlFor="recorrente">Receita Recorrente</Label>
+              </div>
+              {form.recorrente && (
+                <div>
+                  <Label>Frequência</Label>
+                  <Select value={form.frequencia || 'mensal'} onValueChange={v => setForm(f => ({ ...f, frequencia: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mensal">Mensal</SelectItem>
+                      <SelectItem value="anual">Anual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            {form.recorrente && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Data Início Recorrência</Label>
+                  <Input type="date" value={form.data_inicio || ''} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))} />
+                </div>
+                <div>
+                  <Label>Data Fim Recorrência</Label>
+                  <Input type="date" value={form.data_fim || ''} onChange={e => setForm(f => ({ ...f, data_fim: e.target.value }))} />
+                </div>
               </div>
             )}
             <div>
