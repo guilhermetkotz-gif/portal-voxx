@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw } from 'lucide-react';
 import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
 import { format } from 'date-fns';
@@ -33,6 +34,7 @@ export default function FinanceiroReceitas() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [gerando, setGerando] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const { data: receitas = [], isLoading } = useQuery({
     queryKey: ['fin-receitas', mes],
@@ -90,10 +92,10 @@ export default function FinanceiroReceitas() {
     alert(res.data?.message || 'Concluído!');
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Excluir esta receita?')) return;
-    await base44.entities.FinanceiroReceita.delete(id);
+  const handleDelete = async () => {
+    await base44.entities.FinanceiroReceita.delete(deleteId);
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
+    setDeleteId(null);
   };
 
   const openEdit = (r) => {
@@ -207,7 +209,7 @@ export default function FinanceiroReceitas() {
                     <span className="text-xs text-amber-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Sem comprovante</span>
                   )}
                   <Button variant="outline" size="sm" onClick={() => openEdit(r)} className="h-7 text-xs">Editar</Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(r.id)} className="text-red-400 h-7 px-2">
+                  <Button variant="ghost" size="sm" onClick={() => setDeleteId(r.id)} className="text-red-400 h-7 px-2">
                     <X className="w-3.5 h-3.5" />
                   </Button>
                 </div>
@@ -216,6 +218,19 @@ export default function FinanceiroReceitas() {
           );
         })}
       </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir receita?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação não pode ser desfeita. A receita será removida permanentemente.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-lg">
