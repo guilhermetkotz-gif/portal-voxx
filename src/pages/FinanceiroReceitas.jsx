@@ -97,7 +97,7 @@ function InadimplenciaView() {
     const limite30 = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
 
     return todasReceitas
-      .filter(r => r.status === 'em_atraso' || r.status === 'a_vencer')
+      .filter(r => r.status === 'em_atraso')
       .map(r => ({ ...r, dias: diasAtraso(r.data_cobranca) }))
       .filter(r => {
         const matchUnidade = !filtroUnidade || r.cliente_nome?.toLowerCase().includes(filtroUnidade.toLowerCase());
