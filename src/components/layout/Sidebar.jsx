@@ -11,6 +11,7 @@ import {
   TicketCheck,
   Clock,
   Calendar,
+  CalendarDays,
   PlusCircle,
   Newspaper,
   HelpCircle,
