@@ -56,7 +56,8 @@ export default function FinanceiroFolha() {
   const [form, setForm] = useState(EMPTY);
   const [uploadingField, setUploadingField] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [paymentConfirm, setPaymentConfirm] = useState(null); // { item, valor }
+  const [paymentConfirm, setPaymentConfirm] = useState(null);
+  const [propagando, setPropagando] = useState(false); // { item, valor }
   const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   const { data: folha = [], isLoading } = useQuery({
@@ -78,6 +79,47 @@ export default function FinanceiroFolha() {
     const [y, m] = mesStr.split('-').map(Number);
     const d = new Date(y, m - 1 + n, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const handlePropagarRecorrentes = async () => {
+    if (!confirm(`Propagar todos os registros recorrentes de ${mes} para os próximos 11 meses? Registros já existentes não serão duplicados.`)) return;
+    setPropagando(true);
+    // Busca todos os registros recorrentes do mês atual
+    const recorrentes = folha.filter(f => f.recorrente);
+    // Busca todos os registros de folha existentes nos próximos 11 meses
+    const mesesFuturos = Array.from({ length: 11 }, (_, i) => addMeses(mes, i + 1));
+    const existentes = await Promise.all(
+      mesesFuturos.map(m => base44.entities.FinanceiroFolha.filter({ mes_referencia: m }, '-created_date', 200))
+    );
+    const existentesFlat = existentes.flat();
+    for (const item of recorrentes) {
+      for (let i = 1; i <= 11; i++) {
+        const mesFuturo = addMeses(mes, i);
+        // Verifica se já existe um registro com o mesmo nome e mês
+        const jaExiste = existentesFlat.some(e => e.nome === item.nome && e.mes_referencia === mesFuturo && e.tipo_vinculo === item.tipo_vinculo);
+        if (!jaExiste) {
+          await base44.entities.FinanceiroFolha.create({
+            nome: item.nome,
+            tipo_vinculo: item.tipo_vinculo,
+            salario: item.salario,
+            vale_alimentacao: item.vale_alimentacao,
+            vale_transporte: item.vale_transporte,
+            outros_beneficios: item.outros_beneficios,
+            tipo_servico: item.tipo_servico,
+            valor_pj: item.valor_pj,
+            recorrente: true,
+            frequencia: item.frequencia,
+            data_inicio: item.data_inicio,
+            data_fim: item.data_fim,
+            mes_referencia: mesFuturo,
+            status: 'pendente',
+          });
+        }
+      }
+    }
+    qc.invalidateQueries({ queryKey: ['fin-folha'] });
+    setPropagando(false);
+    alert(`Propagação concluída! ${recorrentes.length} registro(s) recorrente(s) propagado(s) para os próximos 11 meses.`);
   };
 
   const handleSave = async () => {
@@ -235,6 +277,9 @@ export default function FinanceiroFolha() {
         <div className="flex items-center gap-2">
           <input type="month" value={mes} onChange={e => setMes(e.target.value)}
             className="border border-input rounded-md px-3 py-1.5 text-sm bg-white" />
+          <Button variant="outline" onClick={handlePropagarRecorrentes} disabled={propagando} title="Propagar registros recorrentes para os próximos 11 meses">
+            {propagando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Propagar Recorrentes
+          </Button>
           <Button variant="outline" onClick={() => setShowGerar(true)}>
             <Zap className="w-4 h-4" /> Gerar lançamentos do mês
           </Button>
