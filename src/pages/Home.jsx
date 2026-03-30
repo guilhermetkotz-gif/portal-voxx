@@ -50,47 +50,14 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     setTimeout(() => setIsRefreshing(false), 1500);
   };
 
-  // User not authenticated → show BoasVindas
-  if (!user) {
-    return <BoasVindas />;
-  }
-
+  // ALL hooks must be called unconditionally before any return
   const { data: userRequest } = useQuery({
     queryKey: ['userRequestHome', user?.id],
     queryFn: () => base44.entities.AccessRequest.filter({ usuario_id: user?.id }, '-created_date', 1),
-    enabled: !!user?.id,
+    enabled: !!user?.id && !!user,
     staleTime: 30 * 1000
   });
 
-  // Check access status
-  const hasRequest = userRequest && userRequest.length > 0;
-  const hasPendingRequest = hasRequest && userRequest[0]?.status === 'pendente';
-
-  // 1. User is pendente WITH pending request → show AguardandoAprovacao
-  if (user?.status === 'pendente' && hasPendingRequest) {
-    return <AguardandoAprovacao user={user} />;
-  }
-
-  // 2. User has no access (no cliente) and is not admin → show message
-  const userType = user?.tipo_usuario || user?.tipo_acesso;
-  if (!currentCliente && user?.role !== 'admin' && userType !== 'voxx_admin' && userType !== 'voxx_operacao' && userType !== 'voxx_manager') {
-    return (
-      <div className="max-w-2xl mx-auto mt-12">
-        <Card className="p-8 text-center">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-blue-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Aprovado!</h2>
-          <p className="text-slate-600 mb-6">
-            Seu acesso foi aprovado. Aguarde enquanto carregamos seus clientes atribuídos...
-          </p>
-          <Button onClick={() => window.location.reload()} variant="outline">
-            Recarregar Página
-          </Button>
-        </Card>
-      </div>
-    );
-  }
   const { data: demandas = [] } = useQuery({
     queryKey: ['demandas', selectedClienteId],
     queryFn: () => base44.entities.Demanda.filter({ cliente_id: selectedClienteId, status: { $ne: 'concluida' } }, '-updated_date', 10),
@@ -101,7 +68,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const { data: acoes = [] } = useQuery({
     queryKey: ['acoes', selectedClienteId],
     queryFn: () => base44.entities.AcaoVoxx.filter({ cliente_id: selectedClienteId }, '-created_date', 5),
-    enabled: !!selectedClienteId,
+    enabled: !!selectedClienteId && !!user,
     staleTime: 60 * 1000
   });
 
@@ -214,16 +181,13 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   React.useEffect(() => {
     if (!googleLeadsData?.leads) return;
-    
     const currentCount = googleLeadsData.leads;
-    
     if (previousLeadsCount !== null && currentCount > previousLeadsCount) {
       const diff = currentCount - previousLeadsCount;
       setNewLeadsCount(diff);
       setNewLeadsData(googleLeadsData.lastLeads || []);
       setShowNewLeadAlert(true);
     }
-    
     setPreviousLeadsCount(currentCount);
   }, [googleLeadsData?.leads, dataUpdatedAt]);
 
@@ -298,6 +262,39 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const diasRestantesGoogle = cliente?.investimento_dia_google > 0 
     ? Math.floor((cliente?.saldo_google || 0) / cliente.investimento_dia_google) 
     : null;
+
+  // User not authenticated → show BoasVindas
+  if (!user) return <BoasVindas />;
+
+  // Check access status
+  const hasRequest = userRequest && userRequest.length > 0;
+  const hasPendingRequest = hasRequest && userRequest[0]?.status === 'pendente';
+
+  // User is pendente WITH pending request → show AguardandoAprovacao
+  if (user?.status === 'pendente' && hasPendingRequest) {
+    return <AguardandoAprovacao user={user} />;
+  }
+
+  // User has no access (no cliente) and is not admin → show message
+  const userType = user?.tipo_usuario || user?.tipo_acesso;
+  if (!currentCliente && user?.role !== 'admin' && userType !== 'voxx_admin' && userType !== 'voxx_operacao' && userType !== 'voxx_manager' && userType !== 'voxx_financeiro') {
+    return (
+      <div className="max-w-2xl mx-auto mt-12">
+        <Card className="p-8 text-center">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-8 h-8 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Aprovado!</h2>
+          <p className="text-slate-600 mb-6">
+            Seu acesso foi aprovado. Aguarde enquanto carregamos seus clientes atribuídos...
+          </p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Recarregar Página
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
