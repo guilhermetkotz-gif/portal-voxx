@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-const CATEGORIAS = ['Infraestrutura', 'Marketing', 'Ferramentas/SaaS', 'Escritório', 'Impostos', 'Honorários', 'Outros'];
+const CATEGORIAS = ['Infraestrutura', 'Marketing', 'Ferramentas/SaaS', 'Escritório', 'Impostos', 'Honorários', 'Ações Trabalhistas', 'Outros'];
 
 const EMPTY = {
   nome: '', categoria: '', tipo: 'fixo', valor: '', recorrente: false,
