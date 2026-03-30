@@ -1,0 +1,393 @@
+{
+  "name": "Cliente",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome fantasia do cliente/cl\u00ednica"
+    },
+    "razao_social": {
+      "type": "string",
+      "description": "Raz\u00e3o social"
+    },
+    "cnpj": {
+      "type": "string",
+      "description": "CNPJ"
+    },
+    "marca": {
+      "type": "string",
+      "description": "Marca (ex: Oral Sin Implantes)"
+    },
+    "cidade": {
+      "type": "string",
+      "description": "Cidade"
+    },
+    "estado": {
+      "type": "string",
+      "description": "Estado (UF)"
+    },
+    "endereco_completo": {
+      "type": "string",
+      "description": "Endere\u00e7o completo (rua, n\u00famero, bairro, complemento)"
+    },
+    "cep": {
+      "type": "string",
+      "description": "CEP"
+    },
+    "regiao": {
+      "type": "string",
+      "description": "Regi\u00e3o (ex: Norte PR, Interior SP)"
+    },
+    "estimativa_habitantes": {
+      "type": "number",
+      "description": "Estimativa de habitantes da cidade"
+    },
+    "abrangencia_atendimento": {
+      "type": "string",
+      "enum": [
+        "somente_cidade",
+        "cidade_regiao",
+        "estadual"
+      ],
+      "description": "Abrang\u00eancia de atendimento"
+    },
+    "responsavel_cliente_nome": {
+      "type": "string",
+      "description": "Nome do respons\u00e1vel do cliente"
+    },
+    "responsavel_cliente_telefone": {
+      "type": "string",
+      "description": "Telefone/WhatsApp do respons\u00e1vel"
+    },
+    "responsavel_cliente_email": {
+      "type": "string",
+      "description": "E-mail do respons\u00e1vel"
+    },
+    "responsavel_voxx_cs": {
+      "type": "string",
+      "description": "Respons\u00e1vel Voxx CS/Atendimento"
+    },
+    "responsavel_voxx_trafego": {
+      "type": "string",
+      "description": "Respons\u00e1vel Voxx Tr\u00e1fego/Opera\u00e7\u00e3o"
+    },
+    "responsavel_meta_ads": {
+      "type": "string",
+      "description": "Respons\u00e1vel Meta Ads exclusivo"
+    },
+    "responsavel_google_ads": {
+      "type": "string",
+      "description": "Respons\u00e1vel Google Ads exclusivo"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "pausado",
+        "encerrado",
+        "implantacao"
+      ],
+      "default": "ativo",
+      "description": "Status do cliente"
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de in\u00edcio do contrato"
+    },
+    "responsavel_voxx": {
+      "type": "string",
+      "description": "Usu\u00e1rio interno respons\u00e1vel"
+    },
+    "plano_servico": {
+      "type": "string",
+      "enum": [
+        "trafego",
+        "trafego_criacao",
+        "full",
+        "personalizado"
+      ],
+      "description": "Plano de servi\u00e7o contratado"
+    },
+    "observacoes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es internas"
+    },
+    "custo_por_lead_meta": {
+      "type": "number",
+      "description": "CPL Meta Ads"
+    },
+    "leads_meta_mes": {
+      "type": "number",
+      "description": "Leads entregues Meta no m\u00eas"
+    },
+    "investimento_meta_mes": {
+      "type": "number",
+      "description": "Investimento Meta no m\u00eas"
+    },
+    "saldo_meta": {
+      "type": "number",
+      "description": "Saldo dispon\u00edvel Meta"
+    },
+    "investimento_dia_meta": {
+      "type": "number",
+      "description": "Investimento por dia Meta"
+    },
+    "data_proximo_investimento_meta": {
+      "type": "string",
+      "format": "date",
+      "description": "Pr\u00f3xima data de investimento Meta"
+    },
+    "leads_google_cadastro": {
+      "type": "number",
+      "description": "Leads Google via cadastro"
+    },
+    "leads_google_ligacao": {
+      "type": "number",
+      "description": "Leads Google via liga\u00e7\u00e3o"
+    },
+    "cliques_google_whatsapp": {
+      "type": "number",
+      "description": "Cliques Google WhatsApp"
+    },
+    "cpc_google": {
+      "type": "number",
+      "description": "CPC Google Ads"
+    },
+    "investimento_google_mes": {
+      "type": "number",
+      "description": "Investimento Google no m\u00eas"
+    },
+    "saldo_google": {
+      "type": "number",
+      "description": "Saldo dispon\u00edvel Google"
+    },
+    "investimento_dia_google": {
+      "type": "number",
+      "description": "Investimento por dia Google"
+    },
+    "data_proximo_investimento_google": {
+      "type": "string",
+      "format": "date",
+      "description": "Pr\u00f3xima data de investimento Google"
+    },
+    "health_score": {
+      "type": "number",
+      "description": "Score de sa\u00fade da conta (0-100)"
+    },
+    "cpl_baseline_meta": {
+      "type": "number",
+      "description": "CPL baseline para compara\u00e7\u00e3o"
+    },
+    "tipo_cliente": {
+      "type": "string",
+      "enum": [
+        "oral_sin",
+        "particular",
+        "franquia",
+        "outro"
+      ],
+      "description": "Tipo/segmento do cliente"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cliente ativo"
+    },
+    "impressions": {
+      "type": "number",
+      "description": "Impress\u00f5es da campanha"
+    },
+    "page_engagement": {
+      "type": "number",
+      "description": "Engajamento na p\u00e1gina"
+    },
+    "page_likes": {
+      "type": "number",
+      "description": "Curtidas na p\u00e1gina"
+    },
+    "reach": {
+      "type": "number",
+      "description": "Alcance da campanha"
+    },
+    "clicks_all": {
+      "type": "number",
+      "description": "Total de cliques"
+    },
+    "cpc_link_click": {
+      "type": "number",
+      "description": "CPC (link click)"
+    },
+    "cpc_all": {
+      "type": "number",
+      "description": "CPC (all)"
+    },
+    "new_messaging_connections": {
+      "type": "number",
+      "description": "Novas conex\u00f5es de mensagens"
+    },
+    "cost_per_new_messaging": {
+      "type": "number",
+      "description": "Custo por nova conex\u00e3o"
+    },
+    "cost_per_unique_link": {
+      "type": "number",
+      "description": "Custo por clique \u00fanico"
+    },
+    "legacy_client_key": {
+      "type": "string",
+      "description": "Chave de identifica\u00e7\u00e3o para compatibilidade com planilhas (opcional, pode ser preenchida depois)"
+    },
+    "address": {
+      "type": "string",
+      "description": "Endere\u00e7o completo do cliente"
+    },
+    "population_estimate": {
+      "type": "number",
+      "description": "Estimativa populacional da \u00e1rea de atua\u00e7\u00e3o do cliente (opcional)"
+    },
+    "briefing": {
+      "type": "string",
+      "description": "Briefing detalhado do cliente"
+    },
+    "restrictions": {
+      "type": "string",
+      "description": "Restri\u00e7\u00f5es (compliance, CRO, CADE, proibi\u00e7\u00f5es, termos sens\u00edveis)"
+    },
+    "observacoes_operacionais": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es operacionais internas"
+    },
+    "procedimentos_foco": {
+      "type": "string",
+      "description": "Procedimentos/produtos foco"
+    },
+    "publico_alvo": {
+      "type": "string",
+      "description": "P\u00fablico-alvo priorit\u00e1rio"
+    },
+    "contract_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs de arquivos de contrato/documentos"
+    },
+    "owner_voxx": {
+      "type": "string",
+      "description": "ID ou email do usu\u00e1rio Voxx respons\u00e1vel pelo cliente"
+    },
+    "notes_internal": {
+      "type": "string",
+      "description": "Notas internas sobre o cliente"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags do cliente"
+    },
+    "fonte_entrada": {
+      "type": "string",
+      "enum": [
+        "indicacao",
+        "inbound",
+        "outbound",
+        "parceiro",
+        "outro"
+      ],
+      "description": "Fonte de entrada do cliente"
+    },
+    "maturidade_digital": {
+      "type": "string",
+      "enum": [
+        "basico",
+        "estruturado",
+        "escalavel"
+      ],
+      "description": "N\u00edvel de maturidade digital"
+    },
+    "contas_anuncio": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "plataforma": {
+            "type": "string",
+            "enum": [
+              "Meta",
+              "Google",
+              "TikTok"
+            ]
+          },
+          "conta_nome": {
+            "type": "string"
+          },
+          "ad_account_id": {
+            "type": "string"
+          },
+          "business_manager_id": {
+            "type": "string"
+          },
+          "conta_principal": {
+            "type": "boolean"
+          },
+          "status_conta": {
+            "type": "string",
+            "enum": [
+              "ativa",
+              "inativa"
+            ]
+          }
+        }
+      },
+      "description": "Contas de an\u00fancio vinculadas ao cliente"
+    },
+    "google_leads_sheet_url": {
+      "type": "string",
+      "description": "URL da planilha Google Sheets com leads do Google Ads"
+    },
+    "google_ads_account_name": {
+      "type": "string",
+      "description": "Nome da conta Google Ads do cliente"
+    },
+    "meta_ads_account_name": {
+      "type": "string",
+      "description": "Nome da conta Meta Ads do cliente"
+    },
+    "distribuicao_personalizada": {
+      "type": "object",
+      "description": "Configura\u00e7\u00e3o de distribui\u00e7\u00e3o personalizada de budget Meta Ads",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "percentage": {
+          "type": "number"
+        },
+        "cutoffDate": {
+          "type": "string"
+        },
+        "endDate": {
+          "type": "string"
+        },
+        "atualizado_por_nome": {
+          "type": "string"
+        },
+        "atualizado_por_email": {
+          "type": "string"
+        },
+        "atualizado_em": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  },
+  "required": [
+    "nome",
+    "cidade",
+    "estado"
+  ]
+}

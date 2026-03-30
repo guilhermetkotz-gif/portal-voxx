@@ -174,14 +174,10 @@ export default function CadastroCliente() {
     return `${normalizeLegacyKey(nome)} - ${normalizeLegacyKey(cidade)}`;
   };
 
-  // Auto-gerar chave legada quando nome ou cidade mudam
+  // Auto-gerar chave legada apenas se campo estiver vazio e não foi tocado manualmente
   useEffect(() => {
-    if (!legacyKeyManuallyEdited && formData.nome && formData.cidade) {
-      const generated = generateLegacyKey(formData.nome, formData.cidade);
-      setFormData((prev) => ({
-        ...prev,
-        legacy_client_key: generated,
-      }));
+    if (!legacyKeyManuallyEdited && !formData.legacy_client_key && formData.nome && formData.cidade) {
+      // Não auto-gera mais: usuário decide se quer preencher
     }
   }, [formData.nome, formData.cidade, legacyKeyManuallyEdited]);
 
@@ -232,13 +228,13 @@ export default function CadastroCliente() {
     if (!formData.cidade) newErrors.cidade = 'Cidade é obrigatória.';
     if (!formData.estado) newErrors.estado = 'Estado é obrigatório.';
 
-    // Validar unicidade da chave legada
-    if (!legacyKeyUnique) {
+    // Validar unicidade da chave legada (só bloqueia se preenchida)
+    if (formData.legacy_client_key && !legacyKeyUnique) {
       newErrors.legacy_client_key = 'Já existe um cliente com esta chave legada.';
     }
 
-    // Validar confirmação da chave legada (apenas para novo cliente ou se foi alterada)
-    if (!editingClienteId && formData.legacy_client_key && !confirmLegacyKey) {
+    // Confirmação só é necessária se a chave foi preenchida
+    if (formData.legacy_client_key && !editingClienteId && !confirmLegacyKey) {
       newErrors.legacy_client_key = 'Você precisa confirmar a chave legada antes de salvar.';
       toast({
         title: 'Confirmação necessária',
@@ -249,7 +245,7 @@ export default function CadastroCliente() {
       return;
     }
 
-    if (editingClienteId && legacyKeyManuallyEdited && !confirmLegacyKey) {
+    if (formData.legacy_client_key && editingClienteId && legacyKeyManuallyEdited && !confirmLegacyKey) {
       newErrors.legacy_client_key = 'Você precisa confirmar a alteração da chave legada antes de salvar.';
       toast({
         title: 'Confirmação necessária',
@@ -520,115 +516,112 @@ export default function CadastroCliente() {
                     </div>
                     
                     <div>
-                       <div className="flex items-center justify-between mb-2">
-                         <Label htmlFor="legacy_client_key">Chave Legada do Cliente *</Label>
-                         {!legacyKeyManuallyEdited && formData.nome && formData.cidade && (
-                           <span className="text-xs text-green-600 flex items-center gap-1">
-                             <CheckCircle2 className="w-3 h-3" />
-                             Auto-gerado
-                           </span>
-                         )}
-                       </div>
-                       <Popover open={legacyKeyOpen} onOpenChange={setLegacyKeyOpen}>
-                         <PopoverTrigger asChild>
-                           <button
-                             className={cn(
-                               "w-full justify-between px-3 py-2 text-left border rounded-md transition-colors flex items-center",
-                               errors.legacy_client_key || !legacyKeyUnique ? 'border-red-500 bg-red-50' : legacyKeyUnique && formData.legacy_client_key ? 'border-green-500' : 'border-input hover:border-slate-400',
-                               legacyKeyOpen && 'ring-1 ring-violet-500'
-                             )}
-                             type="button"
-                           >
-                             <span className={formData.legacy_client_key ? 'text-slate-900' : 'text-slate-500'}>
-                               {formData.legacy_client_key || 'Selecione ou digite uma chave...'}
-                             </span>
-                             {checkingUniqueness ? (
-                               <RefreshCw className="w-4 h-4 text-slate-400 animate-spin ml-auto" />
-                             ) : (
-                               <ChevronsUpDown className="w-4 h-4 opacity-50 ml-auto" />
-                             )}
-                           </button>
-                         </PopoverTrigger>
-                         <PopoverContent className="w-[300px] p-0" align="start">
-                           <Command>
-                             <CommandInput
-                               placeholder="Buscar ou digitar chave..."
-                               value={legacyKeySearchTerm}
-                               onValueChange={setLegacyKeySearchTerm}
-                             />
-                             <CommandEmpty>Nenhuma chave encontrada. Digite para criar nova.</CommandEmpty>
-                             <CommandGroup>
-                               {filteredLegacyKeys.map((key) => (
-                                 <CommandItem
-                                   key={key}
-                                   value={key}
-                                   onSelect={(value) => {
-                                     handleInputChange('legacy_client_key', value);
-                                     setLegacyKeyOpen(false);
-                                     setLegacyKeySearchTerm('');
-                                   }}
-                                   className="cursor-pointer"
-                                 >
-                                   <Check
-                                     className={cn(
-                                       "mr-2 h-4 w-4",
-                                       formData.legacy_client_key === key ? "opacity-100" : "opacity-0"
-                                     )}
-                                   />
-                                   {key}
-                                 </CommandItem>
-                               ))}
-                               {legacyKeySearchTerm && !filteredLegacyKeys.includes(legacyKeySearchTerm) && (
-                                 <CommandItem
-                                   value={legacyKeySearchTerm}
-                                   onSelect={(value) => {
-                                     handleInputChange('legacy_client_key', value);
-                                     setLegacyKeyOpen(false);
-                                     setLegacyKeySearchTerm('');
-                                   }}
-                                   className="cursor-pointer bg-violet-50"
-                                 >
-                                   <Plus className="mr-2 h-4 w-4 text-violet-600" />
-                                   <span className="text-violet-600">Criar nova: {legacyKeySearchTerm}</span>
-                                 </CommandItem>
-                               )}
-                             </CommandGroup>
-                           </Command>
-                         </PopoverContent>
-                       </Popover>
-                      
+                      <div className="flex items-center justify-between mb-2">
+                        <Label htmlFor="legacy_client_key">Chave Legada (Facebook/Planilhas)
+                          <span className="ml-1 text-xs font-normal text-slate-400">(opcional)</span>
+                        </Label>
+                        {!legacyKeyManuallyEdited && formData.nome && formData.cidade && formData.legacy_client_key && (
+                          <span className="text-xs text-green-600 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Auto-gerado
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Popover open={legacyKeyOpen} onOpenChange={setLegacyKeyOpen}>
+                          <PopoverTrigger asChild>
+                            <button
+                              className={cn(
+                                "flex-1 justify-between px-3 py-2 text-left border rounded-md transition-colors flex items-center",
+                                errors.legacy_client_key || !legacyKeyUnique ? 'border-red-500 bg-red-50' : legacyKeyUnique && formData.legacy_client_key ? 'border-green-500' : 'border-input hover:border-slate-400',
+                                legacyKeyOpen && 'ring-1 ring-violet-500'
+                              )}
+                              type="button"
+                            >
+                              <span className={formData.legacy_client_key ? 'text-slate-900' : 'text-slate-500'}>
+                                {formData.legacy_client_key || 'Deixar em branco por enquanto...'}
+                              </span>
+                              {checkingUniqueness ? (
+                                <RefreshCw className="w-4 h-4 text-slate-400 animate-spin ml-auto" />
+                              ) : (
+                                <ChevronsUpDown className="w-4 h-4 opacity-50 ml-auto" />
+                              )}
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <Command>
+                              <CommandInput
+                                placeholder="Buscar ou digitar chave..."
+                                value={legacyKeySearchTerm}
+                                onValueChange={setLegacyKeySearchTerm}
+                              />
+                              <CommandEmpty>Nenhuma chave encontrada. Digite para criar nova.</CommandEmpty>
+                              <CommandGroup>
+                                {filteredLegacyKeys.map((key) => (
+                                  <CommandItem
+                                    key={key}
+                                    value={key}
+                                    onSelect={(value) => {
+                                      handleInputChange('legacy_client_key', value);
+                                      setLegacyKeyOpen(false);
+                                      setLegacyKeySearchTerm('');
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.legacy_client_key === key ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {key}
+                                  </CommandItem>
+                                ))}
+                                {legacyKeySearchTerm && !filteredLegacyKeys.includes(legacyKeySearchTerm) && (
+                                  <CommandItem
+                                    value={legacyKeySearchTerm}
+                                    onSelect={(value) => {
+                                      handleInputChange('legacy_client_key', value);
+                                      setLegacyKeyOpen(false);
+                                      setLegacyKeySearchTerm('');
+                                    }}
+                                    className="cursor-pointer bg-violet-50"
+                                  >
+                                    <Plus className="mr-2 h-4 w-4 text-violet-600" />
+                                    <span className="text-violet-600">Criar nova: {legacyKeySearchTerm}</span>
+                                  </CommandItem>
+                                )}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        {formData.legacy_client_key && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              handleInputChange('legacy_client_key', '');
+                              setLegacyKeyManuallyEdited(true);
+                              setConfirmLegacyKey(false);
+                            }}
+                            className="text-slate-400 hover:text-red-500"
+                          >
+                            Limpar
+                          </Button>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-slate-400 mt-1">
+                        Necessária apenas para integrar com planilhas Meta/Facebook existentes. Pode ser preenchida depois.
+                      </p>
+
                       {!legacyKeyUnique && (
                         <Alert className="mt-2 bg-red-50 border-red-200">
                           <AlertTriangle className="w-4 h-4 text-red-600" />
                           <AlertDescription className="text-red-700 text-xs">
                             Já existe um cliente com esta chave legada. Por favor, escolha outra.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {legacyKeyUnique && formData.legacy_client_key && (
-                        <Alert className="mt-2 bg-amber-50 border-amber-200">
-                          <AlertTriangle className="w-4 h-4 text-amber-600" />
-                          <AlertDescription className="text-amber-700 text-xs">
-                            <strong>Atenção:</strong> Confirme se esta chave corresponde ao identificador já usado nas planilhas e dados históricos.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {legacyKeyManuallyEdited && !editingClienteId && (
-                        <Alert className="mt-2 bg-yellow-50 border-yellow-200">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                          <AlertDescription className="text-yellow-700 text-xs">
-                            <strong>Aviso:</strong> Alterar esta chave pode causar perda de vínculo com dados antigos.
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {editingClienteId && legacyKeyManuallyEdited && (
-                        <Alert className="mt-2 bg-yellow-50 border-yellow-200">
-                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                          <AlertDescription className="text-yellow-700 text-xs">
-                            <strong>Aviso:</strong> Você está alterando a chave legada. Confirme se esta mudança é necessária.
                           </AlertDescription>
                         </Alert>
                       )}
@@ -644,7 +637,7 @@ export default function CadastroCliente() {
                             htmlFor="confirm-legacy-key"
                             className="text-xs font-medium text-slate-900 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                           >
-                            Confirmo que esta chave legada está correta {editingClienteId && legacyKeyManuallyEdited ? 'e as alterações são necessárias' : 'e corresponde aos dados históricos'}
+                            Confirmo que esta chave corresponde ao identificador usado nas planilhas/Facebook
                           </label>
                         </div>
                       )}
