@@ -78,7 +78,7 @@ export default function GerarLancamentosModal({ open, onClose, onDone }) {
     // Folha
     for (const item of folha) {
       if (!mesInRange(item, mes)) { pulados++; continue; }
-      const exists = folExist.some(e => e.nome === item.nome);
+      const exists = folExist.some(e => e.nome === item.nome && e.tipo_vinculo === item.tipo_vinculo);
       if (exists) { pulados++; continue; }
       await base44.entities.FinanceiroFolha.create({
         nome: item.nome,
