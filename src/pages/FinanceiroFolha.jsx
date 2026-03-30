@@ -56,6 +56,8 @@ export default function FinanceiroFolha() {
   const [form, setForm] = useState(EMPTY);
   const [uploadingField, setUploadingField] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [paymentConfirm, setPaymentConfirm] = useState(null); // { item, valor }
+  const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   const { data: folha = [], isLoading } = useQuery({
     queryKey: ['fin-folha', mes],
@@ -72,6 +74,12 @@ export default function FinanceiroFolha() {
   const custoCLT = cltList.reduce((s, f) => s + (f.salario || 0) + (f.vale_alimentacao || 0) + (f.vale_transporte || 0) + (f.outros_beneficios || 0), 0);
   const custoPJ = pjList.reduce((s, f) => s + (f.valor_pj || 0), 0);
 
+  const addMeses = (mesStr, n) => {
+    const [y, m] = mesStr.split('-').map(Number);
+    const d = new Date(y, m - 1 + n, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
   const handleSave = async () => {
     setSaving(true);
     const data = {
@@ -87,6 +95,20 @@ export default function FinanceiroFolha() {
       await base44.entities.FinanceiroFolha.update(form.id, data);
     } else {
       await base44.entities.FinanceiroFolha.create(data);
+      // Se recorrente, criar para os próximos 11 meses
+      if (data.recorrente) {
+        for (let i = 1; i <= 11; i++) {
+          await base44.entities.FinanceiroFolha.create({
+            ...data,
+            mes_referencia: addMeses(mes, i),
+            status: 'pendente',
+            data_pagamento: '',
+            comprovante_pagamento_url: '',
+            holerite_url: '',
+            nota_fiscal_url: '',
+          });
+        }
+      }
     }
     qc.invalidateQueries({ queryKey: ['fin-folha'] });
     setSaving(false);
@@ -117,6 +139,33 @@ export default function FinanceiroFolha() {
       valor_pj: item.valor_pj?.toString() || '',
     });
     setShowModal(true);
+  };
+
+  const handleMarcarPago = (item) => {
+    const isCLT = item.tipo_vinculo === 'clt';
+    const valor = isCLT
+      ? (item.salario || 0) + (item.vale_alimentacao || 0) + (item.vale_transporte || 0) + (item.outros_beneficios || 0)
+      : (item.valor_pj || 0);
+    setPaymentConfirm({ item, valor: valor.toString() });
+  };
+
+  const handleConfirmPayment = async () => {
+    setConfirmingPayment(true);
+    const { item, valor } = paymentConfirm;
+    const isCLT = item.tipo_vinculo === 'clt';
+    const updateData = {
+      status: 'pago',
+      data_pagamento: format(new Date(), 'yyyy-MM-dd'),
+    };
+    if (isCLT) {
+      updateData.salario = parseFloat(valor) || 0;
+    } else {
+      updateData.valor_pj = parseFloat(valor) || 0;
+    }
+    await base44.entities.FinanceiroFolha.update(item.id, updateData);
+    qc.invalidateQueries({ queryKey: ['fin-folha'] });
+    setConfirmingPayment(false);
+    setPaymentConfirm(null);
   };
 
   const FolhaCard = ({ item }) => {
@@ -157,6 +206,9 @@ export default function FinanceiroFolha() {
               </a>
             ) : (
               <span className="text-xs text-slate-400">Sem comprovante</span>
+            )}
+            {item.status !== 'pago' && (
+              <Button variant="outline" size="sm" onClick={() => handleMarcarPago(item)} className="h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50">Marcar Pago</Button>
             )}
             <Button variant="outline" size="sm" onClick={() => openEdit(item)} className="h-7 text-xs">Editar</Button>
             <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)} className="text-red-400 h-7 px-2">
@@ -312,6 +364,31 @@ export default function FinanceiroFolha() {
         onClose={() => setShowGerar(false)}
         onDone={() => qc.invalidateQueries({ queryKey: ['fin-folha'] })}
       />
-      </div>
-      );
-      }
+
+      {/* Dialog confirmar pagamento */}
+      <Dialog open={!!paymentConfirm} onOpenChange={open => !open && setPaymentConfirm(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Confirmar Pagamento</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-slate-600">Confirme o valor pago para <strong>{paymentConfirm?.item?.nome}</strong>:</p>
+            <div>
+              <Label>Valor Pago (R$)</Label>
+              <Input
+                type="number"
+                value={paymentConfirm?.valor || ''}
+                onChange={e => setPaymentConfirm(p => ({ ...p, valor: e.target.value }))}
+                placeholder="0,00"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentConfirm(null)}>Cancelar</Button>
+            <Button onClick={handleConfirmPayment} disabled={confirmingPayment} className="bg-emerald-600 hover:bg-emerald-700">
+              {confirmingPayment && <Loader2 className="w-4 h-4 animate-spin" />} Confirmar Pago
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
