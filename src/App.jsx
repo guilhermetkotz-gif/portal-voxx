@@ -11,7 +11,7 @@ import PlanoDeAcaoDetalhe from './pages/PlanoDeAcaoDetalhe';
 import ReportDiario from './pages/ReportDiario';
 import InteligenicaUnidades from './pages/InteligenicaUnidades';
 import FinanceiroVisaoGeral from './pages/FinanceiroVisaoGeral';
-import FinanceiroReceitas from './pages/FinanceiroReceitas';
+import FinanceiroReceitas from './pages/FinanceiroReceitas.jsx';
 import FinanceiroCustos from './pages/FinanceiroCustos';
 import FinanceiroFolha from './pages/FinanceiroFolha';
 import FinanceiroDocumentos from './pages/FinanceiroDocumentos';

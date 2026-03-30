@@ -1,0 +1,96 @@
+{
+  "name": "FinanceiroReceita",
+  "type": "object",
+  "properties": {
+    "cliente_nome": {
+      "type": "string"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "valor_mensal": {
+      "type": "number",
+      "description": "Valor original da cobran\u00e7a (n\u00e3o alterar para juros)"
+    },
+    "tipo_contrato": {
+      "type": "string",
+      "enum": [
+        "mensal",
+        "trimestral",
+        "anual",
+        "avulso"
+      ],
+      "default": "mensal"
+    },
+    "data_cobranca": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "previsto",
+        "a_vencer",
+        "em_atraso",
+        "parcial",
+        "pago"
+      ],
+      "default": "a_vencer"
+    },
+    "data_recebimento": {
+      "type": "string",
+      "format": "date"
+    },
+    "observacao_recebimento": {
+      "type": "string"
+    },
+    "observacao_data": {
+      "type": "string",
+      "format": "date"
+    },
+    "observacao_usuario": {
+      "type": "string"
+    },
+    "comprovante_recebimento": {
+      "type": "string"
+    },
+    "mes_referencia": {
+      "type": "string",
+      "description": "Formato YYYY-MM"
+    },
+    "recorrente": {
+      "type": "boolean",
+      "default": false
+    },
+    "frequencia": {
+      "type": "string",
+      "enum": [
+        "mensal",
+        "quinzenal",
+        "anual",
+        "personalizado"
+      ],
+      "default": "mensal"
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_fim": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_previsto": {
+      "type": "boolean",
+      "default": false
+    },
+    "recorrencia_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "cliente_nome",
+    "valor_mensal",
+    "mes_referencia"
+  ]
+}

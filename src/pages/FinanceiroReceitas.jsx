@@ -9,35 +9,60 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle, DollarSign, History } from 'lucide-react';
 import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
+import ReceberModal from '@/components/financeiro/ReceberModal';
+import HistoricoRecebimentosModal from '@/components/financeiro/HistoricoRecebimentosModal';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import { useAuth } from '@/lib/AuthContext';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-const today = format(new Date(), 'yyyy-MM-dd');
-
-const STATUS_CONFIG = {
-  a_vencer: { label: 'A Vencer', color: 'bg-amber-100 text-amber-700 border-amber-200', icon: Clock, dot: 'bg-amber-400' },
-  pago:     { label: 'Pago',     color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: CheckCircle, dot: 'bg-emerald-500' },
-  em_atraso:{ label: 'Em Atraso',color: 'bg-red-100 text-red-700 border-red-200', icon: AlertCircle, dot: 'bg-red-500' },
-  previsto: { label: 'Previsto', color: 'bg-slate-100 text-slate-600 border-slate-200', icon: Clock, dot: 'bg-slate-400' },
-};
-
-const EMPTY = { cliente_nome: '', cliente_financeiro_id: '', valor_mensal: '', tipo_contrato: 'mensal', data_cobranca: '', status: 'a_vencer', data_recebimento: '', observacao_recebimento: '', comprovante_recebimento: '', recorrente: false, frequencia: 'mensal', data_inicio: '', data_fim: '' };
 
 function diasAtraso(data_cobranca) {
   if (!data_cobranca) return 0;
-  const diff = differenceInDays(new Date(), parseISO(data_cobranca));
-  return Math.max(0, diff);
+  return Math.max(0, differenceInDays(new Date(), parseISO(data_cobranca)));
 }
 
-function ObservacaoModal({ receita, user, onClose, onSaved }) {
+// Calcula status com base nos recebimentos vinculados
+function calcularStatus(receita, recebimentos) {
+  const recs = (recebimentos || []).filter(r => r.receita_id === receita.id);
+  const totalRecebido = recs.reduce((s, r) => s + (r.valor_total_recebido || 0), 0);
+  const totalJuros = recs.reduce((s, r) => s + (r.valor_juros || 0), 0);
+  const totalDescontos = recs.reduce((s, r) => s + (r.valor_desconto || 0), 0);
+  const valorCorrigido = (receita.valor_mensal || 0) + totalJuros - totalDescontos;
+  const saldoPendente = Math.max(0, valorCorrigido - totalRecebido);
+  const hoje = format(new Date(), 'yyyy-MM-dd');
+  const atrasado = receita.data_cobranca && receita.data_cobranca < hoje;
+
+  let status;
+  if (saldoPendente <= 0 && totalRecebido > 0) status = 'pago';
+  else if (totalRecebido > 0 && saldoPendente > 0) status = 'parcial';
+  else if (atrasado) status = 'em_atraso';
+  else status = 'a_vencer';
+
+  return { status, totalRecebido, totalJuros, totalDescontos, valorCorrigido, saldoPendente, recs };
+}
+
+const STATUS_CONFIG = {
+  a_vencer:  { label: 'A Vencer',  color: 'bg-amber-100 text-amber-700 border-amber-200',   dot: 'bg-amber-400'  },
+  pago:      { label: 'Pago',      color: 'bg-emerald-100 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
+  em_atraso: { label: 'Em Atraso', color: 'bg-red-100 text-red-700 border-red-200',          dot: 'bg-red-500'    },
+  parcial:   { label: 'Parcial',   color: 'bg-blue-100 text-blue-700 border-blue-200',       dot: 'bg-blue-500'   },
+  previsto:  { label: 'Previsto',  color: 'bg-slate-100 text-slate-600 border-slate-200',    dot: 'bg-slate-400'  },
+};
+
+const EMPTY = {
+  cliente_nome: '', cliente_id: '', valor_mensal: '', tipo_contrato: 'mensal',
+  data_cobranca: '', observacao_recebimento: '', recorrente: false,
+  frequencia: 'mensal', data_inicio: '', data_fim: ''
+};
+
+// ─────────────── MODAL OBSERVAÇÃO ───────────────
+function ObservacaoModal({ receita, user, onClose }) {
   const qc = useQueryClient();
   const [texto, setTexto] = useState(receita?.observacao_recebimento || '');
   const [saving, setSaving] = useState(false);
-
   const handleSave = async () => {
     setSaving(true);
     await base44.entities.FinanceiroReceita.update(receita.id, {
@@ -47,29 +72,18 @@ function ObservacaoModal({ receita, user, onClose, onSaved }) {
     });
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setSaving(false);
-    onSaved?.();
     onClose();
   };
-
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Observação — {receita?.cliente_nome}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3 py-2">
+        <DialogHeader><DialogTitle>Observação — {receita?.cliente_nome}</DialogTitle></DialogHeader>
+        <div className="space-y-2 py-2">
           {receita?.observacao_data && (
-            <p className="text-xs text-slate-400">
-              Última edição: {receita.observacao_data?.split('-').reverse().join('/')}
-              {receita.observacao_usuario ? ` · ${receita.observacao_usuario}` : ''}
-            </p>
+            <p className="text-xs text-slate-400">Última edição: {receita.observacao_data.split('-').reverse().join('/')}{receita.observacao_usuario ? ` · ${receita.observacao_usuario}` : ''}</p>
           )}
-          <textarea
-            className="w-full border border-input rounded-md px-3 py-2 text-sm min-h-[120px] resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-            placeholder="Adicione uma observação sobre esta receita (cobranças, acordos, contatos...)..."
-            value={texto}
-            onChange={e => setTexto(e.target.value)}
-          />
+          <textarea className="w-full border border-input rounded-md px-3 py-2 text-sm min-h-[100px] resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+            placeholder="Adicione uma observação..." value={texto} onChange={e => setTexto(e.target.value)} />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
@@ -82,15 +96,12 @@ function ObservacaoModal({ receita, user, onClose, onSaved }) {
   );
 }
 
-function gerarPDFInadimplencia(inadimplentes) {
+// ─────────────── INADIMPLÊNCIA ───────────────
+function gerarPDFInadimplencia(lista) {
   const doc = new jsPDF();
   const hoje = format(new Date(), 'dd/MM/yyyy');
-  const nomeArquivo = `relatorio_inadimplencia_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+  const totalValor = lista.reduce((s, r) => s + (r.saldoPendente || 0), 0);
 
-  const totalValor = inadimplentes.reduce((s, r) => s + (r.valor_mensal || 0), 0);
-  const qtd = inadimplentes.length;
-
-  // Cabeçalho
   doc.setFillColor(220, 38, 38);
   doc.rect(0, 0, 210, 28, 'F');
   doc.setTextColor(255, 255, 255);
@@ -101,7 +112,6 @@ function gerarPDFInadimplencia(inadimplentes) {
   doc.setFont('helvetica', 'normal');
   doc.text(`Gerado em: ${hoje}`, 14, 21);
 
-  // Resumo
   doc.setTextColor(30, 30, 30);
   doc.setFillColor(254, 242, 242);
   doc.rect(10, 33, 190, 22, 'F');
@@ -109,10 +119,9 @@ function gerarPDFInadimplencia(inadimplentes) {
   doc.setFont('helvetica', 'bold');
   doc.text('RESUMO', 14, 41);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Total Inadimplente: ${totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, 48);
-  doc.text(`Unidades Inadimplentes: ${qtd}`, 110, 48);
+  doc.text(`Saldo Total Inadimplente: ${totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, 48);
+  doc.text(`Unidades: ${lista.length}`, 140, 48);
 
-  // Cabeçalho da tabela
   let y = 62;
   doc.setFillColor(241, 245, 249);
   doc.rect(10, y - 5, 190, 8, 'F');
@@ -120,44 +129,39 @@ function gerarPDFInadimplencia(inadimplentes) {
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(80, 80, 80);
   doc.text('Unidade', 14, y);
-  doc.text('Valor', 80, y);
-  doc.text('Vencimento', 108, y);
-  doc.text('Atraso', 138, y);
-  doc.text('Observação', 158, y);
+  doc.text('V. Original', 72, y);
+  doc.text('Recebido', 100, y);
+  doc.text('Saldo', 128, y);
+  doc.text('Atraso', 152, y);
+  doc.text('Observação', 170, y);
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(30, 30, 30);
   y += 7;
 
-  inadimplentes.forEach((r, i) => {
-    if (y > 270) {
-      doc.addPage();
-      y = 20;
-    }
-    if (i % 2 === 0) {
-      doc.setFillColor(249, 250, 251);
-      doc.rect(10, y - 4, 190, 7, 'F');
-    }
-    doc.setFontSize(8);
-    const nome = r.cliente_nome?.length > 28 ? r.cliente_nome.substring(0, 26) + '...' : (r.cliente_nome || '—');
-    const valor = (r.valor_mensal || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const venc = r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—';
-    const dias = r.dias > 0 ? `${r.dias} dia${r.dias !== 1 ? 's' : ''}` : '0 dias';
-    const obs = r.observacao_recebimento ? (r.observacao_recebimento.length > 22 ? r.observacao_recebimento.substring(0, 20) + '...' : r.observacao_recebimento) : 'Sem observação';
+  lista.forEach((r, i) => {
+    if (y > 270) { doc.addPage(); y = 20; }
+    if (i % 2 === 0) { doc.setFillColor(249, 250, 251); doc.rect(10, y - 4, 190, 7, 'F'); }
+    doc.setFontSize(7.5);
+    const nome = (r.cliente_nome || '—').substring(0, 24);
+    const vo = (r.valor_mensal || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const rec = (r.totalRecebido || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const sal = (r.saldoPendente || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const dias = `${r.dias || 0}d`;
+    const obs = r.observacao_recebimento ? r.observacao_recebimento.substring(0, 18) : 'Sem observação';
     doc.text(nome, 14, y);
-    doc.text(valor, 80, y);
-    doc.text(venc, 108, y);
-    // Colorir dias de atraso
-    if (r.dias > 30) doc.setTextColor(185, 28, 28);
-    else if (r.dias >= 8) doc.setTextColor(194, 65, 12);
+    doc.text(vo, 72, y);
+    doc.text(rec, 100, y);
+    if ((r.dias || 0) > 30) doc.setTextColor(185, 28, 28);
+    else if ((r.dias || 0) >= 8) doc.setTextColor(194, 65, 12);
     else doc.setTextColor(161, 98, 7);
-    doc.text(dias, 138, y);
+    doc.text(sal, 128, y);
+    doc.text(dias, 152, y);
     doc.setTextColor(30, 30, 30);
-    doc.text(obs, 158, y);
+    doc.text(obs, 170, y);
     y += 7;
   });
 
-  // Rodapé
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -166,15 +170,12 @@ function gerarPDFInadimplencia(inadimplentes) {
     doc.text(`Página ${i} de ${pageCount}`, 14, 290);
     doc.text('Documento gerado automaticamente — uso interno', 100, 290);
   }
-
-  doc.save(nomeArquivo);
+  doc.save(`relatorio_inadimplencia_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }
 
-function InadimplenciaView() {
+function InadimplenciaView({ allRecebimentos }) {
   const [filtroUnidade, setFiltroUnidade] = useState('');
   const [filtroPeriodo, setFiltroPeriodo] = useState('all');
-  const [obsTarget, setObsTarget] = useState(null);
-  const { user } = useAuth();
 
   const { data: todasReceitas = [], isLoading } = useQuery({
     queryKey: ['fin-receitas-inadimplencia'],
@@ -182,12 +183,16 @@ function InadimplenciaView() {
   });
 
   const inadimplentes = useMemo(() => {
+    const hoje = format(new Date(), 'yyyy-MM-dd');
     const mesAtual = format(new Date(), 'yyyy-MM');
     const limite30 = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
 
     return todasReceitas
-      .filter(r => r.status === 'em_atraso')
-      .map(r => ({ ...r, dias: diasAtraso(r.data_cobranca) }))
+      .map(r => {
+        const calc = calcularStatus(r, allRecebimentos);
+        return { ...r, ...calc, dias: diasAtraso(r.data_cobranca) };
+      })
+      .filter(r => (r.status === 'em_atraso' || r.status === 'parcial') && r.data_cobranca < hoje)
       .filter(r => {
         const matchUnidade = !filtroUnidade || r.cliente_nome?.toLowerCase().includes(filtroUnidade.toLowerCase());
         const matchPeriodo = filtroPeriodo === 'all'
@@ -196,22 +201,17 @@ function InadimplenciaView() {
         return matchUnidade && matchPeriodo;
       })
       .sort((a, b) => b.dias - a.dias);
-  }, [todasReceitas, filtroUnidade, filtroPeriodo]);
+  }, [todasReceitas, allRecebimentos, filtroUnidade, filtroPeriodo]);
 
-  const totalAtraso = inadimplentes.filter(r => r.status === 'em_atraso').reduce((s, r) => s + (r.valor_mensal || 0), 0);
-  const totalPendente = inadimplentes.filter(r => r.status === 'a_vencer').reduce((s, r) => s + (r.valor_mensal || 0), 0);
-  const qtdInadimplentes = inadimplentes.filter(r => r.status === 'em_atraso').length;
-  const mediaDias = qtdInadimplentes > 0
-    ? Math.round(inadimplentes.filter(r => r.status === 'em_atraso').reduce((s, r) => s + r.dias, 0) / qtdInadimplentes)
-    : 0;
-
+  const totalPendente = inadimplentes.reduce((s, r) => s + (r.saldoPendente || 0), 0);
+  const inadTotal = inadimplentes.filter(r => r.status === 'em_atraso').length;
+  const inadParcial = inadimplentes.filter(r => r.status === 'parcial').length;
   const dist = {
-    ate7: inadimplentes.filter(r => r.dias >= 0 && r.dias <= 7).length,
+    ate7: inadimplentes.filter(r => r.dias <= 7).length,
     ate30: inadimplentes.filter(r => r.dias >= 8 && r.dias <= 30).length,
     mais30: inadimplentes.filter(r => r.dias > 30).length,
   };
 
-  // Agrupar por mes_referencia
   const porMes = useMemo(() => {
     const grupos = {};
     inadimplentes.forEach(r => {
@@ -222,36 +222,34 @@ function InadimplenciaView() {
     return Object.entries(grupos).sort(([a], [b]) => b.localeCompare(a));
   }, [inadimplentes]);
 
+  const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   function labelMes(mesRef) {
     if (!mesRef || mesRef === 'sem-mes') return 'Sem mês';
     const [ano, mes] = mesRef.split('-');
-    const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     return `${nomes[parseInt(mes) - 1]} ${ano}`;
   }
 
   return (
     <div className="space-y-5">
-      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4 border-red-200 bg-red-50">
-          <p className="text-xs text-red-500 mb-1">Total em Atraso</p>
-          <p className="text-xl font-bold text-red-700">{fmt(totalAtraso)}</p>
-        </Card>
-        <Card className="p-4 border-amber-200 bg-amber-50">
-          <p className="text-xs text-amber-600 mb-1">Total Pendente</p>
-          <p className="text-xl font-bold text-amber-700">{fmt(totalPendente)}</p>
+          <p className="text-xs text-red-500 mb-1">Saldo Total Inadimplente</p>
+          <p className="text-xl font-bold text-red-700">{fmt(totalPendente)}</p>
         </Card>
         <Card className="p-4 border-red-200 bg-red-50">
-          <p className="text-xs text-red-500 mb-1">Clientes Inadimplentes</p>
-          <p className="text-xl font-bold text-red-700">{qtdInadimplentes}</p>
+          <p className="text-xs text-red-500 mb-1">Inadimplência Total</p>
+          <p className="text-xl font-bold text-red-700">{inadTotal}</p>
+        </Card>
+        <Card className="p-4 border-orange-200 bg-orange-50">
+          <p className="text-xs text-orange-600 mb-1">Inadimplência Parcial</p>
+          <p className="text-xl font-bold text-orange-700">{inadParcial}</p>
         </Card>
         <Card className="p-4 border-slate-200">
-          <p className="text-xs text-slate-500 mb-1">Média de Dias em Atraso</p>
-          <p className="text-xl font-bold text-slate-700">{mediaDias} dias</p>
+          <p className="text-xs text-slate-500 mb-1">Total registros</p>
+          <p className="text-xl font-bold text-slate-700">{inadimplentes.length}</p>
         </Card>
       </div>
 
-      {/* Distribuição de atraso */}
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs text-slate-500 font-medium">Distribuição:</span>
         <span className="inline-flex items-center gap-1.5 text-xs bg-amber-50 border border-amber-200 text-amber-700 rounded-full px-3 py-1">
@@ -265,14 +263,13 @@ function InadimplenciaView() {
         </span>
       </div>
 
-      {/* Filtros */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <Input placeholder="Filtrar unidade..." value={filtroUnidade} onChange={e => setFiltroUnidade(e.target.value)} className="pl-9 w-52" />
         </div>
         <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Período" /></SelectTrigger>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os períodos</SelectItem>
             <SelectItem value="mes_atual">Mês atual</SelectItem>
@@ -280,20 +277,15 @@ function InadimplenciaView() {
           </SelectContent>
         </Select>
         <span className="text-sm text-slate-500">{inadimplentes.length} registros</span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => gerarPDFInadimplencia(inadimplentes)}
+        <Button variant="outline" size="sm" onClick={() => gerarPDFInadimplencia(inadimplentes)}
           disabled={inadimplentes.length === 0}
-          className="ml-auto gap-1.5 border-red-200 text-red-600 hover:bg-red-50"
-        >
+          className="ml-auto gap-1.5 border-red-200 text-red-600 hover:bg-red-50">
           <FileText className="w-4 h-4" /> Gerar relatório PDF
         </Button>
       </div>
 
-      {/* Lista agrupada por mês */}
       {isLoading ? (
-        <Card className="p-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></Card>
+        <Card className="p-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400" /></Card>
       ) : porMes.length === 0 ? (
         <Card className="p-10 text-center text-slate-400">
           <CheckCircle className="w-8 h-8 mx-auto mb-2 text-emerald-400" />
@@ -305,49 +297,41 @@ function InadimplenciaView() {
             <div key={mesRef}>
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-sm font-semibold text-slate-700">{labelMes(mesRef)}</h3>
-                <span className="text-xs text-slate-400">{itens.length} registro{itens.length !== 1 ? 's' : ''} · {fmt(itens.reduce((s, r) => s + (r.valor_mensal || 0), 0))}</span>
+                <span className="text-xs text-slate-400">{itens.length} registro{itens.length !== 1 ? 's' : ''} · {fmt(itens.reduce((s, r) => s + (r.saldoPendente || 0), 0))} pendente</span>
                 <div className="flex-1 h-px bg-slate-200" />
               </div>
               <div className="space-y-2">
                 {itens.map(r => {
-                  const isAtraso = r.status === 'em_atraso';
-                  const faixaColor = r.dias > 30 ? 'bg-red-500' : r.dias >= 8 ? 'bg-orange-400' : 'bg-amber-400';
+                  const faixaColor = r.dias > 30 ? 'border-l-red-500' : r.dias >= 8 ? 'border-l-orange-400' : 'border-l-amber-400';
+                  const isParcial = r.status === 'parcial';
                   return (
-                    <Card key={r.id} className={`p-4 border-l-4 ${isAtraso ? 'border-l-red-500' : 'border-l-amber-400'}`}>
+                    <Card key={r.id} className={`p-4 border-l-4 ${faixaColor}`}>
                       <div className="flex items-start justify-between gap-3 flex-wrap">
-                        <div className="flex items-start gap-3">
-                          <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 ${faixaColor}`} />
-                          <div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
-                            <div className="flex items-center gap-3 mt-1 flex-wrap">
-                              <span className="text-sm font-bold text-slate-800">{fmt(r.valor_mensal)}</span>
-                              <span className="text-xs text-slate-500">Venc.: {r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—'}</span>
-                              {isAtraso ? (
-                                <Badge className={`text-xs ${r.dias > 30 ? 'bg-red-100 text-red-700 border-red-200' : r.dias >= 8 ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-amber-100 text-amber-700 border-amber-200'}`}>
-                                  {r.dias} {r.dias === 1 ? 'dia' : 'dias'} em atraso
-                                </Badge>
-                              ) : (
-                                <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">A Vencer</Badge>
-                              )}
-                            </div>
-                            {r.observacao_recebimento && (
-                              <p className="text-xs text-slate-500 mt-1.5 bg-slate-50 rounded px-2 py-1 border border-slate-100">
-                                💬 {r.observacao_recebimento}
-                                {r.observacao_data && <span className="text-slate-400 ml-1">· {r.observacao_data.split('-').reverse().join('/')}</span>}
-                                {r.observacao_usuario && <span className="text-slate-400 ml-1">· {r.observacao_usuario}</span>}
-                              </p>
-                            )}
+                            {isParcial
+                              ? <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Parcial</Badge>
+                              : <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">Em Atraso</Badge>
+                            }
+                            <Badge className={`text-xs ${r.dias > 30 ? 'bg-red-100 text-red-700' : r.dias >= 8 ? 'bg-orange-100 text-orange-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {r.dias}d atraso
+                            </Badge>
                           </div>
+                          <div className="flex items-center gap-4 mt-1.5 flex-wrap text-xs text-slate-500">
+                            <span>Venc.: {r.data_cobranca?.split('-').reverse().join('/')}</span>
+                            <span>Original: <strong className="text-slate-700">{fmt(r.valor_mensal)}</strong></span>
+                            {isParcial && <span>Recebido: <strong className="text-emerald-600">{fmt(r.totalRecebido)}</strong></span>}
+                            <span>Saldo: <strong className="text-red-600">{fmt(r.saldoPendente)}</strong></span>
+                            {r.totalJuros > 0 && <span className="text-orange-600">Juros: {fmt(r.totalJuros)}</span>}
+                            {r.recs?.length > 0 && <span>Último pg.: {r.recs[r.recs.length - 1]?.data_pagamento?.split('-').reverse().join('/')}</span>}
+                          </div>
+                          {r.observacao_recebimento && (
+                            <p className="text-xs text-slate-500 mt-1.5 bg-slate-50 rounded px-2 py-1 border border-slate-100">
+                              💬 {r.observacao_recebimento}
+                            </p>
+                          )}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setObsTarget(r)}
-                          className={`h-7 text-xs gap-1 ${r.observacao_recebimento ? 'border-violet-200 text-violet-600' : 'text-slate-500'}`}
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                          {r.observacao_recebimento ? 'Ver obs.' : 'Obs.'}
-                        </Button>
                       </div>
                     </Card>
                   );
@@ -357,26 +341,18 @@ function InadimplenciaView() {
           ))}
         </div>
       )}
-
-      {obsTarget && (
-        <ObservacaoModal
-          receita={obsTarget}
-          user={user}
-          onClose={() => setObsTarget(null)}
-        />
-      )}
     </div>
   );
 }
 
+// ─────────────── PÁGINA PRINCIPAL ───────────────
 export default function FinanceiroReceitas() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [mes, setMes] = useState(format(new Date(), 'yyyy-MM'));
-  const [view, setView] = useState('lista'); // 'lista' | 'inadimplencia'
+  const [view, setView] = useState('lista');
   const [search, setSearch] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('all');
-  const [filtroComp, setFiltroComp] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [uploading, setUploading] = useState(false);
@@ -386,19 +362,37 @@ export default function FinanceiroReceitas() {
   const [gerarResultado, setGerarResultado] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [obsTarget, setObsTarget] = useState(null);
+  const [receberTarget, setReceberTarget] = useState(null);
+  const [historicoTarget, setHistoricoTarget] = useState(null);
 
   const { data: receitas = [], isLoading } = useQuery({
     queryKey: ['fin-receitas', mes],
     queryFn: () => base44.entities.FinanceiroReceita.filter({ mes_referencia: mes }, '-created_date', 200),
   });
 
-  const filtered = receitas.filter(r => {
+  const { data: allRecebimentos = [] } = useQuery({
+    queryKey: ['fin-recebimentos', mes],
+    queryFn: () => base44.entities.RecebimentoReceita.filter({ mes_referencia: mes }, '-created_date', 1000),
+  });
+
+  const { data: allRecebimentosGlobal = [] } = useQuery({
+    queryKey: ['fin-recebimentos-global'],
+    queryFn: () => base44.entities.RecebimentoReceita.filter({}, '-created_date', 5000),
+    enabled: view === 'inadimplencia',
+  });
+
+  // Enrich receitas com cálculos
+  const receitasEnriquecidas = useMemo(() => {
+    return receitas.map(r => {
+      const calc = calcularStatus(r, allRecebimentos);
+      return { ...r, ...calc };
+    });
+  }, [receitas, allRecebimentos]);
+
+  const filtered = receitasEnriquecidas.filter(r => {
     const matchSearch = !search || r.cliente_nome?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filtroStatus === 'all' || r.status === filtroStatus;
-    const matchComp = filtroComp === 'all'
-      || (filtroComp === 'com' && r.comprovante_recebimento)
-      || (filtroComp === 'sem' && !r.comprovante_recebimento);
-    return matchSearch && matchStatus && matchComp;
+    return matchSearch && matchStatus;
   }).sort((a, b) => {
     if (!a.data_cobranca && !b.data_cobranca) return 0;
     if (!a.data_cobranca) return 1;
@@ -407,10 +401,13 @@ export default function FinanceiroReceitas() {
   });
 
   const totais = {
-    total: receitas.reduce((s, r) => s + (r.valor_mensal || 0), 0),
-    pago: receitas.filter(r => r.status === 'pago').reduce((s, r) => s + (r.valor_mensal || 0), 0),
-    pendente: receitas.filter(r => r.status !== 'pago').reduce((s, r) => s + (r.valor_mensal || 0), 0),
-    semComp: receitas.filter(r => r.status === 'pago' && !r.comprovante_recebimento).length,
+    mrr: receitas.reduce((s, r) => s + (r.valor_mensal || 0), 0),
+    recebido: receitasEnriquecidas.reduce((s, r) => s + (r.totalRecebido || 0), 0),
+    pendente: receitasEnriquecidas.reduce((s, r) => s + (r.saldoPendente || 0), 0),
+    juros: allRecebimentos.reduce((s, r) => s + (r.valor_juros || 0), 0),
+    parciais: receitasEnriquecidas.filter(r => r.status === 'parcial').length,
+    semComp: allRecebimentos.filter(r => !r.comprovante_url).length,
+    atrasadas: receitasEnriquecidas.filter(r => r.status === 'em_atraso' || r.status === 'parcial').length,
   };
 
   const handleSave = async () => {
@@ -425,13 +422,6 @@ export default function FinanceiroReceitas() {
     setSaving(false);
     setShowModal(false);
     setForm(EMPTY);
-  };
-
-  const handleUpload = async (file) => {
-    setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    setForm(f => ({ ...f, comprovante_recebimento: file_url }));
-    setUploading(false);
   };
 
   const handleGerarRecorrentes = async () => {
@@ -454,10 +444,14 @@ export default function FinanceiroReceitas() {
     setShowModal(true);
   };
 
-  const openNew = () => {
-    setForm({ ...EMPTY });
-    setShowModal(true);
-  };
+  const openNew = () => { setForm({ ...EMPTY }); setShowModal(true); };
+
+  // Recebimentos da receita selecionada no ReceberModal
+  const recebimentosDoTarget = useMemo(() => {
+    if (!receberTarget && !historicoTarget) return [];
+    const id = (receberTarget || historicoTarget)?.id;
+    return allRecebimentos.filter(r => r.receita_id === id);
+  }, [receberTarget, historicoTarget, allRecebimentos]);
 
   return (
     <div className="space-y-6">
@@ -483,48 +477,50 @@ export default function FinanceiroReceitas() {
         </div>
       </div>
 
-      {/* Toggle de visualização */}
+      {/* Toggle */}
       <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 w-fit">
-        <button
-          onClick={() => setView('lista')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'lista' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-        >
+        <button onClick={() => setView('lista')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'lista' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <List className="w-4 h-4" /> Lista
         </button>
-        <button
-          onClick={() => setView('inadimplencia')}
-          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'inadimplencia' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-        >
+        <button onClick={() => setView('inadimplencia')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'inadimplencia' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
           <AlertTriangle className="w-4 h-4" /> Inadimplência
-          {receitas.filter(r => r.status === 'em_atraso').length > 0 && (
-            <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">
-              {receitas.filter(r => r.status === 'em_atraso').length}
-            </span>
+          {totais.atrasadas > 0 && (
+            <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">{totais.atrasadas}</span>
           )}
         </button>
       </div>
 
       {view === 'inadimplencia' ? (
-        <InadimplenciaView />
+        <InadimplenciaView allRecebimentos={allRecebimentosGlobal} />
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <Card className="p-4 border-slate-200">
-              <p className="text-xs text-slate-500 mb-1">Total MRR</p>
-              <p className="text-xl font-bold text-slate-900">{fmt(totais.total)}</p>
+              <p className="text-xs text-slate-500 mb-1">MRR Total</p>
+              <p className="text-lg font-bold text-slate-900">{fmt(totais.mrr)}</p>
             </Card>
             <Card className="p-4 border-emerald-200 bg-emerald-50">
               <p className="text-xs text-emerald-600 mb-1">Recebido</p>
-              <p className="text-xl font-bold text-emerald-700">{fmt(totais.pago)}</p>
+              <p className="text-lg font-bold text-emerald-700">{fmt(totais.recebido)}</p>
             </Card>
-            <Card className="p-4 border-amber-200 bg-amber-50">
-              <p className="text-xs text-amber-600 mb-1">Pendente / Atraso</p>
-              <p className="text-xl font-bold text-amber-700">{fmt(totais.pendente)}</p>
+            <Card className="p-4 border-red-200 bg-red-50">
+              <p className="text-xs text-red-500 mb-1">Saldo Pendente</p>
+              <p className="text-lg font-bold text-red-700">{fmt(totais.pendente)}</p>
             </Card>
-            <Card className={`p-4 ${totais.semComp > 0 ? 'border-orange-200 bg-orange-50' : 'border-slate-200'}`}>
-              <p className="text-xs text-slate-500 mb-1">Pagos sem comprovante</p>
-              <p className={`text-xl font-bold ${totais.semComp > 0 ? 'text-orange-600' : 'text-slate-700'}`}>{totais.semComp}</p>
+            <Card className={`p-4 ${totais.juros > 0 ? 'border-orange-200 bg-orange-50' : 'border-slate-200'}`}>
+              <p className="text-xs text-slate-500 mb-1">Juros Recebidos</p>
+              <p className={`text-lg font-bold ${totais.juros > 0 ? 'text-orange-600' : 'text-slate-700'}`}>{fmt(totais.juros)}</p>
+            </Card>
+            <Card className={`p-4 ${totais.parciais > 0 ? 'border-blue-200 bg-blue-50' : 'border-slate-200'}`}>
+              <p className="text-xs text-slate-500 mb-1">Parciais</p>
+              <p className={`text-lg font-bold ${totais.parciais > 0 ? 'text-blue-700' : 'text-slate-700'}`}>{totais.parciais}</p>
+            </Card>
+            <Card className={`p-4 ${totais.semComp > 0 ? 'border-amber-200 bg-amber-50' : 'border-slate-200'}`}>
+              <p className="text-xs text-slate-500 mb-1">Sem comprovante</p>
+              <p className={`text-lg font-bold ${totais.semComp > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{totais.semComp}</p>
             </Card>
           </div>
 
@@ -539,18 +535,11 @@ export default function FinanceiroReceitas() {
             <Select value={filtroStatus} onValueChange={setFiltroStatus}>
               <SelectTrigger className="w-36"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pago">✅ Pago</SelectItem>
+                <SelectItem value="parcial">🔵 Parcial</SelectItem>
                 <SelectItem value="a_vencer">🟡 A Vencer</SelectItem>
                 <SelectItem value="em_atraso">🔴 Em Atraso</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filtroComp} onValueChange={setFiltroComp}>
-              <SelectTrigger className="w-44"><SelectValue placeholder="Comprovante" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="com">Com comprovante</SelectItem>
-                <SelectItem value="sem">Sem comprovante</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -558,56 +547,52 @@ export default function FinanceiroReceitas() {
           {/* Lista */}
           <div className="space-y-2">
             {isLoading ? (
-              <Card className="p-8 text-center text-slate-400"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></Card>
+              <Card className="p-8 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-slate-400" /></Card>
             ) : filtered.length === 0 ? (
-              <Card className="p-8 text-center text-slate-400">Nenhuma receita encontrada. <br /><span className="text-sm">Clique em "Nova Receita" para começar.</span></Card>
+              <Card className="p-8 text-center text-slate-400">Nenhuma receita encontrada.</Card>
             ) : filtered.map(r => {
               const sc = STATUS_CONFIG[r.status] || STATUS_CONFIG.a_vencer;
-              const Icon = sc.icon;
+              const diasAtr = r.status === 'em_atraso' || r.status === 'parcial' ? diasAtraso(r.data_cobranca) : 0;
               return (
                 <Card key={r.id} className="p-4 hover:shadow-sm transition-shadow">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${sc.color}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className={`w-2.5 h-2.5 rounded-full mt-2 flex-shrink-0 ${sc.dot}`} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
-                          {r.observacao_recebimento && (
-                            <span title={r.observacao_recebimento} className="text-violet-500 cursor-pointer" onClick={() => setObsTarget(r)}>
-                              <MessageSquare className="w-3.5 h-3.5" />
-                            </span>
-                          )}
+                          <Badge className={`text-xs ${sc.color}`}>{sc.label}</Badge>
+                          {r.totalJuros > 0 && <Badge className="text-xs bg-orange-100 text-orange-700">c/ juros</Badge>}
+                          {r.recs?.some(rec => !rec.comprovante_url) && <Badge className="text-xs bg-amber-100 text-amber-600">sem comprovante</Badge>}
+                          {diasAtr > 0 && <Badge className="text-xs bg-red-50 text-red-600 border-red-200">{diasAtr}d atraso</Badge>}
                         </div>
-                        <p className="text-xs text-slate-500">
-                          {r.tipo_contrato} · Cobrança: {r.data_cobranca ? r.data_cobranca.split('-').reverse().join('/') : '—'}
-                          {r.data_recebimento && ` · Recebido: ${r.data_recebimento.split('-').reverse().join('/')}`}
-                        </p>
+                        <div className="flex items-center gap-4 mt-1 flex-wrap text-xs text-slate-500">
+                          <span>{r.tipo_contrato}</span>
+                          {r.data_cobranca && <span>Venc.: {r.data_cobranca.split('-').reverse().join('/')}</span>}
+                          <span>Original: <strong className="text-slate-700">{fmt(r.valor_mensal)}</strong></span>
+                          {r.totalRecebido > 0 && <span>Recebido: <strong className="text-emerald-600">{fmt(r.totalRecebido)}</strong></span>}
+                          {r.saldoPendente > 0 && <span>Saldo: <strong className="text-red-600">{fmt(r.saldoPendente)}</strong></span>}
+                        </div>
                         {r.observacao_recebimento && (
-                          <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs">💬 {r.observacao_recebimento}</p>
+                          <p className="text-xs text-slate-400 mt-1 truncate max-w-sm">💬 {r.observacao_recebimento}</p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-lg font-bold text-slate-900">{fmt(r.valor_mensal)}</span>
-                      <Badge className={sc.color}>{sc.label}</Badge>
-                      {r.status === 'em_atraso' && r.data_cobranca && (
-                        <Badge className="bg-red-50 text-red-600 border-red-200 text-xs">{diasAtraso(r.data_cobranca)}d atraso</Badge>
-                      )}
-                      {r.comprovante_recebimento ? (
-                        <a href={r.comprovante_recebimento} target="_blank" rel="noopener noreferrer">
-                          <Button variant="outline" size="sm" className="text-emerald-600 border-emerald-200 h-7 text-xs">
-                            <FileText className="w-3 h-3" /> Comprovante
-                          </Button>
-                        </a>
-                      ) : (
-                        <span className="text-xs text-amber-500 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Sem comprovante</span>
-                      )}
-                      <Button variant="outline" size="sm" onClick={() => setObsTarget(r)} className={`h-7 text-xs gap-1 ${r.observacao_recebimento ? 'border-violet-200 text-violet-600' : ''}`}>
-                        <MessageSquare className="w-3 h-3" /> Obs.
+                    <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap">
+                      <Button variant="outline" size="sm" onClick={() => openEdit(r)} className="h-7 text-xs gap-1">
+                        <FileText className="w-3 h-3" /> Cobrança
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => openEdit(r)} className="h-7 text-xs">Editar</Button>
+                      <Button size="sm" onClick={() => setReceberTarget(r)}
+                        className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                        <DollarSign className="w-3 h-3" /> Receber
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setHistoricoTarget(r)} className="h-7 text-xs gap-1">
+                        <History className="w-3 h-3" /> Histórico
+                        {r.recs?.length > 0 && <span className="bg-slate-200 text-slate-700 rounded-full px-1 text-xs leading-none">{r.recs.length}</span>}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => setObsTarget(r)} className={`h-7 text-xs px-2 ${r.observacao_recebimento ? 'border-violet-200 text-violet-600' : ''}`}>
+                        <MessageSquare className="w-3 h-3" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(r)} className="text-red-400 h-7 px-2">
                         <X className="w-3.5 h-3.5" />
                       </Button>
@@ -620,12 +605,22 @@ export default function FinanceiroReceitas() {
         </>
       )}
 
-      {/* Modal observação */}
-      {obsTarget && (
-        <ObservacaoModal
-          receita={obsTarget}
-          user={user}
-          onClose={() => setObsTarget(null)}
+      {/* Modais */}
+      {obsTarget && <ObservacaoModal receita={obsTarget} user={user} onClose={() => setObsTarget(null)} />}
+
+      {receberTarget && (
+        <ReceberModal
+          receita={receberTarget}
+          recebimentos={recebimentosDoTarget}
+          onClose={() => setReceberTarget(null)}
+        />
+      )}
+
+      {historicoTarget && (
+        <HistoricoRecebimentosModal
+          receita={historicoTarget}
+          onClose={() => setHistoricoTarget(null)}
+          onAddRecebimento={() => { setReceberTarget(historicoTarget); setHistoricoTarget(null); }}
         />
       )}
 
@@ -633,69 +628,50 @@ export default function FinanceiroReceitas() {
       <AlertDialog open={showConfirmGerar} onOpenChange={setShowConfirmGerar}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-                <RefreshCw className="w-5 h-5 text-violet-600" />
-              </div>
-              <AlertDialogTitle className="text-lg">Gerar receitas recorrentes?</AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="text-sm text-slate-600">
-              Serão gerados lançamentos recorrentes para o mês <strong className="text-slate-900">{mes}</strong>.<br />
-              Lançamentos já existentes não serão duplicados.
+            <AlertDialogTitle>Gerar receitas recorrentes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Serão gerados lançamentos recorrentes para o mês <strong>{mes}</strong>. Lançamentos já existentes não serão duplicados.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-2">
+          <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleGerarRecorrentes} className="bg-violet-600 hover:bg-violet-700 text-white">Sim, gerar</AlertDialogAction>
+            <AlertDialogAction onClick={handleGerarRecorrentes} className="bg-violet-600 hover:bg-violet-700">Sim, gerar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Resultado gerar recorrentes */}
       <AlertDialog open={!!gerarResultado} onOpenChange={open => !open && setGerarResultado(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-5 h-5 text-emerald-600" />
-              </div>
-              <AlertDialogTitle className="text-lg">Concluído!</AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="text-sm text-slate-600">{gerarResultado}</AlertDialogDescription>
+            <AlertDialogTitle>Concluído!</AlertDialogTitle>
+            <AlertDialogDescription>{gerarResultado}</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-2">
-            <AlertDialogAction onClick={() => setGerarResultado(null)} className="bg-emerald-600 hover:bg-emerald-700 text-white">OK</AlertDialogAction>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setGerarResultado(null)} className="bg-emerald-600 hover:bg-emerald-700">OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Confirm excluir */}
       <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <X className="w-5 h-5 text-red-600" />
-              </div>
-              <AlertDialogTitle className="text-lg">Excluir receita?</AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="text-sm text-slate-600">
-              Você está prestes a excluir a receita de <strong className="text-slate-900">{deleteTarget?.cliente_nome}</strong>{deleteTarget?.valor_mensal ? ` — ${fmt(deleteTarget.valor_mensal)}` : ''}.<br />
-              Esta ação não pode ser desfeita.
+            <AlertDialogTitle>Excluir receita?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Excluir a receita de <strong>{deleteTarget?.cliente_nome}</strong>{deleteTarget?.valor_mensal ? ` — ${fmt(deleteTarget.valor_mensal)}` : ''}. Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="mt-2">
-            <AlertDialogCancel className="border-slate-200">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white">Sim, excluir</AlertDialogAction>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Modal novo/editar receita */}
+      {/* Modal cobrança */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{form.id ? 'Editar Receita' : 'Nova Receita'}</DialogTitle>
+            <DialogTitle>{form.id ? 'Editar Cobrança' : 'Nova Receita'}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             <div>
@@ -703,14 +679,13 @@ export default function FinanceiroReceitas() {
               <ClienteFinanceiroSelect
                 value={form.cliente_nome}
                 onChange={(cliente) => {
-                  if (!cliente) { setForm(f => ({ ...f, cliente_nome: '', cliente_financeiro_id: '' })); return; }
+                  if (!cliente) { setForm(f => ({ ...f, cliente_nome: '', cliente_id: '' })); return; }
                   const dataCobranca = cliente.dia_cobranca
-                    ? `${mes}-${String(cliente.dia_cobranca).padStart(2, '0')}`
-                    : form.data_cobranca;
+                    ? `${mes}-${String(cliente.dia_cobranca).padStart(2, '0')}` : form.data_cobranca;
                   setForm(f => ({
                     ...f,
                     cliente_nome: cliente.nome + (cliente.unidade ? ` — ${cliente.unidade}` : ''),
-                    cliente_financeiro_id: cliente.id,
+                    cliente_id: cliente.id,
                     valor_mensal: cliente.valor_mensal?.toString() || f.valor_mensal,
                     tipo_contrato: cliente.tipo_contrato || f.tipo_contrato,
                     data_cobranca: dataCobranca,
@@ -720,8 +695,9 @@ export default function FinanceiroReceitas() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Valor Mensal (R$) *</Label>
-                <Input type="number" value={form.valor_mensal} onChange={e => setForm(f => ({ ...f, valor_mensal: e.target.value }))} placeholder="0,00" />
+                <Label>Valor Original (R$) *</Label>
+                <Input type="number" value={form.valor_mensal}
+                  onChange={e => setForm(f => ({ ...f, valor_mensal: e.target.value }))} placeholder="0,00" />
               </div>
               <div>
                 <Label>Tipo de Contrato</Label>
@@ -737,32 +713,17 @@ export default function FinanceiroReceitas() {
               </div>
               <div>
                 <Label>Data de Cobrança</Label>
-                <Input type="date" value={form.data_cobranca} onChange={e => setForm(f => ({ ...f, data_cobranca: e.target.value }))} />
+                <Input type="date" value={form.data_cobranca}
+                  onChange={e => setForm(f => ({ ...f, data_cobranca: e.target.value }))} />
               </div>
-              <div>
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="a_vencer">A Vencer</SelectItem>
-                    <SelectItem value="pago">Pago</SelectItem>
-                    <SelectItem value="em_atraso">Em Atraso</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {form.status === 'pago' && (
-              <div>
-                <Label>Data de Recebimento</Label>
-                <Input type="date" value={form.data_recebimento} onChange={e => setForm(f => ({ ...f, data_recebimento: e.target.value }))} />
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2 pt-5">
-                <input type="checkbox" id="recorrente" checked={!!form.recorrente} onChange={e => setForm(f => ({ ...f, recorrente: e.target.checked }))} className="w-4 h-4" />
+                <input type="checkbox" id="recorrente" checked={!!form.recorrente}
+                  onChange={e => setForm(f => ({ ...f, recorrente: e.target.checked }))} className="w-4 h-4" />
                 <Label htmlFor="recorrente">Receita Recorrente</Label>
               </div>
-              {form.recorrente && (
+            </div>
+            {form.recorrente && (
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <Label>Frequência</Label>
                   <Select value={form.frequencia || 'mensal'} onValueChange={v => setForm(f => ({ ...f, frequencia: v }))}>
@@ -773,38 +734,16 @@ export default function FinanceiroReceitas() {
                     </SelectContent>
                   </Select>
                 </div>
-              )}
-            </div>
-            {form.recorrente && (
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Data Início Recorrência</Label>
+                  <Label>Data Início</Label>
                   <Input type="date" value={form.data_inicio || ''} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))} />
                 </div>
                 <div>
-                  <Label>Data Fim Recorrência</Label>
+                  <Label>Data Fim</Label>
                   <Input type="date" value={form.data_fim || ''} onChange={e => setForm(f => ({ ...f, data_fim: e.target.value }))} />
                 </div>
               </div>
             )}
-            <div>
-              <Label>Comprovante de Recebimento</Label>
-              {form.comprovante_recebimento ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <a href={form.comprovante_recebimento} target="_blank" rel="noopener noreferrer" className="text-sm text-violet-600 underline">Ver comprovante</a>
-                  <Button variant="ghost" size="sm" onClick={() => setForm(f => ({ ...f, comprovante_recebimento: '' }))} className="h-6 px-1 text-red-400">
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-2 border-2 border-dashed border-slate-200 rounded-lg p-3 cursor-pointer hover:border-violet-300 mt-1">
-                  {uploading ? <Loader2 className="w-4 h-4 animate-spin text-slate-400" /> : <Upload className="w-4 h-4 text-slate-400" />}
-                  <span className="text-sm text-slate-500">{uploading ? 'Enviando...' : 'Clique para anexar (imagem ou PDF)'}</span>
-                  <input type="file" accept="image/*,.pdf" className="hidden" disabled={uploading}
-                    onChange={e => e.target.files[0] && handleUpload(e.target.files[0])} />
-                </label>
-              )}
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
