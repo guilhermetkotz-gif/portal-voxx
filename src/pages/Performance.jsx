@@ -187,7 +187,9 @@ export default function Performance({ currentCliente, selectedClienteId, user })
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <KPICard
               title="Leads Entregues"
-              value={(contaMetaAds?.messaging_conversations ?? contaMetaAds?.new_messaging_connections ?? cliente?.leads_meta_mes)?.toLocaleString('pt-BR') || '-'}
+              value={contaMetaAds
+                ? ((contaMetaAds.leads || 0) + (contaMetaAds.cadastros_whats || 0)).toLocaleString('pt-BR')
+                : (cliente?.leads_meta_mes?.toLocaleString('pt-BR') || '-')}
               subtitle="Este mês"
               icon={Users}
               variant="primary"
