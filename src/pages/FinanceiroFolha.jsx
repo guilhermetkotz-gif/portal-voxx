@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Upload, CheckCircle, Clock, FileText, X, Loader2, Users, Zap, RefreshCw } from 'lucide-react';
 import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
@@ -57,7 +58,9 @@ export default function FinanceiroFolha() {
   const [uploadingField, setUploadingField] = useState(null);
   const [saving, setSaving] = useState(false);
   const [paymentConfirm, setPaymentConfirm] = useState(null);
-  const [propagando, setPropagando] = useState(false); // { item, valor }
+  const [propagando, setPropagando] = useState(false);
+  const [showConfirmPropagar, setShowConfirmPropagar] = useState(false);
+  const [propagacaoResultado, setPropagacaoResultado] = useState(null);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
 
   const { data: folha = [], isLoading } = useQuery({
@@ -82,20 +85,18 @@ export default function FinanceiroFolha() {
   };
 
   const handlePropagarRecorrentes = async () => {
-    if (!confirm(`Propagar todos os registros recorrentes de ${mes} para os próximos 11 meses? Registros já existentes não serão duplicados.`)) return;
+    setShowConfirmPropagar(false);
     setPropagando(true);
-    // Busca todos os registros recorrentes do mês atual
     const recorrentes = folha.filter(f => f.recorrente);
-    // Busca todos os registros de folha existentes nos próximos 11 meses
     const mesesFuturos = Array.from({ length: 11 }, (_, i) => addMeses(mes, i + 1));
     const existentes = await Promise.all(
       mesesFuturos.map(m => base44.entities.FinanceiroFolha.filter({ mes_referencia: m }, '-created_date', 200))
     );
     const existentesFlat = existentes.flat();
+    let criados = 0;
     for (const item of recorrentes) {
       for (let i = 1; i <= 11; i++) {
         const mesFuturo = addMeses(mes, i);
-        // Verifica se já existe um registro com o mesmo nome e mês
         const jaExiste = existentesFlat.some(e => e.nome === item.nome && e.mes_referencia === mesFuturo && e.tipo_vinculo === item.tipo_vinculo);
         if (!jaExiste) {
           await base44.entities.FinanceiroFolha.create({
@@ -114,12 +115,13 @@ export default function FinanceiroFolha() {
             mes_referencia: mesFuturo,
             status: 'pendente',
           });
+          criados++;
         }
       }
     }
     qc.invalidateQueries({ queryKey: ['fin-folha'] });
     setPropagando(false);
-    alert(`Propagação concluída! ${recorrentes.length} registro(s) recorrente(s) propagado(s) para os próximos 11 meses.`);
+    setPropagacaoResultado({ recorrentes: recorrentes.length, criados });
   };
 
   const handleSave = async () => {
@@ -166,7 +168,6 @@ export default function FinanceiroFolha() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Excluir este registro?')) return;
     await base44.entities.FinanceiroFolha.delete(id);
     qc.invalidateQueries({ queryKey: ['fin-folha'] });
   };
@@ -283,7 +284,7 @@ export default function FinanceiroFolha() {
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handlePropagarRecorrentes} disabled={propagando}>
+            <Button variant="outline" onClick={() => setShowConfirmPropagar(true)} disabled={propagando}>
               {propagando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Propagar Recorrentes
             </Button>
             <Button variant="outline" onClick={() => setShowGerar(true)}>
@@ -413,6 +414,40 @@ export default function FinanceiroFolha() {
         onClose={() => setShowGerar(false)}
         onDone={() => qc.invalidateQueries({ queryKey: ['fin-folha'] })}
       />
+
+      {/* Confirm propagar */}
+      <AlertDialog open={showConfirmPropagar} onOpenChange={setShowConfirmPropagar}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Propagar registros recorrentes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todos os registros marcados como recorrentes em <strong>{mes}</strong> serão propagados para os próximos 11 meses. Registros já existentes não serão duplicados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePropagarRecorrentes} className="bg-blue-600 hover:bg-blue-700">
+              {propagando && <Loader2 className="w-4 h-4 animate-spin" />} Sim, propagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Resultado propagação */}
+      <AlertDialog open={!!propagacaoResultado} onOpenChange={open => !open && setPropagacaoResultado(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Propagação concluída ✓</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{propagacaoResultado?.recorrentes}</strong> registro(s) recorrente(s) processado(s).<br />
+              <strong>{propagacaoResultado?.criados}</strong> novo(s) lançamento(s) criado(s) para os próximos 11 meses.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setPropagacaoResultado(null)} className="bg-blue-600 hover:bg-blue-700">OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialog confirmar pagamento */}
       <Dialog open={!!paymentConfirm} onOpenChange={open => !open && setPaymentConfirm(null)}>
