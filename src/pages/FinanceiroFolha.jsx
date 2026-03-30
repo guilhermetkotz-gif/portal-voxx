@@ -264,7 +264,7 @@ export default function FinanceiroFolha() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-100 rounded-xl">
             <Users className="w-5 h-5 text-blue-600" />
@@ -274,18 +274,22 @@ export default function FinanceiroFolha() {
             <p className="text-slate-500 text-sm">CLT + PJ — gestão de equipe</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <input type="month" value={mes} onChange={e => setMes(e.target.value)}
-            className="border border-input rounded-md px-3 py-1.5 text-sm bg-white" />
-          <Button variant="outline" onClick={handlePropagarRecorrentes} disabled={propagando} title="Propagar registros recorrentes para os próximos 11 meses">
-            {propagando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Propagar Recorrentes
-          </Button>
-          <Button variant="outline" onClick={() => setShowGerar(true)}>
-            <Zap className="w-4 h-4" /> Gerar lançamentos do mês
-          </Button>
-          <Button onClick={() => { setForm(EMPTY); setShowModal(true); }} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4" /> Adicionar
-          </Button>
+        <div className="flex flex-col gap-2 items-end">
+          <div className="flex items-center gap-2">
+            <input type="month" value={mes} onChange={e => setMes(e.target.value)}
+              className="border border-input rounded-md px-3 py-1.5 text-sm bg-white" />
+            <Button onClick={() => { setForm(EMPTY); setShowModal(true); }} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4" /> Adicionar
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handlePropagarRecorrentes} disabled={propagando}>
+              {propagando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Propagar Recorrentes
+            </Button>
+            <Button variant="outline" onClick={() => setShowGerar(true)}>
+              <Zap className="w-4 h-4" /> Gerar lançamentos do mês
+            </Button>
+          </div>
         </div>
       </div>
 
