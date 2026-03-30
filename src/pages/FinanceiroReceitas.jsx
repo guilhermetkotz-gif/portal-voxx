@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle, DollarSign, History } from 'lucide-react';
+import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle, DollarSign, History, Database } from 'lucide-react';
 import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
 import ReceberModal from '@/components/financeiro/ReceberModal';
 import HistoricoRecebimentosModal from '@/components/financeiro/HistoricoRecebimentosModal';
@@ -359,6 +359,8 @@ export default function FinanceiroReceitas() {
   const [saving, setSaving] = useState(false);
   const [gerando, setGerando] = useState(false);
   const [showConfirmGerar, setShowConfirmGerar] = useState(false);
+  const [migrando, setMigrando] = useState(false);
+  const [migracaoResultado, setMigracaoResultado] = useState(null);
   const [gerarResultado, setGerarResultado] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [obsTarget, setObsTarget] = useState(null);
@@ -424,6 +426,15 @@ export default function FinanceiroReceitas() {
     setForm(EMPTY);
   };
 
+  const handleMigrar = async () => {
+    setMigrando(true);
+    const res = await base44.functions.invoke('migrarRecebimentosReceitas', {});
+    qc.invalidateQueries({ queryKey: ['fin-recebimentos'] });
+    qc.invalidateQueries({ queryKey: ['fin-receitas'] });
+    setMigrando(false);
+    setMigracaoResultado(res.data?.message || 'Concluído!');
+  };
+
   const handleGerarRecorrentes = async () => {
     setShowConfirmGerar(false);
     setGerando(true);
@@ -467,6 +478,10 @@ export default function FinanceiroReceitas() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleMigrar} disabled={migrando} className="border-violet-200 text-violet-600 hover:bg-violet-50" title="Migrar pagamentos antigos para a nova estrutura de recebimentos">
+            {migrando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+            Migrar Dados
+          </Button>
           <Button variant="outline" onClick={() => setShowConfirmGerar(true)} disabled={gerando}>
             {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Gerar Recorrentes ({mes})
@@ -640,14 +655,14 @@ export default function FinanceiroReceitas() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={!!gerarResultado} onOpenChange={open => !open && setGerarResultado(null)}>
+      <AlertDialog open={!!migracaoResultado} onOpenChange={open => !open && setMigracaoResultado(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Concluído!</AlertDialogTitle>
-            <AlertDialogDescription>{gerarResultado}</AlertDialogDescription>
+            <AlertDialogTitle>Migração Concluída</AlertDialogTitle>
+            <AlertDialogDescription>{migracaoResultado}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setGerarResultado(null)} className="bg-emerald-600 hover:bg-emerald-700">OK</AlertDialogAction>
+            <AlertDialogAction onClick={() => setMigracaoResultado(null)} className="bg-violet-600 hover:bg-violet-700">OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
