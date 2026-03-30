@@ -112,18 +112,10 @@ export default function CadastroCliente() {
       }
       
       // Se estiver criando novo
-      const existingClients = await base44.entities.Cliente.filter({ legacy_client_key: clientData.legacy_client_key });
-      if (existingClients.length > 0) {
-        throw new Error('Já existe um cliente com esta chave legada.');
-      }
-      
-      // Validar conta principal Meta Ads se status ativo
-      if (clientData.status === 'ativo') {
-        const hasMetaPrincipal = clientData.contas_anuncio?.some(
-          c => c.plataforma === 'Meta' && c.conta_principal
-        );
-        if (!hasMetaPrincipal && clientData.status !== 'implantacao') {
-          throw new Error('Cliente ativo precisa de pelo menos uma conta Meta Ads principal.');
+      if (clientData.legacy_client_key) {
+        const existingClients = await base44.entities.Cliente.filter({ legacy_client_key: clientData.legacy_client_key });
+        if (existingClients.length > 0) {
+          throw new Error('Já existe um cliente com esta chave legada.');
         }
       }
       
@@ -237,7 +229,6 @@ export default function CadastroCliente() {
     
     // Validações obrigatórias
     if (!formData.nome) newErrors.nome = 'Nome é obrigatório.';
-    if (!formData.legacy_client_key) newErrors.legacy_client_key = 'Chave legada é obrigatória.';
     if (!formData.cidade) newErrors.cidade = 'Cidade é obrigatória.';
     if (!formData.estado) newErrors.estado = 'Estado é obrigatório.';
 
@@ -247,7 +238,7 @@ export default function CadastroCliente() {
     }
 
     // Validar confirmação da chave legada (apenas para novo cliente ou se foi alterada)
-    if (!editingClienteId && !confirmLegacyKey) {
+    if (!editingClienteId && formData.legacy_client_key && !confirmLegacyKey) {
       newErrors.legacy_client_key = 'Você precisa confirmar a chave legada antes de salvar.';
       toast({
         title: 'Confirmação necessária',
@@ -882,11 +873,11 @@ export default function CadastroCliente() {
                     Vincule as contas de anúncio do cliente. Para Meta Ads, selecione da lista sincronizada.
                   </p>
                   
-                  {formData.status === 'ativo' && formData.contas_anuncio.filter(c => c.plataforma === 'Meta' && c.conta_principal).length === 0 && (
+                  {formData.status === 'ativo' && formData.contas_anuncio.length > 0 && formData.contas_anuncio.filter(c => c.plataforma === 'Meta' && c.conta_principal).length === 0 && (
                     <Alert className="mb-4">
                       <AlertTriangle className="w-4 h-4" />
                       <AlertDescription>
-                        Cliente ativo precisa de pelo menos uma conta Meta Ads principal.
+                        Há contas Meta Ads cadastradas mas nenhuma está marcada como principal.
                       </AlertDescription>
                     </Alert>
                   )}
