@@ -68,6 +68,7 @@ export default function FinanceiroFolha() {
   const [showConfirmPropagar, setShowConfirmPropagar] = useState(false);
   const [propagacaoResultado, setPropagacaoResultado] = useState(null);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { item, deleteFuturos }
 
   const { data: folha = [], isLoading } = useQuery({
     queryKey: ['fin-folha', mes],
@@ -173,8 +174,28 @@ export default function FinanceiroFolha() {
     setUploadingField(null);
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteRequest = (item) => {
+    if (item.recorrente) {
+      setDeleteConfirm({ item });
+    } else {
+      handleDeleteExecute(item.id, false, item);
+    }
+  };
+
+  const handleDeleteExecute = async (id, deleteFuturos, item) => {
+    setDeleteConfirm(null);
     await base44.entities.FinanceiroFolha.delete(id);
+    if (deleteFuturos && item) {
+      // Buscar todos os lançamentos futuros com mesmo nome e vínculo
+      const todos = await base44.entities.FinanceiroFolha.filter({
+        nome: item.nome,
+        tipo_vinculo: item.tipo_vinculo,
+      }, 'mes_referencia', 500);
+      const futuros = todos.filter(f => f.mes_referencia > item.mes_referencia && f.id !== id);
+      for (const f of futuros) {
+        await base44.entities.FinanceiroFolha.delete(f.id);
+      }
+    }
     qc.invalidateQueries({ queryKey: ['fin-folha'] });
   };
 
@@ -256,7 +277,7 @@ export default function FinanceiroFolha() {
               <Button variant="outline" size="sm" onClick={() => handleMarcarPago(item)} className="h-7 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50">Marcar Pago</Button>
             )}
             <Button variant="outline" size="sm" onClick={() => openEdit(item)} className="h-7 text-xs">Editar</Button>
-            <Button variant="ghost" size="sm" onClick={() => handleDelete(item.id)} className="text-red-400 h-7 px-2">
+            <Button variant="ghost" size="sm" onClick={() => handleDeleteRequest(item)} className="text-red-400 h-7 px-2">
               <X className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -461,6 +482,27 @@ export default function FinanceiroFolha() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setPropagacaoResultado(null)} className="bg-blue-600 hover:bg-blue-700">OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog confirmar exclusão */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={open => !open && setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lançamento recorrente</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{deleteConfirm?.item?.nome}</strong> é um lançamento recorrente. Deseja excluir apenas este mês ou também todos os lançamentos futuros?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleDeleteExecute(deleteConfirm.item.id, false, deleteConfirm.item)}>
+              Só este mês
+            </Button>
+            <Button className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleDeleteExecute(deleteConfirm.item.id, true, deleteConfirm.item)}>
+              Este e todos os futuros
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
