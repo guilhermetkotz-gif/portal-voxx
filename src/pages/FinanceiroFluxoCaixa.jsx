@@ -90,13 +90,12 @@ export default function FinanceiroFluxoCaixa() {
     const recTotal = receitas.reduce((s, r) => s + (r.valor_mensal || 0), 0);
 
     // Folha
-    const folhaCLT = folha.filter(f => f.tipo_vinculo === 'clt')
-      .reduce((s, f) => s + (f.salario || 0) + (f.vale_alimentacao || 0) + (f.vale_transporte || 0) + (f.outros_beneficios || 0), 0);
-    const folhaPJ = folha.filter(f => f.tipo_vinculo === 'pj')
-      .reduce((s, f) => s + (f.valor_pj || 0), 0);
+    const calcLiquidoCLT = (f) => (f.salario || 0) + (f.ajuda_de_custo || 0) - (f.total_descontos || 0);
+    const folhaCLT = folha.filter(f => f.tipo_vinculo === 'clt').reduce((s, f) => s + calcLiquidoCLT(f), 0);
+    const folhaPJ = folha.filter(f => f.tipo_vinculo === 'pj').reduce((s, f) => s + (f.valor_pj || 0), 0);
     const totalFolha = folhaCLT + folhaPJ;
     const folhaPago = folha.filter(f => f.status === 'pago')
-      .reduce((s, f) => s + (f.tipo_vinculo === 'clt' ? (f.salario || 0) + (f.vale_alimentacao || 0) + (f.vale_transporte || 0) + (f.outros_beneficios || 0) : (f.valor_pj || 0)), 0);
+      .reduce((s, f) => s + (f.tipo_vinculo === 'clt' ? calcLiquidoCLT(f) : (f.valor_pj || 0)), 0);
 
     // Custos
     const fixos = custos.filter(c => c.tipo === 'fixo').reduce((s, c) => s + (c.valor || 0), 0);
@@ -121,7 +120,7 @@ export default function FinanceiroFluxoCaixa() {
     const fols = folhaAll.filter(f => f.mes_referencia === m);
     const receita = recs.reduce((s, r) => s + (r.valor_mensal || 0), 0);
     const custoTotal = csts.reduce((s, c) => s + (c.valor || 0), 0);
-    const folhaTotal = fols.reduce((s, f) => s + (f.tipo_vinculo === 'clt' ? (f.salario || 0) + (f.vale_alimentacao || 0) + (f.vale_transporte || 0) + (f.outros_beneficios || 0) : (f.valor_pj || 0)), 0);
+    const folhaTotal = fols.reduce((s, f) => s + (f.tipo_vinculo === 'clt' ? (f.salario || 0) + (f.ajuda_de_custo || 0) - (f.total_descontos || 0) : (f.valor_pj || 0)), 0);
     const saidas = custoTotal + folhaTotal;
     return {
       mes: m.slice(5),

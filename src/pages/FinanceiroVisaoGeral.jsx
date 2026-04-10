@@ -40,7 +40,10 @@ export default function FinanceiroVisaoGeral() {
     const custoVariavel = custos.filter(c => c.tipo === 'variavel').reduce((s, c) => s + (c.valor || 0), 0);
     const custoTotal = custoFixo + custoVariavel;
     const folhaTotal = folha.reduce((s, f) => {
-      if (f.tipo_vinculo === 'clt') return s + (f.salario || 0) + (f.vale_alimentacao || 0) + (f.vale_transporte || 0) + (f.outros_beneficios || 0);
+      if (f.tipo_vinculo === 'clt') {
+        const vencimentos = (f.salario || 0) + (f.ajuda_de_custo || 0);
+        return s + vencimentos - (f.total_descontos || 0);
+      }
       return s + (f.valor_pj || 0);
     }, 0);
     const lucro = recebido - custoTotal - folhaTotal;

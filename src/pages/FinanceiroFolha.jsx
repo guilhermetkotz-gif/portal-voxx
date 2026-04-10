@@ -18,10 +18,16 @@ import { format } from 'date-fns';
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const EMPTY = {
-  nome: '', tipo_vinculo: 'clt', salario: '', vale_alimentacao: '', vale_transporte: '',
+  nome: '', tipo_vinculo: 'clt', salario: '', ajuda_de_custo: '', total_descontos: '',
   outros_beneficios: '', tipo_servico: '', valor_pj: '', data_pagamento: '',
   status: 'pendente', holerite_url: '', comprovante_pagamento_url: '', nota_fiscal_url: '',
   recorrente: false, frequencia: 'mensal', data_inicio: '', data_fim: '',
+};
+
+const calcValorLiquidoCLT = (f) => {
+  const vencimentos = (parseFloat(f.salario) || 0) + (parseFloat(f.ajuda_de_custo) || 0);
+  const descontos = parseFloat(f.total_descontos) || 0;
+  return vencimentos - descontos;
 };
 
 function DocUpload({ label, url, onUpload, onRemove, loading }) {
@@ -72,10 +78,10 @@ export default function FinanceiroFolha() {
   const pjList = folha.filter(f => f.tipo_vinculo === 'pj');
 
   const custoTotal = folha.reduce((s, f) => {
-    if (f.tipo_vinculo === 'clt') return s + (f.salario || 0) + (f.vale_alimentacao || 0) + (f.vale_transporte || 0) + (f.outros_beneficios || 0);
+    if (f.tipo_vinculo === 'clt') return s + calcValorLiquidoCLT(f);
     return s + (f.valor_pj || 0);
   }, 0);
-  const custoCLT = cltList.reduce((s, f) => s + (f.salario || 0) + (f.vale_alimentacao || 0) + (f.vale_transporte || 0) + (f.outros_beneficios || 0), 0);
+  const custoCLT = cltList.reduce((s, f) => s + calcValorLiquidoCLT(f), 0);
   const custoPJ = pjList.reduce((s, f) => s + (f.valor_pj || 0), 0);
 
   const addMeses = (mesStr, n) => {
@@ -103,8 +109,8 @@ export default function FinanceiroFolha() {
             nome: item.nome,
             tipo_vinculo: item.tipo_vinculo,
             salario: item.salario,
-            vale_alimentacao: item.vale_alimentacao,
-            vale_transporte: item.vale_transporte,
+            ajuda_de_custo: item.ajuda_de_custo,
+            total_descontos: item.total_descontos,
             outros_beneficios: item.outros_beneficios,
             tipo_servico: item.tipo_servico,
             valor_pj: item.valor_pj,
@@ -129,8 +135,8 @@ export default function FinanceiroFolha() {
     const data = {
       ...form,
       salario: parseFloat(form.salario) || 0,
-      vale_alimentacao: parseFloat(form.vale_alimentacao) || 0,
-      vale_transporte: parseFloat(form.vale_transporte) || 0,
+      ajuda_de_custo: parseFloat(form.ajuda_de_custo) || 0,
+      total_descontos: parseFloat(form.total_descontos) || 0,
       outros_beneficios: parseFloat(form.outros_beneficios) || 0,
       valor_pj: parseFloat(form.valor_pj) || 0,
       mes_referencia: mes,
@@ -176,8 +182,8 @@ export default function FinanceiroFolha() {
     setForm({
       ...item,
       salario: item.salario?.toString() || '',
-      vale_alimentacao: item.vale_alimentacao?.toString() || '',
-      vale_transporte: item.vale_transporte?.toString() || '',
+      ajuda_de_custo: item.ajuda_de_custo?.toString() || '',
+      total_descontos: item.total_descontos?.toString() || '',
       outros_beneficios: item.outros_beneficios?.toString() || '',
       valor_pj: item.valor_pj?.toString() || '',
     });
@@ -186,9 +192,7 @@ export default function FinanceiroFolha() {
 
   const handleMarcarPago = (item) => {
     const isCLT = item.tipo_vinculo === 'clt';
-    const valor = isCLT
-      ? (item.salario || 0) + (item.vale_alimentacao || 0) + (item.vale_transporte || 0) + (item.outros_beneficios || 0)
-      : (item.valor_pj || 0);
+    const valor = isCLT ? calcValorLiquidoCLT(item) : (item.valor_pj || 0);
     setPaymentConfirm({ item, valor: valor.toString() });
   };
 
@@ -214,9 +218,7 @@ export default function FinanceiroFolha() {
   const FolhaCard = ({ item }) => {
     const isCLT = item.tipo_vinculo === 'clt';
     const isPrevisto = item.is_previsto;
-    const valorTotal = isCLT
-      ? (item.salario || 0) + (item.vale_alimentacao || 0) + (item.vale_transporte || 0) + (item.outros_beneficios || 0)
-      : (item.valor_pj || 0);
+    const valorTotal = isCLT ? calcValorLiquidoCLT(item) : (item.valor_pj || 0);
 
     return (
       <Card className={`p-4 hover:shadow-sm transition-shadow ${isPrevisto ? 'opacity-70 border-dashed' : ''}`}>
@@ -229,7 +231,7 @@ export default function FinanceiroFolha() {
               <p className={`font-semibold ${isPrevisto ? 'text-slate-400' : 'text-slate-900'}`}>{item.nome} {isPrevisto && <span className="text-[10px] bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 ml-1">PREVISTO</span>}</p>
               <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
                 {isCLT ? (
-                  <>Salário: {fmt(item.salario)} · VA: {fmt(item.vale_alimentacao)} · VT: {fmt(item.vale_transporte)}</>
+                  <>Sal: {fmt(item.salario)}{item.ajuda_de_custo > 0 ? ` + Ajuda: ${fmt(item.ajuda_de_custo)}` : ''}{item.total_descontos > 0 ? ` − Desc: ${fmt(item.total_descontos)}` : ''} = Líquido: {fmt(calcValorLiquidoCLT(item))}</>
                 ) : (
                   <>{item.tipo_servico} · {item.data_pagamento && `Pagamento: ${item.data_pagamento}`}</>
                 )}
@@ -349,11 +351,25 @@ export default function FinanceiroFolha() {
             </div>
 
             {form.tipo_vinculo === 'clt' ? (
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>Salário Base</Label><Input type="number" value={form.salario} onChange={e => setForm(f => ({ ...f, salario: e.target.value }))} placeholder="0,00" /></div>
-                <div><Label>Vale Alimentação</Label><Input type="number" value={form.vale_alimentacao} onChange={e => setForm(f => ({ ...f, vale_alimentacao: e.target.value }))} placeholder="0,00" /></div>
-                <div><Label>Vale Transporte</Label><Input type="number" value={form.vale_transporte} onChange={e => setForm(f => ({ ...f, vale_transporte: e.target.value }))} placeholder="0,00" /></div>
-                <div><Label>Outros Benefícios</Label><Input type="number" value={form.outros_beneficios} onChange={e => setForm(f => ({ ...f, outros_beneficios: e.target.value }))} placeholder="0,00" /></div>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Salário Base</Label><Input type="number" value={form.salario} onChange={e => setForm(f => ({ ...f, salario: e.target.value }))} placeholder="0,00" /></div>
+                  <div><Label>Ajuda de Custo</Label><Input type="number" value={form.ajuda_de_custo} onChange={e => setForm(f => ({ ...f, ajuda_de_custo: e.target.value }))} placeholder="0,00" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><Label>Total de Descontos</Label><Input type="number" value={form.total_descontos} onChange={e => setForm(f => ({ ...f, total_descontos: e.target.value }))} placeholder="0,00" /></div>
+                  <div><Label>Outros Benefícios</Label><Input type="number" value={form.outros_beneficios} onChange={e => setForm(f => ({ ...f, outros_beneficios: e.target.value }))} placeholder="0,00" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 bg-slate-50 rounded-lg p-3">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">Total de Vencimentos</p>
+                    <p className="text-sm font-semibold text-slate-800">{fmt((parseFloat(form.salario) || 0) + (parseFloat(form.ajuda_de_custo) || 0))}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-0.5">Valor Líquido</p>
+                    <p className="text-sm font-bold text-blue-700">{fmt((parseFloat(form.salario) || 0) + (parseFloat(form.ajuda_de_custo) || 0) - (parseFloat(form.total_descontos) || 0))}</p>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">

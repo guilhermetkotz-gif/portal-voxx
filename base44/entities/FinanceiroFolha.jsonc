@@ -1,0 +1,94 @@
+{
+  "name": "FinanceiroFolha",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string"
+    },
+    "tipo_vinculo": {
+      "type": "string",
+      "enum": [
+        "clt",
+        "pj"
+      ],
+      "default": "clt"
+    },
+    "salario": {
+      "type": "number"
+    },
+    "ajuda_de_custo": {
+      "type": "number",
+      "description": "Ajuda de custo adicional"
+    },
+    "total_descontos": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de descontos (INSS, IR, etc)"
+    },
+    "outros_beneficios": {
+      "type": "number"
+    },
+    "tipo_servico": {
+      "type": "string"
+    },
+    "valor_pj": {
+      "type": "number"
+    },
+    "data_pagamento": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "pago",
+        "previsto"
+      ],
+      "default": "pendente"
+    },
+    "holerite_url": {
+      "type": "string"
+    },
+    "comprovante_pagamento_url": {
+      "type": "string"
+    },
+    "nota_fiscal_url": {
+      "type": "string"
+    },
+    "mes_referencia": {
+      "type": "string"
+    },
+    "recorrente": {
+      "type": "boolean",
+      "default": false
+    },
+    "frequencia": {
+      "type": "string",
+      "enum": [
+        "mensal",
+        "quinzenal",
+        "anual",
+        "personalizado"
+      ],
+      "default": "mensal"
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_fim": {
+      "type": "string",
+      "format": "date"
+    },
+    "is_previsto": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "nome",
+    "tipo_vinculo",
+    "mes_referencia"
+  ]
+}
