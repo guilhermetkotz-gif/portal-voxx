@@ -158,7 +158,7 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
     if (lead.status === 'sem_contato') return 'Tentar contato';
     if (lead.status === 'em_tratativa') return 'Nova tentativa';
     if (lead.status === 'agendou') return 'Confirmar agenda';
-    if (lead.status === 'interesse_futuro') return `Retornar em ${format(new Date(lead.data_retorno), 'dd/MM')}`;
+    if (lead.status === 'interesse_futuro') return lead.data_retorno ? `Retornar em ${format(new Date(lead.data_retorno), 'dd/MM')}` : 'Retornar futuramente';
     return 'Encerrado';
   };
 
@@ -342,9 +342,11 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                         <td className="px-4 py-4 text-sm">
                          <div className="flex items-center gap-2">
                            {(() => {
-                             const displayDate = lead.fonte_cadastro === 'google_sheet' && lead.external_created_at
-                               ? new Date(lead.external_created_at)
-                               : new Date(lead.data_chegada);
+                             const rawDate = lead.fonte_cadastro === 'google_sheet' && lead.external_created_at
+                               ? lead.external_created_at
+                               : lead.data_chegada;
+                             if (!rawDate) return <span className="text-slate-400">-</span>;
+                             const displayDate = new Date(rawDate);
                              return (
                                <>
                                  <span className="font-medium text-slate-700">{format(displayDate, 'dd/MM/yyyy')}</span>

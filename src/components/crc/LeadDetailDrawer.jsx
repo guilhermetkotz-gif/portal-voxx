@@ -114,7 +114,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
               </div>
               <div>
                 <Label>Data de Chegada</Label>
-                <p className="text-sm">{format(new Date(lead.data_chegada), "dd/MM/yyyy 'às' HH:mm")}</p>
+                <p className="text-sm">{lead.data_chegada ? format(new Date(lead.data_chegada), "dd/MM/yyyy 'às' HH:mm") : '-'}</p>
               </div>
               {lead.link_anuncio && (
                 <div>
@@ -157,7 +157,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                   </Select>
                 ) : (
                   <div onClick={() => setEditField('status')} className="cursor-pointer">
-                    <Badge className={statusColors[lead.status]}>{lead.status.replace(/_/g, ' ')}</Badge>
+                    <Badge className={statusColors[lead.status] || 'bg-slate-100 text-slate-700'}>{(lead.status || 'sem_contato').replace(/_/g, ' ')}</Badge>
                   </div>
                 )}
               </div>
