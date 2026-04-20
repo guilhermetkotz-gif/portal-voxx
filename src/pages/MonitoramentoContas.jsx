@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,20 +38,6 @@ export default function MonitoramentoContas({ user }) {
 
     // Verificar se é voxx (admin, manager ou operacao)
     const isVoxx = user?.role === 'admin' || user?.tipo_acesso?.startsWith('voxx_');
-
-    if (!isVoxx) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Card className="max-w-md w-full p-8 text-center">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <AlertTriangle className="w-8 h-8 text-red-600" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
-                    <p className="text-slate-600">Esta página é exclusiva para a equipe Voxx.</p>
-                </Card>
-            </div>
-        );
-    }
 
     const { data: radarMetaData = [] } = useQuery({
         queryKey: ['radarMetaData'],
@@ -817,6 +803,20 @@ export default function MonitoramentoContas({ user }) {
         const sign = value > 0 ? '+' : '';
         return `${sign}${value.toFixed(1)}%`;
     };
+
+    if (!isVoxx) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Card className="max-w-md w-full p-8 text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertTriangle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
+                    <p className="text-slate-600">Esta página é exclusiva para a equipe Voxx.</p>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

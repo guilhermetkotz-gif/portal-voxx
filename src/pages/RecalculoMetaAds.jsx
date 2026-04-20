@@ -19,22 +19,6 @@ const formatCurrency = (value) => {
 };
 
 export default function RecalculoMetaAds({ selectedClienteId, user }) {
-  // Verificar se o usuário é Voxx
-  if (!user || (!isVoxxAdmin(user) && !isVoxxOperacao(user))) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="max-w-md">
-          <CardContent className="pt-6 text-center">
-            <Lock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
-            <p className="text-slate-600">
-              Esta página é acessível apenas para usuários da equipe Voxx.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
   const queryClient = useQueryClient();
   const hoje = new Date();
   const ano = hoje.getFullYear();
@@ -388,6 +372,22 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     if (percentual > 15) return 'bg-yellow-50 border-yellow-300';
     return 'bg-green-50 border-green-300';
   };
+
+  if (!user || (!isVoxxAdmin(user) && !isVoxxOperacao(user))) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <Lock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
+            <p className="text-slate-600">
+              Esta página é acessível apenas para usuários da equipe Voxx.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default function OnboardingPlanning({ cliente, onNext }) {
   const currentMonth = format(new Date(), 'yyyy-MM-01');
@@ -111,7 +112,7 @@ export default function OnboardingPlanning({ cliente, onNext }) {
 
       <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
         <p className="text-sm text-slate-700">
-          <strong>Mês de Referência:</strong> {format(new Date(currentMonth), 'MMMM/yyyy', { locale: require('date-fns/locale/pt-BR') })}
+          <strong>Mês de Referência:</strong> {format(new Date(currentMonth), 'MMMM/yyyy', { locale: ptBR })}
         </p>
       </div>
 

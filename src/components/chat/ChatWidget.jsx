@@ -22,7 +22,6 @@ export default function ChatWidget({ user, currentCliente }) {
 
   // Don't show for Voxx users
   const isVoxx = user?.tipo_usuario?.startsWith('voxx') || user?.role === 'admin';
-  if (isVoxx) return null;
 
   const { data: conversations = [] } = useQuery({
     queryKey: ['chatConversations', currentCliente?.id],
@@ -97,6 +96,8 @@ export default function ChatWidget({ user, currentCliente }) {
       setSelectedConversation(activeConversations[0]);
     }
   }, [activeConversations]);
+
+  if (isVoxx) return null;
 
   if (selectedConversation && !isMinimized) {
     return (

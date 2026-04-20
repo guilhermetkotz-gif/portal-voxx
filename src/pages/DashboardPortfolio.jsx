@@ -14,20 +14,6 @@ export default function DashboardPortfolio({ user }) {
     // Verificar se é admin
     const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin' || user?.tipo_usuario === 'voxx_manager';
 
-    if (!isAdmin) {
-        return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <Card className="max-w-md w-full p-8 text-center">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <AlertTriangle className="w-8 h-8 text-red-600" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
-                    <p className="text-slate-600">Esta página é exclusiva para administradores.</p>
-                </Card>
-            </div>
-        );
-    }
-
     const { data: radarMetaData = [], isLoading: loadingRadar } = useQuery({
         queryKey: ['radarMetaData'],
         queryFn: () => base44.entities.RadarMetaData.list('-created_date', 500),
@@ -177,6 +163,20 @@ export default function DashboardPortfolio({ user }) {
     };
 
     const isLoading = loadingRadar || loadingAccounts;
+
+    if (!isAdmin) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Card className="max-w-md w-full p-8 text-center">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertTriangle className="w-8 h-8 text-red-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Acesso Restrito</h2>
+                    <p className="text-slate-600">Esta página é exclusiva para administradores.</p>
+                </Card>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (

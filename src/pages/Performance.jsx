@@ -443,7 +443,7 @@ export default function Performance({ currentCliente, selectedClienteId, user })
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {clientes.map((c) => (
+                    {[].map((c) => (
                       <TableRow key={c.id} className="hover:bg-slate-50">
                         <TableCell className="font-medium">{c.nome}</TableCell>
                         <TableCell className="text-right">{c.leads_google_cadastro || '-'}</TableCell>
