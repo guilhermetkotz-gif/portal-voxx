@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,22 +19,34 @@ export default function CadastroLeadModal({ unidadeId, onClose, onSuccess }) {
     data_chegada: new Date().toISOString()
   });
   const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [debouncedTelefone, setDebouncedTelefone] = useState('');
+  const debounceRef = useRef(null);
 
-  // Check for duplicates
+  // Debounce telefone para não disparar query a cada tecla
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedTelefone(formData.telefone);
+    }, 600);
+    return () => clearTimeout(debounceRef.current);
+  }, [formData.telefone]);
+
+  // Check for duplicates usando telefone com debounce
   const { data: existingLeads } = useQuery({
-    queryKey: ['checkDuplicate', formData.telefone, unidadeId],
+    queryKey: ['checkDuplicate', debouncedTelefone, unidadeId],
     queryFn: async () => {
-      if (!formData.telefone || formData.telefone.length < 8) return [];
+      if (!debouncedTelefone || debouncedTelefone.length < 8) return [];
       const leads = await base44.entities.CrcLead.filter({
         unidade_id: unidadeId,
-        telefone: formData.telefone
+        telefone: debouncedTelefone
       }, '-created_date', 5);
       return leads;
     },
-    enabled: formData.telefone.length >= 8
+    enabled: debouncedTelefone.length >= 8,
+    staleTime: 10 * 1000
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (existingLeads && existingLeads.length > 0) {
       const recent = existingLeads[0];
       const daysSince = Math.floor((Date.now() - new Date(recent.created_date).getTime()) / (1000 * 60 * 60 * 24));
