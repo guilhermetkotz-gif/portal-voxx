@@ -221,7 +221,22 @@ export default function MonitoramentoContas({ user }) {
     };
 
     const clientesMap = React.useMemo(() => {
-        return new Map(clientes.map(c => [c.nome, c]));
+        const map = new Map();
+        clientes.forEach(c => {
+            // Mapear pelo nome do cliente
+            if (c.nome) map.set(c.nome, c);
+            // Mapear pelo nome da conta Meta Ads principal (campo legado)
+            if (c.meta_ads_account_name) map.set(c.meta_ads_account_name, c);
+            // Mapear por todas as contas Meta em contas_anuncio
+            if (Array.isArray(c.contas_anuncio)) {
+                c.contas_anuncio.forEach(conta => {
+                    if (conta.plataforma === 'Meta' && conta.conta_nome) {
+                        map.set(conta.conta_nome, c);
+                    }
+                });
+            }
+        });
+        return map;
     }, [clientes]);
 
     // Lista de responsáveis únicos que estão atribuídos a pelo menos uma unidade
