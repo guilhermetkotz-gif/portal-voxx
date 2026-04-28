@@ -133,10 +133,38 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const cliente = currentCliente;
 
   // Encontrar conta Meta Ads atualizada do cliente (para métricas de performance)
-  const contaMetaAdsAtual = todasContasMetaAds.find(c =>
-    c.account_name === currentCliente?.meta_ads_account_name ||
-    c.account_name === currentCliente?.nome
-  );
+  const normalizeAccountName = (name) => {
+    return name?.toLowerCase()
+      .replace(/\[ativa\]|\[inativa\]|\(nova\)|\(2\)/gi, '')
+      .replace(/\s+/g, ' ')
+      .replace(/\s*-\s*/g, ' ')
+      .trim() || '';
+  };
+
+  const contaMetaAdsAtual = (() => {
+    if (!currentCliente) return null;
+    const metaName = currentCliente.meta_ads_account_name;
+    const clienteNome = currentCliente.nome;
+
+    // 1. Correspondência exata por meta_ads_account_name
+    if (metaName) {
+      const exact = todasContasMetaAds.find(c => c.account_name === metaName);
+      if (exact) return exact;
+    }
+    // 2. Correspondência exata por nome do cliente
+    const exactByNome = todasContasMetaAds.find(c => c.account_name === clienteNome);
+    if (exactByNome) return exactByNome;
+
+    // 3. Correspondência normalizada por meta_ads_account_name
+    if (metaName) {
+      const normMeta = normalizeAccountName(metaName);
+      const fuzzyMeta = todasContasMetaAds.find(c => normalizeAccountName(c.account_name) === normMeta);
+      if (fuzzyMeta) return fuzzyMeta;
+    }
+    // 4. Correspondência normalizada por nome do cliente
+    const normCliente = normalizeAccountName(clienteNome);
+    return todasContasMetaAds.find(c => normalizeAccountName(c.account_name) === normCliente) || null;
+  })();
 
   // Encontrar conta Google Ads atualizada do cliente
   const contaGoogleAdsAtual = googleAdsAccounts.find(c =>
