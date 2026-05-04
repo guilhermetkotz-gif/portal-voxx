@@ -193,14 +193,14 @@ export default function FinanceiroCustos() {
         ) : filtered.length === 0 ? (
           <Card className="p-8 text-center text-slate-400">Nenhuma despesa encontrada.</Card>
         ) : filtered.map(c => (
-          <Card key={c.id} className={`p-4 hover:shadow-sm transition-shadow ${c.is_previsto ? 'opacity-70 border-dashed' : ''}`}>
+          <Card key={c.id} className={`p-4 hover:shadow-sm transition-shadow ${c.is_previsto && c.status === 'previsto' ? 'opacity-70 border-dashed' : ''}`}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${c.status === 'pago' ? 'bg-emerald-100' : c.status === 'previsto' ? 'bg-slate-100' : 'bg-amber-100'}`}>
                   {c.status === 'pago' ? <CheckCircle className="w-4 h-4 text-emerald-600" /> : c.status === 'previsto' ? <RefreshCw className="w-4 h-4 text-slate-400" /> : <Clock className="w-4 h-4 text-amber-600" />}
                 </div>
                 <div>
-                  <p className={`font-semibold ${c.is_previsto ? 'text-slate-400' : 'text-slate-900'}`}>{c.nome} {c.is_previsto && <span className="text-[10px] bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 ml-1">PREVISTO</span>}</p>
+                  <p className={`font-semibold ${c.is_previsto && c.status === 'previsto' ? 'text-slate-400' : 'text-slate-900'}`}>{c.nome} {c.is_previsto && c.status === 'previsto' && <span className="text-[10px] bg-slate-200 text-slate-500 rounded px-1.5 py-0.5 ml-1">PREVISTO</span>}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {c.categoria && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{c.categoria}</span>}
                     <span className={`text-xs px-2 py-0.5 rounded-full ${c.tipo === 'fixo' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{c.tipo}</span>
