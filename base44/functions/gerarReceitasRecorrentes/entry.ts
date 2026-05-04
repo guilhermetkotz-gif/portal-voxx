@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -12,17 +12,56 @@ Deno.serve(async (req) => {
   const [targetYear, targetMonth] = mes_referencia.split('-').map(Number);
   const targetDate = new Date(targetYear, targetMonth - 1, 1);
 
-  // Buscar todas as receitas recorrentes (com data_inicio ou sem, que sejam recorrentes)
+  // Buscar todas as receitas recorrentes (templates)
   const recorrentes = await base44.asServiceRole.entities.FinanceiroReceita.filter({ recorrente: true });
 
-  // Buscar receitas já existentes no mês alvo para evitar duplicatas
+  // Buscar receitas já existentes no mês alvo
   const existentesNoMes = await base44.asServiceRole.entities.FinanceiroReceita.filter({ mes_referencia });
 
   let criados = 0;
   let pulados = 0;
+  let duplicatasRemovidas = 0;
 
+  // ── PASSO 1: Limpar duplicatas existentes no mês ──
+  // Agrupa por cliente_nome e remove os "vazios" quando há um com dados
+  const porCliente = {};
+  for (const r of existentesNoMes) {
+    const key = (r.cliente_nome || '').toLowerCase().trim();
+    if (!porCliente[key]) porCliente[key] = [];
+    porCliente[key].push(r);
+  }
+
+  for (const [, grupo] of Object.entries(porCliente)) {
+    if (grupo.length <= 1) continue;
+
+    // Classifica: tem dados = tem data_recebimento, comprovante ou observação
+    const temDados = (r) => !!(r.data_recebimento || r.comprovante_recebimento || r.observacao_recebimento);
+
+    const comDados = grupo.filter(temDados);
+    const semDados = grupo.filter(r => !temDados(r));
+
+    // Se há pelo menos um com dados, remove todos os sem dados
+    if (comDados.length > 0 && semDados.length > 0) {
+      for (const r of semDados) {
+        await base44.asServiceRole.entities.FinanceiroReceita.delete(r.id);
+        duplicatasRemovidas++;
+      }
+    } else if (comDados.length === 0 && semDados.length > 1) {
+      // Sem nenhum com dados: mantém o mais recente, remove os outros
+      const ordenados = semDados.sort((a, b) => (b.updated_date || b.created_date || '').localeCompare(a.updated_date || a.created_date || ''));
+      for (const r of ordenados.slice(1)) {
+        await base44.asServiceRole.entities.FinanceiroReceita.delete(r.id);
+        duplicatasRemovidas++;
+      }
+    }
+  }
+
+  // Recarrega existentes após limpeza
+  const existentesAtualizados = await base44.asServiceRole.entities.FinanceiroReceita.filter({ mes_referencia });
+
+  // ── PASSO 2: Gerar lançamentos para receitas recorrentes ──
   for (const receita of recorrentes) {
-    // Verificar se a receita se aplica ao mês alvo
+    // Verifica período
     if (receita.data_inicio) {
       const inicio = new Date(receita.data_inicio);
       if (targetDate < new Date(inicio.getFullYear(), inicio.getMonth(), 1)) {
@@ -38,9 +77,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Verificar se já existe lançamento para este mês (via recorrencia_id ou mesmo cliente+mês)
-    const jaExiste = existentesNoMes.some(
-      e => e.recorrencia_id === receita.id || (e.cliente_nome === receita.cliente_nome && e.is_previsto)
+    // Verifica se já existe para este cliente/mês (sem restrição de is_previsto)
+    const jaExiste = existentesAtualizados.some(
+      e => e.recorrencia_id === receita.id ||
+           (e.cliente_nome?.toLowerCase().trim() === receita.cliente_nome?.toLowerCase().trim())
     );
 
     if (jaExiste) {
@@ -48,7 +88,7 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // Calcular data_cobranca para o mês alvo
+    // Calcula data_cobranca preservando o dia original
     let data_cobranca = null;
     if (receita.data_cobranca) {
       const diaOriginal = new Date(receita.data_cobranca).getDate();
@@ -81,6 +121,7 @@ Deno.serve(async (req) => {
     mes_referencia,
     criados,
     pulados,
-    message: `${criados} receita(s) gerada(s) para ${mes_referencia}. ${pulados} pulada(s) (já existentes ou fora do período).`
+    duplicatasRemovidas,
+    message: `${criados} receita(s) gerada(s) para ${mes_referencia}. ${pulados} pulada(s). ${duplicatasRemovidas > 0 ? `${duplicatasRemovidas} duplicata(s) removida(s).` : ''}`.trim()
   });
 });

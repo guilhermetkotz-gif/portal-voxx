@@ -441,7 +441,10 @@ export default function FinanceiroReceitas() {
     const res = await base44.functions.invoke('gerarReceitasRecorrentes', { mes_referencia: mes });
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setGerando(false);
-    setGerarResultado(res.data?.message || 'Concluído!');
+    const d = res.data;
+    let msg = d?.message || 'Concluído!';
+    if (d?.duplicatasRemovidas > 0) msg += ` (${d.duplicatasRemovidas} duplicata(s) removida(s))`;
+    setGerarResultado(msg);
   };
 
   const handleDelete = async () => {
@@ -651,6 +654,18 @@ export default function FinanceiroReceitas() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleGerarRecorrentes} className="bg-violet-600 hover:bg-violet-700">Sim, gerar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!gerarResultado} onOpenChange={open => !open && setGerarResultado(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Geração Concluída</AlertDialogTitle>
+            <AlertDialogDescription>{gerarResultado}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setGerarResultado(null)} className="bg-emerald-600 hover:bg-emerald-700">OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
