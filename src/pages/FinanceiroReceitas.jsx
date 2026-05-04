@@ -620,6 +620,7 @@ export default function FinanceiroReceitas() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-slate-900">{r.cliente_nome}</p>
                           <Badge className={`text-xs ${sc.color}`}>{sc.label}</Badge>
+                          {!r.recorrente && <Badge className="text-xs bg-yellow-100 text-yellow-700 border-yellow-300">⚠ Sem recorrência</Badge>}
                           {r.totalJuros > 0 && <Badge className="text-xs bg-orange-100 text-orange-700">c/ juros</Badge>}
                           {r.recs?.some(rec => !rec.comprovante_url) && <Badge className="text-xs bg-amber-100 text-amber-600">sem comprovante</Badge>}
                           {diasAtr > 0 && <Badge className="text-xs bg-red-50 text-red-600 border-red-200">{diasAtr}d atraso</Badge>}

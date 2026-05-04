@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Search, Upload, CheckCircle, Clock, FileText, X, Loader2, ArrowDownCircle, RefreshCw, Zap, StopCircle } from 'lucide-react';
+import { Plus, Search, Upload, CheckCircle, Clock, FileText, X, Loader2, ArrowDownCircle, RefreshCw, Zap, StopCircle, Database } from 'lucide-react';
 import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
 import GerarLancamentosModal from '@/components/financeiro/GerarLancamentosModal';
 import AlertaRecorrenciaVencendo from '@/components/financeiro/AlertaRecorrenciaVencendo';
@@ -40,6 +40,8 @@ export default function FinanceiroCustos() {
   const [saving, setSaving] = useState(false);
   const [showFinalizarRecorrencia, setShowFinalizarRecorrencia] = useState(false);
   const [finalizando, setFinalizando] = useState(false);
+  const [corrigindo, setCorrigindo] = useState(false);
+  const [corrigirResultado, setCorrigirResultado] = useState(null);
 
   const { data: custos = [], isLoading } = useQuery({
     queryKey: ['fin-custos', mes],
@@ -152,6 +154,38 @@ export default function FinanceiroCustos() {
     qc.invalidateQueries({ queryKey: ['fin-custos'] });
   };
 
+  const handleCorrigirDataInicio = async () => {
+    setCorrigindo(true);
+    // Busca todos os custos recorrentes em lotes
+    const todos = await base44.entities.FinanceiroCusto.filter({ recorrente: true }, '-created_date', 5000);
+    // Agrupa por nome
+    const grupos = {};
+    for (const c of todos) {
+      const key = (c.nome || '').toLowerCase().trim();
+      if (!key) continue;
+      if (!grupos[key]) grupos[key] = [];
+      grupos[key].push(c);
+    }
+    let atualizados = 0;
+    // Processa em paralelo por grupo, mas sequencial entre grupos para evitar rate limit
+    for (const itens of Object.values(grupos)) {
+      const comData = itens.filter(i => i.data_inicio).sort((a, b) => a.data_inicio.localeCompare(b.data_inicio));
+      if (!comData.length) continue;
+      const dataInicio = comData[0].data_inicio;
+      const semData = itens.filter(i => !i.data_inicio);
+      // Processa até 5 em paralelo
+      for (let i = 0; i < semData.length; i += 5) {
+        await Promise.all(semData.slice(i, i + 5).map(c =>
+          base44.entities.FinanceiroCusto.update(c.id, { data_inicio: dataInicio })
+        ));
+        atualizados += semData.slice(i, i + 5).length;
+      }
+    }
+    qc.invalidateQueries({ queryKey: ['fin-custos'] });
+    setCorrigindo(false);
+    setCorrigirResultado(`${atualizados} lançamento(s) atualizado(s) com data de início da recorrência.`);
+  };
+
   const openEdit = (c) => {
     setForm({ ...c, valor: c.valor?.toString() || '' });
     setShowModal(true);
@@ -186,13 +220,18 @@ export default function FinanceiroCustos() {
             <p className="text-slate-500 text-sm">Controle de gastos operacionais</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={handleCorrigirDataInicio} disabled={corrigindo}
+            className="border-amber-200 text-amber-700 hover:bg-amber-50" title="Buscar data de início nos lançamentos mais antigos e propagar para todos os meses da recorrência">
+            {corrigindo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+            Corrigir datas de início
+          </Button>
           <Button variant="outline" onClick={() => setShowGerar(true)}>
             <Zap className="w-4 h-4" /> Gerar lançamentos do mês
           </Button>
           <Button onClick={() => { setForm(EMPTY); setShowModal(true); }} className="bg-red-600 hover:bg-red-700">
-          <Plus className="w-4 h-4" /> Nova Despesa
-        </Button>
+            <Plus className="w-4 h-4" /> Nova Despesa
+          </Button>
         </div>
       </div>
 
@@ -271,7 +310,7 @@ export default function FinanceiroCustos() {
                   <div className="flex items-center gap-2 mt-0.5">
                     {c.categoria && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{c.categoria}</span>}
                     <span className={`text-xs px-2 py-0.5 rounded-full ${c.tipo === 'fixo' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{c.tipo}</span>
-                    {c.recorrente && <span className="text-xs flex items-center gap-0.5 text-slate-500"><RefreshCw className="w-3 h-3" /> Recorrente</span>}
+                    {c.recorrente && <span className="text-xs flex items-center gap-0.5 text-slate-500"><RefreshCw className="w-3 h-3" /> Recorrente{c.data_inicio ? ` desde ${c.data_inicio.substring(0, 7).split('-').reverse().join('/')}` : ' ⚠ sem data início'}</span>}
                     {c.data_vencimento && <span className="text-xs text-slate-500">Venc: {format(new Date(c.data_vencimento + 'T12:00:00'), 'dd/MM')}</span>}
                   </div>
                 </div>
@@ -403,6 +442,18 @@ export default function FinanceiroCustos() {
             <AlertDialogAction onClick={handleFinalizarRecorrencia} disabled={finalizando} className="bg-orange-600 hover:bg-orange-700">
               {finalizando && <Loader2 className="w-4 h-4 animate-spin" />} Sim, finalizar
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!corrigirResultado} onOpenChange={open => !open && setCorrigirResultado(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Correção Concluída</AlertDialogTitle>
+            <AlertDialogDescription>{corrigirResultado}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setCorrigirResultado(null)} className="bg-emerald-600 hover:bg-emerald-700">OK</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
