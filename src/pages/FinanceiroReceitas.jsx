@@ -501,15 +501,24 @@ export default function FinanceiroReceitas() {
     setForm(EMPTY);
   };
 
+  const [add12Progress, setAdd12Progress] = useState(0);
+
   const handleAdicionarQuantidadeMeses = async () => {
     setShowConfirmAdd12(false);
     setAdicionando12(true);
-    // Usa a backend function dedicada para evitar rate limit
-    const res = await base44.functions.invoke('adicionarQuantidadeMesesRecorrentes', {});
+    setAdd12Progress(0);
+    let totalAtualizadas = 0;
+    let temMais = true;
+    while (temMais) {
+      const res = await base44.functions.invoke('adicionarQuantidadeMesesRecorrentes', {});
+      const d = res?.data;
+      totalAtualizadas += d?.atualizadas ?? 0;
+      setAdd12Progress(totalAtualizadas);
+      temMais = !!d?.temMais;
+    }
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setAdicionando12(false);
-    const total = res?.data?.atualizadas ?? '?';
-    setAdd12Resultado(`${total} receita(s) atualizada(s) com 12 meses de recorrência.`);
+    setAdd12Resultado(`${totalAtualizadas} receita(s) atualizada(s) com 12 meses de recorrência.`);
   };
 
   // Recebimentos da receita selecionada no ReceberModal
@@ -539,7 +548,7 @@ export default function FinanceiroReceitas() {
           </Button>
           <Button variant="outline" onClick={() => setShowConfirmAdd12(true)} disabled={adicionando12} className="border-amber-200 text-amber-700 hover:bg-amber-50">
             {adicionando12 ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            +12 meses recorrentes
+            {adicionando12 ? `Atualizando... (${add12Progress})` : '+12 meses recorrentes'}
           </Button>
           <Button variant="outline" onClick={() => setShowConfirmGerar(true)} disabled={gerando}>
             {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
