@@ -51,7 +51,10 @@ export default function GerarLancamentosModal({ open, onClose, onDone }) {
         tipo_contrato: item.tipo_contrato,
         status: 'previsto',
         is_previsto: true,
-        recorrente: false,
+        recorrente: true,
+        frequencia: item.frequencia,
+        data_inicio: item.data_inicio,
+        data_fim: item.data_fim,
         mes_referencia: mes,
       });
       gerados++;
@@ -88,7 +91,10 @@ export default function GerarLancamentosModal({ open, onClose, onDone }) {
         valor: item.valor,
         status: 'previsto',
         is_previsto: true,
-        recorrente: false,
+        recorrente: true,
+        frequencia: item.frequencia,
+        data_inicio: item.data_inicio,
+        data_fim: item.data_fim,
         mes_referencia: mes,
         data_vencimento: dataVencimento,
       });
@@ -111,7 +117,10 @@ export default function GerarLancamentosModal({ open, onClose, onDone }) {
         valor_pj: item.valor_pj,
         status: 'previsto',
         is_previsto: true,
-        recorrente: false,
+        recorrente: true,
+        frequencia: item.frequencia,
+        data_inicio: item.data_inicio,
+        data_fim: item.data_fim,
         mes_referencia: mes,
       });
       gerados++;
