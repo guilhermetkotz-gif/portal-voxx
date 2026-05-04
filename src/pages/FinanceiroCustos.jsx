@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Plus, Search, Upload, CheckCircle, Clock, FileText, X, Loader2, ArrowDownCircle, RefreshCw, Zap } from 'lucide-react';
 import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
 import GerarLancamentosModal from '@/components/financeiro/GerarLancamentosModal';
-import { format } from 'date-fns';
+import { format, addMonths, parseISO } from 'date-fns';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -19,7 +19,7 @@ const CATEGORIAS = ['Infraestrutura', 'Marketing', 'Ferramentas/SaaS', 'Escritó
 
 const EMPTY = {
   nome: '', categoria: '', tipo: 'fixo', valor: '', recorrente: false,
-  frequencia: 'mensal', data_inicio: '', data_fim: '',
+  frequencia: 'mensal', data_inicio: '', quantidade_meses: '',
   data_vencimento: '', status: 'pendente', data_pagamento: '',
   observacao_pagamento: '', comprovante_pagamento: '',
 };
@@ -79,12 +79,56 @@ export default function FinanceiroCustos() {
 
   const handleSave = async () => {
     setSaving(true);
+    const qtdMeses = parseInt(form.quantidade_meses) || 0;
     const data = { ...form, valor: parseFloat(form.valor) || 0, mes_referencia: mes };
+
     if (form.id) {
       await base44.entities.FinanceiroCusto.update(form.id, data);
     } else {
+      // Salva o lançamento principal no mês atual
       await base44.entities.FinanceiroCusto.create(data);
+
+      // Se recorrente com quantidade de meses, gera lançamentos futuros automaticamente
+      if (form.recorrente && qtdMeses > 1 && form.data_inicio) {
+        const baseDate = parseISO(form.data_inicio);
+        const diaVenc = form.data_vencimento ? new Date(form.data_vencimento + 'T12:00:00').getDate() : null;
+
+        // Busca lançamentos já existentes para evitar duplicatas
+        for (let i = 1; i < qtdMeses; i++) {
+          const futureDate = addMonths(baseDate, i);
+          const futureMonth = format(futureDate, 'yyyy-MM');
+
+          // Calcula data_vencimento no mês futuro preservando o dia original
+          let dataVencimento = '';
+          if (diaVenc) {
+            const [ano, mesNum] = futureMonth.split('-').map(Number);
+            const ultimoDia = new Date(ano, mesNum, 0).getDate();
+            const dia = Math.min(diaVenc, ultimoDia);
+            dataVencimento = `${futureMonth}-${String(dia).padStart(2, '0')}`;
+          }
+
+          // Verifica se já existe lançamento com mesmo nome neste mês
+          const existentes = await base44.entities.FinanceiroCusto.filter({ mes_referencia: futureMonth, nome: form.nome });
+          if (existentes.length === 0) {
+            await base44.entities.FinanceiroCusto.create({
+              nome: form.nome,
+              categoria: form.categoria,
+              tipo: form.tipo,
+              valor: parseFloat(form.valor) || 0,
+              status: 'previsto',
+              is_previsto: true,
+              recorrente: true,
+              frequencia: form.frequencia,
+              data_inicio: form.data_inicio,
+              quantidade_meses: form.quantidade_meses,
+              mes_referencia: futureMonth,
+              data_vencimento: dataVencimento,
+            });
+          }
+        }
+      }
     }
+
     qc.invalidateQueries({ queryKey: ['fin-custos'] });
     setSaving(false);
     setShowModal(false);

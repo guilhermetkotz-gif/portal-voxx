@@ -1,0 +1,84 @@
+{
+  "name": "FinanceiroCusto",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string"
+    },
+    "categoria": {
+      "type": "string"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "fixo",
+        "variavel"
+      ],
+      "default": "fixo"
+    },
+    "valor": {
+      "type": "number"
+    },
+    "recorrente": {
+      "type": "boolean",
+      "default": false
+    },
+    "frequencia": {
+      "type": "string",
+      "enum": [
+        "mensal",
+        "quinzenal",
+        "anual",
+        "personalizado"
+      ],
+      "default": "mensal"
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_fim": {
+      "type": "string",
+      "format": "date"
+    },
+    "quantidade_meses": {
+      "type": "number",
+      "description": "Quantidade de meses de recorr\u00eancia"
+    },
+    "data_vencimento": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "pago",
+        "previsto"
+      ],
+      "default": "pendente"
+    },
+    "data_pagamento": {
+      "type": "string",
+      "format": "date"
+    },
+    "observacao_pagamento": {
+      "type": "string"
+    },
+    "comprovante_pagamento": {
+      "type": "string"
+    },
+    "mes_referencia": {
+      "type": "string"
+    },
+    "is_previsto": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "nome",
+    "valor",
+    "mes_referencia"
+  ]
+}

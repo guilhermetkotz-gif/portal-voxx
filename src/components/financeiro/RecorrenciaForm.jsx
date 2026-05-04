@@ -14,7 +14,7 @@ export default function RecorrenciaForm({ form, setForm }) {
               type="radio"
               name="recorrente"
               checked={!form.recorrente}
-              onChange={() => setForm(f => ({ ...f, recorrente: false }))}
+              onChange={() => setForm(f => ({ ...f, recorrente: false, quantidade_meses: '' }))}
               className="accent-violet-600"
             />
             <span className="text-sm text-slate-700">Não recorrente (lançamento único)</span>
@@ -34,32 +34,40 @@ export default function RecorrenciaForm({ form, setForm }) {
 
       {form.recorrente && (
         <div className="grid grid-cols-1 gap-3 pt-1">
-          <div>
-            <Label className="text-xs">Frequência</Label>
-            <Select value={form.frequencia || 'mensal'} onValueChange={v => setForm(f => ({ ...f, frequencia: v }))}>
-              <SelectTrigger className="mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mensal">Mensal</SelectItem>
-                <SelectItem value="quinzenal">Quinzenal</SelectItem>
-                <SelectItem value="anual">Anual</SelectItem>
-                <SelectItem value="personalizado">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">Data de Início *</Label>
-              <Input type="date" value={form.data_inicio || ''} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))} className="mt-1" />
+              <Label className="text-xs">Frequência</Label>
+              <Select value={form.frequencia || 'mensal'} onValueChange={v => setForm(f => ({ ...f, frequencia: v }))}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mensal">Mensal</SelectItem>
+                  <SelectItem value="quinzenal">Quinzenal</SelectItem>
+                  <SelectItem value="anual">Anual</SelectItem>
+                  <SelectItem value="personalizado">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <Label className="text-xs">Data de Término (opcional)</Label>
-              <Input type="date" value={form.data_fim || ''} onChange={e => setForm(f => ({ ...f, data_fim: e.target.value }))} className="mt-1" />
+              <Label className="text-xs">Quantidade de meses *</Label>
+              <Input
+                type="number"
+                min="1"
+                max="120"
+                placeholder="Ex: 12"
+                value={form.quantidade_meses || ''}
+                onChange={e => setForm(f => ({ ...f, quantidade_meses: e.target.value }))}
+                className="mt-1"
+              />
             </div>
           </div>
+          <div>
+            <Label className="text-xs">Data de Início *</Label>
+            <Input type="date" value={form.data_inicio || ''} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))} className="mt-1" />
+          </div>
           <p className="text-[11px] text-violet-600 bg-violet-50 border border-violet-200 rounded px-3 py-2">
-            💡 Lançamentos recorrentes aparecem como <strong>Previsto</strong> até você confirmar a geração via "Gerar lançamentos do mês".
+            💡 Ao salvar, os lançamentos serão gerados automaticamente como <strong>Previsto</strong> para os próximos <strong>{form.quantidade_meses || '?'} meses</strong> a partir da data de início.
           </p>
         </div>
       )}
