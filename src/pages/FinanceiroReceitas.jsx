@@ -504,7 +504,6 @@ export default function FinanceiroReceitas() {
   const [add12Progress, setAdd12Progress] = useState(0);
 
   const handleAdicionarQuantidadeMeses = async () => {
-    setShowConfirmAdd12(false);
     setAdicionando12(true);
     setAdd12Progress(0);
     let totalAtualizadas = 0;
@@ -739,7 +738,16 @@ export default function FinanceiroReceitas() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleAdicionarQuantidadeMeses} className="bg-amber-600 hover:bg-amber-700">Sim, atualizar</AlertDialogAction>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                setShowConfirmAdd12(false);
+                setTimeout(() => handleAdicionarQuantidadeMeses(), 50);
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Sim, atualizar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
