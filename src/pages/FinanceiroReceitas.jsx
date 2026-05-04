@@ -365,6 +365,9 @@ export default function FinanceiroReceitas() {
   const [gerarResultado, setGerarResultado] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [obsTarget, setObsTarget] = useState(null);
+  const [showConfirmAdd12, setShowConfirmAdd12] = useState(false);
+  const [adicionando12, setAdicionando12] = useState(false);
+  const [add12Resultado, setAdd12Resultado] = useState(null);
   const [receberTarget, setReceberTarget] = useState(null);
   const [historicoTarget, setHistoricoTarget] = useState(null);
 
@@ -461,6 +464,25 @@ export default function FinanceiroReceitas() {
 
   const openNew = () => { setForm({ ...EMPTY }); setShowModal(true); };
 
+  const handleAdicionarQuantidadeMeses = async () => {
+    setShowConfirmAdd12(false);
+    setAdicionando12(true);
+    // Busca todas as recorrentes sem quantidade_meses definida
+    const todas = await base44.entities.FinanceiroReceita.filter({ recorrente: true }, '-created_date', 2000);
+    const semQtd = todas.filter(r => !r.quantidade_meses || r.quantidade_meses < 1);
+    for (const r of semQtd) {
+      const baseStr = r.data_inicio || r.created_date?.substring(0, 10) || new Date().toISOString().substring(0, 10);
+      const base = new Date(baseStr + 'T12:00:00');
+      const fim = new Date(base);
+      fim.setMonth(fim.getMonth() + 11);
+      const data_fim = `${fim.getFullYear()}-${String(fim.getMonth() + 1).padStart(2, '0')}-${String(fim.getDate()).padStart(2, '0')}`;
+      await base44.entities.FinanceiroReceita.update(r.id, { quantidade_meses: 12, data_fim, frequencia: 'mensal' });
+    }
+    qc.invalidateQueries({ queryKey: ['fin-receitas'] });
+    setAdicionando12(false);
+    setAdd12Resultado(`${semQtd.length} receita(s) atualizada(s) com 12 meses de recorrência.`);
+  };
+
   // Recebimentos da receita selecionada no ReceberModal
   const recebimentosDoTarget = useMemo(() => {
     if (!receberTarget && !historicoTarget) return [];
@@ -485,6 +507,10 @@ export default function FinanceiroReceitas() {
           <Button variant="outline" onClick={handleMigrar} disabled={migrando} className="border-violet-200 text-violet-600 hover:bg-violet-50" title="Migrar pagamentos antigos para a nova estrutura de recebimentos">
             {migrando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
             Migrar Dados
+          </Button>
+          <Button variant="outline" onClick={() => setShowConfirmAdd12(true)} disabled={adicionando12} className="border-amber-200 text-amber-700 hover:bg-amber-50">
+            {adicionando12 ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            +12 meses recorrentes
           </Button>
           <Button variant="outline" onClick={() => setShowConfirmGerar(true)} disabled={gerando}>
             {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
@@ -644,6 +670,34 @@ export default function FinanceiroReceitas() {
           onAddRecebimento={() => { setReceberTarget(historicoTarget); setHistoricoTarget(null); }}
         />
       )}
+
+      {/* Confirm adicionar 12 meses */}
+      <AlertDialog open={showConfirmAdd12} onOpenChange={setShowConfirmAdd12}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Adicionar 12 meses de recorrência?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Todas as receitas marcadas como recorrentes que <strong>não possuem quantidade de meses definida</strong> serão atualizadas com 12 meses a partir da data de início. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAdicionarQuantidadeMeses} className="bg-amber-600 hover:bg-amber-700">Sim, atualizar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!add12Resultado} onOpenChange={open => !open && setAdd12Resultado(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Atualização Concluída</AlertDialogTitle>
+            <AlertDialogDescription>{add12Resultado}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setAdd12Resultado(null)} className="bg-emerald-600 hover:bg-emerald-700">OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Confirm gerar recorrentes */}
       <AlertDialog open={showConfirmGerar} onOpenChange={setShowConfirmGerar}>
