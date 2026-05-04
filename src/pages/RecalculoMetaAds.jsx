@@ -107,6 +107,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       let diarioD1 = 0;
       
       const nomeCliente = cliente.nome?.trim();
+      const metaAccountName = cliente.meta_ads_account_name?.trim(); // campo específico de mapeamento
       
       // Normalizar nome para comparação (remover espaços extras, hífens, números, tornar minúsculo)
       const normalizeNome = (nome) => {
@@ -116,37 +117,30 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           .replace(/\s*-\s*/g, ' ')
           .trim() || '';
       };
-      
-      const clienteNormalizado = normalizeNome(nomeCliente);
-      
-      // 1. Buscar correspondência exata primeiro
-      if (nomeCliente && amountSpentByAccount[nomeCliente] !== undefined) {
-        valorInvestido = amountSpentByAccount[nomeCliente];
-        diarioD1 = diarioD1ByAccount[nomeCliente] || 0;
-      } 
-      // 2. Buscar por correspondência normalizada
-      else {
-        const matchingKey = Object.keys(amountSpentByAccount).find(key => 
-          normalizeNome(key) === clienteNormalizado
+
+      const findInSheet = (chave) => {
+        if (!chave) return null;
+        const chaveNorm = normalizeNome(chave);
+        // Exata
+        if (amountSpentByAccount[chave] !== undefined) return chave;
+        // Normalizada exata
+        const exactNorm = Object.keys(amountSpentByAccount).find(k => normalizeNome(k) === chaveNorm);
+        if (exactNorm) return exactNorm;
+        // Parcial
+        const partial = Object.keys(amountSpentByAccount).find(k =>
+          normalizeNome(k).includes(chaveNorm) || chaveNorm.includes(normalizeNome(k))
         );
-        
-        if (matchingKey) {
-          valorInvestido = amountSpentByAccount[matchingKey];
-          diarioD1 = diarioD1ByAccount[matchingKey] || 0;
-        }
-      }
-      
-      // 3. Se ainda não encontrou, tentar match parcial (contém o nome)
-      if (valorInvestido === 0 && diarioD1 === 0) {
-        const partialMatchKey = Object.keys(amountSpentByAccount).find(key => 
-          normalizeNome(key).includes(clienteNormalizado) || 
-          clienteNormalizado.includes(normalizeNome(key))
-        );
-        
-        if (partialMatchKey) {
-          valorInvestido = amountSpentByAccount[partialMatchKey];
-          diarioD1 = diarioD1ByAccount[partialMatchKey] || 0;
-        }
+        return partial || null;
+      };
+
+      // 1. Prioridade: meta_ads_account_name (campo de mapeamento manual)
+      let matchKey = findInSheet(metaAccountName);
+      // 2. Fallback: nome do cliente
+      if (!matchKey) matchKey = findInSheet(nomeCliente);
+
+      if (matchKey) {
+        valorInvestido = amountSpentByAccount[matchKey] || 0;
+        diarioD1 = diarioD1ByAccount[matchKey] || 0;
       }
 
       // Cálculos base
