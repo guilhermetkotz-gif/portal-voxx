@@ -478,7 +478,7 @@ export default function FinanceiroReceitas() {
   };
 
   const openEdit = (r) => {
-    setForm({ ...r, valor_mensal: r.valor_mensal?.toString() || '' });
+    setForm({ ...r, valor_mensal: r.valor_mensal?.toString() || '', quantidade_meses: r.quantidade_meses ? parseInt(r.quantidade_meses) : '' });
     setGerarRecorrentesModalResultado(null);
     setShowModal(true);
   };
@@ -511,16 +511,31 @@ export default function FinanceiroReceitas() {
   const [gerarRecorrentesModalResultado, setGerarRecorrentesModalResultado] = useState(null);
 
   const handleGerarRecorrentesParaReceita = async () => {
-    if (!form.cliente_nome || !form.data_inicio || !parseInt(form.quantidade_meses)) return;
+    if (!form.cliente_nome || !form.data_inicio) return;
+    // Calcula quantidade de meses: usa campo direto ou deriva de data_fim
+    let qtd = parseInt(form.quantidade_meses) || 0;
+    if (!qtd && form.data_fim) {
+      const inicio = new Date(form.data_inicio + 'T12:00:00');
+      const fim = new Date(form.data_fim + 'T12:00:00');
+      qtd = (fim.getFullYear() - inicio.getFullYear()) * 12 + (fim.getMonth() - inicio.getMonth()) + 1;
+    }
+    if (!qtd) return;
+
     setGerandoRecorrentesModal(true);
     setGerarRecorrentesModalResultado(null);
-    const qtd = parseInt(form.quantidade_meses);
     let criadas = 0;
+    // Pega o dia de cobrança da receita atual (ex: 01, 10, 15)
+    const diaCobranca = form.data_cobranca ? form.data_cobranca.split('-')[2] : '01';
     const inicio = new Date(form.data_inicio + 'T12:00:00');
+
     for (let i = 0; i < qtd; i++) {
       const d = new Date(inicio);
       d.setMonth(d.getMonth() + i);
-      const mesRef = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const ano = d.getFullYear();
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const mesRef = `${ano}-${mes}`;
+      const dataCobranca = `${ano}-${mes}-${diaCobranca}`;
+
       // Verifica se já existe lançamento para este cliente/mês
       const existentes = await base44.entities.FinanceiroReceita.filter({
         cliente_nome: form.cliente_nome,
@@ -533,6 +548,7 @@ export default function FinanceiroReceitas() {
           valor_mensal: parseFloat(form.valor_mensal) || 0,
           tipo_contrato: form.tipo_contrato || 'mensal',
           mes_referencia: mesRef,
+          data_cobranca: dataCobranca,
           recorrente: true,
           frequencia: 'mensal',
           data_inicio: form.data_inicio,
@@ -543,8 +559,7 @@ export default function FinanceiroReceitas() {
         });
         criadas++;
       }
-      // pequena pausa para não estourar rate limit
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 150));
     }
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setGerandoRecorrentesModal(false);
@@ -966,7 +981,7 @@ export default function FinanceiroReceitas() {
                     Recorrência mensal até {form.data_fim.split('-').reverse().join('/')}
                   </p>
                 )}
-                {form.data_inicio && parseInt(form.quantidade_meses) > 0 && (
+                {form.data_inicio && (parseInt(form.quantidade_meses) > 0 || form.data_fim) && (
                   <div className="col-span-2 border-t pt-3 mt-1 space-y-2">
                     <Button
                       type="button"
@@ -978,7 +993,7 @@ export default function FinanceiroReceitas() {
                     >
                       {gerandoRecorrentesModal
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando lançamentos...</>
-                        : <><RefreshCw className="w-4 h-4" /> Gerar {parseInt(form.quantidade_meses)} lançamentos recorrentes</>
+                        : <><RefreshCw className="w-4 h-4" /> Gerar lançamentos recorrentes{parseInt(form.quantidade_meses) > 0 ? ` (${parseInt(form.quantidade_meses)} meses)` : ''}</>
                       }
                     </Button>
                     {gerarRecorrentesModalResultado && (
