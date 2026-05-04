@@ -511,7 +511,7 @@ export default function FinanceiroReceitas() {
   const [gerarRecorrentesModalResultado, setGerarRecorrentesModalResultado] = useState(null);
 
   const handleGerarRecorrentesParaReceita = async () => {
-    if (!form.cliente_nome || !form.data_inicio || !form.quantidade_meses) return;
+    if (!form.cliente_nome || !form.data_inicio || !parseInt(form.quantidade_meses)) return;
     setGerandoRecorrentesModal(true);
     setGerarRecorrentesModalResultado(null);
     const qtd = parseInt(form.quantidade_meses);
@@ -966,7 +966,7 @@ export default function FinanceiroReceitas() {
                     Recorrência mensal até {form.data_fim.split('-').reverse().join('/')}
                   </p>
                 )}
-                {form.data_inicio && form.quantidade_meses > 0 && (
+                {form.data_inicio && parseInt(form.quantidade_meses) > 0 && (
                   <div className="col-span-2 border-t pt-3 mt-1 space-y-2">
                     <Button
                       type="button"
@@ -978,7 +978,7 @@ export default function FinanceiroReceitas() {
                     >
                       {gerandoRecorrentesModal
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando lançamentos...</>
-                        : <><RefreshCw className="w-4 h-4" /> Gerar {form.quantidade_meses} lançamentos recorrentes</>
+                        : <><RefreshCw className="w-4 h-4" /> Gerar {parseInt(form.quantidade_meses)} lançamentos recorrentes</>
                       }
                     </Button>
                     {gerarRecorrentesModalResultado && (
