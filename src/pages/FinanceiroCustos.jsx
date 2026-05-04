@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Plus, Search, Upload, CheckCircle, Clock, FileText, X, Loader2, ArrowDownCircle, RefreshCw, Zap } from 'lucide-react';
 import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
 import GerarLancamentosModal from '@/components/financeiro/GerarLancamentosModal';
+import AlertaRecorrenciaVencendo from '@/components/financeiro/AlertaRecorrenciaVencendo';
 import { format, addMonths, parseISO } from 'date-fns';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -174,6 +175,8 @@ export default function FinanceiroCustos() {
         </Button>
         </div>
       </div>
+
+      <AlertaRecorrenciaVencendo tipo="custo" />
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <Card className="p-4 border-slate-200">

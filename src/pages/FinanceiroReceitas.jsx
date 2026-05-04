@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle, DollarSign, History, Database } from 'lucide-react';
 import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
+import AlertaRecorrenciaVencendo from '@/components/financeiro/AlertaRecorrenciaVencendo';
 import ReceberModal from '@/components/financeiro/ReceberModal';
 import HistoricoRecebimentosModal from '@/components/financeiro/HistoricoRecebimentosModal';
 import { format, differenceInDays, parseISO } from 'date-fns';
@@ -514,6 +515,8 @@ export default function FinanceiroReceitas() {
         <InadimplenciaView allRecebimentos={allRecebimentosGlobal} />
       ) : (
         <>
+          <AlertaRecorrenciaVencendo tipo="receita" />
+
           {/* KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <Card className="p-4 border-slate-200">
