@@ -389,13 +389,31 @@ export default function FinanceiroReceitas() {
     enabled: view === 'inadimplencia',
   });
 
+  // Deduplicar: para cada cliente_nome + mes_referencia, manter apenas o mais recente
+  const receitasDedupadas = useMemo(() => {
+    const mapa = new Map();
+    for (const r of receitas) {
+      const key = `${(r.cliente_nome || '').toLowerCase().trim()}|${r.mes_referencia || ''}`;
+      const existente = mapa.get(key);
+      if (!existente) {
+        mapa.set(key, r);
+      } else {
+        // Manter o com updated_date mais recente; em empate, manter o com mais dados (recebido)
+        const dtR = r.updated_date || r.created_date || '';
+        const dtE = existente.updated_date || existente.created_date || '';
+        if (dtR > dtE) mapa.set(key, r);
+      }
+    }
+    return Array.from(mapa.values());
+  }, [receitas]);
+
   // Enrich receitas com cálculos
   const receitasEnriquecidas = useMemo(() => {
-    return receitas.map(r => {
+    return receitasDedupadas.map(r => {
       const calc = calcularStatus(r, allRecebimentos);
       return { ...r, ...calc };
     });
-  }, [receitas, allRecebimentos]);
+  }, [receitasDedupadas, allRecebimentos]);
 
   const filtered = receitasEnriquecidas.filter(r => {
     const matchSearch = !search || r.cliente_nome?.toLowerCase().includes(search.toLowerCase());
@@ -409,7 +427,7 @@ export default function FinanceiroReceitas() {
   });
 
   const totais = {
-    mrr: receitas.reduce((s, r) => s + (r.valor_mensal || 0), 0),
+    mrr: receitasDedupadas.reduce((s, r) => s + (r.valor_mensal || 0), 0),
     recebido: receitasEnriquecidas.reduce((s, r) => s + (r.totalRecebido || 0), 0),
     pendente: receitasEnriquecidas.reduce((s, r) => s + (r.saldoPendente || 0), 0),
     juros: allRecebimentos.reduce((s, r) => s + (r.valor_juros || 0), 0),
