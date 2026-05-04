@@ -508,12 +508,21 @@ export default function FinanceiroReceitas() {
     setAdd12Progress(0);
     let totalAtualizadas = 0;
     let temMais = true;
-    while (temMais) {
-      const res = await base44.functions.invoke('adicionarQuantidadeMesesRecorrentes', {});
-      const d = res?.data;
-      totalAtualizadas += d?.atualizadas ?? 0;
-      setAdd12Progress(totalAtualizadas);
-      temMais = !!d?.temMais;
+    let tentativas = 0;
+    while (temMais && tentativas < 100) {
+      try {
+        const res = await base44.functions.invoke('adicionarQuantidadeMesesRecorrentes', {});
+        const d = res?.data;
+        totalAtualizadas += d?.atualizadas ?? 0;
+        setAdd12Progress(totalAtualizadas);
+        temMais = !!d?.temMais;
+        tentativas++;
+        if (temMais) await new Promise(r => setTimeout(r, 2000)); // pausa entre chamadas
+      } catch {
+        // Rate limit — aguarda 5s e tenta novamente
+        await new Promise(r => setTimeout(r, 5000));
+        tentativas++;
+      }
     }
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setAdicionando12(false);

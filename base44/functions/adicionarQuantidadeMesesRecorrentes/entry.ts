@@ -8,16 +8,20 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Busca apenas 100 por chamada para evitar rate limit
+    // Busca lote pequeno para não estourar rate limit
     const todas = await base44.asServiceRole.entities.FinanceiroReceita.filter(
-      { recorrente: true }, '-created_date', 100
+      { recorrente: true }, '-created_date', 500
     );
+
+    await sleep(500);
 
     const semQtd = todas.filter(r => !r.quantidade_meses || r.quantidade_meses < 1);
 
-    let atualizadas = 0;
+    // Processa apenas 20 por chamada
+    const lote = semQtd.slice(0, 20);
 
-    for (const r of semQtd) {
+    let atualizadas = 0;
+    for (const r of lote) {
       const baseStr = r.data_inicio || r.created_date?.substring(0, 10) || new Date().toISOString().substring(0, 10);
       const base = new Date(baseStr + 'T12:00:00');
       const fim = new Date(base);
@@ -29,16 +33,14 @@ Deno.serve(async (req) => {
         frequencia: 'mensal',
       });
       atualizadas++;
-      await sleep(150);
+      await sleep(300);
     }
 
-    // Se ainda há registros sem quantidade_meses, indica que precisa chamar novamente
-    const temMais = semQtd.length === todas.filter(r => !r.quantidade_meses || r.quantidade_meses < 1).length && atualizadas > 0;
-
     return Response.json({
-      message: `${atualizadas} receita(s) atualizada(s) com 12 meses de recorrência.`,
+      message: `${atualizadas} receita(s) atualizada(s).`,
       atualizadas,
-      temMais: atualizadas > 0 && semQtd.length >= 100,
+      temMais: semQtd.length > 20,
+      restantes: Math.max(0, semQtd.length - 20),
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
