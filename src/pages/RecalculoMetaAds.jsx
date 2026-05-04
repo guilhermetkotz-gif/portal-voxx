@@ -108,41 +108,57 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       
       const nomeCliente = cliente.nome?.trim();
       const metaAccountName = cliente.meta_ads_account_name?.trim();
+      const legacyKey = cliente.legacy_client_key?.trim();
       // Nomes das contas Meta Ads vinculadas (contas_anuncio)
       const contasMetaNomes = (cliente.contas_anuncio || [])
         .filter(c => c.plataforma === 'Meta' && c.conta_nome)
-        .map(c => c.conta_nome.trim());
+        .map(c => c.conta_nome.trim())
+        .filter(Boolean);
 
-      // Normalizar nome para comparação (remover espaços extras, hífens, números, tornar minúsculo)
+      // Normalizar nome: remove prefixos numéricos, sufixos de versão/status, espaços e hífens
       const normalizeNome = (nome) => {
         return nome?.toLowerCase()
-          .replace(/^\d+\s*-\s*/, '') // Remove números no início (ex: "275 - ")
+          .replace(/^\d+\s*[-–]\s*/, '')           // Remove "275 - " no início
+          .replace(/\s*\(\d+\)\s*/g, ' ')          // Remove "(1)", "(2)", "(4)" etc.
+          .replace(/\s*\[ativa\]\s*/gi, ' ')       // Remove "[ATIVA]"
+          .replace(/\s*\(ativa\)\s*/gi, ' ')       // Remove "(ATIVA)"
+          .replace(/\s*\(nova\)\s*/gi, ' ')        // Remove "(nova)"
+          .replace(/\s*\[as\]\s*/gi, ' ')          // Remove "[AS]"
+          .replace(/\s*[-–]\s*/g, ' ')             // Normaliza hífens
           .replace(/\s+/g, ' ')
-          .replace(/\s*-\s*/g, ' ')
           .trim() || '';
       };
 
+      const sheetKeys = Object.keys(amountSpentByAccount);
+
       const findInSheet = (chave) => {
         if (!chave) return null;
-        const chaveNorm = normalizeNome(chave);
+        // 1. Exato
         if (amountSpentByAccount[chave] !== undefined) return chave;
-        const exactNorm = Object.keys(amountSpentByAccount).find(k => normalizeNome(k) === chaveNorm);
+        const chaveNorm = normalizeNome(chave);
+        if (!chaveNorm) return null;
+        // 2. Normalizado exato
+        const exactNorm = sheetKeys.find(k => normalizeNome(k) === chaveNorm);
         if (exactNorm) return exactNorm;
-        const partial = Object.keys(amountSpentByAccount).find(k =>
-          normalizeNome(k).includes(chaveNorm) || chaveNorm.includes(normalizeNome(k))
-        );
-        return partial || null;
+        // 3. Parcial: um contém o outro (min 5 chars para evitar falsos positivos)
+        if (chaveNorm.length >= 5) {
+          const partial = sheetKeys.find(k => {
+            const kNorm = normalizeNome(k);
+            return kNorm.includes(chaveNorm) || chaveNorm.includes(kNorm);
+          });
+          if (partial) return partial;
+        }
+        return null;
       };
 
-      // 1. Prioridade: contas_anuncio Meta (campo vínculo com planilha)
+      // Ordem de prioridade: contas_anuncio > meta_ads_account_name > legacy_client_key > nome
       let matchKey = null;
       for (const contaNome of contasMetaNomes) {
         matchKey = findInSheet(contaNome);
         if (matchKey) break;
       }
-      // 2. meta_ads_account_name
       if (!matchKey) matchKey = findInSheet(metaAccountName);
-      // 3. Fallback: nome do cliente
+      if (!matchKey) matchKey = findInSheet(legacyKey);
       if (!matchKey) matchKey = findInSheet(nomeCliente);
 
       if (matchKey) {
