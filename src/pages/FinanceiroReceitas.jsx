@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle, DollarSign, History, Database } from 'lucide-react';
+import { Plus, Search, Upload, CheckCircle, Clock, AlertCircle, FileText, X, Loader2, ArrowUpCircle, RefreshCw, MessageSquare, List, AlertTriangle, DollarSign, History, Database, StopCircle } from 'lucide-react';
 import ClienteFinanceiroSelect from '@/components/financeiro/ClienteFinanceiroSelect';
 import AlertaRecorrenciaVencendo from '@/components/financeiro/AlertaRecorrenciaVencendo';
 import ReceberModal from '@/components/financeiro/ReceberModal';
@@ -368,6 +368,8 @@ export default function FinanceiroReceitas() {
   const [showConfirmAdd12, setShowConfirmAdd12] = useState(false);
   const [adicionando12, setAdicionando12] = useState(false);
   const [add12Resultado, setAdd12Resultado] = useState(null);
+  const [showFinalizarRecorrencia, setShowFinalizarRecorrencia] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
   const [receberTarget, setReceberTarget] = useState(null);
   const [historicoTarget, setHistoricoTarget] = useState(null);
 
@@ -463,6 +465,23 @@ export default function FinanceiroReceitas() {
   };
 
   const openNew = () => { setForm({ ...EMPTY }); setShowModal(true); };
+
+  const handleFinalizarRecorrencia = async () => {
+    setFinalizando(true);
+    // Busca todos os lançamentos futuros do mesmo cliente recorrente (mês > atual)
+    const todos = await base44.entities.FinanceiroReceita.filter({ cliente_nome: form.cliente_nome, recorrente: true }, '-created_date', 500);
+    const futuros = todos.filter(r => r.id !== form.id && r.mes_referencia > mes);
+    for (const r of futuros) {
+      await base44.entities.FinanceiroReceita.delete(r.id);
+    }
+    // Atualiza o registro atual encerrando a recorrência
+    await base44.entities.FinanceiroReceita.update(form.id, { recorrente: false, data_fim: mes + '-28' });
+    qc.invalidateQueries({ queryKey: ['fin-receitas'] });
+    setFinalizando(false);
+    setShowFinalizarRecorrencia(false);
+    setShowModal(false);
+    setForm(EMPTY);
+  };
 
   const handleAdicionarQuantidadeMeses = async () => {
     setShowConfirmAdd12(false);
@@ -671,6 +690,24 @@ export default function FinanceiroReceitas() {
         />
       )}
 
+      {/* Finalizar Recorrência — Receitas */}
+      <AlertDialog open={showFinalizarRecorrencia} onOpenChange={setShowFinalizarRecorrencia}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar Recorrência?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os lançamentos futuros de <strong>{form.cliente_nome}</strong> (meses posteriores a <strong>{mes}</strong>) serão excluídos permanentemente e a recorrência será encerrada. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinalizarRecorrencia} disabled={finalizando} className="bg-orange-600 hover:bg-orange-700">
+              {finalizando && <Loader2 className="w-4 h-4 animate-spin" />} Sim, finalizar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Confirm adicionar 12 meses */}
       <AlertDialog open={showConfirmAdd12} onOpenChange={setShowConfirmAdd12}>
         <AlertDialogContent>
@@ -851,7 +888,13 @@ export default function FinanceiroReceitas() {
               </div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-wrap gap-2">
+            {form.id && form.recorrente && (
+              <Button variant="outline" onClick={() => setShowFinalizarRecorrencia(true)}
+                className="border-orange-200 text-orange-600 hover:bg-orange-50 mr-auto">
+                <StopCircle className="w-4 h-4" /> Finalizar Recorrência
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />} Salvar

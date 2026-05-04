@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Search, Upload, CheckCircle, Clock, FileText, X, Loader2, ArrowDownCircle, RefreshCw, Zap } from 'lucide-react';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
+import { Plus, Search, Upload, CheckCircle, Clock, FileText, X, Loader2, ArrowDownCircle, RefreshCw, Zap, StopCircle } from 'lucide-react';
 import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
 import GerarLancamentosModal from '@/components/financeiro/GerarLancamentosModal';
 import AlertaRecorrenciaVencendo from '@/components/financeiro/AlertaRecorrenciaVencendo';
@@ -37,6 +38,8 @@ export default function FinanceiroCustos() {
   const [form, setForm] = useState(EMPTY);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showFinalizarRecorrencia, setShowFinalizarRecorrencia] = useState(false);
+  const [finalizando, setFinalizando] = useState(false);
 
   const { data: custos = [], isLoading } = useQuery({
     queryKey: ['fin-custos', mes],
@@ -152,6 +155,23 @@ export default function FinanceiroCustos() {
   const openEdit = (c) => {
     setForm({ ...c, valor: c.valor?.toString() || '' });
     setShowModal(true);
+  };
+
+  const handleFinalizarRecorrencia = async () => {
+    setFinalizando(true);
+    // Busca todos os lançamentos futuros com mesmo nome (mês > atual)
+    const todos = await base44.entities.FinanceiroCusto.filter({ nome: form.nome, recorrente: true }, '-created_date', 500);
+    const futuros = todos.filter(c => c.id !== form.id && c.mes_referencia > mes);
+    for (const c of futuros) {
+      await base44.entities.FinanceiroCusto.delete(c.id);
+    }
+    // Atualiza o registro atual marcando fim da recorrência
+    await base44.entities.FinanceiroCusto.update(form.id, { recorrente: false, data_fim: mes + '-28' });
+    qc.invalidateQueries({ queryKey: ['fin-custos'] });
+    setFinalizando(false);
+    setShowFinalizarRecorrencia(false);
+    setShowModal(false);
+    setForm(EMPTY);
   };
 
   return (
@@ -355,7 +375,13 @@ export default function FinanceiroCustos() {
               )}
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-wrap gap-2">
+            {form.id && form.recorrente && (
+              <Button variant="outline" onClick={() => setShowFinalizarRecorrencia(true)}
+                className="border-orange-200 text-orange-600 hover:bg-orange-50 mr-auto">
+                <StopCircle className="w-4 h-4" /> Finalizar Recorrência
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setShowModal(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving} className="bg-red-600 hover:bg-red-700">
               {saving && <Loader2 className="w-4 h-4 animate-spin" />} Salvar
@@ -363,6 +389,23 @@ export default function FinanceiroCustos() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showFinalizarRecorrencia} onOpenChange={setShowFinalizarRecorrencia}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalizar Recorrência?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os lançamentos futuros de <strong>{form.nome}</strong> (meses posteriores a <strong>{mes}</strong>) serão excluídos permanentemente e a recorrência será encerrada. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinalizarRecorrencia} disabled={finalizando} className="bg-orange-600 hover:bg-orange-700">
+              {finalizando && <Loader2 className="w-4 h-4 animate-spin" />} Sim, finalizar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <GerarLancamentosModal
         open={showGerar}
