@@ -753,25 +753,44 @@ export default function FinanceiroReceitas() {
               </div>
             </div>
             {form.recorrente && (
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label>Frequência</Label>
-                  <Select value={form.frequencia || 'mensal'} onValueChange={v => setForm(f => ({ ...f, frequencia: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="anual">Anual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Data Início</Label>
-                  <Input type="date" value={form.data_inicio || ''} onChange={e => setForm(f => ({ ...f, data_inicio: e.target.value }))} />
+                  <Input type="date" value={form.data_inicio || ''} onChange={e => {
+                    const newInicio = e.target.value;
+                    let data_fim = form.data_fim || '';
+                    if (newInicio && form.quantidade_meses) {
+                      const d = new Date(newInicio);
+                      d.setMonth(d.getMonth() + form.quantidade_meses - 1);
+                      data_fim = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                    }
+                    setForm(f => ({ ...f, data_inicio: newInicio, data_fim }));
+                  }} />
                 </div>
                 <div>
-                  <Label>Data Fim</Label>
-                  <Input type="date" value={form.data_fim || ''} onChange={e => setForm(f => ({ ...f, data_fim: e.target.value }))} />
+                  <Label>Qtd. de Meses</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Ex: 12"
+                    value={form.quantidade_meses || ''}
+                    onChange={e => {
+                      const qtd = parseInt(e.target.value) || '';
+                      let data_fim = '';
+                      if (qtd && form.data_inicio) {
+                        const d = new Date(form.data_inicio);
+                        d.setMonth(d.getMonth() + qtd - 1);
+                        data_fim = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                      }
+                      setForm(f => ({ ...f, quantidade_meses: qtd, data_fim, frequencia: 'mensal' }));
+                    }}
+                  />
                 </div>
+                {form.data_fim && (
+                  <p className="col-span-2 text-xs text-slate-500">
+                    Recorrência mensal até {form.data_fim.split('-').reverse().join('/')}
+                  </p>
+                )}
               </div>
             )}
           </div>
