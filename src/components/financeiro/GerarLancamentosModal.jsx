@@ -62,6 +62,25 @@ export default function GerarLancamentosModal({ open, onClose, onDone }) {
       if (!mesInRange(item, mes)) { pulados++; continue; }
       const exists = cusExist.some(e => e.nome === item.nome);
       if (exists) { pulados++; continue; }
+
+      // Calcular data_vencimento para o mês alvo com base no dia original
+      let dataVencimento = '';
+      if (item.data_vencimento) {
+        const diaVenc = new Date(item.data_vencimento).getUTCDate();
+        const [ano, mesNum] = mes.split('-').map(Number);
+        // Garante que o dia não ultrapassa o último dia do mês alvo
+        const ultimoDia = new Date(ano, mesNum, 0).getDate();
+        const dia = Math.min(diaVenc, ultimoDia);
+        dataVencimento = `${mes}-${String(dia).padStart(2, '0')}`;
+      } else if (item.data_inicio) {
+        // fallback: usa o dia da data_inicio como dia de vencimento
+        const diaInicio = new Date(item.data_inicio).getUTCDate();
+        const [ano, mesNum] = mes.split('-').map(Number);
+        const ultimoDia = new Date(ano, mesNum, 0).getDate();
+        const dia = Math.min(diaInicio, ultimoDia);
+        dataVencimento = `${mes}-${String(dia).padStart(2, '0')}`;
+      }
+
       await base44.entities.FinanceiroCusto.create({
         nome: item.nome,
         categoria: item.categoria,
@@ -71,6 +90,7 @@ export default function GerarLancamentosModal({ open, onClose, onDone }) {
         is_previsto: true,
         recorrente: false,
         mes_referencia: mes,
+        data_vencimento: dataVencimento,
       });
       gerados++;
     }

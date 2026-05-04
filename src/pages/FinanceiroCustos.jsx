@@ -42,7 +42,24 @@ export default function FinanceiroCustos() {
     queryFn: () => base44.entities.FinanceiroCusto.filter({ mes_referencia: mes }, '-created_date', 200),
   });
 
-  const filtered = custos.filter(c => {
+  // Deduplicar por nome: prioriza lançamentos reais (is_previsto=false) sobre previstos
+  const custosDeduplicados = (() => {
+    const map = new Map();
+    // Primeiro passa os reais (sem is_previsto)
+    for (const c of custos) {
+      if (!c.is_previsto) map.set(c.nome?.toLowerCase()?.trim(), c);
+    }
+    // Depois adiciona os previstos somente se não houver real com mesmo nome
+    for (const c of custos) {
+      if (c.is_previsto) {
+        const key = c.nome?.toLowerCase()?.trim();
+        if (!map.has(key)) map.set(key, c);
+      }
+    }
+    return Array.from(map.values());
+  })();
+
+  const filtered = custosDeduplicados.filter(c => {
     const matchSearch = !search || c.nome?.toLowerCase().includes(search.toLowerCase()) || c.categoria?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filtroStatus === 'all' || c.status === filtroStatus;
     const matchTipo = filtroTipo === 'all' || c.tipo === filtroTipo;
@@ -188,6 +205,7 @@ export default function FinanceiroCustos() {
                     {c.categoria && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{c.categoria}</span>}
                     <span className={`text-xs px-2 py-0.5 rounded-full ${c.tipo === 'fixo' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{c.tipo}</span>
                     {c.recorrente && <span className="text-xs flex items-center gap-0.5 text-slate-500"><RefreshCw className="w-3 h-3" /> Recorrente</span>}
+                    {c.data_vencimento && <span className="text-xs text-slate-500">Venc: {format(new Date(c.data_vencimento + 'T12:00:00'), 'dd/MM')}</span>}
                   </div>
                 </div>
               </div>
