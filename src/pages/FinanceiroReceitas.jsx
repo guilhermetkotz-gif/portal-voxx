@@ -486,20 +486,12 @@ export default function FinanceiroReceitas() {
   const handleAdicionarQuantidadeMeses = async () => {
     setShowConfirmAdd12(false);
     setAdicionando12(true);
-    // Busca todas as recorrentes sem quantidade_meses definida
-    const todas = await base44.entities.FinanceiroReceita.filter({ recorrente: true }, '-created_date', 2000);
-    const semQtd = todas.filter(r => !r.quantidade_meses || r.quantidade_meses < 1);
-    for (const r of semQtd) {
-      const baseStr = r.data_inicio || r.created_date?.substring(0, 10) || new Date().toISOString().substring(0, 10);
-      const base = new Date(baseStr + 'T12:00:00');
-      const fim = new Date(base);
-      fim.setMonth(fim.getMonth() + 11);
-      const data_fim = `${fim.getFullYear()}-${String(fim.getMonth() + 1).padStart(2, '0')}-${String(fim.getDate()).padStart(2, '0')}`;
-      await base44.entities.FinanceiroReceita.update(r.id, { quantidade_meses: 12, data_fim, frequencia: 'mensal' });
-    }
+    // Usa a backend function dedicada para evitar rate limit
+    const res = await base44.functions.invoke('adicionarQuantidadeMesesRecorrentes', {});
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setAdicionando12(false);
-    setAdd12Resultado(`${semQtd.length} receita(s) atualizada(s) com 12 meses de recorrência.`);
+    const total = res?.data?.atualizadas ?? '?';
+    setAdd12Resultado(`${total} receita(s) atualizada(s) com 12 meses de recorrência.`);
   };
 
   // Recebimentos da receita selecionada no ReceberModal
