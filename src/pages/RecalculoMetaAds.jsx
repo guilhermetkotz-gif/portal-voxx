@@ -107,8 +107,12 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       let diarioD1 = 0;
       
       const nomeCliente = cliente.nome?.trim();
-      const metaAccountName = cliente.meta_ads_account_name?.trim(); // campo específico de mapeamento
-      
+      const metaAccountName = cliente.meta_ads_account_name?.trim();
+      // Nomes das contas Meta Ads vinculadas (contas_anuncio)
+      const contasMetaNomes = (cliente.contas_anuncio || [])
+        .filter(c => c.plataforma === 'Meta' && c.conta_nome)
+        .map(c => c.conta_nome.trim());
+
       // Normalizar nome para comparação (remover espaços extras, hífens, números, tornar minúsculo)
       const normalizeNome = (nome) => {
         return nome?.toLowerCase()
@@ -121,21 +125,24 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       const findInSheet = (chave) => {
         if (!chave) return null;
         const chaveNorm = normalizeNome(chave);
-        // Exata
         if (amountSpentByAccount[chave] !== undefined) return chave;
-        // Normalizada exata
         const exactNorm = Object.keys(amountSpentByAccount).find(k => normalizeNome(k) === chaveNorm);
         if (exactNorm) return exactNorm;
-        // Parcial
         const partial = Object.keys(amountSpentByAccount).find(k =>
           normalizeNome(k).includes(chaveNorm) || chaveNorm.includes(normalizeNome(k))
         );
         return partial || null;
       };
 
-      // 1. Prioridade: meta_ads_account_name (campo de mapeamento manual)
-      let matchKey = findInSheet(metaAccountName);
-      // 2. Fallback: nome do cliente
+      // 1. Prioridade: contas_anuncio Meta (campo vínculo com planilha)
+      let matchKey = null;
+      for (const contaNome of contasMetaNomes) {
+        matchKey = findInSheet(contaNome);
+        if (matchKey) break;
+      }
+      // 2. meta_ads_account_name
+      if (!matchKey) matchKey = findInSheet(metaAccountName);
+      // 3. Fallback: nome do cliente
       if (!matchKey) matchKey = findInSheet(nomeCliente);
 
       if (matchKey) {
