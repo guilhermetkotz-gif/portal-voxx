@@ -479,10 +479,15 @@ export default function FinanceiroReceitas() {
 
   const openEdit = (r) => {
     setForm({ ...r, valor_mensal: r.valor_mensal?.toString() || '' });
+    setGerarRecorrentesModalResultado(null);
     setShowModal(true);
   };
 
-  const openNew = () => { setForm({ ...EMPTY }); setShowModal(true); };
+  const openNew = () => {
+    setForm({ ...EMPTY });
+    setGerarRecorrentesModalResultado(null);
+    setShowModal(true);
+  };
 
   const handleFinalizarRecorrencia = async () => {
     setFinalizando(true);
@@ -502,6 +507,49 @@ export default function FinanceiroReceitas() {
   };
 
   const [add12Progress, setAdd12Progress] = useState(0);
+  const [gerandoRecorrentesModal, setGerandoRecorrentesModal] = useState(false);
+  const [gerarRecorrentesModalResultado, setGerarRecorrentesModalResultado] = useState(null);
+
+  const handleGerarRecorrentesParaReceita = async () => {
+    if (!form.cliente_nome || !form.data_inicio || !form.quantidade_meses) return;
+    setGerandoRecorrentesModal(true);
+    setGerarRecorrentesModalResultado(null);
+    const qtd = parseInt(form.quantidade_meses);
+    let criadas = 0;
+    const inicio = new Date(form.data_inicio + 'T12:00:00');
+    for (let i = 0; i < qtd; i++) {
+      const d = new Date(inicio);
+      d.setMonth(d.getMonth() + i);
+      const mesRef = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      // Verifica se já existe lançamento para este cliente/mês
+      const existentes = await base44.entities.FinanceiroReceita.filter({
+        cliente_nome: form.cliente_nome,
+        mes_referencia: mesRef,
+      }, '-created_date', 5);
+      if (existentes.length === 0) {
+        await base44.entities.FinanceiroReceita.create({
+          cliente_nome: form.cliente_nome,
+          cliente_id: form.cliente_id || '',
+          valor_mensal: parseFloat(form.valor_mensal) || 0,
+          tipo_contrato: form.tipo_contrato || 'mensal',
+          mes_referencia: mesRef,
+          recorrente: true,
+          frequencia: 'mensal',
+          data_inicio: form.data_inicio,
+          data_fim: form.data_fim || '',
+          quantidade_meses: qtd,
+          is_previsto: true,
+          status: 'previsto',
+        });
+        criadas++;
+      }
+      // pequena pausa para não estourar rate limit
+      await new Promise(r => setTimeout(r, 200));
+    }
+    qc.invalidateQueries({ queryKey: ['fin-receitas'] });
+    setGerandoRecorrentesModal(false);
+    setGerarRecorrentesModalResultado(`${criadas} lançamento(s) criado(s) (${qtd - criadas} já existiam).`);
+  };
 
   const handleAdicionarQuantidadeMeses = async () => {
     setAdicionando12(true);
@@ -553,10 +601,6 @@ export default function FinanceiroReceitas() {
           <Button variant="outline" onClick={handleMigrar} disabled={migrando} className="border-violet-200 text-violet-600 hover:bg-violet-50" title="Migrar pagamentos antigos para a nova estrutura de recebimentos">
             {migrando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
             Migrar Dados
-          </Button>
-          <Button variant="outline" onClick={() => setShowConfirmAdd12(true)} disabled={adicionando12} className="border-amber-200 text-amber-700 hover:bg-amber-50">
-            {adicionando12 ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            {adicionando12 ? `Atualizando... (${add12Progress})` : '+12 meses recorrentes'}
           </Button>
           <Button variant="outline" onClick={() => setShowConfirmGerar(true)} disabled={gerando}>
             {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
@@ -921,6 +965,26 @@ export default function FinanceiroReceitas() {
                   <p className="col-span-2 text-xs text-slate-500">
                     Recorrência mensal até {form.data_fim.split('-').reverse().join('/')}
                   </p>
+                )}
+                {form.data_inicio && form.quantidade_meses > 0 && (
+                  <div className="col-span-2 border-t pt-3 mt-1 space-y-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={gerandoRecorrentesModal}
+                      onClick={handleGerarRecorrentesParaReceita}
+                      className="w-full border-violet-200 text-violet-600 hover:bg-violet-50"
+                    >
+                      {gerandoRecorrentesModal
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando lançamentos...</>
+                        : <><RefreshCw className="w-4 h-4" /> Gerar {form.quantidade_meses} lançamentos recorrentes</>
+                      }
+                    </Button>
+                    {gerarRecorrentesModalResultado && (
+                      <p className="text-xs text-emerald-600 text-center">{gerarRecorrentesModalResultado}</p>
+                    )}
+                  </div>
                 )}
               </div>
             )}
