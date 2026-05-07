@@ -158,7 +158,17 @@ export default function FinanceiroCarteira() {
   const clientesFiltrados = clientes.filter(c => {
     const matchSearch = !search || c.nome?.toLowerCase().includes(search.toLowerCase()) || c.unidade?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'todos' || c.status === filterStatus;
-    return matchSearch && matchStatus;
+
+    // Filtro por mês: cliente deve estar ativo no período selecionado
+    const [year, month] = mesRef.split('-').map(Number);
+    const inicioMes = startOfMonth(new Date(year, month - 1));
+    const fimMes = endOfMonth(new Date(year, month - 1));
+    const dataInicio = c.data_inicio ? parseISO(c.data_inicio) : null;
+    const dataFim = c.data_fim ? parseISO(c.data_fim) : null;
+    // Exclui clientes que ainda não haviam iniciado ou já haviam encerrado nesse mês
+    const matchMes = (!dataInicio || dataInicio <= fimMes) && (!dataFim || dataFim >= inicioMes);
+
+    return matchSearch && matchStatus && matchMes;
   });
 
   function openEdit(cliente) {
