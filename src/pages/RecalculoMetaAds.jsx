@@ -129,13 +129,18 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           .trim() || '';
       };
 
+      // Pré-processar chaves da planilha: trim e criar índice normalizado
       const sheetKeys = Object.keys(amountSpentByAccount);
+      // Índice: chave trimmed -> chave original
+      const sheetKeysTrimmed = {};
+      sheetKeys.forEach(k => { sheetKeysTrimmed[k.trim()] = k; });
 
       const findInSheet = (chave) => {
         if (!chave) return null;
-        // 1. Exato
-        if (amountSpentByAccount[chave] !== undefined) return chave;
-        const chaveNorm = normalizeNome(chave);
+        const chaveTrimmed = chave.trim();
+        // 1. Exato (com trim)
+        if (sheetKeysTrimmed[chaveTrimmed] !== undefined) return sheetKeysTrimmed[chaveTrimmed];
+        const chaveNorm = normalizeNome(chaveTrimmed);
         if (!chaveNorm) return null;
         // 2. Normalizado exato
         const exactNorm = sheetKeys.find(k => normalizeNome(k) === chaveNorm);
