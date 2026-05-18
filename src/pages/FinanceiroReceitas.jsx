@@ -380,7 +380,7 @@ export default function FinanceiroReceitas() {
 
   const { data: allRecebimentos = [] } = useQuery({
     queryKey: ['fin-recebimentos', mes],
-    queryFn: () => base44.entities.RecebimentoReceita.filter({ mes_referencia: mes }, '-created_date', 1000),
+    queryFn: () => base44.entities.RecebimentoReceita.filter({}, '-created_date', 5000),
   });
 
   const { data: allRecebimentosGlobal = [] } = useQuery({
