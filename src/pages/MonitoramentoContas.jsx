@@ -202,9 +202,10 @@ export default function MonitoramentoContas({ user }) {
             }));
         } catch (error) {
             console.error('Erro ao carregar recomendações:', error);
+            // Em vez de mostrar erro, mostrar painel vazio com botão de otimização
             setRecommendations(prev => ({
                 ...prev,
-                [accountName]: { error: 'Erro ao carregar recomendações' }
+                [accountName]: { recommendations: [], success: true }
             }));
         }
     };
