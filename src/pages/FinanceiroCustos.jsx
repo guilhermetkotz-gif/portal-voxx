@@ -93,7 +93,9 @@ export default function FinanceiroCustos() {
         ...form,
         valor: parseFloat(form.valor) || 0,
         mes_referencia: mes,
-        quantidade_meses: qtdMeses > 0 ? qtdMeses : null,
+        quantidade_meses: (form.recorrente && qtdMeses > 0) ? qtdMeses : null,
+        recorrente: !!form.recorrente,
+        data_inicio: form.recorrente ? form.data_inicio : null,
       };
 
       if (form.id) {
