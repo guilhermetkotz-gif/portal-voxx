@@ -14,7 +14,7 @@ import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
 import GerarLancamentosModal from '@/components/financeiro/GerarLancamentosModal';
 import AlertaRecorrenciaVencendo from '@/components/financeiro/AlertaRecorrenciaVencendo';
 import { format, addMonths, parseISO } from 'date-fns';
-import { toast } from 'sonner';
+import { useToast } from '@/components/ui/use-toast';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -29,6 +29,7 @@ const EMPTY = {
 
 export default function FinanceiroCustos() {
   const qc = useQueryClient();
+  const { toast } = useToast();
   const [mes, setMes] = useState(format(new Date(), 'yyyy-MM'));
   const [search, setSearch] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('all');
@@ -143,10 +144,10 @@ export default function FinanceiroCustos() {
       qc.invalidateQueries({ queryKey: ['fin-custos'] });
       setShowModal(false);
       setForm(EMPTY);
-      toast.success(form.id ? 'Despesa atualizada com sucesso!' : 'Despesa salva com sucesso!');
+      toast({ title: form.id ? 'Despesa atualizada com sucesso!' : 'Despesa salva com sucesso!' });
     } catch (err) {
       console.error('Erro ao salvar despesa:', err);
-      toast.error('Erro ao salvar despesa. Tente novamente.');
+      toast({ title: 'Erro ao salvar despesa.', description: err?.message || 'Tente novamente.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
