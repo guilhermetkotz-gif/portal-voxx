@@ -14,6 +14,7 @@ import RecorrenciaForm from '@/components/financeiro/RecorrenciaForm';
 import GerarLancamentosModal from '@/components/financeiro/GerarLancamentosModal';
 import AlertaRecorrenciaVencendo from '@/components/financeiro/AlertaRecorrenciaVencendo';
 import { format, addMonths, parseISO } from 'date-fns';
+import { toast } from 'sonner';
 
 const fmt = (v) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -142,6 +143,10 @@ export default function FinanceiroCustos() {
       qc.invalidateQueries({ queryKey: ['fin-custos'] });
       setShowModal(false);
       setForm(EMPTY);
+      toast.success(form.id ? 'Despesa atualizada com sucesso!' : 'Despesa salva com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar despesa:', err);
+      toast.error('Erro ao salvar despesa. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -344,7 +349,7 @@ export default function FinanceiroCustos() {
         ))}
       </div>
 
-      <Dialog open={showModal} onOpenChange={setShowModal}>
+      <Dialog open={showModal} onOpenChange={(v) => { setShowModal(v); if (!v) setSaving(false); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{form.id ? 'Editar Despesa' : 'Nova Despesa'}</DialogTitle></DialogHeader>
           <div className="grid gap-3 py-2">
