@@ -194,6 +194,7 @@ export default function FinanceiroCustos() {
 
   const openEdit = (c) => {
     setForm({ ...c, valor: c.valor?.toString() || '' });
+    setSaving(false);
     setShowModal(true);
   };
 
@@ -235,7 +236,7 @@ export default function FinanceiroCustos() {
           <Button variant="outline" onClick={() => setShowGerar(true)}>
             <Zap className="w-4 h-4" /> Gerar lançamentos do mês
           </Button>
-          <Button onClick={() => { setForm(EMPTY); setShowModal(true); }} className="bg-red-600 hover:bg-red-700">
+          <Button onClick={() => { setForm(EMPTY); setSaving(false); setShowModal(true); }} className="bg-red-600 hover:bg-red-700">
             <Plus className="w-4 h-4" /> Nova Despesa
           </Button>
         </div>
