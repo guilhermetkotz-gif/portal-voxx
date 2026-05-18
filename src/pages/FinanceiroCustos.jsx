@@ -89,7 +89,12 @@ export default function FinanceiroCustos() {
     setSaving(true);
     try {
       const qtdMeses = parseInt(form.quantidade_meses) || 0;
-      const data = { ...form, valor: parseFloat(form.valor) || 0, mes_referencia: mes };
+      const data = {
+        ...form,
+        valor: parseFloat(form.valor) || 0,
+        mes_referencia: mes,
+        quantidade_meses: qtdMeses > 0 ? qtdMeses : null,
+      };
 
       if (form.id) {
         await base44.entities.FinanceiroCusto.update(form.id, data);
