@@ -85,38 +85,36 @@ export default function FinanceiroCustos() {
 
   const handleSave = async () => {
     setSaving(true);
-    const qtdMeses = parseInt(form.quantidade_meses) || 0;
-    const data = { ...form, valor: parseFloat(form.valor) || 0, mes_referencia: mes };
+    try {
+      const qtdMeses = parseInt(form.quantidade_meses) || 0;
+      const data = { ...form, valor: parseFloat(form.valor) || 0, mes_referencia: mes };
 
-    if (form.id) {
-      await base44.entities.FinanceiroCusto.update(form.id, data);
-    } else {
-      // Salva o lançamento principal no mês atual
-      await base44.entities.FinanceiroCusto.create(data);
+      if (form.id) {
+        await base44.entities.FinanceiroCusto.update(form.id, data);
+      } else {
+        // Salva o lançamento principal no mês atual
+        await base44.entities.FinanceiroCusto.create(data);
 
-      // Se recorrente com quantidade de meses, gera lançamentos futuros automaticamente
-      if (form.recorrente && qtdMeses > 1 && form.data_inicio) {
-        const baseDate = parseISO(form.data_inicio);
-        const diaVenc = form.data_vencimento ? new Date(form.data_vencimento + 'T12:00:00').getDate() : null;
+        // Se recorrente com quantidade de meses, gera lançamentos futuros automaticamente
+        if (form.recorrente && qtdMeses > 1 && form.data_inicio) {
+          const baseDate = parseISO(form.data_inicio);
+          const diaVenc = form.data_vencimento ? new Date(form.data_vencimento + 'T12:00:00').getDate() : null;
 
-        // Busca lançamentos já existentes para evitar duplicatas
-        for (let i = 1; i < qtdMeses; i++) {
-          const futureDate = addMonths(baseDate, i);
-          const futureMonth = format(futureDate, 'yyyy-MM');
+          // Monta todos os lançamentos futuros de uma vez e cria em paralelo
+          const lancamentosFuturos = [];
+          for (let i = 1; i < qtdMeses; i++) {
+            const futureDate = addMonths(baseDate, i);
+            const futureMonth = format(futureDate, 'yyyy-MM');
 
-          // Calcula data_vencimento no mês futuro preservando o dia original
-          let dataVencimento = '';
-          if (diaVenc) {
-            const [ano, mesNum] = futureMonth.split('-').map(Number);
-            const ultimoDia = new Date(ano, mesNum, 0).getDate();
-            const dia = Math.min(diaVenc, ultimoDia);
-            dataVencimento = `${futureMonth}-${String(dia).padStart(2, '0')}`;
-          }
+            let dataVencimento = '';
+            if (diaVenc) {
+              const [ano, mesNum] = futureMonth.split('-').map(Number);
+              const ultimoDia = new Date(ano, mesNum, 0).getDate();
+              const dia = Math.min(diaVenc, ultimoDia);
+              dataVencimento = `${futureMonth}-${String(dia).padStart(2, '0')}`;
+            }
 
-          // Verifica se já existe lançamento com mesmo nome neste mês
-          const existentes = await base44.entities.FinanceiroCusto.filter({ mes_referencia: futureMonth, nome: form.nome });
-          if (existentes.length === 0) {
-            await base44.entities.FinanceiroCusto.create({
+            lancamentosFuturos.push({
               nome: form.nome,
               categoria: form.categoria,
               tipo: form.tipo,
@@ -131,14 +129,22 @@ export default function FinanceiroCustos() {
               data_vencimento: dataVencimento,
             });
           }
+
+          // Cria em lotes de 10 para não sobrecarregar
+          for (let i = 0; i < lancamentosFuturos.length; i += 10) {
+            await Promise.all(lancamentosFuturos.slice(i, i + 10).map(l =>
+              base44.entities.FinanceiroCusto.create(l)
+            ));
+          }
         }
       }
-    }
 
-    qc.invalidateQueries({ queryKey: ['fin-custos'] });
-    setSaving(false);
-    setShowModal(false);
-    setForm(EMPTY);
+      qc.invalidateQueries({ queryKey: ['fin-custos'] });
+      setShowModal(false);
+      setForm(EMPTY);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleUpload = async (file) => {
