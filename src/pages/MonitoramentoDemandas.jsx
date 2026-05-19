@@ -114,6 +114,20 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
     staleTime: 60 * 1000
   });
 
+  // filteredDemandas MUST be declared before any useMemo that depends on it
+  const filteredDemandas = useMemo(() => {
+    let result = filterSetor ? demandas.filter(d => d.setor === filterSetor) : demandas;
+    if (dateFrom) {
+      result = result.filter(d => new Date(d.created_date) >= new Date(dateFrom));
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      result = result.filter(d => new Date(d.created_date) <= toDate);
+    }
+    return result;
+  }, [demandas, filterSetor, dateFrom, dateTo]);
+
   // Calculate statistics
   const stats = useMemo(() => {
     if (!filteredDemandas || filteredDemandas.length === 0) {
@@ -251,19 +265,6 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
   }, [filteredDemandas]);
-
-  const filteredDemandas = useMemo(() => {
-    let result = filterSetor ? demandas.filter(d => d.setor === filterSetor) : demandas;
-    if (dateFrom) {
-      result = result.filter(d => new Date(d.created_date) >= new Date(dateFrom));
-    }
-    if (dateTo) {
-      const toDate = new Date(dateTo);
-      toDate.setHours(23, 59, 59, 999);
-      result = result.filter(d => new Date(d.created_date) <= toDate);
-    }
-    return result;
-  }, [demandas, filterSetor, dateFrom, dateTo]);
 
   if (isLoading) {
     return <div className="text-center py-8">Carregando dados...</div>;
