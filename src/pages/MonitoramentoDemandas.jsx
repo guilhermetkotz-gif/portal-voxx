@@ -7,8 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle2, Clock, Users, FileText, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, differenceInDays } from 'date-fns';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { format, differenceInDays, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { CalendarIcon, X } from 'lucide-react';
 
 const statusColors = {
   recebida: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Recebida' },
@@ -42,6 +46,8 @@ const DEFAULT_SETORES = {
 
 export default function MonitoramentoDemandas({ user, selectedClienteId }) {
   const [filterSetor, setFilterSetor] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   // Fetch custom columns for mapping
   const { data: customColumns = [] } = useQuery({
@@ -110,7 +116,7 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
 
   // Calculate statistics
   const stats = useMemo(() => {
-    if (!demandas || demandas.length === 0) {
+    if (!filteredDemandas || filteredDemandas.length === 0) {
       return {
         total: 0,
         abertas: 0,
@@ -124,14 +130,14 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
       };
     }
 
-    const total = demandas.length;
-    const abertas = demandas.filter(d => ['recebida', 'em_triagem', 'em_execucao', 'aguardando_cliente', 'em_revisao'].includes(d.status)).length;
-    const concluidas = demandas.filter(d => d.status === 'concluida').length;
-    const altaPrioridade = demandas.filter(d => d.prioridade === 'alta').length;
+    const total = filteredDemandas.length;
+    const abertas = filteredDemandas.filter(d => ['recebida', 'em_triagem', 'em_execucao', 'aguardando_cliente', 'em_revisao'].includes(d.status)).length;
+    const concluidas = filteredDemandas.filter(d => d.status === 'concluida').length;
+    const altaPrioridade = filteredDemandas.filter(d => d.prioridade === 'alta').length;
 
     // Calculate average completion time by setor
     const completionBySetor = {};
-    demandas.forEach(demanda => {
+    filteredDemandas.forEach(demanda => {
       if (demanda.status === 'concluida') {
         const created = new Date(demanda.created_date);
         const updated = new Date(demanda.updated_date);
@@ -153,7 +159,7 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
 
     // Demandas por setor
     const demandaBySetor = {};
-    demandas.forEach(d => {
+    filteredDemandas.forEach(d => {
       const setorName = setores[d.setor] || d.setor;
       demandaBySetor[setorName] = (demandaBySetor[setorName] || 0) + 1;
     });
@@ -166,12 +172,12 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
     // Demandas por status
     const statusChart = Object.keys(statusColors).map(status => ({
       name: statusColors[status].label,
-      value: demandas.filter(d => d.status === status).length
+      value: filteredDemandas.filter(d => d.status === status).length
     })).filter(s => s.value > 0);
 
     // Demandas concluídas por setor
     const concluidasBySetor = {};
-    demandas.forEach(d => {
+    filteredDemandas.forEach(d => {
       if (d.status === 'concluida') {
         const setorName = setores[d.setor] || d.setor;
         concluidasBySetor[setorName] = (concluidasBySetor[setorName] || 0) + 1;
@@ -185,7 +191,7 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
 
     // Demandas não concluídas por setor
     const naoConcluidasBySetor = {};
-    demandas.forEach(d => {
+    filteredDemandas.forEach(d => {
       if (d.status !== 'concluida') {
         const setorName = setores[d.setor] || d.setor;
         naoConcluidasBySetor[setorName] = (naoConcluidasBySetor[setorName] || 0) + 1;
@@ -208,11 +214,11 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
       concluidasSetorChart,
       naoConcluidasSetorChart
     };
-  }, [demandas, setores]);
+  }, [filteredDemandas, setores]);
 
   // Demandas críticas (prazo vencendo em 3 dias)
   const demandasCriticas = useMemo(() => {
-    return demandas
+    return filteredDemandas
       .filter(d => ['recebida', 'em_triagem', 'em_execucao', 'aguardando_cliente', 'em_revisao'].includes(d.status))
       .filter(d => d.previsao_entrega)
       .map(d => ({
@@ -222,20 +228,20 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
       .filter(d => d.diasParaVencimento <= 3 && d.diasParaVencimento >= 0)
       .sort((a, b) => a.diasParaVencimento - b.diasParaVencimento)
       .slice(0, 10);
-  }, [demandas]);
+  }, [filteredDemandas]);
 
   // Últimas demandas concluídas
   const ultimasConcluidas = useMemo(() => {
-    return demandas
+    return filteredDemandas
       .filter(d => d.status === 'concluida')
       .sort((a, b) => new Date(b.updated_date) - new Date(a.updated_date))
       .slice(0, 5);
-  }, [demandas]);
+  }, [filteredDemandas]);
 
   // Demandas por usuário (responsável)
   const demandasByUser = useMemo(() => {
     const users = {};
-    demandas.forEach(d => {
+    filteredDemandas.forEach(d => {
       if (d.created_by) {
         users[d.created_by] = (users[d.created_by] || 0) + 1;
       }
@@ -244,11 +250,20 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
       .map(([user, count]) => ({ user: user.split('@')[0], count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
-  }, [demandas]);
+  }, [filteredDemandas]);
 
-  const filteredDemandas = filterSetor 
-    ? demandas.filter(d => d.setor === filterSetor)
-    : demandas;
+  const filteredDemandas = useMemo(() => {
+    let result = filterSetor ? demandas.filter(d => d.setor === filterSetor) : demandas;
+    if (dateFrom) {
+      result = result.filter(d => new Date(d.created_date) >= new Date(dateFrom));
+    }
+    if (dateTo) {
+      const toDate = new Date(dateTo);
+      toDate.setHours(23, 59, 59, 999);
+      result = result.filter(d => new Date(d.created_date) <= toDate);
+    }
+    return result;
+  }, [demandas, filterSetor, dateFrom, dateTo]);
 
   if (isLoading) {
     return <div className="text-center py-8">Carregando dados...</div>;
@@ -256,6 +271,54 @@ export default function MonitoramentoDemandas({ user, selectedClienteId }) {
 
   return (
     <div className="space-y-6">
+      {/* Filtro de Datas */}
+      <Card>
+        <CardContent className="pt-4 pb-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="w-4 h-4 text-slate-500" />
+              <span className="text-sm font-medium text-slate-700">Filtrar por período de criação:</span>
+            </div>
+            <div className="flex items-end gap-2">
+              <div>
+                <Label className="text-xs text-slate-500 mb-1 block">De</Label>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-40 h-8 text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-500 mb-1 block">Até</Label>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-40 h-8 text-sm"
+                />
+              </div>
+              {(dateFrom || dateTo) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setDateFrom(''); setDateTo(''); }}
+                  className="h-8 text-slate-500 hover:text-slate-700"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Limpar
+                </Button>
+              )}
+            </div>
+            {(dateFrom || dateTo) && (
+              <span className="text-xs text-violet-600 font-medium">
+                Mostrando {filteredDemandas.length} de {demandas.length} demandas
+              </span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
