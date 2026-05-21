@@ -95,13 +95,16 @@ const Kanban = ({ user, selectedClienteId }) => {
   }, [customColumns]);
 
   const allColumnOrder = React.useMemo(() => {
-    if (customColumns.length === 0) return columnOrder;
-    // Sort DB columns by order
-    const sortedCustom = [...customColumns].sort((a, b) => a.order - b.order);
-    const customIds = new Set(sortedCustom.map(c => c.column_id));
-    // Append any default columns not yet saved in DB
-    const missingDefaults = DEFAULT_COLUMN_ORDER.filter(id => !customIds.has(id));
-    return [...sortedCustom.map(c => c.column_id), ...missingDefaults];
+    // columnOrder (localStorage) is the source of truth for ordering
+    const savedSet = new Set(columnOrder);
+    // Add custom columns not yet in saved order
+    const customNotSaved = customColumns
+      .filter(c => !savedSet.has(c.column_id))
+      .sort((a, b) => a.order - b.order)
+      .map(c => c.column_id);
+    // Add default columns not yet in saved order
+    const defaultsNotSaved = DEFAULT_COLUMN_ORDER.filter(id => !savedSet.has(id));
+    return [...columnOrder, ...customNotSaved, ...defaultsNotSaved];
   }, [customColumns, columnOrder]);
 
   const { data: demandas, isLoading, error } = useQuery({
@@ -314,8 +317,12 @@ const Kanban = ({ user, selectedClienteId }) => {
       const newColumnOrder = Array.from(allColumnOrder);
       const [removed] = newColumnOrder.splice(source.index, 1);
       newColumnOrder.splice(destination.index, 0, removed);
-      
-      // Update KanbanColumn entities with new order
+
+      // Update local state immediately so UI doesn't revert on DB refetch
+      setColumnOrder(newColumnOrder);
+      localStorage.setItem('kanban_column_order', JSON.stringify(newColumnOrder));
+
+      // Update DB for columns that have records
       newColumnOrder.forEach((colId, index) => {
         const existingCol = customColumns.find(c => c.column_id === colId);
         if (existingCol) {
@@ -323,7 +330,7 @@ const Kanban = ({ user, selectedClienteId }) => {
         }
       });
 
-      queryClient.invalidateQueries(['kanbanColumns']);
+      queryClient.invalidateQueries({ queryKey: ['kanbanColumns'] });
       toast.success('Ordem das colunas atualizada!');
       return;
     }
