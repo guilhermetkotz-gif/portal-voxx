@@ -98,9 +98,9 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const updateDemandaMutation = useMutation({
     mutationFn: (data) => base44.entities.Demanda.update(demanda.id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['demandasKanban']);
-      queryClient.invalidateQueries(['demanda', demanda.id]);
-      queryClient.invalidateQueries(['timeline']);
+      queryClient.invalidateQueries({ queryKey: ['demandasKanban'] });
+      queryClient.invalidateQueries({ queryKey: ['demanda', demanda.id] });
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
       toast.success('Demanda atualizada!');
       setEditMode(false);
     },
@@ -120,8 +120,9 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
       return event;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['timeline']);
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
       setComentario('');
+      setComentarioAnexo(null);
       toast.success('Comentário adicionado!');
     },
   });
@@ -129,7 +130,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const deleteDemandaMutation = useMutation({
     mutationFn: () => base44.entities.Demanda.delete(demanda.id),
     onSuccess: () => {
-      queryClient.invalidateQueries(['demandasKanban']);
+      queryClient.invalidateQueries({ queryKey: ['demandasKanban'] });
       toast.success('Demanda excluída!');
       onClose();
     },
@@ -211,7 +212,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
       status_novo: newStatus
     });
     
-    queryClient.invalidateQueries(['timeline']);
+    queryClient.invalidateQueries({ queryKey: ['timeline'] });
   };
 
   const handleEnviarParaN8n = async () => {
