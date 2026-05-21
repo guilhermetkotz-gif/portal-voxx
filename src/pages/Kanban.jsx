@@ -96,7 +96,12 @@ const Kanban = ({ user, selectedClienteId }) => {
 
   const allColumnOrder = React.useMemo(() => {
     if (customColumns.length === 0) return columnOrder;
-    return customColumns.map(col => col.column_id);
+    // Sort DB columns by order
+    const sortedCustom = [...customColumns].sort((a, b) => a.order - b.order);
+    const customIds = new Set(sortedCustom.map(c => c.column_id));
+    // Append any default columns not yet saved in DB
+    const missingDefaults = DEFAULT_COLUMN_ORDER.filter(id => !customIds.has(id));
+    return [...sortedCustom.map(c => c.column_id), ...missingDefaults];
   }, [customColumns, columnOrder]);
 
   const { data: demandas, isLoading, error } = useQuery({
