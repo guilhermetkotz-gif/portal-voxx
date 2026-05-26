@@ -79,6 +79,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
 
   const amountSpentByAccount = sheetData?.amountSpentByAccount || {};
   const diarioD1ByAccount = sheetData?.diarioD1ByAccount || {};
+  const sheetAccountsCount = Object.keys(amountSpentByAccount).length;
 
   // ClientAdAccount não está sendo usada, buscaremos direto do Cliente
   // const { data: clientAdAccounts = [] } = useQuery({
@@ -430,6 +431,25 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           {fetchingSheet ? 'Atualizando...' : 'Atualizar Dados'}
         </Button>
       </div>
+
+      {/* Erro da planilha */}
+      {sheetError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="w-4 h-4" />
+          <AlertDescription>
+            <strong>Erro ao carregar planilha Google Sheets:</strong> {sheetError.message}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!sheetError && sheetAccountsCount === 0 && !fetchingSheet && (
+        <Alert>
+          <AlertTriangle className="w-4 h-4" />
+          <AlertDescription>
+            Planilha carregada mas sem dados de contas. Verifique se o Google Sheets está atualizado e clique em "Atualizar Dados".
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Filtros */}
       <div className="flex gap-4">
