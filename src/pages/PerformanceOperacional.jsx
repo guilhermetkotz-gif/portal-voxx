@@ -161,8 +161,26 @@ export default function PerformanceOperacional() {
     staleTime: 2 * 60 * 1000,
   });
 
+  const { data: metaOtimizacoes = [] } = useQuery({
+    queryKey: ['meta_otimizacoes_perf'],
+    queryFn: () => base44.entities.MetaAdsOtimizacao.list('-data_acao', 2000),
+    staleTime: 2 * 60 * 1000,
+  });
+
   const { start, end } = useMemo(() => getPeriodRange(period), [period]);
   const diasPeriodo = useMemo(() => Math.max(1, differenceInDays(end, start) + 1), [start, end]);
+
+  // Otimizações Meta Ads no período (usa data_acao)
+  const metaOtimizacoesPeriodo = useMemo(() => {
+    return metaOtimizacoes.filter(o => {
+      const date = o.data_acao || o.created_date;
+      if (!date) return false;
+      try {
+        const dt = new Date(date);
+        return isWithinInterval(dt, { start, end });
+      } catch { return false; }
+    });
+  }, [metaOtimizacoes, start, end]);
 
   // Filtra demandas dentro do período
   const demandasPeriodo = useMemo(() => {
@@ -205,13 +223,16 @@ export default function PerformanceOperacional() {
       const base = SETOR_CONFIG[key];
       const cfg = getSetorCfg(key);
       const concluidasSetor = concluidas.filter(d => d.setor === key);
+      // Para Tráfego Meta: somar ações do monitoramento Meta Ads
+      const extraMeta = key === 'TRAFEGO_META' ? metaOtimizacoesPeriodo.length : 0;
+      const concluidasTotal = concluidasSetor.length + extraMeta;
       const totalSetor = demandasPeriodo.filter(d => d.setor === key);
       const custoTotal = cfg.custo_diario * diasPeriodo;
-      const custoPorDemanda = concluidasSetor.length > 0 ? custoTotal / concluidasSetor.length : 0;
-      const mediaDiaria = concluidasSetor.length / diasPeriodo;
+      const custoPorDemanda = concluidasTotal > 0 ? custoTotal / concluidasTotal : 0;
+      const mediaDiaria = concluidasTotal / diasPeriodo;
       // Eficiência: concluídas / capacidade esperada (meta_diaria * dias)
       const capacidadeEsperada = cfg.meta_diaria ? cfg.meta_diaria * diasPeriodo : (cfg.horas_dia * diasPeriodo) / 4;
-      const eficienciaReal = capacidadeEsperada > 0 ? (concluidasSetor.length / capacidadeEsperada) * 100 : 0;
+      const eficienciaReal = capacidadeEsperada > 0 ? (concluidasTotal / capacidadeEsperada) * 100 : 0;
       const eficiencia = Math.min(100, eficienciaReal);
       const acimaMetа = eficienciaReal > 100;
 
@@ -222,7 +243,9 @@ export default function PerformanceOperacional() {
         custo_diario: cfg.custo_diario,
         meta_diaria: cfg.meta_diaria,
         hasDbConfig: cfg.hasDbConfig,
-        concluidas: concluidasSetor.length,
+        concluidas: concluidasTotal,
+        concluidasDemandas: concluidasSetor.length,
+        concluidasMetaOtimizacoes: extraMeta,
         total: totalSetor.length,
         custoTotal,
         custoPorDemanda,
@@ -242,7 +265,7 @@ export default function PerformanceOperacional() {
       stats[k].percentual = stats[k].percentualDemandas;
     });
     return stats;
-  }, [concluidas, demandasPeriodo, diasPeriodo, configSetores]);
+  }, [concluidas, demandasPeriodo, diasPeriodo, configSetores, metaOtimizacoesPeriodo]);
 
   const setorList = useMemo(() =>
     Object.values(setorStats).filter(s => s.total > 0 || s.concluidas > 0)
@@ -556,7 +579,14 @@ export default function PerformanceOperacional() {
                           {!s.hasDbConfig && <span title="Usando valores padrão"><AlertTriangle className="w-3 h-3 text-amber-400" /></span>}
                         </div>
                       </td>
-                      <td className="py-3 px-3 font-semibold text-slate-900">{s.concluidas}</td>
+                      <td className="py-3 px-3 font-semibold text-slate-900">
+                        {s.concluidas}
+                        {s.concluidasMetaOtimizacoes > 0 && (
+                          <span className="ml-1 text-xs text-blue-500" title={`${s.concluidasDemandas} demandas + ${s.concluidasMetaOtimizacoes} otimizações Meta`}>
+                            ({s.concluidasDemandas}+{s.concluidasMetaOtimizacoes})
+                          </span>
+                        )}
+                      </td>
                       <td className="py-3 px-3 text-slate-600">{s.horas_dia}h/dia</td>
                       <td className="py-3 px-3 text-slate-600">R$ {s.custo_diario}</td>
                       <td className="py-3 px-3 text-slate-600">
