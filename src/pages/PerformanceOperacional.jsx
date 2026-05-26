@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import ConfiguracaoSetoresModal from '@/components/operacional/ConfiguracaoSetoresModal.jsx';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
@@ -13,7 +15,7 @@ import { format, subDays, startOfMonth, startOfDay, endOfDay, parseISO, differen
 import { ptBR } from 'date-fns/locale';
 import {
   TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Target,
-  Zap, Clock, DollarSign, BarChart3, Activity, Award, AlertCircle, Layers
+  Zap, Clock, DollarSign, BarChart3, Activity, Award, AlertCircle, Layers, Settings2
 } from 'lucide-react';
 
 // ────────────────────────────────────────────────
@@ -128,6 +130,25 @@ export default function PerformanceOperacional() {
   const [period, setPeriod] = useState('30d');
   const [filterSetor, setFilterSetor] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showConfig, setShowConfig] = useState(false);
+
+  const { data: configSetores = [] } = useQuery({
+    queryKey: ['config_setores'],
+    queryFn: () => base44.entities.ConfiguracaoSetorOperacional.list(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Helper: get effective config for a sector (DB config or fallback to SETOR_CONFIG)
+  const getSetorCfg = (key) => {
+    const db = configSetores.find(c => c.setor_nome === key);
+    const base = SETOR_CONFIG[key];
+    return {
+      horas_dia: db?.horas_disponiveis_dia ?? base.horas_dia,
+      custo_diario: db?.custo_diario_setor ?? base.custo_diario,
+      meta_diaria: db?.meta_diaria_demandas ?? null,
+      hasDbConfig: !!db && (db.horas_disponiveis_dia != null || db.custo_diario_setor != null || db.meta_diaria_demandas != null),
+    };
+  };
 
   const { data: demandas = [], isLoading } = useQuery({
     queryKey: ['demandas_perf_op'],
@@ -164,31 +185,46 @@ export default function PerformanceOperacional() {
       d.status !== 'concluida' && d.status !== 'finalizada'
     ), [demandasPeriodo]);
 
+  // Setores sem configuração no banco
+  const setoresSemConfig = useMemo(() =>
+    Object.keys(SETOR_CONFIG).filter(key => !configSetores.find(c => c.setor_nome === key &&
+      (c.horas_disponiveis_dia != null || c.custo_diario_setor != null || c.meta_diaria_demandas != null)
+    )),
+    [configSetores]
+  );
+
   // Cálculo por setor
   const setorStats = useMemo(() => {
     const stats = {};
     Object.keys(SETOR_CONFIG).forEach(key => {
-      const cfg = SETOR_CONFIG[key];
+      const base = SETOR_CONFIG[key];
+      const cfg = getSetorCfg(key);
       const concluidasSetor = concluidas.filter(d => d.setor === key);
       const totalSetor = demandasPeriodo.filter(d => d.setor === key);
-      const horasDispTotal = cfg.horas_dia * diasPeriodo;
       const custoTotal = cfg.custo_diario * diasPeriodo;
       const custoPorDemanda = concluidasSetor.length > 0 ? custoTotal / concluidasSetor.length : 0;
       const mediaDiaria = concluidasSetor.length / diasPeriodo;
-      // Eficiência: demandas concluídas / capacidade estimada (1 por hora disponível / 4h por demanda)
-      const capacidade = horasDispTotal / 4;
-      const eficiencia = capacidade > 0 ? Math.min(100, (concluidasSetor.length / capacidade) * 100) : 0;
+      // Eficiência: concluídas / capacidade esperada (meta_diaria * dias)
+      const capacidadeEsperada = cfg.meta_diaria ? cfg.meta_diaria * diasPeriodo : (cfg.horas_dia * diasPeriodo) / 4;
+      const eficienciaReal = capacidadeEsperada > 0 ? (concluidasSetor.length / capacidadeEsperada) * 100 : 0;
+      const eficiencia = Math.min(100, eficienciaReal);
+      const acimaMetа = eficienciaReal > 100;
 
       stats[key] = {
-        ...cfg,
+        ...base,
         key,
+        horas_dia: cfg.horas_dia,
+        custo_diario: cfg.custo_diario,
+        meta_diaria: cfg.meta_diaria,
+        hasDbConfig: cfg.hasDbConfig,
         concluidas: concluidasSetor.length,
         total: totalSetor.length,
-        horasDispTotal,
         custoTotal,
         custoPorDemanda,
         mediaDiaria,
         eficiencia: Math.round(eficiencia),
+        eficienciaReal: Math.round(eficienciaReal),
+        acimaMetа,
         percentual: 0,
       };
     });
@@ -197,7 +233,7 @@ export default function PerformanceOperacional() {
       stats[k].percentual = totalConcluidas > 0 ? ((stats[k].concluidas / totalConcluidas) * 100).toFixed(1) : '0.0';
     });
     return stats;
-  }, [concluidas, demandasPeriodo, diasPeriodo]);
+  }, [concluidas, demandasPeriodo, diasPeriodo, configSetores]);
 
   const setorList = useMemo(() =>
     Object.values(setorStats).filter(s => s.total > 0 || s.concluidas > 0)
@@ -295,7 +331,15 @@ export default function PerformanceOperacional() {
         </div>
 
         {/* Filtros */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowConfig(true)}
+            className="text-xs border-violet-200 text-violet-700 hover:bg-violet-50 flex items-center gap-1.5"
+          >
+            <Settings2 className="w-3.5 h-3.5" /> Configurar Setores
+          </Button>
           {PERIOD_OPTIONS.map(p => (
             <Button
               key={p.value}
@@ -338,6 +382,17 @@ export default function PerformanceOperacional() {
           Período: {format(start, 'dd/MM/yyyy')} — {format(end, 'dd/MM/yyyy')} ({diasPeriodo} dias)
         </div>
       </div>
+
+      {/* Alerta de setores sem configuração */}
+      {setoresSemConfig.length > 0 && (
+        <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-700">
+          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <span>
+            <strong>{setoresSemConfig.length} setor(es) sem configuração operacional</strong> — os cálculos usam valores padrão.{' '}
+            <button onClick={() => setShowConfig(true)} className="underline font-medium hover:text-amber-900">Configurar agora</button>
+          </span>
+        </div>
+      )}
 
       {/* Alertas */}
       {alertas.length > 0 && (
@@ -475,7 +530,7 @@ export default function PerformanceOperacional() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    {['Setor', 'Concluídas', 'Horas Disp.', 'Custo/dia', 'Custo/Demanda', 'Média Diária', 'Eficiência', '% Operação'].map(h => (
+                    {['Setor', 'Concluídas', 'Horas Disp.', 'Custo/dia', 'Meta Diária', 'Custo/Demanda', 'Média Diária', 'Eficiência', '% Operação'].map(h => (
                       <th key={h} className="text-left text-xs font-semibold text-slate-500 py-2 px-3">{h}</th>
                     ))}
                   </tr>
@@ -494,14 +549,14 @@ export default function PerformanceOperacional() {
                       <td className="py-3 px-3 font-semibold text-slate-900">{s.concluidas}</td>
                       <td className="py-3 px-3 text-slate-600">{s.horas_dia}h/dia</td>
                       <td className="py-3 px-3 text-slate-600">R$ {s.custo_diario}</td>
-                      <td className="py-3 px-3">
-                        {s.concluidas > 0
-                          ? <span className="font-medium text-slate-800">R$ {s.custoPorDemanda.toFixed(0)}</span>
-                          : <span className="text-slate-400">—</span>}
+                      <td className="py-3 px-3 text-slate-600">
+                        {s.meta_diaria ? `${s.meta_diaria}/dia` : <span className="text-amber-500 text-xs">—</span>}
                       </td>
-                      <td className="py-3 px-3 text-slate-600">{s.mediaDiaria.toFixed(1)}/dia</td>
                       <td className="py-3 px-3">
-                        <span className={`font-semibold ${getEfficiencyColor(s.eficiencia)}`}>{s.eficiencia}%</span>
+                        <div className="flex items-center gap-1">
+                          <span className={`font-semibold ${getEfficiencyColor(s.eficiencia)}`}>{s.eficiencia}%</span>
+                          {s.acimaMetа && <span className="text-xs text-green-600 font-medium">(acima da meta!)</span>}
+                        </div>
                       </td>
                       <td className="py-3 px-3">
                         <Badge variant="outline" className="text-xs">{s.percentual}%</Badge>
@@ -534,6 +589,14 @@ export default function PerformanceOperacional() {
             </Card>
           )}
         </>
+      )}
+
+      {/* Modal de configuração */}
+      {showConfig && (
+        <ConfiguracaoSetoresModal
+          onClose={() => setShowConfig(false)}
+          existingConfigs={configSetores}
+        />
       )}
     </div>
   );
