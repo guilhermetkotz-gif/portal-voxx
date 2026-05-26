@@ -256,6 +256,29 @@ export default function PerformanceOperacional() {
         percentual: 0,
       };
     });
+
+    // Atendimento agrega as demandas concluídas dos setores operacionais supervisionados
+    const SETORES_ATENDIMENTO = ['TRAFEGO_META', 'EDICAO', 'CRIACAO', 'ALTERACAO_CRIACAO', 'SALDOS', 'TRAFEGO_GOOGLE', 'TRAFEGO_TIKTOK'];
+    const extraAtendimento = SETORES_ATENDIMENTO.reduce((sum, key) => {
+      // Para TRAFEGO_META usa apenas demandas (sem otimizações Meta)
+      return sum + (stats[key]?.concluidasDemandas ?? stats[key]?.concluidas ?? 0);
+    }, 0);
+    if (stats['ATENDIMENTO']) {
+      stats['ATENDIMENTO'].concluidas += extraAtendimento;
+      stats['ATENDIMENTO'].concluidasDemandas = (stats['ATENDIMENTO'].concluidasDemandas ?? stats['ATENDIMENTO'].concluidas - extraAtendimento);
+      stats['ATENDIMENTO'].concluidasExtra = extraAtendimento;
+      // Recalcular custo/demanda e eficiência para Atendimento
+      const cfg = getSetorCfg('ATENDIMENTO');
+      const total = stats['ATENDIMENTO'].concluidas;
+      stats['ATENDIMENTO'].custoPorDemanda = total > 0 ? stats['ATENDIMENTO'].custoTotal / total : 0;
+      stats['ATENDIMENTO'].mediaDiaria = total / diasPeriodo;
+      const cap = cfg.meta_diaria ? cfg.meta_diaria * diasPeriodo : (cfg.horas_dia * diasPeriodo) / 4;
+      const effReal = cap > 0 ? (total / cap) * 100 : 0;
+      stats['ATENDIMENTO'].eficienciaReal = Math.round(effReal);
+      stats['ATENDIMENTO'].eficiencia = Math.round(Math.min(100, effReal));
+      stats['ATENDIMENTO'].acimaMetа = effReal > 100;
+    }
+
     const totalConcluidas = Object.values(stats).reduce((s, v) => s + v.concluidas, 0);
     const totalCustoOp = Object.values(stats).reduce((s, v) => s + v.custoTotal, 0);
     Object.keys(stats).forEach(k => {
@@ -584,6 +607,11 @@ export default function PerformanceOperacional() {
                         {s.concluidasMetaOtimizacoes > 0 && (
                           <span className="ml-1 text-xs text-blue-500" title={`${s.concluidasDemandas} demandas + ${s.concluidasMetaOtimizacoes} otimizações Meta`}>
                             ({s.concluidasDemandas}+{s.concluidasMetaOtimizacoes})
+                          </span>
+                        )}
+                        {s.concluidasExtra > 0 && (
+                          <span className="ml-1 text-xs text-violet-500" title={`Inclui ${s.concluidasExtra} dem. dos setores operacionais`}>
+                            (+{s.concluidasExtra})
                           </span>
                         )}
                       </td>
