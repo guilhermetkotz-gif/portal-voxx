@@ -65,13 +65,18 @@ function getPeriodRange(period) {
 }
 
 function getEfficiencyColor(eff) {
-  if (eff >= 70) return 'text-green-600';
-  if (eff >= 40) return 'text-yellow-600';
+  if (eff >= 90) return 'text-green-600';
+  if (eff >= 60) return 'text-yellow-600';
   return 'text-red-600';
 }
+function getEfficiencyBarColor(eff) {
+  if (eff >= 90) return 'bg-green-500';
+  if (eff >= 60) return 'bg-yellow-500';
+  return 'bg-red-500';
+}
 function getEfficiencyBg(eff) {
-  if (eff >= 70) return 'bg-green-50 border-green-200';
-  if (eff >= 40) return 'bg-yellow-50 border-yellow-200';
+  if (eff >= 90) return 'bg-green-50 border-green-200';
+  if (eff >= 60) return 'bg-yellow-50 border-yellow-200';
   return 'bg-red-50 border-red-200';
 }
 
@@ -229,8 +234,12 @@ export default function PerformanceOperacional() {
       };
     });
     const totalConcluidas = Object.values(stats).reduce((s, v) => s + v.concluidas, 0);
+    const totalCustoOp = Object.values(stats).reduce((s, v) => s + v.custoTotal, 0);
     Object.keys(stats).forEach(k => {
-      stats[k].percentual = totalConcluidas > 0 ? ((stats[k].concluidas / totalConcluidas) * 100).toFixed(1) : '0.0';
+      stats[k].percentualDemandas = totalConcluidas > 0 ? ((stats[k].concluidas / totalConcluidas) * 100).toFixed(1) : '0.0';
+      stats[k].percentualCusto = totalCustoOp > 0 ? ((stats[k].custoTotal / totalCustoOp) * 100).toFixed(1) : '0.0';
+      // Keep backward compat
+      stats[k].percentual = stats[k].percentualDemandas;
     });
     return stats;
   }, [concluidas, demandasPeriodo, diasPeriodo, configSetores]);
@@ -530,20 +539,21 @@ export default function PerformanceOperacional() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100">
-                    {['Setor', 'Concluídas', 'Horas Disp.', 'Custo/dia', 'Meta Diária', 'Custo/Demanda', 'Média Diária', 'Eficiência', '% Operação'].map(h => (
+                    {['Setor', 'Concluídas', 'Horas Disp.', 'Custo/dia', 'Meta Diária', 'Custo Total Período', 'Custo/Demanda', '% Custo Op.', 'Média Diária', 'Eficiência', '% Operação'].map(h => (
                       <th key={h} className="text-left text-xs font-semibold text-slate-500 py-2 px-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {setorList.length === 0 ? (
-                    <tr><td colSpan={8} className="text-center text-slate-400 py-8">Nenhum dado no período</td></tr>
+                    <tr><td colSpan={11} className="text-center text-slate-400 py-8">Nenhum dado no período</td></tr>
                   ) : setorList.map(s => (
                     <tr key={s.key} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2">
                           <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.cor }} />
-                          <span className="font-medium text-slate-800">{s.label}</span>
+                          <span className="font-medium text-slate-800 whitespace-nowrap">{s.label}</span>
+                          {!s.hasDbConfig && <span title="Usando valores padrão"><AlertTriangle className="w-3 h-3 text-amber-400" /></span>}
                         </div>
                       </td>
                       <td className="py-3 px-3 font-semibold text-slate-900">{s.concluidas}</td>
@@ -552,14 +562,33 @@ export default function PerformanceOperacional() {
                       <td className="py-3 px-3 text-slate-600">
                         {s.meta_diaria ? `${s.meta_diaria}/dia` : <span className="text-amber-500 text-xs">—</span>}
                       </td>
+                      <td className="py-3 px-3 font-medium text-slate-700">R$ {s.custoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
                       <td className="py-3 px-3">
-                        <div className="flex items-center gap-1">
-                          <span className={`font-semibold ${getEfficiencyColor(s.eficiencia)}`}>{s.eficiencia}%</span>
-                          {s.acimaMetа && <span className="text-xs text-green-600 font-medium">(acima da meta!)</span>}
+                        {s.concluidas > 0 ? (
+                          <div>
+                            <span className="font-semibold text-slate-800">R$ {s.custoPorDemanda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          </div>
+                        ) : <span className="text-slate-400">—</span>}
+                      </td>
+                      <td className="py-3 px-3">
+                        <span className="text-xs font-medium text-slate-600">{s.percentualCusto}%</span>
+                      </td>
+                      <td className="py-3 px-3 text-slate-600">{s.mediaDiaria.toFixed(1)}/dia</td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2 min-w-[100px]">
+                          <div className="flex-1 bg-slate-100 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full ${getEfficiencyBarColor(s.eficienciaReal)}`}
+                              style={{ width: `${Math.min(100, s.eficienciaReal)}%` }}
+                            />
+                          </div>
+                          <span className={`text-xs font-semibold whitespace-nowrap ${getEfficiencyColor(s.eficienciaReal)}`}>
+                            {s.eficienciaReal}%{s.acimaMetа ? ' ↑' : ''}
+                          </span>
                         </div>
                       </td>
                       <td className="py-3 px-3">
-                        <Badge variant="outline" className="text-xs">{s.percentual}%</Badge>
+                        <Badge variant="outline" className="text-xs">{s.percentualDemandas}%</Badge>
                       </td>
                     </tr>
                   ))}
