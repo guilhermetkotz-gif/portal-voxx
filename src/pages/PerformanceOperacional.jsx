@@ -20,18 +20,18 @@ import {
 // CONFIGURAÇÃO DOS SETORES
 // ────────────────────────────────────────────────
 const SETOR_CONFIG = {
-  ATENDIMENTO:       { label: 'Atendimento',        horas_dia: 8,  custo_diario: 350,  cor: '#6366f1' },
-  TRAFEGO_META:      { label: 'Tráfego Meta',        horas_dia: 8,  custo_diario: 480,  cor: '#3b82f6' },
-  TRAFEGO_GOOGLE:    { label: 'Tráfego Google',      horas_dia: 8,  custo_diario: 480,  cor: '#0ea5e9' },
-  TRAFEGO_TIKTOK:    { label: 'Tráfego TikTok',      horas_dia: 6,  custo_diario: 300,  cor: '#06b6d4' },
-  CRIACAO:           { label: 'Criação',             horas_dia: 8,  custo_diario: 420,  cor: '#8b5cf6' },
-  EDICAO:            { label: 'Edição',              horas_dia: 8,  custo_diario: 380,  cor: '#a855f7' },
-  BI_RELATORIO:      { label: 'BI / Relatório',      horas_dia: 6,  custo_diario: 320,  cor: '#ec4899' },
-  IMPLANTACAO:       { label: 'Implantação',         horas_dia: 8,  custo_diario: 500,  cor: '#f97316' },
-  FINANCEIRO:        { label: 'Financeiro',          horas_dia: 8,  custo_diario: 400,  cor: '#eab308' },
-  ALTERACAO_CRIACAO: { label: 'Alt. Criação',        horas_dia: 6,  custo_diario: 280,  cor: '#84cc16' },
-  AUTOMACAO:         { label: 'Automação',           horas_dia: 6,  custo_diario: 450,  cor: '#22c55e' },
-  SALDOS:            { label: 'Saldos',              horas_dia: 4,  custo_diario: 200,  cor: '#14b8a6' },
+  ATENDIMENTO:       { label: 'Atendimento',              horas_dia: 8,  custo_diario: 350,  cor: '#6366f1' },
+  TRAFEGO_META:      { label: 'Tráfego – Meta Ads',       horas_dia: 8,  custo_diario: 480,  cor: '#3b82f6' },
+  TRAFEGO_GOOGLE:    { label: 'Tráfego – Google Ads',     horas_dia: 8,  custo_diario: 480,  cor: '#0ea5e9' },
+  TRAFEGO_TIKTOK:    { label: 'Tráfego – TikTok Ads',     horas_dia: 6,  custo_diario: 300,  cor: '#06b6d4' },
+  CRIACAO:           { label: 'Criação (Artes & Peças)',   horas_dia: 8,  custo_diario: 420,  cor: '#8b5cf6' },
+  EDICAO:            { label: 'Edição de Vídeo',           horas_dia: 8,  custo_diario: 380,  cor: '#a855f7' },
+  BI_RELATORIO:      { label: 'Relatórios / BI',           horas_dia: 6,  custo_diario: 320,  cor: '#ec4899' },
+  IMPLANTACAO:       { label: 'Implantação / Acessos',     horas_dia: 8,  custo_diario: 500,  cor: '#f97316' },
+  FINANCEIRO:        { label: 'Financeiro / Administrativo', horas_dia: 8, custo_diario: 400, cor: '#eab308' },
+  ALTERACAO_CRIACAO: { label: 'Alteração Criação',         horas_dia: 6,  custo_diario: 280,  cor: '#84cc16' },
+  AUTOMACAO:         { label: 'Automação',                 horas_dia: 6,  custo_diario: 450,  cor: '#22c55e' },
+  SALDOS:            { label: 'Saldos',                    horas_dia: 4,  custo_diario: 200,  cor: '#14b8a6' },
 };
 
 const STATUS_LABELS = {
