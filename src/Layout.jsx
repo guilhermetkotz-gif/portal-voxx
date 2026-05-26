@@ -52,7 +52,8 @@ const pageTitles = {
         FinanceiroFolha: { title: "Folha de Pagamento", subtitle: "CLT + PJ — gestão de equipe" },
         FinanceiroDocumentos: { title: "Documentos Financeiros", subtitle: "Central de comprovantes e documentos" },
         FinanceiroFluxoCaixa: { title: "Fluxo de Caixa (DRE)", subtitle: "Demonstrativo de resultado — visão executiva" },
-        FinanceiroCarteira: { title: "Carteira de Clientes", subtitle: "Evolução, churn e crescimento da base" }
+        FinanceiroCarteira: { title: "Carteira de Clientes", subtitle: "Evolução, churn e crescimento da base" },
+        PerformanceOperacional: { title: "Performance Operacional", subtitle: "Produtividade e eficiência por setor" }
                 };
 
 export default function Layout({ children, currentPageName }) {
