@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
     }
 
     // Obter token de acesso do Google Sheets
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
     
     // ID da planilha correta
     const SPREADSHEET_ID = '1aweubWBZdD71YvmBnDbq0xA6BUZCjL6_iuqmE2L9YA8';

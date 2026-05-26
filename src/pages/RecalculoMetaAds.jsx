@@ -108,6 +108,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       // Normalizar nome: remove prefixos numéricos, sufixos de versão/status, espaços e hífens
       const normalizeNome = (nome) => {
         return nome?.toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
           .replace(/^\d+\s*[-–]\s*/, '')           // Remove "275 - " no início
           .replace(/\s*\(\d+\)\s*/g, ' ')          // Remove "(1)", "(2)", "(4)" etc.
           .replace(/\s*\[ativa\]\s*/gi, ' ')       // Remove "[ATIVA]"
