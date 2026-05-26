@@ -167,8 +167,49 @@ export default function PerformanceOperacional() {
     staleTime: 2 * 60 * 1000,
   });
 
+  const { data: historicoSetores = [] } = useQuery({
+    queryKey: ['historico_setores_perf'],
+    queryFn: () => base44.entities.DemandaHistoricoSetor.list('-data_entrada', 5000),
+    staleTime: 2 * 60 * 1000,
+  });
+
   const { start, end } = useMemo(() => getPeriodRange(period), [period]);
   const diasPeriodo = useMemo(() => Math.max(1, differenceInDays(end, start) + 1), [start, end]);
+
+  // Histórico de setores no período
+  const historicoSetoresPeriodo = useMemo(() => {
+    return historicoSetores.filter(h => {
+      const date = h.data_entrada;
+      if (!date) return false;
+      try { return isWithinInterval(new Date(date), { start, end }); }
+      catch { return false; }
+    });
+  }, [historicoSetores, start, end]);
+
+  // Participações por setor com base no histórico
+  const participacoesPorSetor = useMemo(() => {
+    const result = {};
+    Object.keys(SETOR_CONFIG).forEach(key => {
+      const parts = historicoSetoresPeriodo.filter(h => h.setor === key);
+      const concluidasPart = parts.filter(h => h.concluida);
+      const comSaida = parts.filter(h => h.minutos_no_setor != null && h.minutos_no_setor > 0);
+      const tempoMedio = comSaida.length > 0
+        ? Math.round(comSaida.reduce((s, h) => s + h.minutos_no_setor, 0) / comSaida.length)
+        : null;
+      const demandasUnicas = new Set(parts.map(h => h.demanda_id)).size;
+      result[key] = {
+        participacoes: parts.length,
+        concluidasComParticipacao: concluidasPart.length,
+        tempoMedio,
+        demandasUnicas,
+        label: SETOR_CONFIG[key].label,
+        cor: SETOR_CONFIG[key].cor,
+      };
+    });
+    return result;
+  }, [historicoSetoresPeriodo]);
+
+  const hasHistoricoData = historicoSetoresPeriodo.length > 0;
 
   // Otimizações Meta Ads no período (usa data_acao)
   const metaOtimizacoesPeriodo = useMemo(() => {
@@ -676,6 +717,64 @@ export default function PerformanceOperacional() {
             </Card>
           )}
         </>
+      )}
+
+      {/* Rastreamento Operacional Histórico */}
+      {hasHistoricoData ? (
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-violet-500" /> Rastreamento Operacional (Histórico de Setores)
+            </h3>
+            <span className="text-xs text-slate-400">{historicoSetoresPeriodo.length} movimentações no período</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  {['Setor', 'Participações', 'Demandas Únicas', 'Concluídas c/ Particip.', 'Tempo Médio no Setor'].map(h => (
+                    <th key={h} className="text-left text-xs font-semibold text-slate-500 py-2 px-3">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.values(participacoesPorSetor)
+                  .filter(s => s.participacoes > 0)
+                  .sort((a, b) => b.participacoes - a.participacoes)
+                  .map(s => (
+                    <tr key={s.label} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.cor }} />
+                          <span className="font-medium text-slate-800 whitespace-nowrap">{s.label}</span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 font-semibold text-slate-900">{s.participacoes}</td>
+                      <td className="py-2.5 px-3 text-slate-700">{s.demandasUnicas}</td>
+                      <td className="py-2.5 px-3 text-slate-700">{s.concluidasComParticipacao}</td>
+                      <td className="py-2.5 px-3 text-slate-600">
+                        {s.tempoMedio != null
+                          ? s.tempoMedio >= 60
+                            ? `${Math.floor(s.tempoMedio / 60)}h ${s.tempoMedio % 60}min`
+                            : `${s.tempoMedio} min`
+                          : <span className="text-slate-400">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : (
+        <Card className="p-5 border border-dashed border-slate-200">
+          <div className="flex items-start gap-3">
+            <Activity className="w-5 h-5 text-violet-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-slate-700">Rastreamento Operacional Ativado</p>
+              <p className="text-xs text-slate-500 mt-1">A partir de agora, cada movimentação de setor nas demandas será registrada automaticamente. Os dados aparecerão aqui conforme a equipe mover demandas no Kanban.</p>
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Modal de configuração */}

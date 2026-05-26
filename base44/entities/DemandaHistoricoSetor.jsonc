@@ -1,0 +1,62 @@
+{
+  "name": "DemandaHistoricoSetor",
+  "type": "object",
+  "properties": {
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da demanda"
+    },
+    "demanda_titulo": {
+      "type": "string",
+      "description": "T\u00edtulo da demanda (cache)"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "setor": {
+      "type": "string",
+      "description": "Setor em que a demanda entrou"
+    },
+    "setor_anterior": {
+      "type": "string",
+      "description": "Setor anterior (null se \u00e9 o primeiro)"
+    },
+    "status_entrada": {
+      "type": "string",
+      "description": "Status ao entrar no setor"
+    },
+    "status_saida": {
+      "type": "string",
+      "description": "Status ao sair do setor"
+    },
+    "data_entrada": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando entrou neste setor"
+    },
+    "data_saida": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando saiu (null = ainda no setor)"
+    },
+    "minutos_no_setor": {
+      "type": "number",
+      "description": "Tempo em minutos no setor (null = ainda aberto)"
+    },
+    "concluida": {
+      "type": "boolean",
+      "default": false,
+      "description": "A demanda foi conclu\u00edda enquanto estava neste setor"
+    }
+  },
+  "required": [
+    "demanda_id",
+    "setor",
+    "data_entrada"
+  ]
+}
