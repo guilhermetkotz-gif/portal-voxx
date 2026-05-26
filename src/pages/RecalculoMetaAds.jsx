@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calculator, Calendar, TrendingUp, AlertTriangle, DollarSign, Target, ChevronDown, ChevronUp, Lock, Activity, CheckCircle, XCircle, Zap, Save, User } from 'lucide-react';
+import { Calculator, Calendar, TrendingUp, AlertTriangle, DollarSign, Target, ChevronDown, ChevronUp, Lock, Activity, CheckCircle, XCircle, Zap, Save, User, RefreshCw } from 'lucide-react';
 import { format, differenceInDays, getDaysInMonth, startOfMonth, endOfMonth, startOfDay } from 'date-fns';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 
@@ -35,17 +35,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientesRecalculo'],
     queryFn: () => base44.entities.Cliente.list('-nome', 500),
-    staleTime: 2 * 60 * 1000,
-    onSuccess: (data) => {
-      // Inicializar customConfigs com os dados salvos nos clientes
-      const saved = {};
-      data.forEach(c => {
-        if (c.distribuicao_personalizada) {
-          saved[c.id] = c.distribuicao_personalizada;
-        }
-      });
-      setCustomConfigs(prev => ({ ...saved, ...prev }));
-    }
+    staleTime: 2 * 60 * 1000
   });
 
   // Inicializar customConfigs quando clientes carregam (compatível com react-query v5)
@@ -74,13 +64,13 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
   });
 
   // Buscar valores investidos da planilha
-  const { data: sheetData } = useQuery({
+  const { data: sheetData, isFetching: fetchingSheet, refetch: refetchSheet } = useQuery({
     queryKey: ['amountSpentFromSheet'],
     queryFn: async () => {
       const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
       return response.data;
     },
-    staleTime: 2 * 60 * 1000
+    staleTime: 0
   });
 
   const amountSpentByAccount = sheetData?.amountSpentByAccount || {};
@@ -414,11 +404,27 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Recálculo Meta Ads</h1>
-        <p className="text-slate-500">
-          Recalcule o investimento diário ideal com base no budget restante e dias disponíveis
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Recálculo Meta Ads</h1>
+          <p className="text-slate-500">
+            Recalcule o investimento diário ideal com base no budget restante e dias disponíveis
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            queryClient.invalidateQueries({ queryKey: ['amountSpentFromSheet'] });
+            queryClient.invalidateQueries({ queryKey: ['clientesRecalculo'] });
+            queryClient.invalidateQueries({ queryKey: ['planejamentosRecalculo'] });
+            refetchSheet();
+          }}
+          disabled={fetchingSheet}
+          className="gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${fetchingSheet ? 'animate-spin' : ''}`} />
+          {fetchingSheet ? 'Atualizando...' : 'Atualizar Dados'}
+        </Button>
       </div>
 
       {/* Filtros */}
