@@ -68,6 +68,11 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     queryKey: ['amountSpentFromSheet'],
     queryFn: async () => {
       const response = await base44.functions.invoke('getAmountSpentFromSheet', {});
+      console.log('[RecalculoMetaAds] sheetData raw:', JSON.stringify(response.data));
+      const mesKeys = Object.keys(response.data?.amountSpentByAccount || {});
+      const d1Keys = Object.keys(response.data?.diarioD1ByAccount || {});
+      console.log('[RecalculoMetaAds] MES keys (' + mesKeys.length + '):', mesKeys.slice(0, 10));
+      console.log('[RecalculoMetaAds] D1 keys (' + d1Keys.length + '):', d1Keys.slice(0, 10));
       return response.data;
     },
     staleTime: 0
