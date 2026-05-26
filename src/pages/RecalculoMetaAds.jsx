@@ -120,47 +120,46 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
           .trim() || '';
       };
 
-      // Pré-processar chaves da planilha: trim e criar índice normalizado
-      const sheetKeys = Object.keys(amountSpentByAccount);
-      // Índice: chave trimmed -> chave original
-      const sheetKeysTrimmed = {};
-      sheetKeys.forEach(k => { sheetKeysTrimmed[k.trim()] = k; });
-
-      const findInSheet = (chave) => {
-        if (!chave) return null;
-        const chaveTrimmed = chave.trim();
-        // 1. Exato (com trim)
-        if (sheetKeysTrimmed[chaveTrimmed] !== undefined) return sheetKeysTrimmed[chaveTrimmed];
-        const chaveNorm = normalizeNome(chaveTrimmed);
-        if (!chaveNorm) return null;
-        // 2. Normalizado exato
-        const exactNorm = sheetKeys.find(k => normalizeNome(k) === chaveNorm);
-        if (exactNorm) return exactNorm;
-        // 3. Parcial: um contém o outro (min 5 chars para evitar falsos positivos)
-        if (chaveNorm.length >= 5) {
-          const partial = sheetKeys.find(k => {
-            const kNorm = normalizeNome(k);
-            return kNorm.includes(chaveNorm) || chaveNorm.includes(kNorm);
-          });
-          if (partial) return partial;
-        }
-        return null;
+      // Helper genérico para buscar uma chave em qualquer dicionário da planilha
+      const makeFinder = (dict) => {
+        const keys = Object.keys(dict);
+        const trimmedIndex = {};
+        keys.forEach(k => { trimmedIndex[k.trim()] = k; });
+        return (chave) => {
+          if (!chave) return null;
+          const chaveTrimmed = chave.trim();
+          if (trimmedIndex[chaveTrimmed] !== undefined) return trimmedIndex[chaveTrimmed];
+          const chaveNorm = normalizeNome(chaveTrimmed);
+          if (!chaveNorm) return null;
+          const exactNorm = keys.find(k => normalizeNome(k) === chaveNorm);
+          if (exactNorm) return exactNorm;
+          if (chaveNorm.length >= 5) {
+            const partial = keys.find(k => {
+              const kNorm = normalizeNome(k);
+              return kNorm.includes(chaveNorm) || chaveNorm.includes(kNorm);
+            });
+            if (partial) return partial;
+          }
+          return null;
+        };
       };
 
-      // Ordem de prioridade: contas_anuncio > meta_ads_account_name > legacy_client_key > nome
-      let matchKey = null;
-      for (const contaNome of contasMetaNomes) {
-        matchKey = findInSheet(contaNome);
-        if (matchKey) break;
-      }
-      if (!matchKey) matchKey = findInSheet(metaAccountName);
-      if (!matchKey) matchKey = findInSheet(legacyKey);
-      if (!matchKey) matchKey = findInSheet(nomeCliente);
+      const findInMes = makeFinder(amountSpentByAccount);
+      const findInD1 = makeFinder(diarioD1ByAccount);
 
-      if (matchKey) {
-        valorInvestido = amountSpentByAccount[matchKey] || 0;
-        diarioD1 = diarioD1ByAccount[matchKey] || 0;
-      }
+      const findMatch = (finder) => {
+        for (const contaNome of contasMetaNomes) {
+          const k = finder(contaNome);
+          if (k) return k;
+        }
+        return finder(metaAccountName) || finder(legacyKey) || finder(nomeCliente);
+      };
+
+      const matchKeyMes = findMatch(findInMes);
+      const matchKeyD1 = findMatch(findInD1);
+
+      if (matchKeyMes) valorInvestido = amountSpentByAccount[matchKeyMes] || 0;
+      if (matchKeyD1) diarioD1 = diarioD1ByAccount[matchKeyD1] || 0;
 
       // Cálculos base
       const investimentoTotal = (planejamento.meta_faturamento * planejamento.percentual_investimento_marketing) / 100;
