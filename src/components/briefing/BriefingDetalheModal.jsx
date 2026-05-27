@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
@@ -13,6 +13,63 @@ import {
 } from 'lucide-react';
 import { calcBriefingScore } from '@/pages/BriefingClientes';
 import { format } from 'date-fns';
+
+function ImagensReferencia({ imagens, onChange }) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef(null);
+
+  const handleUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    setUploading(true);
+    const urls = [];
+    for (const file of files) {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      urls.push(file_url);
+    }
+    onChange([...imagens, ...urls]);
+    setUploading(false);
+    e.target.value = '';
+  };
+
+  const removeImagem = (idx) => {
+    onChange(imagens.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div className="space-y-2">
+      {imagens.length > 0 && (
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {imagens.map((url, i) => (
+            <div key={i} className="relative group aspect-square">
+              <img src={url} alt={`ref-${i}`} className="w-full h-full object-cover rounded-lg border border-slate-200" />
+              <button
+                onClick={() => removeImagem(i)}
+                className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleUpload} />
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        className="text-xs h-7 gap-1 border-dashed"
+      >
+        {uploading ? (
+          <><div className="w-3 h-3 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> Enviando...</>
+        ) : (
+          <><Plus className="w-3 h-3" /> Adicionar imagens</>
+        )}
+      </Button>
+    </div>
+  );
+}
 
 function Field({ label, value, onChange, multiline = false, placeholder = '' }) {
   const base = "w-full border border-slate-200 rounded-lg text-sm text-slate-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-violet-300 bg-white resize-none";
@@ -219,6 +276,16 @@ export default function BriefingDetalheModal({ briefing, cliente, user, onClose,
               <Field label="Inspirações" value={data.criacao?.inspiracoes} onChange={v => set('criacao','inspiracoes',v)} multiline placeholder="Links ou descrição de referências inspiradoras…" />
               <Field label="Limitações criativas" value={data.criacao?.limitacoes_criativas} onChange={v => set('criacao','limitacoes_criativas',v)} multiline placeholder="O que NÃO pode ser feito criativamente…" />
               <Field label="Links de referências" value={data.criacao?.referencias} onChange={v => set('criacao','referencias',v)} multiline placeholder="URLs de referências, pastas Drive, etc…" />
+
+              {/* Imagens de referência */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 block mb-2">Imagens de referência</label>
+                <ImagensReferencia
+                  imagens={data.criacao?.imagens_referencia || []}
+                  onChange={arr => set('criacao', 'imagens_referencia', arr)}
+                />
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Field label="Qtd. Artes/mês" value={data.criacao?.qtd_artes} onChange={v => set('criacao','qtd_artes',Number(v))} placeholder="0" />
                 <Field label="Qtd. Vídeos/mês" value={data.criacao?.qtd_videos} onChange={v => set('criacao','qtd_videos',Number(v))} placeholder="0" />
