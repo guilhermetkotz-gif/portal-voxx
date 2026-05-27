@@ -32,6 +32,23 @@ export default function GerenciarAcessos({ user }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [deleteUserId, setDeleteUserId] = useState(null);
+  const [filterSetor, setFilterSetor] = useState('');
+
+  const SETORES_VOXX = [
+    { value: 'ATENDIMENTO', label: 'Atendimento' },
+    { value: 'CRIACAO', label: 'Criação (Artes & Peças)' },
+    { value: 'ALTERACAO_CRIACAO', label: 'Alteração Criação' },
+    { value: 'EDICAO', label: 'Edição de Vídeo' },
+    { value: 'TRAFEGO_META', label: 'Tráfego – Meta Ads' },
+    { value: 'TRAFEGO_GOOGLE', label: 'Tráfego – Google Ads' },
+    { value: 'TRAFEGO_TIKTOK', label: 'Tráfego – TikTok Ads' },
+    { value: 'AUTOMACAO', label: 'Automação' },
+    { value: 'SALDOS', label: 'Saldos' },
+    { value: 'FINANCEIRO', label: 'Financeiro / Administrativo' },
+    { value: 'COMERCIAL', label: 'Comercial' },
+    { value: 'GESTAO', label: 'Gestão' },
+  ];
+  const setorLabel = (v) => SETORES_VOXX.find(s => s.value === v)?.label || v;
 
   const { data: usuarios = [], isLoading: loadingUsuarios, error: errorUsuarios, refetch: refetchUsuarios } = useQuery({
     queryKey: ['todosUsuarios'],
@@ -65,12 +82,15 @@ export default function GerenciarAcessos({ user }) {
     staleTime: 60 * 1000
   });
 
+  const isVoxxTipo = (u) => (u.tipo_usuario || u.tipo_acesso || '').startsWith('voxx_');
+
   const filteredUsuarios = usuarios.filter(u => {
     const matchesSearch = search === '' || 
       u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       u.email?.toLowerCase().includes(search.toLowerCase());
     const notDeleted = u.status !== 'excluido';
-    return matchesSearch && notDeleted;
+    const matchesSetor = filterSetor === '' || u.setor_responsavel === filterSetor;
+    return matchesSearch && notDeleted && matchesSetor;
   });
 
   console.log('Total usuarios:', usuarios.length, 'Filtrados:', filteredUsuarios.length);
@@ -177,8 +197,8 @@ export default function GerenciarAcessos({ user }) {
       </div>
 
       {/* Search */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
           <Input
             placeholder="Buscar por nome, email ou cliente..."
@@ -187,6 +207,16 @@ export default function GerenciarAcessos({ user }) {
             className="pl-10"
           />
         </div>
+        <select
+          value={filterSetor}
+          onChange={(e) => setFilterSetor(e.target.value)}
+          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-slate-700 min-w-48"
+        >
+          <option value="">Todos os setores</option>
+          {SETORES_VOXX.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
         <Button variant="outline" onClick={() => {
           refetchUsuarios();
           refetchSolicitacoes();
@@ -242,6 +272,11 @@ export default function GerenciarAcessos({ user }) {
                       <Badge variant="outline">
                         {tipoAcessoLabels[usuario.tipo_usuario || usuario.tipo_acesso] || usuario.tipo_usuario || usuario.tipo_acesso || 'N/A'}
                       </Badge>
+                      {isVoxxTipo(usuario) && (
+                        <Badge className={usuario.setor_responsavel ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}>
+                          {usuario.setor_responsavel ? setorLabel(usuario.setor_responsavel) : 'Setor não definido'}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-slate-500 mb-2">{usuario.email}</p>
                     <div className="flex gap-4 text-xs text-slate-400">

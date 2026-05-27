@@ -29,6 +29,23 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
   const [searchCliente, setSearchCliente] = useState('');
   const [tipoUsuario, setTipoUsuario] = useState(usuario.tipo_usuario || 'cliente_usuario');
   const [statusUsuario, setStatusUsuario] = useState(usuario.status || 'pendente');
+  const [setorResponsavel, setSetorResponsavel] = useState(usuario.setor_responsavel || '');
+
+  const SETORES_VOXX = [
+    { value: 'ATENDIMENTO', label: 'Atendimento' },
+    { value: 'CRIACAO', label: 'Criação (Artes & Peças)' },
+    { value: 'ALTERACAO_CRIACAO', label: 'Alteração Criação' },
+    { value: 'EDICAO', label: 'Edição de Vídeo' },
+    { value: 'TRAFEGO_META', label: 'Tráfego – Meta Ads' },
+    { value: 'TRAFEGO_GOOGLE', label: 'Tráfego – Google Ads' },
+    { value: 'TRAFEGO_TIKTOK', label: 'Tráfego – TikTok Ads' },
+    { value: 'AUTOMACAO', label: 'Automação' },
+    { value: 'SALDOS', label: 'Saldos' },
+    { value: 'FINANCEIRO', label: 'Financeiro / Administrativo' },
+    { value: 'COMERCIAL', label: 'Comercial' },
+    { value: 'GESTAO', label: 'Gestão' },
+  ];
+  const isVoxxTipo = tipoUsuario.startsWith('voxx_');
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientes'],
@@ -167,6 +184,16 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
     }
   });
 
+  const atualizarSetorResponsavel = useMutation({
+    mutationFn: async (setor) => {
+      await base44.entities.User.update(usuario.id, { setor_responsavel: setor });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todosUsuarios'] });
+      toast.success('Setor responsável atualizado');
+    }
+  });
+
   const atualizarStatusUsuario = useMutation({
     mutationFn: async (novoStatus) => {
       await base44.entities.User.update(usuario.id, {
@@ -277,6 +304,28 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
               </Select>
             </div>
           </div>
+
+          {isVoxxTipo && (
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">Setor Responsável</label>
+              <Select
+                value={setorResponsavel}
+                onValueChange={(v) => {
+                  setSetorResponsavel(v);
+                  atualizarSetorResponsavel.mutate(v);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar setor..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {SETORES_VOXX.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </Card>
 
