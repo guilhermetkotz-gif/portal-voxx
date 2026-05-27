@@ -130,9 +130,8 @@ export default function MonitoramentoContas({ user }) {
 
     const updateClienteMutation = useMutation({
             mutationFn: async ({ clienteId, responsavel }) => {
-                const response = await base44.functions.invoke('updateClienteResponsavel', {
-                    clienteId,
-                    responsavel
+                await base44.entities.Cliente.update(clienteId, {
+                    responsavel_voxx_trafego: responsavel === '__NONE__' ? null : responsavel
                 });
                 return { responsavel, clienteId };
             },
