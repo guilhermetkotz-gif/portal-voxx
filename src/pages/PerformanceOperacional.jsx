@@ -177,22 +177,56 @@ export default function PerformanceOperacional() {
       setores[setorKey].minutosTotal += minutos;
     };
 
+    // Mapa setor → lista de emails dos usuários Voxx naquele setor
+    const setorUsuariosMap = {};
+    usuarios.forEach(u => {
+      if (!u.email || !voxxEmails.has(u.email)) return;
+      const setor = u.setor_responsavel;
+      if (!setor) return;
+      if (!setorUsuariosMap[setor]) setorUsuariosMap[setor] = [];
+      setorUsuariosMap[setor].push(u.email);
+    });
+
     let totalPart = 0;
     demandasPeriodo.forEach(d => {
       const concluida = d.status === 'concluida' || d.status === 'finalizada';
-      // 1. Criador
-      if (d.created_by) { reg(d.created_by, d.id, concluida); totalPart++; }
-      // 2. Histórico de tempo
+      const emailsJaRegistrados = new Set();
+
+      // 1. Usuários do setor da demanda (todos que pertencem ao setor responsável)
+      if (d.setor && setorUsuariosMap[d.setor]) {
+        setorUsuariosMap[d.setor].forEach(email => {
+          reg(email, d.id, concluida);
+          emailsJaRegistrados.add(email);
+          totalPart++;
+        });
+      }
+      // 2. Criador (se ainda não contabilizado)
+      if (d.created_by && !emailsJaRegistrados.has(d.created_by)) {
+        reg(d.created_by, d.id, concluida);
+        emailsJaRegistrados.add(d.created_by);
+        totalPart++;
+      }
+      // 3. Histórico de tempo
       if (Array.isArray(d.historico_tempo_trabalho)) {
         d.historico_tempo_trabalho.forEach(h => {
           const u = usuarios.find(u2 => u2.id === h.usuario_id);
-          if (u?.email) { reg(u.email, d.id, concluida, h.minutos || 0); totalPart++; }
+          if (u?.email && !emailsJaRegistrados.has(u.email)) {
+            reg(u.email, d.id, concluida, h.minutos || 0);
+            emailsJaRegistrados.add(u.email);
+            totalPart++;
+          } else if (u?.email) {
+            // Já contabilizado no setor, mas adiciona os minutos
+            if (usuariosM[u.email]) usuariosM[u.email].minutosTotal += h.minutos || 0;
+          }
         });
       }
-      // 3. Cronômetro ativo
+      // 4. Cronômetro ativo
       if (d.cronometro_usuario_id) {
         const u = usuarios.find(u2 => u2.id === d.cronometro_usuario_id);
-        if (u?.email) reg(u.email, d.id, concluida);
+        if (u?.email && !emailsJaRegistrados.has(u.email)) {
+          reg(u.email, d.id, concluida);
+          totalPart++;
+        }
       }
     });
 
