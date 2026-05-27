@@ -251,6 +251,13 @@ export default function PerformanceOperacional() {
     participacaoSetores.forEach(s => s.concluidasIds.forEach(id => ids.add(id)));
     return ids.size;
   }, [participacaoSetores]);
+
+  // Total de demandas únicas com qualquer participação operacional
+  const totalDemandasAtivas = useMemo(() => {
+    const ids = new Set();
+    participacaoSetores.forEach(s => s.demandasIds.forEach(id => ids.add(id)));
+    return ids.size;
+  }, [participacaoSetores]);
   const setoresAtivos = participacaoSetores.filter(s => s.demandas > 0).length;
   const usuariosAtivos = participacaoUsuarios.filter(u => u.demandas > 0).length;
   const eficienciaMedia = useMemo(() => {
@@ -280,7 +287,6 @@ export default function PerformanceOperacional() {
   const evolucaoDiaria = useMemo(() => {
     const map = {};
     demandasPeriodo.forEach(d => {
-      if (d.status !== 'concluida' && d.status !== 'finalizada') return;
       const date = d.updated_date || d.created_date;
       if (!date) return;
       const k = format(new Date(date), 'dd/MM');
@@ -295,21 +301,27 @@ export default function PerformanceOperacional() {
       .map(([date, total]) => ({ date, total }));
   }, [demandasPeriodo]);
 
-  // Gargalos
+  // Gargalos — baseados em atividade operacional total
   const gargalos = useMemo(() => {
     const result = [];
     participacaoUsuarios.forEach(u => {
       if (u.demandas > 10 && u.demandas / diasPeriodo > 1.5)
-        result.push({ tipo: 'usuario', nome: u.nome, msg: `${u.demandas} participações em ${diasPeriodo} dias`, setor: u.setorLabel, cor: u.cor });
+        result.push({ tipo: 'usuario', nome: u.nome, msg: `${u.demandas} participações em ${diasPeriodo} dias — carga elevada`, setor: u.setorLabel, cor: u.cor });
     });
     participacaoSetores.forEach(s => {
       if (s.eficienciaReal > 110)
         result.push({ tipo: 'setor', nome: s.label, msg: `Eficiência ${s.eficienciaReal}% — acima da capacidade!`, setor: s.label, cor: s.cor });
       if (s.demandas > 0 && s.concluidas === 0)
-        result.push({ tipo: 'setor', nome: s.label, msg: 'Participações sem nenhuma conclusão registrada', setor: s.label, cor: s.cor });
+        result.push({ tipo: 'setor', nome: s.label, msg: `${s.demandas} demandas ativas sem nenhuma conclusão no período`, setor: s.label, cor: s.cor });
+      if (s.demandas > 0 && s.concluidas / s.demandas < 0.2 && s.demandas >= 5)
+        result.push({ tipo: 'setor', nome: s.label, msg: `Taxa de conclusão baixa: ${Math.round((s.concluidas/s.demandas)*100)}% (${s.concluidas}/${s.demandas} demandas)`, setor: s.label, cor: s.cor });
     });
+    // Demandas paradas: ativas no período mas não concluídas
+    const paradas = demandasPeriodo.filter(d => d.status !== 'concluida' && d.status !== 'finalizada');
+    if (paradas.length > 15)
+      result.push({ tipo: 'volume', nome: 'Volume Acumulado', msg: `${paradas.length} demandas em aberto no período (não concluídas)`, setor: 'Geral', cor: '#f97316' });
     return result;
-  }, [participacaoSetores, participacaoUsuarios, diasPeriodo]);
+  }, [participacaoSetores, participacaoUsuarios, diasPeriodo, demandasPeriodo]);
 
   return (
     <div className="space-y-5">
@@ -366,10 +378,11 @@ export default function PerformanceOperacional() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-3">
             <KPI title="Participações" value={totalParticipacoes} icon={Activity} color="violet" sub="ações operacionais" />
-            <KPI title="Concluídas" value={totalConcluidasGlobal} icon={CheckCircle2} color="green" sub="no período" />
+            <KPI title="Demandas Ativas" value={totalDemandasAtivas} icon={Layers} color="blue" sub="com atividade op." />
+            <KPI title="Concluídas" value={totalConcluidasGlobal} icon={CheckCircle2} color="green" sub={`${totalDemandasAtivas > 0 ? Math.round((totalConcluidasGlobal/totalDemandasAtivas)*100) : 0}% do ativo`} />
             <KPI title="Usuários Ativos" value={usuariosAtivos} icon={Users} color="blue" sub="colaboradores" />
             <KPI title="Setores Ativos" value={setoresAtivos} icon={Layers} color="slate" />
-            <KPI title="Média Diária" value={(totalConcluidasGlobal / diasPeriodo).toFixed(1)} icon={TrendingUp} color="green" sub="entregas/dia" />
+            <KPI title="Média Diária" value={(totalDemandasAtivas / diasPeriodo).toFixed(1)} icon={TrendingUp} color="green" sub="demandas/dia" />
             <KPI title="Tempo Médio" value={tempoMedioTotal > 0 ? tempoMedioTotal >= 60 ? `${Math.floor(tempoMedioTotal / 60)}h${tempoMedioTotal % 60}m` : `${tempoMedioTotal}min` : '—'} icon={Clock} color="amber" sub="por usuário" />
             <KPI title="Eficiência Média" value={`${eficienciaMedia}%`} icon={Zap} color={eficienciaMedia >= 70 ? 'green' : eficienciaMedia >= 40 ? 'amber' : 'red'} />
             <KPI title="Custo Operacional" value={`R$ ${(custoTotal / 1000).toFixed(0)}k`} icon={DollarSign} color="slate" sub="total período" />
@@ -411,7 +424,7 @@ export default function PerformanceOperacional() {
                 {/* Evolução diária */}
                 <Card className="p-4">
                   <h3 className="text-xs font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Evolução Diária de Conclusões
+                    <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Evolução Diária — Atividade Operacional
                   </h3>
                   {evolucaoDiaria.length > 0 ? (
                     <ResponsiveContainer width="100%" height={220}>
@@ -419,7 +432,7 @@ export default function PerformanceOperacional() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis dataKey="date" tick={{ fontSize: 9 }} />
                         <YAxis tick={{ fontSize: 10 }} />
-                        <Tooltip formatter={v => [v, 'Concluídas']} />
+                        <Tooltip formatter={v => [v, 'Demandas com atividade']} />
                         <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2} dot={false} />
                       </LineChart>
                     </ResponsiveContainer>
