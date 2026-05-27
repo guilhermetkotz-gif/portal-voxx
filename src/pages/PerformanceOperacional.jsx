@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import ConfiguracaoSetoresModal from '@/components/operacional/ConfiguracaoSetoresModal.jsx';
+import ParticipacaoOperacional from '@/components/operacional/ParticipacaoOperacional.jsx';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
@@ -719,63 +720,8 @@ export default function PerformanceOperacional() {
         </>
       )}
 
-      {/* Rastreamento Operacional Histórico */}
-      {hasHistoricoData ? (
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-violet-500" /> Rastreamento Operacional (Histórico de Setores)
-            </h3>
-            <span className="text-xs text-slate-400">{historicoSetoresPeriodo.length} movimentações no período</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  {['Setor', 'Participações', 'Demandas Únicas', 'Concluídas c/ Particip.', 'Tempo Médio no Setor'].map(h => (
-                    <th key={h} className="text-left text-xs font-semibold text-slate-500 py-2 px-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {Object.values(participacoesPorSetor)
-                  .filter(s => s.participacoes > 0)
-                  .sort((a, b) => b.participacoes - a.participacoes)
-                  .map(s => (
-                    <tr key={s.label} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                      <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.cor }} />
-                          <span className="font-medium text-slate-800 whitespace-nowrap">{s.label}</span>
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-900">{s.participacoes}</td>
-                      <td className="py-2.5 px-3 text-slate-700">{s.demandasUnicas}</td>
-                      <td className="py-2.5 px-3 text-slate-700">{s.concluidasComParticipacao}</td>
-                      <td className="py-2.5 px-3 text-slate-600">
-                        {s.tempoMedio != null
-                          ? s.tempoMedio >= 60
-                            ? `${Math.floor(s.tempoMedio / 60)}h ${s.tempoMedio % 60}min`
-                            : `${s.tempoMedio} min`
-                          : <span className="text-slate-400">—</span>}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ) : (
-        <Card className="p-5 border border-dashed border-slate-200">
-          <div className="flex items-start gap-3">
-            <Activity className="w-5 h-5 text-violet-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-slate-700">Rastreamento Operacional Ativado</p>
-              <p className="text-xs text-slate-500 mt-1">A partir de agora, cada movimentação de setor nas demandas será registrada automaticamente. Os dados aparecerão aqui conforme a equipe mover demandas no Kanban.</p>
-            </div>
-          </div>
-        </Card>
-      )}
+      {/* Participação Operacional por Usuário/Setor */}
+      <ParticipacaoOperacional demandasPeriodo={demandasPeriodo} />
 
       {/* Modal de configuração */}
       {showConfig && (
