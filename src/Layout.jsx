@@ -53,7 +53,8 @@ const pageTitles = {
         FinanceiroDocumentos: { title: "Documentos Financeiros", subtitle: "Central de comprovantes e documentos" },
         FinanceiroFluxoCaixa: { title: "Fluxo de Caixa (DRE)", subtitle: "Demonstrativo de resultado — visão executiva" },
         FinanceiroCarteira: { title: "Carteira de Clientes", subtitle: "Evolução, churn e crescimento da base" },
-        PerformanceOperacional: { title: "Performance Operacional", subtitle: "Produtividade e eficiência por setor" }
+        PerformanceOperacional: { title: "Performance Operacional", subtitle: "Produtividade e eficiência por setor" },
+        BriefingClientes: { title: "Briefing Clientes", subtitle: "Central de contexto operacional e estratégico das marcas" }
                 };
 
 export default function Layout({ children, currentPageName }) {

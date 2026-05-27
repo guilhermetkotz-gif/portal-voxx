@@ -1,0 +1,354 @@
+{
+  "name": "BriefingCliente",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente vinculado"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "responsavel_voxx": {
+      "type": "string",
+      "description": "Email do respons\u00e1vel Voxx principal"
+    },
+    "responsavel_nome": {
+      "type": "string",
+      "description": "Nome do respons\u00e1vel Voxx"
+    },
+    "setores_envolvidos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Setores envolvidos"
+    },
+    "visao_geral": {
+      "type": "object",
+      "description": "Vis\u00e3o geral do cliente",
+      "properties": {
+        "segmento": {
+          "type": "string"
+        },
+        "cidade": {
+          "type": "string"
+        },
+        "publico_principal": {
+          "type": "string"
+        },
+        "produto_principal": {
+          "type": "string"
+        },
+        "posicionamento": {
+          "type": "string"
+        },
+        "tom_marca": {
+          "type": "string"
+        },
+        "objetivo_atual": {
+          "type": "string"
+        },
+        "diferencial_principal": {
+          "type": "string"
+        },
+        "historia_marca": {
+          "type": "string"
+        },
+        "observacoes": {
+          "type": "string"
+        }
+      }
+    },
+    "criacao": {
+      "type": "object",
+      "description": "Cria\u00e7\u00e3o e branding",
+      "properties": {
+        "posicionamento_visual": {
+          "type": "string"
+        },
+        "tom_comunicacao": {
+          "type": "string"
+        },
+        "inspiracoes": {
+          "type": "string"
+        },
+        "direcao_arte": {
+          "type": "string"
+        },
+        "continuidade_visual": {
+          "type": "string"
+        },
+        "singularidade_marca": {
+          "type": "string"
+        },
+        "preferencias_visuais": {
+          "type": "string"
+        },
+        "limitacoes_criativas": {
+          "type": "string"
+        },
+        "paleta_cores": {
+          "type": "string"
+        },
+        "manual_marca_url": {
+          "type": "string"
+        },
+        "banco_imagens_url": {
+          "type": "string"
+        },
+        "referencias": {
+          "type": "string"
+        },
+        "estilo_desejado": {
+          "type": "string"
+        },
+        "qtd_artes": {
+          "type": "number"
+        },
+        "qtd_videos": {
+          "type": "number"
+        },
+        "qtd_roteiros": {
+          "type": "number"
+        },
+        "lp_inclusa": {
+          "type": "boolean",
+          "default": false
+        },
+        "demandas_extras": {
+          "type": "string"
+        },
+        "trafego_ativo": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "meta_ads": {
+      "type": "object",
+      "description": "Briefing Meta Ads",
+      "properties": {
+        "publico_alvo": {
+          "type": "string"
+        },
+        "icp": {
+          "type": "string"
+        },
+        "faixa_etaria": {
+          "type": "string"
+        },
+        "ticket_medio": {
+          "type": "string"
+        },
+        "principais_tratamentos": {
+          "type": "string"
+        },
+        "objecoes": {
+          "type": "string"
+        },
+        "diferenciais": {
+          "type": "string"
+        },
+        "regioes": {
+          "type": "string"
+        },
+        "metas": {
+          "type": "string"
+        },
+        "concorrentes": {
+          "type": "string"
+        },
+        "restricoes": {
+          "type": "string"
+        },
+        "foco_campanha": {
+          "type": "string"
+        },
+        "tipos_campanha": {
+          "type": "string"
+        },
+        "observacoes": {
+          "type": "string"
+        }
+      }
+    },
+    "google_ads": {
+      "type": "object",
+      "description": "Briefing Google Ads",
+      "properties": {
+        "principais_buscas": {
+          "type": "string"
+        },
+        "tratamentos_prioritarios": {
+          "type": "string"
+        },
+        "cidades_foco": {
+          "type": "string"
+        },
+        "concorrentes": {
+          "type": "string"
+        },
+        "diferenciais": {
+          "type": "string"
+        },
+        "palavras_proibidas": {
+          "type": "string"
+        },
+        "palavras_estrategicas": {
+          "type": "string"
+        },
+        "foco_comercial": {
+          "type": "string"
+        },
+        "restricoes": {
+          "type": "string"
+        },
+        "urgencia_comercial": {
+          "type": "string"
+        },
+        "observacoes": {
+          "type": "string"
+        }
+      }
+    },
+    "comercial": {
+      "type": "object",
+      "description": "Briefing comercial",
+      "properties": {
+        "objecoes": {
+          "type": "string"
+        },
+        "dificuldades": {
+          "type": "string"
+        },
+        "gargalos_atendimento": {
+          "type": "string"
+        },
+        "tempo_resposta": {
+          "type": "string"
+        },
+        "perfil_ideal": {
+          "type": "string"
+        },
+        "dores_pacientes": {
+          "type": "string"
+        },
+        "argumentos_venda": {
+          "type": "string"
+        },
+        "diferenciais": {
+          "type": "string"
+        },
+        "taxa_fechamento": {
+          "type": "string"
+        },
+        "observacoes": {
+          "type": "string"
+        }
+      }
+    },
+    "restricoes": {
+      "type": "object",
+      "description": "Restri\u00e7\u00f5es da marca",
+      "properties": {
+        "nao_fazer": {
+          "type": "string"
+        },
+        "termos_proibidos": {
+          "type": "string"
+        },
+        "estilos_proibidos": {
+          "type": "string"
+        },
+        "limitacoes_juridicas": {
+          "type": "string"
+        },
+        "limitacoes_design": {
+          "type": "string"
+        },
+        "restricoes_comerciais": {
+          "type": "string"
+        },
+        "restricoes_copy": {
+          "type": "string"
+        },
+        "limitacoes_trafego": {
+          "type": "string"
+        },
+        "palavras_proibidas": {
+          "type": "string"
+        },
+        "observacoes_criticas": {
+          "type": "string"
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "description": "Assets da marca",
+      "properties": {
+        "logos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "manual_marca_url": {
+          "type": "string"
+        },
+        "banco_imagens_url": {
+          "type": "string"
+        },
+        "videos_url": {
+          "type": "string"
+        },
+        "link_dropbox": {
+          "type": "string"
+        },
+        "link_drive": {
+          "type": "string"
+        },
+        "outros_links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "resumo_executivo": {
+      "type": "string",
+      "description": "Resumo executivo da marca (texto livre)"
+    },
+    "atualizado_por_nome": {
+      "type": "string"
+    },
+    "atualizado_por_email": {
+      "type": "string"
+    },
+    "status_briefing": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "em_andamento",
+        "completo",
+        "desatualizado"
+      ],
+      "default": "rascunho"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "cliente_nome"
+  ]
+}

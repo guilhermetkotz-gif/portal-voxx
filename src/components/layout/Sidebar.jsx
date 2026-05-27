@@ -39,7 +39,8 @@ import {
   FolderOpen,
   Users,
   Receipt,
-  Gauge
+  Gauge,
+  BookOpen
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -58,6 +59,7 @@ const menuItems = [
   { name: "Performance VOXX | Oral Sin", icon: Building2, page: "InteligenicaUnidades", voxxOnly: true },
   { name: "Monitoramento Demandas", icon: BarChart3, page: "MonitoramentoDemandas", voxxOnly: true },
   { name: "Performance Operacional", icon: Gauge, page: "PerformanceOperacional", voxxOnly: true },
+  { name: "Briefing Clientes", icon: BookOpen, page: "BriefingClientes", voxxOnly: true },
   { name: "Timeline", icon: Clock, page: "Timeline" },
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
   { name: "Planejamento Estratégico", icon: TrendingUp, page: "PlanejamentoEstrategico" },
