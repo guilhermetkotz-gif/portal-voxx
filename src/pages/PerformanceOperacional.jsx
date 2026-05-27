@@ -1,61 +1,54 @@
 import React, { useState, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import ConfiguracaoSetoresModal from '@/components/operacional/ConfiguracaoSetoresModal.jsx';
-import ParticipacaoOperacional from '@/components/operacional/ParticipacaoOperacional.jsx';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  LineChart, Line, PieChart, Pie, Cell, Legend
+  PieChart, Pie, Cell, LineChart, Line, Legend
 } from 'recharts';
-import { format, subDays, startOfMonth, startOfDay, endOfDay, parseISO, differenceInDays, isWithinInterval } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import {
-  TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Target,
-  Zap, Clock, DollarSign, BarChart3, Activity, Award, AlertCircle, Layers, Settings2
+  format, subDays, startOfMonth, startOfDay, endOfDay, differenceInDays, isWithinInterval
+} from 'date-fns';
+import {
+  TrendingUp, TrendingDown, Users, Award, Zap, Clock,
+  DollarSign, Activity, BarChart3, AlertTriangle, CheckCircle2,
+  Layers, Target, Settings2
 } from 'lucide-react';
+import ConfiguracaoSetoresModal from '@/components/operacional/ConfiguracaoSetoresModal.jsx';
 
-// ────────────────────────────────────────────────
-// CONFIGURAÇÃO DOS SETORES
-// ────────────────────────────────────────────────
+// ─── CONSTANTES ──────────────────────────────────────────────────────────────
 const SETOR_CONFIG = {
-  ATENDIMENTO:       { label: 'Atendimento',              horas_dia: 8,  custo_diario: 350,  cor: '#6366f1' },
-  TRAFEGO_META:      { label: 'Tráfego – Meta Ads',       horas_dia: 8,  custo_diario: 480,  cor: '#3b82f6' },
-  TRAFEGO_GOOGLE:    { label: 'Tráfego – Google Ads',     horas_dia: 8,  custo_diario: 480,  cor: '#0ea5e9' },
-  TRAFEGO_TIKTOK:    { label: 'Tráfego – TikTok Ads',     horas_dia: 6,  custo_diario: 300,  cor: '#06b6d4' },
-  CRIACAO:           { label: 'Criação (Artes & Peças)',   horas_dia: 8,  custo_diario: 420,  cor: '#8b5cf6' },
-  EDICAO:            { label: 'Edição de Vídeo',           horas_dia: 8,  custo_diario: 380,  cor: '#a855f7' },
-  BI_RELATORIO:      { label: 'Relatórios / BI',           horas_dia: 6,  custo_diario: 320,  cor: '#ec4899' },
-  IMPLANTACAO:       { label: 'Implantação / Acessos',     horas_dia: 8,  custo_diario: 500,  cor: '#f97316' },
-  FINANCEIRO:        { label: 'Financeiro / Administrativo', horas_dia: 8, custo_diario: 400, cor: '#eab308' },
-  ALTERACAO_CRIACAO: { label: 'Alteração Criação',         horas_dia: 6,  custo_diario: 280,  cor: '#84cc16' },
-  AUTOMACAO:         { label: 'Automação',                 horas_dia: 6,  custo_diario: 450,  cor: '#22c55e' },
-  SALDOS:            { label: 'Saldos',                    horas_dia: 4,  custo_diario: 200,  cor: '#14b8a6' },
-};
-
-const STATUS_LABELS = {
-  recebida: 'Recebida', em_triagem: 'Em triagem', programada: 'Programada',
-  em_execucao: 'Em execução', aguardando_cliente: 'Aguardando cliente',
-  em_revisao: 'Em revisão', concluida: 'Concluída', finalizada: 'Finalizada',
+  ATENDIMENTO:       { label: 'Atendimento',                cor: '#6366f1', horas_dia: 8,  custo_diario: 350 },
+  TRAFEGO_META:      { label: 'Tráfego – Meta Ads',         cor: '#3b82f6', horas_dia: 8,  custo_diario: 480 },
+  TRAFEGO_GOOGLE:    { label: 'Tráfego – Google Ads',       cor: '#0ea5e9', horas_dia: 8,  custo_diario: 480 },
+  TRAFEGO_TIKTOK:    { label: 'Tráfego – TikTok Ads',       cor: '#06b6d4', horas_dia: 6,  custo_diario: 300 },
+  CRIACAO:           { label: 'Criação (Artes & Peças)',     cor: '#8b5cf6', horas_dia: 8,  custo_diario: 420 },
+  EDICAO:            { label: 'Edição de Vídeo',             cor: '#a855f7', horas_dia: 8,  custo_diario: 380 },
+  BI_RELATORIO:      { label: 'Relatórios / BI',             cor: '#ec4899', horas_dia: 6,  custo_diario: 320 },
+  IMPLANTACAO:       { label: 'Implantação / Acessos',       cor: '#f97316', horas_dia: 8,  custo_diario: 500 },
+  FINANCEIRO:        { label: 'Financeiro / Adm.',           cor: '#eab308', horas_dia: 8,  custo_diario: 400 },
+  ALTERACAO_CRIACAO: { label: 'Alteração Criação',           cor: '#84cc16', horas_dia: 6,  custo_diario: 280 },
+  AUTOMACAO:         { label: 'Automação',                   cor: '#22c55e', horas_dia: 6,  custo_diario: 450 },
+  SALDOS:            { label: 'Saldos',                      cor: '#14b8a6', horas_dia: 4,  custo_diario: 200 },
+  GESTAO:            { label: 'Gestão',                      cor: '#64748b', horas_dia: 8,  custo_diario: 600 },
+  COMERCIAL:         { label: 'Comercial',                   cor: '#f43f5e', horas_dia: 8,  custo_diario: 500 },
 };
 
 const PERIOD_OPTIONS = [
-  { value: 'today',   label: 'Hoje' },
+  { value: 'today',     label: 'Hoje' },
   { value: 'yesterday', label: 'Ontem' },
-  { value: '7d',      label: 'Últimos 7 dias' },
-  { value: '30d',     label: 'Últimos 30 dias' },
-  { value: 'month',   label: 'Este mês' },
+  { value: '7d',        label: 'Últimos 7 dias' },
+  { value: '30d',       label: 'Últimos 30 dias' },
+  { value: 'month',     label: 'Este mês' },
 ];
 
-const COLORS = Object.values(SETOR_CONFIG).map(s => s.cor);
-
-function getPeriodRange(period) {
+function getPeriodRange(p) {
   const now = new Date();
-  switch (period) {
+  switch (p) {
     case 'today':     return { start: startOfDay(now), end: endOfDay(now) };
     case 'yesterday': { const y = subDays(now, 1); return { start: startOfDay(y), end: endOfDay(y) }; }
     case '7d':        return { start: startOfDay(subDays(now, 6)), end: endOfDay(now) };
@@ -65,670 +58,625 @@ function getPeriodRange(period) {
   }
 }
 
-function getEfficiencyColor(eff) {
-  if (eff >= 90) return 'text-green-600';
-  if (eff >= 60) return 'text-yellow-600';
-  return 'text-red-600';
-}
-function getEfficiencyBarColor(eff) {
-  if (eff >= 90) return 'bg-green-500';
-  if (eff >= 60) return 'bg-yellow-500';
-  return 'bg-red-500';
-}
-function getEfficiencyBg(eff) {
-  if (eff >= 90) return 'bg-green-50 border-green-200';
-  if (eff >= 60) return 'bg-yellow-50 border-yellow-200';
-  return 'bg-red-50 border-red-200';
-}
+// ─── HELPERS VISUAIS ─────────────────────────────────────────────────────────
+function eff(v) { return v >= 80 ? 'text-green-600' : v >= 50 ? 'text-yellow-600' : 'text-red-500'; }
+function effBg(v) { return v >= 80 ? 'bg-green-500' : v >= 50 ? 'bg-yellow-400' : 'bg-red-500'; }
 
-// ────────────────────────────────────────────────
-// COMPONENTES AUXILIARES
-// ────────────────────────────────────────────────
-function KPICard({ title, value, sub, icon: Icon, color = 'violet', trend }) {
-  const colorMap = {
-    violet: 'bg-violet-50 text-violet-600 border-violet-100',
-    green:  'bg-green-50 text-green-600 border-green-100',
-    blue:   'bg-blue-50 text-blue-600 border-blue-100',
-    amber:  'bg-amber-50 text-amber-600 border-amber-100',
-    red:    'bg-red-50 text-red-600 border-red-100',
-    slate:  'bg-slate-50 text-slate-600 border-slate-100',
-  };
+function KPI({ title, value, sub, icon: Icon, color = 'violet' }) {
+  const c = {
+    violet: 'bg-violet-50 text-violet-600', green: 'bg-green-50 text-green-600',
+    blue: 'bg-blue-50 text-blue-600', amber: 'bg-amber-50 text-amber-600',
+    red: 'bg-red-50 text-red-600', slate: 'bg-slate-100 text-slate-600',
+  }[color];
   return (
-    <Card className="p-5 border">
-      <div className="flex items-start justify-between mb-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${colorMap[color]}`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        {trend !== undefined && (
-          <span className={`text-xs font-medium flex items-center gap-1 ${trend >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-            {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {Math.abs(trend)}%
-          </span>
-        )}
+    <Card className="p-4">
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${c}`}>
+        <Icon className="w-4 h-4" />
       </div>
-      <div className="text-2xl font-bold text-slate-900">{value}</div>
-      <div className="text-sm font-medium text-slate-700 mt-0.5">{title}</div>
-      {sub && <div className="text-xs text-slate-500 mt-1">{sub}</div>}
+      <div className="text-2xl font-bold text-slate-900 leading-tight">{value}</div>
+      <div className="text-xs font-semibold text-slate-600 mt-0.5">{title}</div>
+      {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
     </Card>
   );
 }
 
-function AlertBanner({ type, message }) {
-  const styles = {
-    error:   'bg-red-50 border-red-200 text-red-700',
-    warning: 'bg-amber-50 border-amber-200 text-amber-700',
-    info:    'bg-blue-50 border-blue-200 text-blue-700',
-  };
-  const icons = { error: AlertCircle, warning: AlertTriangle, info: Activity };
-  const Icon = icons[type] || AlertTriangle;
-  return (
-    <div className={`flex items-start gap-2 p-3 rounded-lg border text-sm ${styles[type]}`}>
-      <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" />
-      <span>{message}</span>
-    </div>
-  );
-}
-
-// ────────────────────────────────────────────────
-// PÁGINA PRINCIPAL
-// ────────────────────────────────────────────────
+// ─── COMPONENTE PRINCIPAL ────────────────────────────────────────────────────
 export default function PerformanceOperacional() {
   const [period, setPeriod] = useState('30d');
   const [filterSetor, setFilterSetor] = useState('all');
+  const [filterUsuario, setFilterUsuario] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showConfig, setShowConfig] = useState(false);
 
+  // Queries
+  const { data: demandas = [], isLoading } = useQuery({
+    queryKey: ['demandas_perf_op'],
+    queryFn: () => base44.entities.Demanda.list('-created_date', 3000),
+    staleTime: 2 * 60 * 1000,
+  });
+  const { data: usuarios = [] } = useQuery({
+    queryKey: ['usuarios_perf'],
+    queryFn: () => base44.entities.User.list(),
+    staleTime: 5 * 60 * 1000,
+  });
   const { data: configSetores = [] } = useQuery({
     queryKey: ['config_setores'],
     queryFn: () => base44.entities.ConfiguracaoSetorOperacional.list(),
     staleTime: 5 * 60 * 1000,
   });
 
-  // Helper: get effective config for a sector (DB config or fallback to SETOR_CONFIG)
-  const getSetorCfg = (key) => {
-    const db = configSetores.find(c => c.setor_nome === key);
-    const base = SETOR_CONFIG[key];
-    return {
-      horas_dia: db?.horas_disponiveis_dia ?? base.horas_dia,
-      custo_diario: db?.custo_diario_setor ?? base.custo_diario,
-      meta_diaria: db?.meta_diaria_demandas ?? null,
-      hasDbConfig: !!db && (db.horas_disponiveis_dia != null || db.custo_diario_setor != null || db.meta_diaria_demandas != null),
-    };
-  };
+  // Mapa email → usuario
+  const userMap = useMemo(() => {
+    const m = {};
+    usuarios.forEach(u => { if (u.email) m[u.email] = u; });
+    return m;
+  }, [usuarios]);
 
-  const { data: demandas = [], isLoading } = useQuery({
-    queryKey: ['demandas_perf_op'],
-    queryFn: () => base44.entities.Demanda.list('-created_date', 2000),
-    staleTime: 2 * 60 * 1000,
-  });
-
-  const { data: metaOtimizacoes = [] } = useQuery({
-    queryKey: ['meta_otimizacoes_perf'],
-    queryFn: () => base44.entities.MetaAdsOtimizacao.list('-data_acao', 2000),
-    staleTime: 2 * 60 * 1000,
-  });
-
-  const { data: historicoSetores = [] } = useQuery({
-    queryKey: ['historico_setores_perf'],
-    queryFn: () => base44.entities.DemandaHistoricoSetor.list('-data_entrada', 5000),
-    staleTime: 2 * 60 * 1000,
-  });
+  const voxxEmails = useMemo(() =>
+    new Set(usuarios.filter(u => {
+      const t = u.tipo_usuario || u.tipo_acesso || '';
+      return t.startsWith('voxx_') || u.role === 'admin';
+    }).map(u => u.email)),
+    [usuarios]
+  );
 
   const { start, end } = useMemo(() => getPeriodRange(period), [period]);
   const diasPeriodo = useMemo(() => Math.max(1, differenceInDays(end, start) + 1), [start, end]);
 
-  // Histórico de setores no período
-  const historicoSetoresPeriodo = useMemo(() => {
-    return historicoSetores.filter(h => {
-      const date = h.data_entrada;
-      if (!date) return false;
-      try { return isWithinInterval(new Date(date), { start, end }); }
-      catch { return false; }
-    });
-  }, [historicoSetores, start, end]);
-
-  // Participações por setor com base no histórico
-  const participacoesPorSetor = useMemo(() => {
-    const result = {};
-    Object.keys(SETOR_CONFIG).forEach(key => {
-      const parts = historicoSetoresPeriodo.filter(h => h.setor === key);
-      const concluidasPart = parts.filter(h => h.concluida);
-      const comSaida = parts.filter(h => h.minutos_no_setor != null && h.minutos_no_setor > 0);
-      const tempoMedio = comSaida.length > 0
-        ? Math.round(comSaida.reduce((s, h) => s + h.minutos_no_setor, 0) / comSaida.length)
-        : null;
-      const demandasUnicas = new Set(parts.map(h => h.demanda_id)).size;
-      result[key] = {
-        participacoes: parts.length,
-        concluidasComParticipacao: concluidasPart.length,
-        tempoMedio,
-        demandasUnicas,
-        label: SETOR_CONFIG[key].label,
-        cor: SETOR_CONFIG[key].cor,
-      };
-    });
-    return result;
-  }, [historicoSetoresPeriodo]);
-
-  const hasHistoricoData = historicoSetoresPeriodo.length > 0;
-
-  // Otimizações Meta Ads no período (usa data_acao)
-  const metaOtimizacoesPeriodo = useMemo(() => {
-    return metaOtimizacoes.filter(o => {
-      const date = o.data_acao || o.created_date;
-      if (!date) return false;
-      try {
-        const dt = new Date(date);
-        return isWithinInterval(dt, { start, end });
-      } catch { return false; }
-    });
-  }, [metaOtimizacoes, start, end]);
-
-  // Filtra demandas dentro do período
-  const demandasPeriodo = useMemo(() => {
-    return demandas.filter(d => {
+  // Demandas no período (sem filtro de setor/usuário ainda — esses filtros se aplicam após computar)
+  const demandasPeriodo = useMemo(() =>
+    demandas.filter(d => {
       const date = d.updated_date || d.created_date;
       if (!date) return false;
-      try {
-        const dt = new Date(date);
-        if (!isWithinInterval(dt, { start, end })) return false;
-      } catch { return false; }
-      if (filterSetor !== 'all' && d.setor !== filterSetor) return false;
-      if (filterStatus !== 'all' && d.status !== filterStatus) return false;
-      return true;
-    });
-  }, [demandas, start, end, filterSetor, filterStatus]);
-
-  const concluidas = useMemo(() =>
-    demandasPeriodo.filter(d => d.status === 'concluida' || d.status === 'finalizada'),
-    [demandasPeriodo]);
-
-  const atrasadas = useMemo(() =>
-    demandasPeriodo.filter(d =>
-      d.previsao_entrega &&
-      new Date(d.previsao_entrega) < new Date() &&
-      d.status !== 'concluida' && d.status !== 'finalizada'
-    ), [demandasPeriodo]);
-
-  // Setores sem configuração no banco
-  const setoresSemConfig = useMemo(() =>
-    Object.keys(SETOR_CONFIG).filter(key => !configSetores.find(c => c.setor_nome === key &&
-      (c.horas_disponiveis_dia != null || c.custo_diario_setor != null || c.meta_diaria_demandas != null)
-    )),
-    [configSetores]
+      try { return isWithinInterval(new Date(date), { start, end }); } catch { return false; }
+    }),
+    [demandas, start, end]
   );
 
-  // Cálculo por setor
-  const setorStats = useMemo(() => {
-    const stats = {};
-    Object.keys(SETOR_CONFIG).forEach(key => {
-      const base = SETOR_CONFIG[key];
-      const cfg = getSetorCfg(key);
-      const concluidasSetor = concluidas.filter(d => d.setor === key);
-      // Para Tráfego Meta: somar ações do monitoramento Meta Ads
-      const extraMeta = key === 'TRAFEGO_META' ? metaOtimizacoesPeriodo.length : 0;
-      const concluidasTotal = concluidasSetor.length + extraMeta;
-      const totalSetor = demandasPeriodo.filter(d => d.setor === key);
-      const custoTotal = cfg.custo_diario * diasPeriodo;
-      const custoPorDemanda = concluidasTotal > 0 ? custoTotal / concluidasTotal : 0;
-      const mediaDiaria = concluidasTotal / diasPeriodo;
-      // Eficiência: concluídas / capacidade esperada (meta_diaria * dias)
-      const capacidadeEsperada = cfg.meta_diaria ? cfg.meta_diaria * diasPeriodo : (cfg.horas_dia * diasPeriodo) / 4;
-      const eficienciaReal = capacidadeEsperada > 0 ? (concluidasTotal / capacidadeEsperada) * 100 : 0;
-      const eficiencia = Math.min(100, eficienciaReal);
-      const acimaMetа = eficienciaReal > 100;
+  // ─── LÓGICA CENTRAL: PARTICIPAÇÃO ─────────────────────────────────────────
+  // Para cada demanda, coletamos os emails Voxx participantes e seus setores
+  const { participacaoSetores, participacaoUsuarios, totalParticipacoes } = useMemo(() => {
+    // setorKey → { key, label, cor, demandasIds, concluidasIds, emails, minutosTotal, count }
+    const setores = {};
+    // email → { nome, setor, setorLabel, cor, demandasIds, concluidasIds }
+    const usuariosM = {};
 
-      stats[key] = {
-        ...base,
-        key,
-        horas_dia: cfg.horas_dia,
-        custo_diario: cfg.custo_diario,
-        meta_diaria: cfg.meta_diaria,
-        hasDbConfig: cfg.hasDbConfig,
-        concluidas: concluidasTotal,
-        concluidasDemandas: concluidasSetor.length,
-        concluidasMetaOtimizacoes: extraMeta,
-        total: totalSetor.length,
-        custoTotal,
-        custoPorDemanda,
-        mediaDiaria,
-        eficiencia: Math.round(eficiencia),
-        eficienciaReal: Math.round(eficienciaReal),
-        acimaMetа,
-        percentual: 0,
+    const reg = (email, demandaId, concluida, minutos = 0) => {
+      if (!email || !voxxEmails.has(email)) return;
+      const u = userMap[email];
+      if (!u) return;
+      const setorKey = u.setor_responsavel;
+      const setorCfg = setorKey ? SETOR_CONFIG[setorKey] : null;
+
+      // Por usuário
+      if (!usuariosM[email]) {
+        usuariosM[email] = {
+          email, nome: u.full_name || email,
+          setor: setorKey || null,
+          setorLabel: setorCfg?.label || 'Sem setor',
+          cor: setorCfg?.cor || '#94a3b8',
+          demandasIds: new Set(), concluidasIds: new Set(), minutosTotal: 0,
+        };
+      }
+      usuariosM[email].demandasIds.add(demandaId);
+      if (concluida) usuariosM[email].concluidasIds.add(demandaId);
+      usuariosM[email].minutosTotal += minutos;
+
+      // Por setor
+      if (!setorKey || !setorCfg) return;
+      if (!setores[setorKey]) {
+        setores[setorKey] = {
+          key: setorKey, label: setorCfg.label, cor: setorCfg.cor,
+          demandasIds: new Set(), concluidasIds: new Set(),
+          emails: new Set(), minutosTotal: 0,
+        };
+      }
+      setores[setorKey].demandasIds.add(demandaId);
+      if (concluida) setores[setorKey].concluidasIds.add(demandaId);
+      setores[setorKey].emails.add(email);
+      setores[setorKey].minutosTotal += minutos;
+    };
+
+    let totalPart = 0;
+    demandasPeriodo.forEach(d => {
+      const concluida = d.status === 'concluida' || d.status === 'finalizada';
+      // 1. Criador
+      if (d.created_by) { reg(d.created_by, d.id, concluida); totalPart++; }
+      // 2. Histórico de tempo
+      if (Array.isArray(d.historico_tempo_trabalho)) {
+        d.historico_tempo_trabalho.forEach(h => {
+          const u = usuarios.find(u2 => u2.id === h.usuario_id);
+          if (u?.email) { reg(u.email, d.id, concluida, h.minutos || 0); totalPart++; }
+        });
+      }
+      // 3. Cronômetro ativo
+      if (d.cronometro_usuario_id) {
+        const u = usuarios.find(u2 => u2.id === d.cronometro_usuario_id);
+        if (u?.email) reg(u.email, d.id, concluida);
+      }
+    });
+
+    const cfgMap = {};
+    configSetores.forEach(c => { cfgMap[c.setor_nome] = c; });
+
+    const setoresArr = Object.values(setores).map(s => {
+      const db = cfgMap[s.key];
+      const base = SETOR_CONFIG[s.key];
+      const horas_dia = db?.horas_disponiveis_dia ?? base.horas_dia;
+      const custo_diario = db?.custo_diario_setor ?? base.custo_diario;
+      const meta_diaria = db?.meta_diaria_demandas ?? null;
+      const demandas_c = s.demandasIds.size;
+      const concluidas_c = s.concluidasIds.size;
+      const custoTotal = custo_diario * diasPeriodo;
+      const capacidade = meta_diaria ? meta_diaria * diasPeriodo : (horas_dia * diasPeriodo) / 4;
+      const effReal = capacidade > 0 ? Math.round((concluidas_c / capacidade) * 100) : 0;
+      return {
+        ...s,
+        demandas: demandas_c, concluidas: concluidas_c,
+        usuarios: s.emails.size,
+        horas_dia, custo_diario, meta_diaria, custoTotal,
+        mediaDiaria: (demandas_c / diasPeriodo).toFixed(1),
+        custoPorDemanda: concluidas_c > 0 ? custoTotal / concluidas_c : 0,
+        eficiencia: Math.min(100, effReal),
+        eficienciaReal: effReal,
       };
-    });
+    }).sort((a, b) => b.demandas - a.demandas);
 
-    // Atendimento agrega as demandas concluídas dos setores operacionais supervisionados
-    const SETORES_ATENDIMENTO = ['TRAFEGO_META', 'EDICAO', 'CRIACAO', 'ALTERACAO_CRIACAO', 'SALDOS', 'TRAFEGO_GOOGLE', 'TRAFEGO_TIKTOK'];
-    const extraAtendimento = SETORES_ATENDIMENTO.reduce((sum, key) => {
-      // Para TRAFEGO_META usa apenas demandas (sem otimizações Meta)
-      return sum + (stats[key]?.concluidasDemandas ?? stats[key]?.concluidas ?? 0);
-    }, 0);
-    if (stats['ATENDIMENTO']) {
-      stats['ATENDIMENTO'].concluidas += extraAtendimento;
-      stats['ATENDIMENTO'].concluidasDemandas = (stats['ATENDIMENTO'].concluidasDemandas ?? stats['ATENDIMENTO'].concluidas - extraAtendimento);
-      stats['ATENDIMENTO'].concluidasExtra = extraAtendimento;
-      // Recalcular custo/demanda e eficiência para Atendimento
-      const cfg = getSetorCfg('ATENDIMENTO');
-      const total = stats['ATENDIMENTO'].concluidas;
-      stats['ATENDIMENTO'].custoPorDemanda = total > 0 ? stats['ATENDIMENTO'].custoTotal / total : 0;
-      stats['ATENDIMENTO'].mediaDiaria = total / diasPeriodo;
-      const cap = cfg.meta_diaria ? cfg.meta_diaria * diasPeriodo : (cfg.horas_dia * diasPeriodo) / 4;
-      const effReal = cap > 0 ? (total / cap) * 100 : 0;
-      stats['ATENDIMENTO'].eficienciaReal = Math.round(effReal);
-      stats['ATENDIMENTO'].eficiencia = Math.round(Math.min(100, effReal));
-      stats['ATENDIMENTO'].acimaMetа = effReal > 100;
-    }
+    const usuariosArr = Object.values(usuariosM).map(u => ({
+      ...u,
+      demandas: u.demandasIds.size,
+      concluidas: u.concluidasIds.size,
+      mediaDiaria: (u.demandasIds.size / diasPeriodo).toFixed(1),
+      pctConclusao: u.demandasIds.size > 0 ? Math.round((u.concluidasIds.size / u.demandasIds.size) * 100) : 0,
+    })).sort((a, b) => b.demandas - a.demandas);
 
-    const totalConcluidas = Object.values(stats).reduce((s, v) => s + v.concluidas, 0);
-    const totalCustoOp = Object.values(stats).reduce((s, v) => s + v.custoTotal, 0);
-    Object.keys(stats).forEach(k => {
-      stats[k].percentualDemandas = totalConcluidas > 0 ? ((stats[k].concluidas / totalConcluidas) * 100).toFixed(1) : '0.0';
-      stats[k].percentualCusto = totalCustoOp > 0 ? ((stats[k].custoTotal / totalCustoOp) * 100).toFixed(1) : '0.0';
-      // Keep backward compat
-      stats[k].percentual = stats[k].percentualDemandas;
-    });
-    return stats;
-  }, [concluidas, demandasPeriodo, diasPeriodo, configSetores, metaOtimizacoesPeriodo]);
+    return { participacaoSetores: setoresArr, participacaoUsuarios: usuariosArr, totalParticipacoes: totalPart };
+  }, [demandasPeriodo, userMap, voxxEmails, usuarios, diasPeriodo, configSetores]);
 
-  const setorList = useMemo(() =>
-    Object.values(setorStats).filter(s => s.total > 0 || s.concluidas > 0)
-      .sort((a, b) => b.concluidas - a.concluidas),
-    [setorStats]);
+  // Filtros aplicados sobre os arrays já computados
+  const setoresFiltrados = useMemo(() =>
+    filterSetor === 'all' ? participacaoSetores : participacaoSetores.filter(s => s.key === filterSetor),
+    [participacaoSetores, filterSetor]
+  );
+  const usuariosFiltrados = useMemo(() => {
+    let arr = participacaoUsuarios;
+    if (filterSetor !== 'all') arr = arr.filter(u => u.setor === filterSetor);
+    if (filterUsuario !== 'all') arr = arr.filter(u => u.email === filterUsuario);
+    return arr;
+  }, [participacaoUsuarios, filterSetor, filterUsuario]);
 
   // KPIs globais
-  const totalConcluidas = concluidas.length;
-  const setorMaisProdutivo = setorList[0];
-  const custoMedioPorDemanda = useMemo(() => {
-    const totalCusto = setorList.reduce((s, v) => s + v.custoTotal, 0);
-    return totalConcluidas > 0 ? totalCusto / totalConcluidas : 0;
-  }, [setorList, totalConcluidas]);
+  const totalConcluidasGlobal = useMemo(() => {
+    const ids = new Set();
+    participacaoSetores.forEach(s => s.concluidasIds.forEach(id => ids.add(id)));
+    return ids.size;
+  }, [participacaoSetores]);
+  const setoresAtivos = participacaoSetores.filter(s => s.demandas > 0).length;
+  const usuariosAtivos = participacaoUsuarios.filter(u => u.demandas > 0).length;
   const eficienciaMedia = useMemo(() => {
-    const vals = setorList.filter(s => s.total > 0);
-    return vals.length > 0 ? Math.round(vals.reduce((s, v) => s + v.eficiencia, 0) / vals.length) : 0;
-  }, [setorList]);
-  const mediaDiariaGlobal = (totalConcluidas / diasPeriodo).toFixed(1);
-  const totalOperacional = useMemo(() =>
-    setorList.reduce((s, v) => s + v.custoTotal, 0), [setorList]);
+    const arr = participacaoSetores.filter(s => s.demandas > 0);
+    return arr.length > 0 ? Math.round(arr.reduce((a, s) => a + s.eficiencia, 0) / arr.length) : 0;
+  }, [participacaoSetores]);
+  const custoTotal = useMemo(() =>
+    participacaoSetores.reduce((a, s) => a + s.custoTotal, 0),
+    [participacaoSetores]
+  );
+  const custoMedioDemanda = totalConcluidasGlobal > 0 ? custoTotal / totalConcluidasGlobal : 0;
+  const tempoMedioTotal = useMemo(() => {
+    const all = participacaoUsuarios.filter(u => u.minutosTotal > 0);
+    return all.length > 0 ? Math.round(all.reduce((a, u) => a + u.minutosTotal, 0) / all.length) : 0;
+  }, [participacaoUsuarios]);
 
   // Dados para gráficos
-  const barData = setorList.map(s => ({
-    name: s.label.length > 12 ? s.label.substring(0, 12) + '…' : s.label,
-    concluidas: s.concluidas,
-    fill: s.cor,
+  const barSetorData = setoresFiltrados.map(s => ({
+    name: s.label.length > 13 ? s.label.slice(0, 13) + '…' : s.label,
+    participações: s.demandas, concluídas: s.concluidas, fill: s.cor,
   }));
 
-  const pieData = setorList.filter(s => s.concluidas > 0).map(s => ({
-    name: s.label,
-    value: s.concluidas,
-    fill: s.cor,
+  const pieData = participacaoSetores.filter(s => s.demandas > 0).map(s => ({
+    name: s.label, value: s.demandas, fill: s.cor,
   }));
 
-  const custoPorSetorData = setorList.filter(s => s.concluidas > 0).map(s => ({
-    name: s.label.length > 12 ? s.label.substring(0, 12) + '…' : s.label,
-    custo: Math.round(s.custoPorDemanda),
-    fill: s.cor,
-  }));
-
-  const eficienciaData = setorList.filter(s => s.total > 0).map(s => ({
-    name: s.label.length > 12 ? s.label.substring(0, 12) + '…' : s.label,
-    eficiencia: s.eficiencia,
-    fill: s.cor,
-  }));
-
-  // Evolução diária
   const evolucaoDiaria = useMemo(() => {
     const map = {};
-    concluidas.forEach(d => {
+    demandasPeriodo.forEach(d => {
+      if (d.status !== 'concluida' && d.status !== 'finalizada') return;
       const date = d.updated_date || d.created_date;
       if (!date) return;
-      const key = format(new Date(date), 'dd/MM');
-      map[key] = (map[key] || 0) + 1;
+      const k = format(new Date(date), 'dd/MM');
+      map[k] = (map[k] || 0) + 1;
     });
-    return Object.entries(map).sort((a, b) => {
-      const [da, ma] = a[0].split('/').map(Number);
-      const [db, mb] = b[0].split('/').map(Number);
-      return ma !== mb ? ma - mb : da - db;
-    }).map(([date, total]) => ({ date, total }));
-  }, [concluidas]);
+    return Object.entries(map)
+      .sort(([a], [b]) => {
+        const [da, ma] = a.split('/').map(Number);
+        const [db, mb] = b.split('/').map(Number);
+        return ma !== mb ? ma - mb : da - db;
+      })
+      .map(([date, total]) => ({ date, total }));
+  }, [demandasPeriodo]);
 
-  // Insights
-  const insights = useMemo(() => {
+  // Gargalos
+  const gargalos = useMemo(() => {
     const result = [];
-    const top = setorList.filter(s => s.total > 0);
-    if (top.length === 0) return result;
-    const sorted = [...top].sort((a, b) => b.eficiencia - a.eficiencia);
-    if (sorted[0]) result.push({ type: 'success', msg: `${sorted[0].label} é o setor mais eficiente com ${sorted[0].eficiencia}% de eficiência operacional.` });
-    const menos = sorted[sorted.length - 1];
-    if (menos && menos.eficiencia < 40) result.push({ type: 'warning', msg: `${menos.label} está com baixa eficiência (${menos.eficiencia}%). Pode indicar sobrecarga ou falta de volume.` });
-    const sobrecarregados = top.filter(s => s.eficiencia > 90);
-    sobrecarregados.forEach(s => result.push({ type: 'error', msg: `${s.label} operando acima de 90% da capacidade. Risco de sobrecarga!` }));
-    const subutilizados = top.filter(s => s.eficiencia < 20 && s.total > 0);
-    subutilizados.forEach(s => result.push({ type: 'info', msg: `${s.label} está subutilizado (${s.eficiencia}% de eficiência).` }));
+    participacaoUsuarios.forEach(u => {
+      if (u.demandas > 10 && u.demandas / diasPeriodo > 1.5)
+        result.push({ tipo: 'usuario', nome: u.nome, msg: `${u.demandas} participações em ${diasPeriodo} dias`, setor: u.setorLabel, cor: u.cor });
+    });
+    participacaoSetores.forEach(s => {
+      if (s.eficienciaReal > 110)
+        result.push({ tipo: 'setor', nome: s.label, msg: `Eficiência ${s.eficienciaReal}% — acima da capacidade!`, setor: s.label, cor: s.cor });
+      if (s.demandas > 0 && s.concluidas === 0)
+        result.push({ tipo: 'setor', nome: s.label, msg: 'Participações sem nenhuma conclusão registrada', setor: s.label, cor: s.cor });
+    });
     return result;
-  }, [setorList]);
-
-  const alertas = useMemo(() => {
-    const result = [];
-    if (atrasadas.length > 5) result.push({ type: 'error', msg: `${atrasadas.length} demandas em atraso no período selecionado.` });
-    if (eficienciaMedia < 30) result.push({ type: 'warning', msg: `Eficiência operacional média está abaixo de 30% (${eficienciaMedia}%).` });
-    const custosAltos = setorList.filter(s => s.custoPorDemanda > 2000 && s.concluidas > 0);
-    custosAltos.forEach(s => result.push({ type: 'warning', msg: `${s.label} com custo por demanda elevado: R$ ${s.custoPorDemanda.toFixed(0)}` }));
-    return result;
-  }, [atrasadas, eficienciaMedia, setorList]);
+  }, [participacaoSetores, participacaoUsuarios, diasPeriodo]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="space-y-5">
+      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Performance Operacional</h1>
-          <p className="text-sm text-slate-500 mt-1">Produtividade, eficiência e custo operacional por setor</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Central de gestão operacional · baseada na participação real da equipe Voxx
+          </p>
         </div>
-
-        {/* Filtros */}
         <div className="flex flex-wrap gap-2 items-center">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowConfig(true)}
-            className="text-xs border-violet-200 text-violet-700 hover:bg-violet-50 flex items-center gap-1.5"
-          >
+          <Button size="sm" variant="outline" onClick={() => setShowConfig(true)}
+            className="text-xs border-violet-200 text-violet-700 hover:bg-violet-50 gap-1.5">
             <Settings2 className="w-3.5 h-3.5" /> Configurar Setores
           </Button>
           {PERIOD_OPTIONS.map(p => (
-            <Button
-              key={p.value}
-              size="sm"
+            <Button key={p.value} size="sm"
               variant={period === p.value ? 'default' : 'outline'}
-              onClick={() => setPeriod(p.value)}
-              className="text-xs"
-            >
+              onClick={() => setPeriod(p.value)} className="text-xs">
               {p.label}
             </Button>
           ))}
         </div>
       </div>
 
-      {/* Filtros secundários */}
-      <div className="flex flex-wrap gap-3">
+      {/* ── FILTROS ────────────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2">
         <Select value={filterSetor} onValueChange={setFilterSetor}>
-          <SelectTrigger className="w-48 h-9 text-sm">
-            <SelectValue placeholder="Todos os setores" />
-          </SelectTrigger>
+          <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Todos os setores" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os setores</SelectItem>
-            {Object.entries(SETOR_CONFIG).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
+            {Object.entries(SETOR_CONFIG).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-44 h-9 text-sm">
-            <SelectValue placeholder="Todos os status" />
-          </SelectTrigger>
+        <Select value={filterUsuario} onValueChange={setFilterUsuario}>
+          <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Todos os usuários" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos os status</SelectItem>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
+            <SelectItem value="all">Todos os usuários</SelectItem>
+            {participacaoUsuarios.map(u => <SelectItem key={u.email} value={u.email}>{u.nome}</SelectItem>)}
           </SelectContent>
         </Select>
-        <div className="text-xs text-slate-400 self-center">
-          Período: {format(start, 'dd/MM/yyyy')} — {format(end, 'dd/MM/yyyy')} ({diasPeriodo} dias)
+        <div className="text-xs text-slate-400 self-center ml-1">
+          {format(start, 'dd/MM/yyyy')} — {format(end, 'dd/MM/yyyy')} · {diasPeriodo} dias
         </div>
       </div>
 
-      {/* Alerta de setores sem configuração */}
-      {setoresSemConfig.length > 0 && (
-        <div className="flex items-start gap-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-sm text-amber-700">
-          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>
-            <strong>{setoresSemConfig.length} setor(es) sem configuração operacional</strong> — os cálculos usam valores padrão.{' '}
-            <button onClick={() => setShowConfig(true)} className="underline font-medium hover:text-amber-900">Configurar agora</button>
-          </span>
-        </div>
-      )}
-
-      {/* Alertas */}
-      {alertas.length > 0 && (
-        <div className="grid grid-cols-1 gap-2">
-          {alertas.map((a, i) => <AlertBanner key={i} type={a.type} message={a.msg} />)}
-        </div>
-      )}
-
+      {/* ── KPIs ───────────────────────────────────────────────────────────── */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-16">
           <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
         </div>
       ) : (
         <>
-          {/* KPIs */}
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-4">
-            <KPICard title="Concluídas" value={totalConcluidas} icon={CheckCircle2} color="green" sub={`${diasPeriodo} dias`} />
-            <KPICard title="Setor + Produtivo" value={setorMaisProdutivo?.label || '—'} icon={Award} color="violet" sub={setorMaisProdutivo ? `${setorMaisProdutivo.concluidas} entregas` : ''} />
-            <KPICard title="Custo Médio/Demanda" value={custoMedioPorDemanda > 0 ? `R$ ${custoMedioPorDemanda.toFixed(0)}` : '—'} icon={DollarSign} color="blue" />
-            <KPICard title="Eficiência Média" value={`${eficienciaMedia}%`} icon={Zap} color={eficienciaMedia >= 70 ? 'green' : eficienciaMedia >= 40 ? 'amber' : 'red'} />
-            <KPICard title="Em Atraso" value={atrasadas.length} icon={AlertTriangle} color={atrasadas.length > 5 ? 'red' : 'amber'} />
-            <KPICard title="Média Diária" value={mediaDiariaGlobal} icon={Activity} color="slate" sub="entregas/dia" />
-            <KPICard title="Custo Operacional" value={`R$ ${(totalOperacional / 1000).toFixed(0)}k`} icon={Layers} color="slate" sub="total do período" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-3">
+            <KPI title="Participações" value={totalParticipacoes} icon={Activity} color="violet" sub="ações operacionais" />
+            <KPI title="Concluídas" value={totalConcluidasGlobal} icon={CheckCircle2} color="green" sub="no período" />
+            <KPI title="Usuários Ativos" value={usuariosAtivos} icon={Users} color="blue" sub="colaboradores" />
+            <KPI title="Setores Ativos" value={setoresAtivos} icon={Layers} color="slate" />
+            <KPI title="Média Diária" value={(totalConcluidasGlobal / diasPeriodo).toFixed(1)} icon={TrendingUp} color="green" sub="entregas/dia" />
+            <KPI title="Tempo Médio" value={tempoMedioTotal > 0 ? tempoMedioTotal >= 60 ? `${Math.floor(tempoMedioTotal / 60)}h${tempoMedioTotal % 60}m` : `${tempoMedioTotal}min` : '—'} icon={Clock} color="amber" sub="por usuário" />
+            <KPI title="Eficiência Média" value={`${eficienciaMedia}%`} icon={Zap} color={eficienciaMedia >= 70 ? 'green' : eficienciaMedia >= 40 ? 'amber' : 'red'} />
+            <KPI title="Custo Operacional" value={`R$ ${(custoTotal / 1000).toFixed(0)}k`} icon={DollarSign} color="slate" sub="total período" />
+            <KPI title="Custo/Demanda" value={custoMedioDemanda > 0 ? `R$ ${custoMedioDemanda.toFixed(0)}` : '—'} icon={Target} color="slate" />
           </div>
 
-          {/* Gráficos linha 1 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Barras por setor */}
-            <Card className="p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-violet-500" /> Demandas Concluídas por Setor
-              </h3>
-              {barData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={barData} margin={{ top: 0, right: 10, bottom: 30, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(v) => [v, 'Concluídas']} />
-                    <Bar dataKey="concluidas" radius={[4, 4, 0, 0]}>
-                      {barData.map((entry, i) => (
-                        <Cell key={i} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : <div className="flex items-center justify-center h-40 text-sm text-slate-400">Sem dados no período</div>}
-            </Card>
+          {/* ── TABS ─────────────────────────────────────────────────────────── */}
+          <Tabs defaultValue="setores" className="space-y-5">
+            <TabsList className="grid w-full grid-cols-4 max-w-xl">
+              <TabsTrigger value="setores" className="text-xs">Por Setor</TabsTrigger>
+              <TabsTrigger value="usuarios" className="text-xs">Por Usuário</TabsTrigger>
+              <TabsTrigger value="distribuicao" className="text-xs">Distribuição</TabsTrigger>
+              <TabsTrigger value="gargalos" className="text-xs">Gargalos</TabsTrigger>
+            </TabsList>
 
-            {/* Evolução diária */}
-            <Card className="p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-blue-500" /> Evolução Diária de Entregas
-              </h3>
-              {evolucaoDiaria.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={evolucaoDiaria} margin={{ top: 0, right: 10, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(v) => [v, 'Entregas']} />
-                    <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : <div className="flex items-center justify-center h-40 text-sm text-slate-400">Sem dados no período</div>}
-            </Card>
-          </div>
+            {/* ─ POR SETOR ────────────────────────────────────────────────── */}
+            <TabsContent value="setores" className="space-y-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Gráfico barras */}
+                <Card className="p-4">
+                  <h3 className="text-xs font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
+                    <BarChart3 className="w-3.5 h-3.5 text-violet-500" /> Participações e Conclusões por Setor
+                  </h3>
+                  {barSetorData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={barSetorData} margin={{ top: 0, right: 8, bottom: 40, left: -10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-35} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: 10 }} />
+                        <Bar dataKey="participações" fill="#818cf8" radius={[3, 3, 0, 0]} />
+                        <Bar dataKey="concluídas" fill="#4ade80" radius={[3, 3, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-xs text-slate-400 py-8 text-center">Sem dados no período</p>}
+                </Card>
 
-          {/* Gráficos linha 2 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Distribuição */}
-            <Card className="p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                <Target className="w-4 h-4 text-pink-500" /> Distribuição Operacional
-              </h3>
-              {pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" nameKey="name" label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                      {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                    </Pie>
-                    <Tooltip formatter={(v, n) => [v, n]} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : <div className="flex items-center justify-center h-40 text-sm text-slate-400">Sem dados</div>}
-            </Card>
-
-            {/* Custo por demanda */}
-            <Card className="p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-500" /> Custo por Demanda (R$)
-              </h3>
-              {custoPorSetorData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={custoPorSetorData} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis type="number" tick={{ fontSize: 10 }} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={80} />
-                    <Tooltip formatter={(v) => [`R$ ${v}`, 'Custo/Demanda']} />
-                    <Bar dataKey="custo" radius={[0, 4, 4, 0]}>
-                      {custoPorSetorData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : <div className="flex items-center justify-center h-40 text-sm text-slate-400">Sem dados</div>}
-            </Card>
-
-            {/* Eficiência */}
-            <Card className="p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-500" /> Eficiência por Setor (%)
-              </h3>
-              {eficienciaData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={eficienciaData} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10 }} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={80} />
-                    <Tooltip formatter={(v) => [`${v}%`, 'Eficiência']} />
-                    <Bar dataKey="eficiencia" radius={[0, 4, 4, 0]}>
-                      {eficienciaData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : <div className="flex items-center justify-center h-40 text-sm text-slate-400">Sem dados</div>}
-            </Card>
-          </div>
-
-          {/* Tabela por setor */}
-          <Card className="p-5">
-            <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-              <Layers className="w-4 h-4 text-slate-500" /> Tabela Operacional por Setor
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    {['Setor', 'Concluídas', 'Horas Disp.', 'Custo/dia', 'Meta Diária', 'Custo Total Período', 'Custo/Demanda', '% Custo Op.', 'Média Diária', 'Eficiência', '% Operação'].map(h => (
-                      <th key={h} className="text-left text-xs font-semibold text-slate-500 py-2 px-3">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {setorList.length === 0 ? (
-                    <tr><td colSpan={11} className="text-center text-slate-400 py-8">Nenhum dado no período</td></tr>
-                  ) : setorList.map(s => (
-                    <tr key={s.key} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.cor }} />
-                          <span className="font-medium text-slate-800 whitespace-nowrap">{s.label}</span>
-                          {!s.hasDbConfig && <span title="Usando valores padrão"><AlertTriangle className="w-3 h-3 text-amber-400" /></span>}
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 font-semibold text-slate-900">
-                        {s.concluidas}
-                        {s.concluidasMetaOtimizacoes > 0 && (
-                          <span className="ml-1 text-xs text-blue-500" title={`${s.concluidasDemandas} demandas + ${s.concluidasMetaOtimizacoes} otimizações Meta`}>
-                            ({s.concluidasDemandas}+{s.concluidasMetaOtimizacoes})
-                          </span>
-                        )}
-                        {s.concluidasExtra > 0 && (
-                          <span className="ml-1 text-xs text-violet-500" title={`Inclui ${s.concluidasExtra} dem. dos setores operacionais`}>
-                            (+{s.concluidasExtra})
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-slate-600">{s.horas_dia}h/dia</td>
-                      <td className="py-3 px-3 text-slate-600">R$ {s.custo_diario}</td>
-                      <td className="py-3 px-3 text-slate-600">
-                        {s.meta_diaria ? `${s.meta_diaria}/dia` : <span className="text-amber-500 text-xs">—</span>}
-                      </td>
-                      <td className="py-3 px-3 font-medium text-slate-700">R$ {s.custoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
-                      <td className="py-3 px-3">
-                        {s.concluidas > 0 ? (
-                          <div>
-                            <span className="font-semibold text-slate-800">R$ {s.custoPorDemanda.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                          </div>
-                        ) : <span className="text-slate-400">—</span>}
-                      </td>
-                      <td className="py-3 px-3">
-                        <span className="text-xs font-medium text-slate-600">{s.percentualCusto}%</span>
-                      </td>
-                      <td className="py-3 px-3 text-slate-600">{s.mediaDiaria.toFixed(1)}/dia</td>
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2 min-w-[100px]">
-                          <div className="flex-1 bg-slate-100 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full ${getEfficiencyBarColor(s.eficienciaReal)}`}
-                              style={{ width: `${Math.min(100, s.eficienciaReal)}%` }}
-                            />
-                          </div>
-                          <span className={`text-xs font-semibold whitespace-nowrap ${getEfficiencyColor(s.eficienciaReal)}`}>
-                            {s.eficienciaReal}%{s.acimaMetа ? ' ↑' : ''}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3">
-                        <Badge variant="outline" className="text-xs">{s.percentualDemandas}%</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          {/* Insights */}
-          {insights.length > 0 && (
-            <Card className="p-5">
-              <h3 className="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-violet-500" /> Insights Operacionais
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {insights.map((ins, i) => (
-                  <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border ${getEfficiencyBg(ins.type === 'success' ? 80 : ins.type === 'warning' ? 50 : 20)}`}>
-                    {ins.type === 'success'
-                      ? <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      : ins.type === 'warning'
-                        ? <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                        : <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />}
-                    <span className="text-sm text-slate-700">{ins.msg}</span>
-                  </div>
-                ))}
+                {/* Evolução diária */}
+                <Card className="p-4">
+                  <h3 className="text-xs font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Evolução Diária de Conclusões
+                  </h3>
+                  {evolucaoDiaria.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={evolucaoDiaria} margin={{ top: 0, right: 8, bottom: 0, left: -10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="date" tick={{ fontSize: 9 }} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip formatter={v => [v, 'Concluídas']} />
+                        <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-xs text-slate-400 py-8 text-center">Sem dados</p>}
+                </Card>
               </div>
-            </Card>
-          )}
+
+              {/* Tabela por setor */}
+              <Card className="p-4">
+                <h3 className="text-xs font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-slate-500" /> Tabela Operacional por Setor
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        {['Setor','Usuários','Participações','Concluídas','Média/dia','Custo Total','Custo/Dem.','Eficiência','% Operação'].map(h =>
+                          <th key={h} className="text-left font-semibold text-slate-500 py-2 px-2.5 whitespace-nowrap">{h}</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {setoresFiltrados.length === 0
+                        ? <tr><td colSpan={9} className="text-center text-slate-400 py-6">Nenhum dado no período</td></tr>
+                        : setoresFiltrados.map(s => {
+                          const pctOp = participacaoSetores.reduce((a, x) => a + x.demandas, 0);
+                          const pct = pctOp > 0 ? ((s.demandas / pctOp) * 100).toFixed(1) : '0.0';
+                          return (
+                            <tr key={s.key} className="border-b border-slate-50 hover:bg-slate-50">
+                              <td className="py-2.5 px-2.5">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-2 h-2 rounded-full" style={{ background: s.cor }} />
+                                  <span className="font-medium text-slate-800 whitespace-nowrap">{s.label}</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-2.5 text-slate-700">{s.usuarios}</td>
+                              <td className="py-2.5 px-2.5 font-bold text-slate-900">{s.demandas}</td>
+                              <td className="py-2.5 px-2.5">
+                                <span className={s.concluidas > 0 ? 'text-green-600 font-semibold' : 'text-slate-400'}>{s.concluidas}</span>
+                              </td>
+                              <td className="py-2.5 px-2.5 text-slate-600">{s.mediaDiaria}/dia</td>
+                              <td className="py-2.5 px-2.5 text-slate-700">R$ {s.custoTotal.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</td>
+                              <td className="py-2.5 px-2.5">{s.concluidas > 0 ? `R$ ${s.custoPorDemanda.toFixed(0)}` : '—'}</td>
+                              <td className="py-2.5 px-2.5">
+                                <div className="flex items-center gap-1.5 min-w-[80px]">
+                                  <div className="flex-1 bg-slate-100 rounded-full h-1.5">
+                                    <div className={`h-1.5 rounded-full ${effBg(s.eficiencia)}`} style={{ width: `${s.eficiencia}%` }} />
+                                  </div>
+                                  <span className={`font-semibold ${eff(s.eficiencia)}`}>{s.eficienciaReal}%</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-2.5">
+                                <Badge variant="outline" className="text-xs">{pct}%</Badge>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </TabsContent>
+
+            {/* ─ POR USUÁRIO ──────────────────────────────────────────────── */}
+            <TabsContent value="usuarios" className="space-y-5">
+              {participacaoUsuarios.length === 0 ? (
+                <Card className="p-8 text-center border-dashed">
+                  <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                  <p className="text-sm text-slate-500">Nenhuma participação de usuários Voxx identificada no período.</p>
+                  <p className="text-xs text-slate-400 mt-1">Configure o <strong>setor_responsavel</strong> dos usuários em Gerenciar Acessos.</p>
+                </Card>
+              ) : (
+                <Card className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+                      <Award className="w-3.5 h-3.5 text-amber-500" /> Ranking Operacional por Usuário
+                    </h3>
+                    <span className="text-xs text-slate-400">{usuariosFiltrados.length} usuários</span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          {['#','Usuário','Setor','Participações','Concluídas','Média/dia','% Conclusão','Ranking'].map(h =>
+                            <th key={h} className="text-left font-semibold text-slate-500 py-2 px-2.5 whitespace-nowrap">{h}</th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {usuariosFiltrados.map((u, i) => (
+                          <tr key={u.email} className="border-b border-slate-50 hover:bg-slate-50">
+                            <td className="py-2.5 px-2.5 font-bold text-slate-400">{i + 1}</td>
+                            <td className="py-2.5 px-2.5">
+                              <p className="font-semibold text-slate-800">{u.nome}</p>
+                              <p className="text-slate-400 text-[10px]">{u.email}</p>
+                            </td>
+                            <td className="py-2.5 px-2.5">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium"
+                                style={{ background: u.cor + '22', color: u.cor }}>
+                                {u.setorLabel}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-2.5 font-bold text-slate-900">{u.demandas}</td>
+                            <td className="py-2.5 px-2.5">
+                              <span className={u.concluidas > 0 ? 'text-green-600 font-semibold' : 'text-slate-400'}>{u.concluidas}</span>
+                            </td>
+                            <td className="py-2.5 px-2.5 text-slate-600">{u.mediaDiaria}/dia</td>
+                            <td className="py-2.5 px-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex-1 bg-slate-100 rounded-full h-1.5 min-w-[50px]">
+                                  <div className="h-1.5 rounded-full bg-violet-500" style={{ width: `${u.pctConclusao}%` }} />
+                                </div>
+                                <span className="text-slate-600">{u.pctConclusao}%</span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-2.5">
+                              {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : <span className="text-slate-300">—</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* ─ DISTRIBUIÇÃO ─────────────────────────────────────────────── */}
+            <TabsContent value="distribuicao" className="space-y-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Pizza setores */}
+                <Card className="p-4">
+                  <h3 className="text-xs font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-pink-500" /> Distribuição por Setor (participações)
+                  </h3>
+                  {pieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <PieChart>
+                        <Pie data={pieData} cx="50%" cy="50%" outerRadius={85} dataKey="value" nameKey="name"
+                          label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                          {pieData.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                        </Pie>
+                        <Tooltip formatter={(v, n) => [v + ' demandas', n]} />
+                        <Legend wrapperStyle={{ fontSize: 10 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-xs text-slate-400 py-8 text-center">Sem dados</p>}
+                </Card>
+
+                {/* Carga por usuário top 10 */}
+                <Card className="p-4">
+                  <h3 className="text-xs font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-blue-500" /> Top 10 Usuários — Carga Operacional
+                  </h3>
+                  {participacaoUsuarios.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart
+                        data={participacaoUsuarios.slice(0, 10).map(u => ({
+                          name: u.nome.split(' ')[0],
+                          participações: u.demandas,
+                          fill: u.cor,
+                        }))}
+                        margin={{ top: 0, right: 8, bottom: 30, left: -10 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-30} textAnchor="end" interval={0} />
+                        <YAxis tick={{ fontSize: 10 }} />
+                        <Tooltip formatter={v => [v, 'Participações']} />
+                        <Bar dataKey="participações" radius={[3, 3, 0, 0]}>
+                          {participacaoUsuarios.slice(0, 10).map((u, i) => <Cell key={i} fill={u.cor} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : <p className="text-xs text-slate-400 py-8 text-center">Sem dados</p>}
+                </Card>
+              </div>
+
+              {/* Heatmap operacional — barras horizontais por setor */}
+              <Card className="p-4">
+                <h3 className="text-xs font-semibold text-slate-600 mb-4 flex items-center gap-1.5">
+                  <Activity className="w-3.5 h-3.5 text-violet-500" /> Heatmap Operacional — Carga por Setor
+                </h3>
+                <div className="space-y-2">
+                  {participacaoSetores.filter(s => s.demandas > 0).map(s => {
+                    const maxD = Math.max(...participacaoSetores.map(x => x.demandas), 1);
+                    const pct = Math.round((s.demandas / maxD) * 100);
+                    return (
+                      <div key={s.key} className="flex items-center gap-3">
+                        <div className="w-32 text-right text-xs text-slate-600 whitespace-nowrap truncate">{s.label}</div>
+                        <div className="flex-1 bg-slate-100 rounded-full h-5 relative">
+                          <div className="h-5 rounded-full transition-all" style={{ width: `${pct}%`, background: s.cor + 'cc' }} />
+                          <span className="absolute right-2 top-0.5 text-[10px] font-semibold text-slate-700">{s.demandas}</span>
+                        </div>
+                        <div className="w-10 text-xs text-slate-500 text-right">{s.usuarios}u</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </TabsContent>
+
+            {/* ─ GARGALOS ─────────────────────────────────────────────────── */}
+            <TabsContent value="gargalos" className="space-y-4">
+              {gargalos.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <CheckCircle2 className="w-10 h-10 text-green-400 mx-auto mb-2" />
+                  <p className="text-sm text-slate-600 font-medium">Nenhum gargalo identificado no período</p>
+                  <p className="text-xs text-slate-400 mt-1">A operação está dentro dos parâmetros normais.</p>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  {gargalos.map((g, i) => (
+                    <Card key={i} className="p-4 border-l-4" style={{ borderLeftColor: g.cor }}>
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: g.cor }} />
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">{g.nome}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{g.msg}</p>
+                          <Badge variant="outline" className="mt-1 text-xs">{g.tipo === 'usuario' ? 'Usuário' : 'Setor'}</Badge>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* Tabela de sobrecarga */}
+              {participacaoUsuarios.length > 0 && (
+                <Card className="p-4">
+                  <h3 className="text-xs font-semibold text-slate-600 mb-3 flex items-center gap-1.5">
+                    <TrendingDown className="w-3.5 h-3.5 text-red-500" /> Distribuição de Carga por Usuário
+                  </h3>
+                  <div className="space-y-2">
+                    {participacaoUsuarios.slice(0, 15).map(u => {
+                      const max = participacaoUsuarios[0]?.demandas || 1;
+                      const pct = Math.round((u.demandas / max) * 100);
+                      const sobrecarga = pct > 80;
+                      return (
+                        <div key={u.email} className="flex items-center gap-2">
+                          <div className="w-28 text-right text-xs text-slate-600 truncate">{u.nome.split(' ')[0]}</div>
+                          <div className="flex-1 bg-slate-100 rounded-full h-4 relative">
+                            <div className={`h-4 rounded-full ${sobrecarga ? 'bg-red-400' : 'bg-violet-400'}`} style={{ width: `${pct}%` }} />
+                            <span className="absolute right-1.5 top-0 text-[10px] font-semibold text-slate-700 leading-4">{u.demandas}</span>
+                          </div>
+                          {sobrecarga && <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Card>
+              )}
+            </TabsContent>
+          </Tabs>
         </>
       )}
 
-      {/* Participação Operacional por Usuário/Setor */}
-      <ParticipacaoOperacional demandasPeriodo={demandasPeriodo} />
-
-      {/* Modal de configuração */}
       {showConfig && (
-        <ConfiguracaoSetoresModal
-          onClose={() => setShowConfig(false)}
-          existingConfigs={configSetores}
-        />
+        <ConfiguracaoSetoresModal onClose={() => setShowConfig(false)} existingConfigs={configSetores} />
       )}
     </div>
   );
