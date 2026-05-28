@@ -73,15 +73,28 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   });
 
   const { data: otimizacoesMetaAds = [] } = useQuery({
-    queryKey: ['otimizacoesMetaAds', currentCliente?.nome],
+    queryKey: ['otimizacoesMetaAds', currentCliente?.nome, currentCliente?.meta_ads_account_name],
     queryFn: async () => {
       if (!currentCliente?.nome) return [];
-      // Buscar otimizações pela conta Meta Ads do cliente
-      return base44.entities.MetaAdsOtimizacao.filter(
-        { account_name: currentCliente.nome },
-        '-data_acao',
-        5
+      // Coletar todos os nomes possíveis da conta Meta do cliente
+      const nomesPossiveis = new Set();
+      nomesPossiveis.add(currentCliente.nome);
+      if (currentCliente.meta_ads_account_name) nomesPossiveis.add(currentCliente.meta_ads_account_name);
+      if (Array.isArray(currentCliente.contas_anuncio)) {
+        currentCliente.contas_anuncio.forEach(c => {
+          if (c.plataforma === 'Meta' && c.conta_nome) nomesPossiveis.add(c.conta_nome);
+        });
+      }
+      // Buscar por todos os nomes possíveis em paralelo e unificar
+      const resultados = await Promise.all(
+        Array.from(nomesPossiveis).map(nome =>
+          base44.entities.MetaAdsOtimizacao.filter({ account_name: nome }, '-data_acao', 20)
+        )
       );
+      // Unificar e deduplicar por id, ordenar por data
+      const todos = resultados.flat();
+      const unicos = Array.from(new Map(todos.map(o => [o.id, o])).values());
+      return unicos.sort((a, b) => new Date(b.data_acao || b.created_date) - new Date(a.data_acao || a.created_date)).slice(0, 10);
     },
     enabled: !!currentCliente?.nome,
     staleTime: 60 * 1000
