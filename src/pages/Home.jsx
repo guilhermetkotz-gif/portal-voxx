@@ -255,24 +255,33 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   const saldoMeta = balanceControl?.[0]?.saldo || cliente?.saldo_meta || 0;
   
-  // Buscar gasto diário da planilha usando o nome do cliente
+  // Buscar gasto diário da planilha usando o nome do cliente ou conta Meta
   let gastoDiarioMeta = 0;
   const nomeCliente = cliente?.nome?.trim();
-  
+  const metaAccountNome = cliente?.meta_ads_account_name
+    || cliente?.contas_anuncio?.find(c => c.plataforma === 'Meta' && c.conta_principal)?.conta_nome
+    || cliente?.contas_anuncio?.find(c => c.plataforma === 'Meta')?.conta_nome;
+
   const normalizeNome = (nome) => {
     return nome?.toLowerCase()
+      .replace(/\[ativa\]|\[inativa\]|\[as\]|\(nova\)|\(2\)/gi, '')
       .replace(/\s+/g, ' ')
       .replace(/\s*-\s*/g, '')
       .trim() || '';
   };
-  
+
   const clienteNormalizado = normalizeNome(nomeCliente);
-  
-  if (nomeCliente && diarioD1ByAccount[nomeCliente] !== undefined) {
+
+  // Tenta: exato pelo nome da conta Meta, exato pelo nome do cliente, normalizado
+  if (metaAccountNome && diarioD1ByAccount[metaAccountNome] !== undefined) {
+    gastoDiarioMeta = diarioD1ByAccount[metaAccountNome];
+  } else if (nomeCliente && diarioD1ByAccount[nomeCliente] !== undefined) {
     gastoDiarioMeta = diarioD1ByAccount[nomeCliente];
   } else {
-    const matchingKey = Object.keys(diarioD1ByAccount).find(key => 
-      normalizeNome(key) === clienteNormalizado
+    const normMeta = normalizeNome(metaAccountNome);
+    const matchingKey = Object.keys(diarioD1ByAccount).find(key =>
+      normalizeNome(key) === clienteNormalizado ||
+      (normMeta && normalizeNome(key) === normMeta)
     );
     if (matchingKey) {
       gastoDiarioMeta = diarioD1ByAccount[matchingKey];
