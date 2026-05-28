@@ -22,6 +22,7 @@ import AgendaVoxx from './pages/AgendaVoxx';
 import AgendaDashboard from './pages/AgendaDashboard';
 import PerformanceOperacional from './pages/PerformanceOperacional';
 import BriefingClientes from './pages/BriefingClientes';
+import InteligeniciaOperacional from './pages/InteligeniciaOperacional';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -128,6 +129,7 @@ const AuthenticatedApp = () => {
       <Route path="/AgendaDashboard" element={<LayoutWrapper currentPageName="AgendaDashboard"><AgendaDashboard /></LayoutWrapper>} />
       <Route path="/PerformanceOperacional" element={<LayoutWrapper currentPageName="PerformanceOperacional"><PerformanceOperacional /></LayoutWrapper>} />
       <Route path="/BriefingClientes" element={<LayoutWrapper currentPageName="BriefingClientes"><BriefingClientes /></LayoutWrapper>} />
+      <Route path="/InteligeniciaOperacional" element={<LayoutWrapper currentPageName="InteligeniciaOperacional"><InteligeniciaOperacional /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

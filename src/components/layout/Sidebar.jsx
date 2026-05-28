@@ -40,7 +40,8 @@ import {
   Users,
   Receipt,
   Gauge,
-  BookOpen
+  BookOpen,
+  Network
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -60,6 +61,7 @@ const menuItems = [
   { name: "Monitoramento Demandas", icon: BarChart3, page: "MonitoramentoDemandas", voxxOnly: true },
   { name: "Performance Operacional", icon: Gauge, page: "PerformanceOperacional", voxxOnly: true },
   { name: "Briefing Clientes", icon: BookOpen, page: "BriefingClientes", voxxOnly: true },
+  { name: "Inteligência Operacional", icon: Network, page: "InteligeniciaOperacional", voxxOnly: true },
   { name: "Timeline", icon: Clock, page: "Timeline" },
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
   { name: "Planejamento Estratégico", icon: TrendingUp, page: "PlanejamentoEstrategico" },
