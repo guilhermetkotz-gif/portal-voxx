@@ -143,7 +143,10 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   const contaMetaAdsAtual = (() => {
     if (!currentCliente) return null;
-    const metaName = currentCliente.meta_ads_account_name;
+    // Tenta meta_ads_account_name, depois contas_anuncio principal, depois qualquer conta Meta
+    const metaName = currentCliente.meta_ads_account_name
+      || currentCliente.contas_anuncio?.find(c => c.plataforma === 'Meta' && c.conta_principal)?.conta_nome
+      || currentCliente.contas_anuncio?.find(c => c.plataforma === 'Meta')?.conta_nome;
     const clienteNome = currentCliente.nome;
 
     // 1. Correspondência exata por meta_ads_account_name
