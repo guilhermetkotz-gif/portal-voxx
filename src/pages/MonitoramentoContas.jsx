@@ -290,16 +290,16 @@ export default function MonitoramentoContas({ user }) {
         }
     });
 
-    // Auto-sync on mount and tab changes
+    // Auto-sync on mount always
     useEffect(() => {
-        if (!isLoading && accounts.length === 0) {
+        if (!isLoading) {
             syncMutation.mutate();
         }
-    }, [isLoading, accounts.length]);
+    }, [isLoading]);
 
-    // Auto-sync when switching tabs
+    // Auto-sync when switching to data tabs
     useEffect(() => {
-        if (activeTab === 'monitoramento' || activeTab === 'radar') {
+        if (activeTab === 'radar') {
             syncMutation.mutate();
         }
     }, [activeTab]);
