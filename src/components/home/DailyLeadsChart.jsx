@@ -51,18 +51,10 @@ export default function DailyLeadsChart({ clienteId, clienteNome }) {
     }
   });
 
-  // Buscar ContaMetaAds para pegar o total correto do mês (cadastros_whats = cadastro + whats)
-  const { data: contaMeta } = useQuery({
-    queryKey: ['contaMetaTotals', clienteNome],
-    queryFn: () => base44.entities.ContaMetaAds.filter({ account_name: clienteNome }, '-created_date', 1),
-    enabled: !!clienteNome,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Para Meta: usar cadastros_whats da ContaMetaAds (fonte consolidada correta)
-  const totalMeta = contaMeta?.[0]?.cadastros_whats ?? 0;
-  // Para Google: usar o último snapshot do histórico
-  const totalGoogle = historico.length > 0 ? (historico[historico.length - 1]?.leads_google || 0) : 0;
+  // Usar último snapshot do histórico para os totais (consistente com filtro de período)
+  const lastSnapshot = historico.length > 0 ? historico[historico.length - 1] : null;
+  const totalMeta = lastSnapshot?.leads_meta || 0;
+  const totalGoogle = lastSnapshot?.leads_google || 0;
   const totalGeral = totalMeta + totalGoogle;
 
   if (isLoading) {
