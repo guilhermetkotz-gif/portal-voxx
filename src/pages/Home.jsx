@@ -136,7 +136,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const normalizeAccountName = (name) => {
     return name?.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
-      .replace(/\[ativa\]|\[inativa\]|\(nova\)|\(2\)/gi, '')
+      .replace(/\[.*?\]/g, '')  // remove qualquer tag [AS], [Ativa], [Inativa], etc.
+      .replace(/\(nova\)|\(2\)|\(1\)|\(3\)|\(4\)/gi, '') // remove sufixos numéricos
       .replace(/\s+/g, ' ')
       .replace(/\s*-\s*/g, ' ')
       .trim() || '';
@@ -274,7 +275,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   const normalizeNome = (nome) => {
     return nome?.toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
-      .replace(/\[ativa\]|\[inativa\]|\[as\]|\(nova\)|\(2\)/gi, '')
+      .replace(/\[.*?\]/g, '')  // remove qualquer tag [AS], [Ativa], etc.
+      .replace(/\(nova\)|\(2\)|\(1\)|\(3\)|\(4\)/gi, '') // remove sufixos numéricos
       .replace(/\s+/g, ' ')
       .replace(/\s*-\s*/g, '')
       .trim() || '';
