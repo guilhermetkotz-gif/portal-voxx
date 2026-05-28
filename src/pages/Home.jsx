@@ -97,25 +97,31 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
       return unicos.sort((a, b) => new Date(b.data_acao || b.created_date) - new Date(a.data_acao || a.created_date)).slice(0, 10);
     },
     enabled: !!currentCliente?.nome,
-    staleTime: 60 * 1000
+    staleTime: 0,
+    refetchOnMount: true
   });
 
   const { data: demandasConcluidas = [] } = useQuery({
     queryKey: ['demandasConcluidas', selectedClienteId],
-    queryFn: () => base44.entities.Demanda.filter(
-      { cliente_id: selectedClienteId, status: 'concluida' },
-      '-updated_date',
-      10
-    ),
+    queryFn: async () => {
+      const [concluidas, finalizadas] = await Promise.all([
+        base44.entities.Demanda.filter({ cliente_id: selectedClienteId, status: 'concluida' }, '-updated_date', 20),
+        base44.entities.Demanda.filter({ cliente_id: selectedClienteId, status: 'finalizada' }, '-updated_date', 20)
+      ]);
+      const todas = [...concluidas, ...finalizadas];
+      return todas.sort((a, b) => new Date(b.updated_date) - new Date(a.updated_date)).slice(0, 20);
+    },
     enabled: !!selectedClienteId,
-    staleTime: 60 * 1000
+    staleTime: 0,
+    refetchOnMount: true
   });
 
   // Buscar todas as contas Meta Ads para cálculo do percentil e métricas atualizadas
   const { data: todasContasMetaAds = [] } = useQuery({
     queryKey: ['todasContasMetaAds'],
     queryFn: () => base44.entities.ContaMetaAds.list('-created_date', 500),
-    staleTime: 5 * 60 * 1000
+    staleTime: 0,
+    refetchOnMount: true
   });
 
   // Buscar conta Google Ads atualizada do cliente
@@ -123,7 +129,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     queryKey: ['googleAdsAccountHome', currentCliente?.google_ads_account_name, currentCliente?.nome],
     queryFn: () => base44.entities.GoogleAdsAccount.list('-data_atualizacao', 500),
     enabled: !!currentCliente,
-    staleTime: 5 * 60 * 1000
+    staleTime: 0,
+    refetchOnMount: true
   });
 
   // Calcular percentil da unidade atual
@@ -270,7 +277,8 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
         return null;
       }
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: true,
     retry: false
   });
 
