@@ -78,6 +78,18 @@ export default function InteligeniciaOperacional({ user }) {
     staleTime: 3 * 60 * 1000,
   });
 
+  const { data: otimizacoesMeta = [] } = useQuery({
+    queryKey: ['otimizacoes-meta-intel', periodo],
+    queryFn: async () => {
+      const all = await base44.entities.MetaAdsOtimizacao.list('-data_acao', 2000);
+      return all.filter(o => {
+        const dt = parseISO(o.data_acao);
+        return isWithinInterval(dt, { start, end });
+      });
+    },
+    staleTime: 3 * 60 * 1000,
+  });
+
   const { data: configSetores = [] } = useQuery({
     queryKey: ['config-setores'],
     queryFn: () => base44.entities.ConfiguracaoSetorOperacional.list(),
@@ -103,6 +115,15 @@ export default function InteligeniciaOperacional({ user }) {
   const clienteMap = useMemo(() => {
     const map = {};
     clientes.forEach(c => { map[c.id] = c; });
+    return map;
+  }, [clientes]);
+
+  // Map account_name -> cliente_id (via meta_ads_account_name)
+  const accountNameToClienteId = useMemo(() => {
+    const map = {};
+    clientes.forEach(c => {
+      if (c.meta_ads_account_name) map[c.meta_ads_account_name.trim().toLowerCase()] = c.id;
+    });
     return map;
   }, [clientes]);
 
@@ -151,6 +172,40 @@ export default function InteligeniciaOperacional({ user }) {
       if (h.setor) clienteData[h.cliente_id].setores.add(h.setor);
     });
 
+    // Add Meta Ads otimizações as TRAFEGO_META actions
+    const MINUTOS_POR_OTIMIZACAO = 45;
+    otimizacoesMeta.forEach(o => {
+      const clienteId = accountNameToClienteId[o.account_name?.trim().toLowerCase()];
+      if (!clienteId) return;
+      if (!clienteData[clienteId]) {
+        const cliente = clienteMap[clienteId];
+        clienteData[clienteId] = {
+          cliente_id: clienteId,
+          cliente_nome: cliente?.nome || o.account_name,
+          demandas: [],
+          setores: new Set(),
+          usuarios: new Set(),
+          participacoes: 0,
+          minutos_total: 0,
+          custo_estimado: 0,
+        };
+      }
+      const cd = clienteData[clienteId];
+      cd.setores.add('TRAFEGO_META');
+      cd.minutos_total += MINUTOS_POR_OTIMIZACAO;
+      cd.participacoes++;
+      if (o.created_by) cd.usuarios.add(o.created_by);
+      const custoHora = setorCustoMap['TRAFEGO_META'] || DEFAULT_HOURLY_COST;
+      cd.custo_estimado += (MINUTOS_POR_OTIMIZACAO / 60) * custoHora;
+      // Count in setor breakdown via a synthetic marker on demandas_raw
+      cd.demandas.push({
+        titulo: o.resumo_acao || 'Otimização Meta Ads',
+        setor: 'TRAFEGO_META',
+        status: 'finalizada',
+        _tipo: 'otimizacao_meta',
+      });
+    });
+
     // Compute totals for % calc
     const totalCusto = Object.values(clienteData).reduce((s, c) => s + c.custo_estimado, 0);
     const totalDemandas = demandas.length;
@@ -189,7 +244,7 @@ export default function InteligeniciaOperacional({ user }) {
         setor_breakdown: setorBreakdown,
       };
     }).sort((a, b) => b.custo_estimado - a.custo_estimado);
-  }, [demandas, historicoSetores, clienteMap, setorCustoMap]);
+  }, [demandas, historicoSetores, otimizacoesMeta, clienteMap, accountNameToClienteId, setorCustoMap]);
 
   // Compute global KPIs
   const kpis = useMemo(() => {
