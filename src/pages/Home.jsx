@@ -135,6 +135,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
   // Encontrar conta Meta Ads atualizada do cliente (para métricas de performance)
   const normalizeAccountName = (name) => {
     return name?.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
       .replace(/\[ativa\]|\[inativa\]|\(nova\)|\(2\)/gi, '')
       .replace(/\s+/g, ' ')
       .replace(/\s*-\s*/g, ' ')
@@ -166,7 +167,15 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
     }
     // 4. Correspondência normalizada por nome do cliente
     const normCliente = normalizeAccountName(clienteNome);
-    return todasContasMetaAds.find(c => normalizeAccountName(c.account_name) === normCliente) || null;
+    const exact4 = todasContasMetaAds.find(c => normalizeAccountName(c.account_name) === normCliente);
+    if (exact4) return exact4;
+
+    // 5. Fallback: contains (o nome do cliente está contido no account_name ou vice-versa)
+    const contains = todasContasMetaAds.find(c => {
+      const norm = normalizeAccountName(c.account_name);
+      return norm.includes(normCliente) || normCliente.includes(norm);
+    });
+    return contains || null;
   })();
 
   // Encontrar conta Google Ads atualizada do cliente
@@ -264,6 +273,7 @@ export default function Home({ currentCliente, selectedClienteId, user }) {
 
   const normalizeNome = (nome) => {
     return nome?.toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
       .replace(/\[ativa\]|\[inativa\]|\[as\]|\(nova\)|\(2\)/gi, '')
       .replace(/\s+/g, ' ')
       .replace(/\s*-\s*/g, '')
