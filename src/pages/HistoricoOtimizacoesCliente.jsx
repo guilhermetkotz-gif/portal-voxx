@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { ArrowLeft, Calendar, Target, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { format, startOfMonth, subDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from 'moment-timezone';
@@ -12,6 +14,8 @@ import moment from 'moment-timezone';
 export default function HistoricoOtimizacoesCliente() {
     const navigate = useNavigate();
     const urlParams = new URLSearchParams(window.location.search);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
     const contaId = urlParams.get('conta_id');
     const contaName = urlParams.get('conta_name');
 
@@ -112,8 +116,49 @@ export default function HistoricoOtimizacoesCliente() {
                 </CardHeader>
             </Card>
 
+            {/* Filtro de Data */}
+            <Card>
+                <CardContent className="p-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm font-medium text-slate-700">Filtrar por período:</span>
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="date"
+                                value={dateFrom}
+                                onChange={e => setDateFrom(e.target.value)}
+                                className="h-8 text-sm w-36"
+                                placeholder="De"
+                            />
+                            <span className="text-xs text-slate-400">até</span>
+                            <Input
+                                type="date"
+                                value={dateTo}
+                                onChange={e => setDateTo(e.target.value)}
+                                className="h-8 text-sm w-36"
+                                placeholder="Até"
+                            />
+                        </div>
+                        {(dateFrom || dateTo) && (
+                            <button
+                                onClick={() => { setDateFrom(''); setDateTo(''); }}
+                                className="text-xs text-slate-500 hover:text-slate-700 underline"
+                            >
+                                Limpar filtro
+                            </button>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Timeline de Otimizações */}
-            {otimizacoes.length === 0 ? (
+            {(() => {
+                const otimizacoesFiltradas = otimizacoes.filter(o => {
+                    const data = o.data_acao?.slice(0, 10);
+                    if (dateFrom && data < dateFrom) return false;
+                    if (dateTo && data > dateTo) return false;
+                    return true;
+                });
+                return otimizacoesFiltradas.length === 0 ? (
                 <Card>
                     <CardContent className="p-12 text-center">
                         <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-4" />
@@ -124,7 +169,7 @@ export default function HistoricoOtimizacoesCliente() {
                 </Card>
             ) : (
                 <div className="space-y-4">
-                    {otimizacoes.map((otimizacao, index) => (
+                    {otimizacoesFiltradas.map((otimizacao, index) => (
                         <Card key={otimizacao.id}>
                             <CardContent className="p-6">
                                 <div className="flex items-start gap-4">
@@ -199,7 +244,8 @@ export default function HistoricoOtimizacoesCliente() {
                         </Card>
                     ))}
                 </div>
-            )}
+            );
+            })()}
         </div>
     );
 }
