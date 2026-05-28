@@ -31,9 +31,7 @@ export default function ListaHistoricoOtimizacoes() {
         const otimizacoesConta = todasOtimizacoes.filter(
             o => o.account_name === conta.account_name
         );
-        
         const ultimaOtimizacao = otimizacoesConta.length > 0 ? otimizacoesConta[0] : null;
-        
         return {
             ...conta,
             total_otimizacoes: otimizacoesConta.length,
@@ -41,8 +39,27 @@ export default function ListaHistoricoOtimizacoes() {
         };
     });
 
+    // Incluir otimizações "órfãs" (account_name não encontrado em ContaMetaAds)
+    const accountNamesContas = new Set(contas.map(c => c.account_name));
+    const accountNamesOrfaos = [...new Set(
+        todasOtimizacoes
+            .map(o => o.account_name)
+            .filter(name => name && !accountNamesContas.has(name))
+    )];
+    const contasOrfas = accountNamesOrfaos.map(name => {
+        const otimizacoesConta = todasOtimizacoes.filter(o => o.account_name === name);
+        return {
+            id: `orfao_${name}`,
+            account_name: name,
+            total_otimizacoes: otimizacoesConta.length,
+            ultima_otimizacao: otimizacoesConta[0] || null,
+            _orfao: true
+        };
+    });
+    const todasContasComOtimizacoes = [...contasComOtimizacoes, ...contasOrfas];
+
     // Filtrar por termo de busca
-    const contasFiltradas = contasComOtimizacoes.filter(conta => 
+    const contasFiltradas = todasContasComOtimizacoes.filter(conta => 
         conta.account_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -95,9 +112,14 @@ export default function ListaHistoricoOtimizacoes() {
                         <CardContent className="p-4">
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                    <h3 className="font-semibold text-slate-900 mb-1">
-                                        {conta.account_name}
-                                    </h3>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <h3 className="font-semibold text-slate-900">
+                                            {conta.account_name}
+                                        </h3>
+                                        {conta._orfao && (
+                                            <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">sem conta vinculada</span>
+                                        )}
+                                    </div>
                                     
                                     {conta.ultima_otimizacao ? (
                                         <div className="space-y-2">
