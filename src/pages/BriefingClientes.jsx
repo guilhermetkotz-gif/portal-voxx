@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, BookOpen, Plus, AlertTriangle, CheckCircle2, Clock, User, Filter } from 'lucide-react';
+import { Search, BookOpen, Plus, AlertTriangle, CheckCircle2, Clock, User, Filter, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import BriefingDetalheModal from '@/components/briefing/BriefingDetalheModal';
 
@@ -260,14 +260,26 @@ export default function BriefingClientes({ user }) {
                           : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <Button
-                          size="sm"
-                          variant={briefing ? 'outline' : 'default'}
-                          onClick={() => handleOpenBriefing({ cliente, briefing })}
-                          className="text-xs h-7"
-                        >
-                          {briefing ? 'Editar' : <><Plus className="w-3 h-3 mr-1" /> Criar</>}
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          {briefing && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => window.location.href = `/BriefingVisualizacao?clienteId=${cliente.id}`}
+                              className="text-xs h-7 gap-1 text-violet-600 hover:text-violet-700 hover:bg-violet-50"
+                            >
+                              <Eye className="w-3 h-3" /> Ver
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant={briefing ? 'outline' : 'default'}
+                            onClick={() => handleOpenBriefing({ cliente, briefing })}
+                            className="text-xs h-7"
+                          >
+                            {briefing ? 'Editar' : <><Plus className="w-3 h-3 mr-1" /> Criar</>}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
