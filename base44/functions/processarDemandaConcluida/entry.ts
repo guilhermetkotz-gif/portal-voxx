@@ -98,9 +98,16 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'duplicata', fila_id: existing[0].id });
     }
 
+    // Preencher data_conclusao se não estiver definida
+    const agora = new Date().toISOString();
+    if (!demanda.data_conclusao) {
+      await base44.asServiceRole.entities.Demanda.update(demandaId, { data_conclusao: agora });
+      demanda.data_conclusao = agora;
+    }
+
     const tipoEntrega = inferirTipoEntrega(demanda);
     const resumo = gerarResumoAutomatico(demanda);
-    const hoje = new Date().toISOString().split('T')[0];
+    const dataEvento = demanda.data_conclusao.split('T')[0];
 
     // Preparar anexos do cliente
     const anexosCliente = (demanda.anexos_cliente || []).filter(a => a.enviar_cliente !== false);
@@ -114,7 +121,7 @@ Deno.serve(async (req) => {
       tipo_evento: 'entrega',
       tipo_entrega: tipoEntrega,
       resumo,
-      data_evento: hoje,
+      data_evento: dataEvento,
       usuario_responsavel: demanda.created_by || '',
       usuario_responsavel_nome: '',
       anexos: anexosCliente,

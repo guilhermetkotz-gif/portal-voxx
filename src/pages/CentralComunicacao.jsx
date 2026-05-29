@@ -187,18 +187,20 @@ export default function CentralComunicacao({ user }) {
     staleTime: 60 * 1000
   });
 
-  const { data: demandasHoje = [] } = useQuery({
-    queryKey: ['demandasConcluidasHoje', hoje],
-    queryFn: () => base44.entities.Demanda.filter({ comunicar_cliente: true }, '-updated_date', 200),
+  const { data: demandasRecentes = [] } = useQuery({
+    queryKey: ['demandasRecentesComunicacao', hoje],
+    queryFn: () => base44.entities.Demanda.filter({}, '-updated_date', 200),
     staleTime: 30 * 1000
   });
 
   const clientesComEnvio = clientes.filter(c => c.whatsapp_envio_ativo);
   const clientesSemGrupo = clientesComEnvio.filter(c => !c.whatsapp_grupo_id);
-  const demandasConcluidasHoje = demandasHoje.filter(d =>
-    (d.status === 'concluida' || d.status === 'finalizada') &&
-    (d.updated_date || d.created_date)?.startsWith(hoje)
+  const concluidasStatus = demandasRecentes.filter(d => d.status === 'concluida' || d.status === 'finalizada');
+  const demandasConcluidasHoje = concluidasStatus.filter(d =>
+    d.data_conclusao?.startsWith(hoje) || d.updated_date?.startsWith(hoje)
   );
+  const demandasConcluidasHojeComunicar = demandasConcluidasHoje.filter(d => d.comunicar_cliente);
+  const demandasConcluidasHojeSemDataConclusao = demandasConcluidasHoje.filter(d => !d.data_conclusao);
   const filaHoje = filaItens.filter(i => i.data_evento === hoje);
 
   // Stats
@@ -402,7 +404,12 @@ export default function CentralComunicacao({ user }) {
             <p className="text-xs text-slate-500">Concluídas hoje</p>
           </div>
           <p className="text-2xl font-bold text-slate-900">{demandasConcluidasHoje.length}</p>
-          <p className="text-xs text-slate-400 mt-0.5">demandas com comunicar = sim</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {demandasConcluidasHojeComunicar.length} para comunicar
+            {demandasConcluidasHojeSemDataConclusao.length > 0 && (
+              <span className="text-amber-500 ml-1">· {demandasConcluidasHojeSemDataConclusao.length} sem data_conclusao</span>
+            )}
+          </p>
         </div>
         <div className="bg-white border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">

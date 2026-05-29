@@ -202,7 +202,12 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const handleStatusChange = async (newStatus) => {
     const statusAnterior = demanda.status;
     
-    await updateDemandaMutation.mutateAsync({ status: newStatus });
+    const updates = { status: newStatus };
+    if (newStatus === 'concluida' || newStatus === 'finalizada') {
+      updates.data_conclusao = new Date().toISOString();
+    }
+    
+    await updateDemandaMutation.mutateAsync(updates);
     
     await base44.entities.TimelineEvent.create({
       demanda_id: demanda.id,
@@ -826,6 +831,15 @@ ${statusValidacao}`.trim();
                         <div className="flex-1">
                           <p className="font-medium text-slate-700">Previsão de Entrega</p>
                           <p className="text-slate-600">{moment(currentDemanda.previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY')}</p>
+                        </div>
+                      </div>
+                    )}
+                    {currentDemanda.data_conclusao && (
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-700">Data de Conclusão</p>
+                          <p className="text-green-700 font-medium">{moment(currentDemanda.data_conclusao).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</p>
                         </div>
                       </div>
                     )}

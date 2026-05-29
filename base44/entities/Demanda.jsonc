@@ -66,6 +66,11 @@
       "type": "string",
       "format": "date"
     },
+    "data_conclusao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora real em que a demanda foi conclu\u00edda ou finalizada"
+    },
     "anexos": {
       "type": "array",
       "items": {
