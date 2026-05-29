@@ -517,6 +517,7 @@ export default function CentralComunicacao({ user }) {
           </TabsTrigger>
           <TabsTrigger value="fila">Fila de Eventos</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
+          <TabsTrigger value="fluxo">Status do Fluxo</TabsTrigger>
         </TabsList>
 
         {/* Revisão */}
@@ -647,6 +648,89 @@ export default function CentralComunicacao({ user }) {
               </table>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Status do Fluxo */}
+        <TabsContent value="fluxo">
+          <div className="space-y-4">
+            {/* Automações */}
+            <Card className="p-5 space-y-4">
+              <h3 className="font-semibold text-slate-900">Automações de Comunicação</h3>
+              <div className="space-y-3">
+                {[
+                  {
+                    nome: 'Fila de Comunicação — Demanda Concluída',
+                    ativa: true,
+                    entidade: 'Demanda',
+                    evento: 'update',
+                    condicoes: 'comunicar_cliente = true + status em [concluida, finalizada] + changed_fields contains status',
+                    funcao: 'processarDemandaConcluida'
+                  },
+                  {
+                    nome: 'Fila de Comunicação — Otimização Meta Ads',
+                    ativa: true,
+                    entidade: 'MetaAdsOtimizacao',
+                    evento: 'create / update',
+                    condicoes: 'comunicar_cliente = true',
+                    funcao: 'processarOtimizacaoMeta'
+                  },
+                  {
+                    nome: 'Consolidação Diária de Comunicação',
+                    ativa: true,
+                    entidade: null,
+                    evento: 'Agendada — 17:30 diário',
+                    condicoes: 'Consolida todos os itens da FilaComunicacaoCliente com status aguardando',
+                    funcao: 'consolidarComunicacaoDiaria'
+                  }
+                ].map((a, i) => (
+                  <div key={i} className="flex items-start gap-3 p-3 border border-slate-200 rounded-lg">
+                    <span className={`mt-0.5 w-2.5 h-2.5 rounded-full flex-shrink-0 ${a.ativa ? 'bg-green-500' : 'bg-red-400'}`} />
+                    <div className="flex-1 space-y-0.5">
+                      <p className="text-sm font-medium text-slate-900">{a.nome}</p>
+                      {a.entidade && <p className="text-xs text-slate-500">Entidade: <strong>{a.entidade}</strong> — Evento: <strong>{a.evento}</strong></p>}
+                      {!a.entidade && <p className="text-xs text-slate-500">{a.evento}</p>}
+                      <p className="text-xs text-slate-400">Condição: {a.condicoes}</p>
+                      <p className="text-xs text-violet-600">→ Função: {a.funcao}</p>
+                    </div>
+                    <Badge className={a.ativa ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}>{a.ativa ? 'Ativa' : 'Pausada'}</Badge>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Fluxo esperado */}
+            <Card className="p-5">
+              <h3 className="font-semibold text-slate-900 mb-3">Fluxo Esperado</h3>
+              <ol className="space-y-2 text-sm text-slate-600">
+                {[
+                  'Demanda criada com comunicar_cliente = true (padrão)',
+                  'Equipe conclui a demanda → status muda para concluida ou finalizada',
+                  'Automação detecta a mudança e chama processarDemandaConcluida',
+                  'Função cria item na FilaComunicacaoCliente com status aguardando',
+                  'Diariamente às 17:30 → consolidarComunicacaoDiaria agrupa os itens por cliente',
+                  'IA gera mensagem profissional em português para cada cliente',
+                  'Equipe revisa, edita e aprova o resumo na aba "Revisão Hoje"',
+                  'Após aprovação → status muda para "Pronto para Envio" (aguarda integração WhatsApp)'
+                ].map((step, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="flex-shrink-0 w-5 h-5 bg-violet-100 text-violet-700 rounded-full text-xs flex items-center justify-center font-bold mt-0.5">{i + 1}</span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </Card>
+
+            {/* Por que a fila pode estar vazia */}
+            <Card className="p-5 bg-amber-50 border-amber-200">
+              <h3 className="font-semibold text-amber-900 mb-2">Por que a fila pode estar vazia?</h3>
+              <ul className="space-y-1.5 text-sm text-amber-800">
+                <li className="flex items-start gap-1.5"><span className="mt-1.5 w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />Nenhuma demanda foi concluída/finalizada <strong>após a criação da automação</strong> (hoje, 29/05)</li>
+                <li className="flex items-start gap-1.5"><span className="mt-1.5 w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />Demandas já concluídas antes da automação <strong>não entram retroativamente</strong> (comportamento correto)</li>
+                <li className="flex items-start gap-1.5"><span className="mt-1.5 w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />A demanda concluída pode ter <code className="bg-amber-100 px-1 rounded">comunicar_cliente = false</code></li>
+                <li className="flex items-start gap-1.5"><span className="mt-1.5 w-1.5 h-1.5 bg-amber-500 rounded-full flex-shrink-0" />Use o botão <strong>"Criar evento de teste"</strong> (acima) para validar a geração de resumo sem precisar de demanda real</li>
+              </ul>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

@@ -64,7 +64,11 @@ Deno.serve(async (req) => {
 
     // Buscar a demanda atualizada
     const demandaId = event.entity_id;
-    const demanda = data || await base44.asServiceRole.entities.Demanda.get(demandaId);
+    let demanda = data || null;
+    if (!demanda && demandaId) {
+      const results = await base44.asServiceRole.entities.Demanda.filter({ id: demandaId }, '-created_date', 1).catch(() => []);
+      demanda = results[0] || null;
+    }
 
     if (!demanda) {
       return Response.json({ skipped: true, reason: 'demanda not found' });
