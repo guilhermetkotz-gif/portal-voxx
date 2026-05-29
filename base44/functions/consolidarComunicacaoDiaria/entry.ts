@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     diagnostico.fallback_demandas_adicionadas = 0;
     const agoraFallback = new Date().toISOString();
     try {
-      const demandasConcluidas = await base44.asServiceRole.entities.Demanda.filter({ comunicar_cliente: true }, '-updated_date', 300);
+      const demandasConcluidas = await base44.asServiceRole.entities.Demanda.filter({}, '-updated_date', 300);
       const tipoMapFallback = { CRIACAO: 'Arte', EDICAO: 'Vídeo', TRAFEGO_META: 'Meta Ads', TRAFEGO_GOOGLE: 'Google Ads', TRAFEGO_TIKTOK: 'Meta Ads', BI_RELATORIO: 'Relatório', AUTOMACAO: 'Automação', ATENDIMENTO: 'Atendimento', IMPLANTACAO: 'Estratégia', ALTERACAO_CRIACAO: 'Arte' };
 
       for (const dem of demandasConcluidas) {

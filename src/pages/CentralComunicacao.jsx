@@ -193,6 +193,12 @@ export default function CentralComunicacao({ user }) {
     staleTime: 30 * 1000
   });
 
+  const { data: otimizacoesHoje = [] } = useQuery({
+    queryKey: ['otimizacoesMetaHoje', hoje],
+    queryFn: () => base44.entities.MetaAdsOtimizacao.filter({ comunicar_cliente: true }, '-created_date', 200),
+    staleTime: 30 * 1000
+  });
+
   const clientesComEnvio = clientes.filter(c => c.whatsapp_envio_ativo);
   const clientesSemGrupo = clientesComEnvio.filter(c => !c.whatsapp_grupo_id);
   const concluidasStatus = demandasRecentes.filter(d => d.status === 'concluida' || d.status === 'finalizada');
@@ -202,6 +208,9 @@ export default function CentralComunicacao({ user }) {
   const demandasConcluidasHojeComunicar = demandasConcluidasHoje.filter(d => d.comunicar_cliente);
   const demandasConcluidasHojeSemDataConclusao = demandasConcluidasHoje.filter(d => !d.data_conclusao);
   const filaHoje = filaItens.filter(i => i.data_evento === hoje);
+  const otimizacoesHojeCount = otimizacoesHoje.filter(o =>
+    (o.data_acao || o.created_date?.split('T')[0] || '').startsWith(hoje)
+  ).length;
 
   // Stats
   const pendentes = resumosHoje.filter(r => r.status_envio === 'aguardando_revisao').length;
@@ -381,7 +390,7 @@ export default function CentralComunicacao({ user }) {
       )}
 
       {/* Diagnóstico Permanente */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
         <div className="bg-white border rounded-xl p-4">
           <div className="flex items-center gap-2 mb-1">
             <Wifi className="w-4 h-4 text-green-500" />
@@ -418,6 +427,14 @@ export default function CentralComunicacao({ user }) {
           </div>
           <p className="text-2xl font-bold text-slate-900">{filaHoje.length}</p>
           <p className="text-xs text-slate-400 mt-0.5">na fila de comunicação</p>
+        </div>
+        <div className="bg-white border rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <BarChart3 className="w-4 h-4 text-blue-500" />
+            <p className="text-xs text-slate-500">Ações Meta Ads hoje</p>
+          </div>
+          <p className="text-2xl font-bold text-slate-900">{otimizacoesHojeCount}</p>
+          <p className="text-xs text-slate-400 mt-0.5">com comunicar ao cliente</p>
         </div>
       </div>
 

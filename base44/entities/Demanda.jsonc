@@ -131,7 +131,7 @@
     },
     "comunicar_cliente": {
       "type": "boolean",
-      "default": false,
+      "default": true,
       "description": "Se deve comunicar esta entrega ao cliente via WhatsApp"
     },
     "tipo_entrega": {
