@@ -591,14 +591,20 @@ export default function CentralComunicacao({ user }) {
         <TabsList className="mb-4">
           <TabsTrigger value="revisao">
             Revisão Hoje
-            {pendentes > 0 && <Badge className="ml-2 bg-amber-500 text-white text-[10px] px-1.5">{pendentes}</Badge>}
+            {pendentes > 0 && <Badge className="ml-2 bg-orange-500 text-white text-[10px] px-1.5 py-0">{pendentes}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="prontos">
             Prontos para Envio
-            {aprovados > 0 && <Badge className="ml-2 bg-blue-500 text-white text-[10px] px-1.5">{aprovados}</Badge>}
+            {aprovados > 0 && <Badge className="ml-2 bg-blue-500 text-white text-[10px] px-1.5 py-0">{aprovados}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="fila">Fila de Eventos</TabsTrigger>
-          <TabsTrigger value="historico">Histórico</TabsTrigger>
+          <TabsTrigger value="fila">
+            Fila de Eventos
+            {filaItens.length > 0 && <Badge className="ml-2 bg-slate-500 text-white text-[10px] px-1.5 py-0">{filaItens.length}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="historico">
+            Histórico
+            {enviados > 0 && <Badge className="ml-2 bg-green-500 text-white text-[10px] px-1.5 py-0">{enviados}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="fluxo">Status do Fluxo</TabsTrigger>
         </TabsList>
 
