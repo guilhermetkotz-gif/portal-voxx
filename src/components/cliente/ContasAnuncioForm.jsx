@@ -13,7 +13,8 @@ export default function ContasAnuncioForm({ contas = [], onChange }) {
   const { data: contasMetaAds = [] } = useQuery({
     queryKey: ['contasMetaAdsDisponiveis'],
     queryFn: () => base44.entities.ContaMetaAds.list('-updated_date', 500),
-    staleTime: 5 * 60 * 1000
+    staleTime: 0,
+    refetchOnMount: true
   });
 
   const handleAddConta = () => {
