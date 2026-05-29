@@ -223,6 +223,17 @@ export default function CentralComunicacao({ user }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['resumosDiarios'] })
   });
 
+  const handleLimparRevisaoHoje = async () => {
+    setLimpandoHoje(true);
+    const itens = resumosHoje.filter(r => r.data === hoje);
+    for (const item of itens) {
+      await base44.entities.ResumoDiarioCliente.delete(item.id);
+    }
+    await queryClient.invalidateQueries({ queryKey: ['resumosDiarios'] });
+    setLimpandoHoje(false);
+    toast.success(`${itens.length} resumo(s) de hoje excluído(s). Agora você pode gerar novamente.`);
+  };
+
   const handleExcluirPorStatus = async (status) => {
     setExcluindoStatus(status);
     const itens = await base44.entities.FilaComunicacaoCliente.filter({ status });
@@ -304,6 +315,7 @@ export default function CentralComunicacao({ user }) {
   const [progresso, setProgresso] = useState({ ativo: false, mensagem: '', clientes_processados: 0, total_estimado: 0 });
   const [excluindoStatus, setExcluindoStatus] = useState(null);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(null);
+  const [limpandoHoje, setLimpandoHoje] = useState(false);
 
   const handleGerarTodos = async () => {
     try {
@@ -610,6 +622,20 @@ export default function CentralComunicacao({ user }) {
 
         {/* Revisão */}
         <TabsContent value="revisao">
+          {resumosHoje.length > 0 && (
+            <div className="flex justify-end mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLimparRevisaoHoje}
+                disabled={limpandoHoje}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                {limpandoHoje ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />}
+                Limpar resumos de hoje
+              </Button>
+            </div>
+          )}
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-violet-600" />
