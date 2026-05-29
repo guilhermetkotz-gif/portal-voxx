@@ -52,15 +52,16 @@ Deno.serve(async (req) => {
     }
 
     // FALLBACK: Escanear demandas concluídas hoje que a automação pode ter perdido
+    // IMPORTANTE: não pula mais por comunicacao_evento_gerado — verifica se item existe na fila de verdade
     diagnostico.fallback_demandas_adicionadas = 0;
     const agoraFallback = new Date().toISOString();
     try {
-      const demandasConcluidas = await base44.asServiceRole.entities.Demanda.filter({}, '-updated_date', 300);
+      const demandasConcluidas = await base44.asServiceRole.entities.Demanda.filter({}, '-updated_date', 500);
       const tipoMapFallback = { CRIACAO: 'Arte', EDICAO: 'Vídeo', TRAFEGO_META: 'Meta Ads', TRAFEGO_GOOGLE: 'Google Ads', TRAFEGO_TIKTOK: 'Meta Ads', BI_RELATORIO: 'Relatório', AUTOMACAO: 'Automação', ATENDIMENTO: 'Atendimento', IMPLANTACAO: 'Estratégia', ALTERACAO_CRIACAO: 'Arte' };
 
       for (const dem of demandasConcluidas) {
         if (dem.status !== 'concluida' && dem.status !== 'finalizada') continue;
-        if (dem.comunicacao_evento_gerado || dem.comunicacao_enviada_fila) continue;
+        if (!dem.comunicar_cliente) continue;
 
         // Usar data_conclusao ou updated_date como referência
         const dataConclusao = dem.data_conclusao || dem.updated_date || agoraFallback;
@@ -69,12 +70,24 @@ Deno.serve(async (req) => {
         // Verificar se já existe item na fila (qualquer status)
         const existingFila = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({ origem: 'demanda', origem_id: dem.id });
         if (existingFila.length > 0) {
-          // Sincronizar flags
-          await base44.asServiceRole.entities.Demanda.update(dem.id, { comunicacao_evento_gerado: true, comunicacao_enviada_fila: true, comunicacao_evento_id: existingFila[0].id });
+          // Se o item existe mas está consolidado/descartado/enviado, não precisa reprocessar
+          const statusFila = existingFila[0].status;
+          if (statusFila === 'consolidado' || statusFila === 'enviado' || statusFila === 'descartado') {
+            // Sincronizar flags se necessário
+            if (!dem.comunicacao_evento_gerado) {
+              await base44.asServiceRole.entities.Demanda.update(dem.id, { comunicacao_evento_gerado: true, comunicacao_enviada_fila: true, comunicacao_evento_id: existingFila[0].id });
+            }
+            // Se o item já está consolidado, adicionar ao todosItens apenas se aguardando
+            continue;
+          }
+          // Se aguardando, já está na fila corretamente - incluir no todosItens
+          if (!todosItens.find(i => i.id === existingFila[0].id)) {
+            todosItens.push(existingFila[0]);
+          }
           continue;
         }
 
-        // Adicionar à fila
+        // Não existe item na fila — criar independente do comunicacao_evento_gerado
         const tipoEntrega = dem.tipo_entrega || tipoMapFallback[dem.setor] || 'Outro';
         const resumoFallback = dem.resumo_entrega_cliente?.trim() || dem.titulo;
         const dataEvento = dataConclusao.split('T')[0];
@@ -100,7 +113,6 @@ Deno.serve(async (req) => {
         });
 
         diagnostico.fallback_demandas_adicionadas++;
-        // Adicionar ao todosItens para que a consolidação já a inclua nesta rodada
         todosItens.push(itemFallback);
       }
     } catch (errFallback) {
