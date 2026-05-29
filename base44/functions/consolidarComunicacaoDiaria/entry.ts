@@ -124,7 +124,10 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const clienteOtim = todosClientesMeta.find(c => c.meta_ads_account_name === otim.account_name);
+        const clienteOtim = todosClientesMeta.find(c => 
+          c.meta_ads_account_name === otim.account_name ||
+          (c.contas_anuncio || []).some(ca => ca.plataforma === 'Meta' && ca.conta_nome === otim.account_name)
+        );
         if (!clienteOtim) continue;
 
         const resumoOtim = otim.resumo_para_cliente || otim.resumo_acao || otim.objetivo || 'Otimização realizada nas campanhas Meta Ads';
