@@ -11,8 +11,15 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const { cliente_id, data, forcar_regenerar } = body;
-    const hoje = data || new Date().toISOString().split('T')[0];
+    // Usa horário de São Paulo (UTC-3) para definir "hoje"
+    const hoje = data || new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
     const agoraISO = new Date().toISOString();
+
+    // Helper: converte timestamp UTC para data no fuso SP
+    const spDate = (isoStr) => {
+      if (!isoStr) return '';
+      try { return new Date(isoStr).toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); } catch { return ''; }
+    };
 
     // ─── PASSO 1: Garantir que todas as demandas concluídas hoje com comunicar=true têm item na fila ───
     const tipoMap = {
@@ -30,7 +37,7 @@ Deno.serve(async (req) => {
       if (!d.comunicar_cliente) return false;
       if (cliente_id && d.cliente_id !== cliente_id) return false;
       const dt = d.data_conclusao || d.updated_date || '';
-      return dt.startsWith(hoje);
+      return spDate(dt) === hoje;
     });
 
     // Buscar TODOS os itens da fila (origem=demanda) de uma vez
@@ -50,7 +57,7 @@ Deno.serve(async (req) => {
       // Não existe — criar
       const tipoEntrega = dem.tipo_entrega || tipoMap[dem.setor] || 'Outro';
       const resumo = dem.resumo_entrega_cliente?.trim() || dem.titulo;
-      const dataEvento = (dem.data_conclusao || dem.updated_date || agoraISO).split('T')[0];
+      const dataEvento = spDate(dem.data_conclusao || dem.updated_date || agoraISO) || hoje;
 
       const novoItem = await base44.asServiceRole.entities.FilaComunicacaoCliente.create({
         cliente_id: dem.cliente_id,
@@ -86,8 +93,8 @@ Deno.serve(async (req) => {
       if (cliente_id) {
         // se filtrando por cliente, verificar se esta otimização é do cliente
       }
-      const dataOtim = otim.data_acao || otim.created_date?.split('T')[0] || '';
-      if (!dataOtim.startsWith(hoje)) continue;
+      const dataOtim = otim.data_acao ? spDate(otim.data_acao + 'T12:00:00') : spDate(otim.created_date);
+      if (dataOtim !== hoje) continue;
       if (filaMetaMap.has(otim.id)) continue;
 
       const clienteOtim = todosClientes.find(c =>
@@ -113,12 +120,37 @@ Deno.serve(async (req) => {
     }
 
     // ─── PASSO 3: Buscar TODOS os itens aguardando na fila agora ───
-    let filaAguardando;
-    if (cliente_id) {
-      filaAguardando = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({ status: 'aguardando', cliente_id });
-    } else {
-      filaAguardando = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({ status: 'aguardando' });
+    // Construir conjunto de itens de hoje para processar:
+    // Inclui 'aguardando' E 'consolidado' sem resumo correspondente (orphans)
+    const idsFila = new Set();
+    const itensFilaHoje = [];
+
+    // Buscar resumos já existentes hoje para verificar orphans
+    const resumosHojeAll = await base44.asServiceRole.entities.ResumoDiarioCliente.filter({ data: hoje });
+    const clientesComResumoHoje = new Set(resumosHojeAll.map(r => r.cliente_id));
+
+    for (const dem of demandasAlvo) {
+      const item = filaDemandasMap.get(dem.id);
+      if (!item) continue;
+      const clienteTemResumo = clientesComResumoHoje.has(dem.cliente_id);
+      // Incluir se: aguardando, OU consolidado mas sem resumo (orphan)
+      if (item.status === 'aguardando' || (item.status === 'consolidado' && !clienteTemResumo)) {
+        if (!idsFila.has(item.id)) { idsFila.add(item.id); itensFilaHoje.push(item); }
+      }
     }
+
+    // Adicionar itens de outras origens com data_evento = hoje
+    const filaOutrasOrigens = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({ data_evento: hoje });
+    for (const item of filaOutrasOrigens) {
+      if (item.status === 'enviado' || item.status === 'descartado') continue;
+      const clienteTemResumo = clientesComResumoHoje.has(item.cliente_id);
+      if (item.status === 'aguardando' || (item.status === 'consolidado' && !clienteTemResumo)) {
+        if (!idsFila.has(item.id)) { idsFila.add(item.id); itensFilaHoje.push(item); }
+      }
+    }
+
+    let filaAguardando = itensFilaHoje;
+    if (cliente_id) filaAguardando = filaAguardando.filter(i => i.cliente_id === cliente_id);
 
     // ─── PASSO 4: Agrupar por cliente e gerar resumos ───
     const porCliente = new Map();
@@ -257,13 +289,22 @@ Deno.serve(async (req) => {
 
     const gerados = resultados.filter(r => r.status === 'gerado').length;
 
+    // Debug: estado dos itens de fila das demandas alvo
+    const debugDemandas = demandasAlvo.map(d => ({
+      titulo: d.titulo,
+      cliente: d.cliente_nome,
+      fila_status: filaDemandasMap.get(d.id)?.status || 'SEM_ITEM'
+    }));
+
     return Response.json({
       success: true,
       data: hoje,
       gerados,
       fila_itens_novos_criados: criados,
       demandas_alvo: demandasAlvo.length,
-      resultados
+      fila_aguardando_total: filaAguardando.length,
+      resultados,
+      debug_demandas: debugDemandas
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
