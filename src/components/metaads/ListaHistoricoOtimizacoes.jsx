@@ -117,9 +117,7 @@ export default function ListaHistoricoOtimizacoes() {
                                         <h3 className="font-semibold text-slate-900">
                                             {conta.account_name}
                                         </h3>
-                                        {conta._orfao && (
-                                            <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">sem conta vinculada</span>
-                                        )}
+
                                     </div>
                                     
                                     {conta.ultima_otimizacao ? (
