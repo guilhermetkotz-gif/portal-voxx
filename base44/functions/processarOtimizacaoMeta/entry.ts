@@ -18,9 +18,7 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'otimizacao not found' });
     }
 
-    if (!otim.comunicar_cliente) {
-      return Response.json({ skipped: true, reason: 'comunicar_cliente = false' });
-    }
+    // Todas as otimizações participam da comunicação com o cliente
 
     if (otim.comunicacao_enviada_fila) {
       return Response.json({ skipped: true, reason: 'ja na fila' });

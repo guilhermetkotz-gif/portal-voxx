@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     // Fallback: MetaAdsOtimizacao com comunicar_cliente = true não enfileiradas de hoje
     diagnostico.fallback_meta_ads_adicionadas = 0;
     try {
-      const otimizacoes = await base44.asServiceRole.entities.MetaAdsOtimizacao.filter({ comunicar_cliente: true }, '-created_date', 200);
+      const otimizacoes = await base44.asServiceRole.entities.MetaAdsOtimizacao.filter({}, '-created_date', 200);
       const todosClientesMeta = await base44.asServiceRole.entities.Cliente.list('-updated_date', 500);
 
       for (const otim of otimizacoes) {
