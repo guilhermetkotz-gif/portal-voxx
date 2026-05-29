@@ -21,7 +21,8 @@ import {
   BarChart3,
   Settings,
   DollarSign,
-  Upload
+  Upload,
+  MessageCircle
 } from 'lucide-react';
 import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
 import EdicaoVideoWizard from '@/components/demandas/EdicaoVideoWizard';
@@ -199,6 +200,9 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const [anexos, setAnexos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [comunicarCliente, setComunicarCliente] = useState(true);
+  const [resumoEntregaCliente, setResumoEntregaCliente] = useState('');
+  const [anexosExcluidos, setAnexosExcluidos] = useState([]);
   const [novaSubcategoria, setNovaSubcategoria] = useState('');
   const [mostrarNovaSubcategoria, setMostrarNovaSubcategoria] = useState(false);
   const [mostrarWizardOralSin, setMostrarWizardOralSin] = useState(false);
@@ -349,6 +353,10 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
 
     const subcategoriaFinal = mostrarNovaSubcategoria ? novaSubcategoria : subcategoria;
 
+    const anexosClienteFinal = comunicarCliente
+      ? anexos.filter(u => !anexosExcluidos.includes(u)).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true }))
+      : [];
+
     const data = {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
@@ -361,7 +369,10 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       urgente,
       previsao_entrega: previsaoEntrega || null,
       anexos,
-      campos_adicionais: camposAdicionais
+      campos_adicionais: camposAdicionais,
+      comunicar_cliente: comunicarCliente,
+      resumo_entrega_cliente: resumoEntregaCliente || '',
+      anexos_cliente: anexosClienteFinal
     };
 
     await createDemanda.mutateAsync(data);
@@ -380,7 +391,10 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       urgente: wizardData.urgente || false,
       previsao_entrega: wizardData.previsao_entrega || null,
       anexos: wizardData.anexos || [],
-      campos_adicionais: wizardData.camposAdicionais
+      campos_adicionais: wizardData.camposAdicionais,
+      comunicar_cliente: comunicarCliente,
+      resumo_entrega_cliente: resumoEntregaCliente || '',
+      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true }))
     };
     await createDemanda.mutateAsync(data);
   };
@@ -398,7 +412,10 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       urgente: wizardData.camposAdicionais.urgencia_agenda === 'Sim',
       previsao_entrega: wizardData.camposAdicionais.data_desejada || null,
       anexos: wizardData.anexos,
-      campos_adicionais: wizardData.camposAdicionais
+      campos_adicionais: wizardData.camposAdicionais,
+      comunicar_cliente: comunicarCliente,
+      resumo_entrega_cliente: resumoEntregaCliente || '',
+      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true }))
     };
 
     await createDemanda.mutateAsync(data);
@@ -417,7 +434,10 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       urgente: wizardData.urgente,
       previsao_entrega: wizardData.camposAdicionais.prazo_desejado || null,
       anexos: wizardData.anexos,
-      campos_adicionais: wizardData.camposAdicionais
+      campos_adicionais: wizardData.camposAdicionais,
+      comunicar_cliente: comunicarCliente,
+      resumo_entrega_cliente: resumoEntregaCliente || '',
+      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true }))
     };
 
     await createDemanda.mutateAsync(data);
@@ -913,6 +933,67 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
                   </span>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* Comunicação com o Cliente */}
+          <div className="border-t pt-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4 text-green-600" />
+              <p className="font-semibold text-slate-900 text-sm">Comunicação com o Cliente</p>
+            </div>
+
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-slate-700">Comunicar entrega ao cliente via WhatsApp?</p>
+                <p className="text-xs text-slate-500 mt-0.5">A mensagem será enviada quando a demanda for concluída</p>
+              </div>
+              <Switch checked={comunicarCliente} onCheckedChange={setComunicarCliente} />
+            </div>
+
+            {comunicarCliente && (
+              <div className="space-y-3 pl-0">
+                <div className="space-y-1">
+                  <Label className="text-sm">Resumo para o cliente <span className="text-slate-400 font-normal">(opcional)</span></Label>
+                  <Input
+                    value={resumoEntregaCliente}
+                    onChange={e => setResumoEntregaCliente(e.target.value)}
+                    placeholder="Ex: Material de campanha finalizado para utilização nas ações de comunicação."
+                  />
+                  <p className="text-xs text-slate-400">Se vazio, o sistema gerará automaticamente com base no título e setor</p>
+                </div>
+
+                {anexos.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Anexos disponíveis para o cliente</Label>
+                    <div className="space-y-1.5">
+                      {anexos.map((url, idx) => (
+                        <label key={idx} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={!anexosExcluidos.includes(url)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setAnexosExcluidos(prev => prev.filter(u => u !== url));
+                              } else {
+                                setAnexosExcluidos(prev => [...prev, url]);
+                              }
+                            }}
+                            className="w-4 h-4 rounded"
+                          />
+                          <span className="text-slate-700">Anexo {idx + 1}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!comunicarCliente && (
+              <p className="text-xs text-slate-400 bg-slate-50 rounded-lg p-2.5">
+                ℹ️ Esta demanda está marcada como <strong>interna</strong> e não gerará comunicação automática ao cliente.
+              </p>
             )}
           </div>
 

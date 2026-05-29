@@ -25,7 +25,8 @@ import {
   Loader2,
   Copy,
   CheckCircle,
-  Zap
+  Zap,
+  MessageCircle
 } from 'lucide-react';
 import moment from 'moment';
 import { toast } from 'sonner';
@@ -837,6 +838,32 @@ ${statusValidacao}`.trim();
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Comunicação com o Cliente */}
+                {(currentDemanda.comunicar_cliente !== undefined) && (
+                  <div className={`flex items-start gap-3 p-3 rounded-lg border ${
+                    currentDemanda.comunicar_cliente 
+                      ? 'bg-green-50 border-green-200' 
+                      : 'bg-slate-50 border-slate-200'
+                  }`}>
+                    <MessageCircle className={`w-4 h-4 mt-0.5 ${
+                      currentDemanda.comunicar_cliente ? 'text-green-600' : 'text-slate-400'
+                    }`} />
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium ${
+                        currentDemanda.comunicar_cliente ? 'text-green-800' : 'text-slate-600'
+                      }`}>
+                        {currentDemanda.comunicar_cliente ? 'Será comunicado ao cliente' : 'Demanda interna (não comunicar)'}
+                      </p>
+                      {currentDemanda.comunicar_cliente && currentDemanda.resumo_entrega_cliente && (
+                        <p className="text-xs text-green-700 mt-0.5">"{currentDemanda.resumo_entrega_cliente}"</p>
+                      )}
+                      {currentDemanda.comunicar_cliente && !currentDemanda.resumo_entrega_cliente && (
+                        <p className="text-xs text-green-600 mt-0.5">Resumo será gerado automaticamente ao concluir</p>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Anexos */}
                 {currentDemanda.anexos && currentDemanda.anexos.length > 0 && (
