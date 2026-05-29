@@ -1,0 +1,124 @@
+{
+  "name": "FilaComunicacaoCliente",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "demanda",
+        "meta_ads",
+        "google_ads",
+        "acao_voxx",
+        "manual"
+      ],
+      "description": "Origem do evento"
+    },
+    "origem_id": {
+      "type": "string",
+      "description": "ID do registro de origem"
+    },
+    "tipo_evento": {
+      "type": "string",
+      "enum": [
+        "entrega",
+        "otimizacao",
+        "ajuste",
+        "criacao",
+        "relatorio",
+        "estrategia",
+        "outro"
+      ],
+      "description": "Tipo do evento"
+    },
+    "tipo_entrega": {
+      "type": "string",
+      "enum": [
+        "Arte",
+        "V\u00eddeo",
+        "Landing Page",
+        "Meta Ads",
+        "Google Ads",
+        "Automa\u00e7\u00e3o",
+        "Atendimento",
+        "Estrat\u00e9gia",
+        "Relat\u00f3rio",
+        "Outro"
+      ],
+      "description": "Tipo da entrega"
+    },
+    "resumo": {
+      "type": "string",
+      "description": "Resumo do evento para uso pela IA"
+    },
+    "data_evento": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do evento"
+    },
+    "usuario_responsavel": {
+      "type": "string",
+      "description": "Email do usu\u00e1rio respons\u00e1vel"
+    },
+    "usuario_responsavel_nome": {
+      "type": "string",
+      "description": "Nome do respons\u00e1vel"
+    },
+    "anexos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "imagem",
+              "video",
+              "pdf",
+              "documento"
+            ]
+          },
+          "enviar_cliente": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "description": "Anexos para enviar ao cliente"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aguardando",
+        "consolidado",
+        "descartado",
+        "enviado",
+        "erro"
+      ],
+      "default": "aguardando",
+      "description": "Status do item na fila"
+    },
+    "resumo_diario_id": {
+      "type": "string",
+      "description": "ID do ResumoDiarioCliente associado"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "origem",
+    "resumo"
+  ]
+}

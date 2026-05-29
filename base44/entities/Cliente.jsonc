@@ -195,98 +195,76 @@
       "description": "Cliente ativo"
     },
     "impressions": {
-      "type": "number",
-      "description": "Impress\u00f5es da campanha"
+      "type": "number"
     },
     "page_engagement": {
-      "type": "number",
-      "description": "Engajamento na p\u00e1gina"
+      "type": "number"
     },
     "page_likes": {
-      "type": "number",
-      "description": "Curtidas na p\u00e1gina"
+      "type": "number"
     },
     "reach": {
-      "type": "number",
-      "description": "Alcance da campanha"
+      "type": "number"
     },
     "clicks_all": {
-      "type": "number",
-      "description": "Total de cliques"
+      "type": "number"
     },
     "cpc_link_click": {
-      "type": "number",
-      "description": "CPC (link click)"
+      "type": "number"
     },
     "cpc_all": {
-      "type": "number",
-      "description": "CPC (all)"
+      "type": "number"
     },
     "new_messaging_connections": {
-      "type": "number",
-      "description": "Novas conex\u00f5es de mensagens"
+      "type": "number"
     },
     "cost_per_new_messaging": {
-      "type": "number",
-      "description": "Custo por nova conex\u00e3o"
+      "type": "number"
     },
     "cost_per_unique_link": {
-      "type": "number",
-      "description": "Custo por clique \u00fanico"
+      "type": "number"
     },
     "legacy_client_key": {
-      "type": "string",
-      "description": "Chave de identifica\u00e7\u00e3o para compatibilidade com planilhas (opcional, pode ser preenchida depois)"
+      "type": "string"
     },
     "address": {
-      "type": "string",
-      "description": "Endere\u00e7o completo do cliente"
+      "type": "string"
     },
     "population_estimate": {
-      "type": "number",
-      "description": "Estimativa populacional da \u00e1rea de atua\u00e7\u00e3o do cliente (opcional)"
+      "type": "number"
     },
     "briefing": {
-      "type": "string",
-      "description": "Briefing detalhado do cliente"
+      "type": "string"
     },
     "restrictions": {
-      "type": "string",
-      "description": "Restri\u00e7\u00f5es (compliance, CRO, CADE, proibi\u00e7\u00f5es, termos sens\u00edveis)"
+      "type": "string"
     },
     "observacoes_operacionais": {
-      "type": "string",
-      "description": "Observa\u00e7\u00f5es operacionais internas"
+      "type": "string"
     },
     "procedimentos_foco": {
-      "type": "string",
-      "description": "Procedimentos/produtos foco"
+      "type": "string"
     },
     "publico_alvo": {
-      "type": "string",
-      "description": "P\u00fablico-alvo priorit\u00e1rio"
+      "type": "string"
     },
     "contract_files": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "URLs de arquivos de contrato/documentos"
+      }
     },
     "owner_voxx": {
-      "type": "string",
-      "description": "ID ou email do usu\u00e1rio Voxx respons\u00e1vel pelo cliente"
+      "type": "string"
     },
     "notes_internal": {
-      "type": "string",
-      "description": "Notas internas sobre o cliente"
+      "type": "string"
     },
     "tags": {
       "type": "array",
       "items": {
         "type": "string"
-      },
-      "description": "Tags do cliente"
+      }
     },
     "fonte_entrada": {
       "type": "string",
@@ -296,8 +274,7 @@
         "outbound",
         "parceiro",
         "outro"
-      ],
-      "description": "Fonte de entrada do cliente"
+      ]
     },
     "maturidade_digital": {
       "type": "string",
@@ -305,8 +282,7 @@
         "basico",
         "estruturado",
         "escalavel"
-      ],
-      "description": "N\u00edvel de maturidade digital"
+      ]
     },
     "contas_anuncio": {
       "type": "array",
@@ -341,24 +317,19 @@
             ]
           }
         }
-      },
-      "description": "Contas de an\u00fancio vinculadas ao cliente"
+      }
     },
     "google_leads_sheet_url": {
-      "type": "string",
-      "description": "URL da planilha Google Sheets com leads do Google Ads"
+      "type": "string"
     },
     "google_ads_account_name": {
-      "type": "string",
-      "description": "Nome da conta Google Ads do cliente"
+      "type": "string"
     },
     "meta_ads_account_name": {
-      "type": "string",
-      "description": "Nome da conta Meta Ads do cliente"
+      "type": "string"
     },
     "distribuicao_personalizada": {
       "type": "object",
-      "description": "Configura\u00e7\u00e3o de distribui\u00e7\u00e3o personalizada de budget Meta Ads",
       "properties": {
         "enabled": {
           "type": "boolean"
@@ -383,6 +354,39 @@
           "format": "date-time"
         }
       }
+    },
+    "whatsapp_grupo_id": {
+      "type": "string",
+      "description": "ID do grupo WhatsApp do cliente"
+    },
+    "whatsapp_grupo_nome": {
+      "type": "string",
+      "description": "Nome do grupo WhatsApp"
+    },
+    "whatsapp_envio_ativo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Envio de resumo di\u00e1rio ativo"
+    },
+    "horario_envio_resumo": {
+      "type": "string",
+      "default": "18:00",
+      "description": "Hor\u00e1rio de envio do resumo di\u00e1rio (HH:MM)"
+    },
+    "enviar_imagens": {
+      "type": "boolean",
+      "default": true,
+      "description": "Permitir envio de imagens via WhatsApp"
+    },
+    "enviar_videos": {
+      "type": "boolean",
+      "default": false,
+      "description": "Permitir envio de v\u00eddeos via WhatsApp"
+    },
+    "enviar_documentos": {
+      "type": "boolean",
+      "default": false,
+      "description": "Permitir envio de documentos via WhatsApp"
     }
   },
   "required": [

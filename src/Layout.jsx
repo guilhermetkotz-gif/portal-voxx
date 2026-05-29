@@ -55,7 +55,8 @@ const pageTitles = {
         FinanceiroCarteira: { title: "Carteira de Clientes", subtitle: "Evolução, churn e crescimento da base" },
         PerformanceOperacional: { title: "Performance Operacional", subtitle: "Produtividade e eficiência por setor" },
         BriefingClientes: { title: "Briefing Clientes", subtitle: "Central de contexto operacional e estratégico das marcas" },
-        InteligeniciaOperacional: { title: "Inteligência Operacional", subtitle: "Consumo e carga operacional por cliente" }
+        InteligeniciaOperacional: { title: "Inteligência Operacional", subtitle: "Consumo e carga operacional por cliente" },
+        CentralComunicacao: { title: "Central de Comunicação", subtitle: "Resumos diários automáticos para clientes via WhatsApp" }
                 };
 
 export default function Layout({ children, currentPageName }) {

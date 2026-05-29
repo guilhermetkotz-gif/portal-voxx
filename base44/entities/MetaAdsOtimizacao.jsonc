@@ -1,0 +1,56 @@
+{
+  "name": "MetaAdsOtimizacao",
+  "type": "object",
+  "properties": {
+    "conta_meta_ads_id": {
+      "type": "string",
+      "description": "ID da Conta Meta Ads"
+    },
+    "account_name": {
+      "type": "string",
+      "description": "Nome da conta Meta Ads (cache)"
+    },
+    "data_acao": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da a\u00e7\u00e3o"
+    },
+    "problema": {
+      "type": "string",
+      "description": "Problema identificado"
+    },
+    "objetivo": {
+      "type": "string",
+      "description": "Objetivo da otimiza\u00e7\u00e3o"
+    },
+    "acoes_implementadas": {
+      "type": "string",
+      "description": "A\u00e7\u00f5es implementadas"
+    },
+    "resumo_acao": {
+      "type": "string",
+      "description": "Breve resumo (gerado automaticamente)"
+    },
+    "comunicar_cliente": {
+      "type": "boolean",
+      "default": false,
+      "description": "Comunicar esta a\u00e7\u00e3o ao cliente via WhatsApp"
+    },
+    "resumo_para_cliente": {
+      "type": "string",
+      "description": "Resumo curto em linguagem orientada ao cliente"
+    },
+    "comunicacao_enviada_fila": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "conta_meta_ads_id",
+    "account_name",
+    "data_acao",
+    "problema",
+    "objetivo",
+    "acoes_implementadas"
+  ]
+}

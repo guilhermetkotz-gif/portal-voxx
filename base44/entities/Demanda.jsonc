@@ -1,0 +1,191 @@
+{
+  "name": "Demanda",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente para exibi\u00e7\u00e3o"
+    },
+    "setor": {
+      "type": "string",
+      "enum": [
+        "ATENDIMENTO",
+        "TRAFEGO_META",
+        "TRAFEGO_GOOGLE",
+        "TRAFEGO_TIKTOK",
+        "CRIACAO",
+        "EDICAO",
+        "BI_RELATORIO",
+        "IMPLANTACAO",
+        "FINANCEIRO",
+        "ALTERACAO_CRIACAO",
+        "AUTOMACAO",
+        "SALDOS"
+      ],
+      "description": "Setor respons\u00e1vel"
+    },
+    "subcategoria": {
+      "type": "string"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo da demanda"
+    },
+    "descricao": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "recebida",
+        "em_triagem",
+        "programada",
+        "em_execucao",
+        "aguardando_cliente",
+        "em_revisao",
+        "concluida",
+        "finalizada"
+      ],
+      "default": "recebida"
+    },
+    "prioridade": {
+      "type": "string",
+      "enum": [
+        "alta",
+        "media",
+        "baixa"
+      ],
+      "default": "media"
+    },
+    "previsao_entrega": {
+      "type": "string",
+      "format": "date"
+    },
+    "anexos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "campos_adicionais": {
+      "type": "object"
+    },
+    "urgente": {
+      "type": "boolean",
+      "default": false
+    },
+    "tempo_trabalho_minutos": {
+      "type": "number",
+      "default": 0
+    },
+    "historico_tempo_trabalho": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "usuario_id": {
+            "type": "string"
+          },
+          "usuario_nome": {
+            "type": "string"
+          },
+          "minutos": {
+            "type": "number"
+          },
+          "data_registro": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "cronometro_ativo": {
+      "type": "boolean",
+      "default": false
+    },
+    "cronometro_inicio": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cronometro_usuario_id": {
+      "type": "string"
+    },
+    "cronometro_usuario_nome": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "comunicar_cliente": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se deve comunicar esta entrega ao cliente via WhatsApp"
+    },
+    "tipo_entrega": {
+      "type": "string",
+      "enum": [
+        "Arte",
+        "V\u00eddeo",
+        "Landing Page",
+        "Meta Ads",
+        "Google Ads",
+        "Automa\u00e7\u00e3o",
+        "Atendimento",
+        "Estrat\u00e9gia",
+        "Relat\u00f3rio",
+        "Outro"
+      ],
+      "description": "Tipo da entrega para comunica\u00e7\u00e3o"
+    },
+    "resumo_entrega_cliente": {
+      "type": "string",
+      "description": "Resumo curto da entrega para uso pela IA na comunica\u00e7\u00e3o com o cliente"
+    },
+    "anexos_cliente": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "imagem",
+              "video",
+              "pdf",
+              "documento"
+            ]
+          },
+          "enviar_cliente": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "description": "Anexos espec\u00edficos para envio ao cliente"
+    },
+    "comunicacao_enviada_fila": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se j\u00e1 foi adicionado \u00e0 fila de comunica\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "setor",
+    "titulo"
+  ]
+}
