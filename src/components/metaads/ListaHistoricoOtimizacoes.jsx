@@ -17,7 +17,8 @@ export default function ListaHistoricoOtimizacoes() {
     const { data: contas = [], isLoading: loadingContas } = useQuery({
         queryKey: ['contasMetaAds'],
         queryFn: () => base44.entities.ContaMetaAds.list('-updated_date', 500),
-        staleTime: 2 * 60 * 1000
+        staleTime: 0,
+        refetchOnMount: true
     });
 
     const { data: todasOtimizacoes = [], isLoading: loadingOtimizacoes } = useQuery({
