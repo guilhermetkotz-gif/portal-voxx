@@ -246,7 +246,7 @@ export default function CentralComunicacao({ user }) {
           filaResetados++;
         } catch {}
       }
-      await base44.entities.ResumoDiarioCliente.delete(item.id);
+      try { await base44.entities.ResumoDiarioCliente.delete(item.id); } catch {}
     }
     // Também resetar flag de idempotência nas demandas relacionadas
     // para que o fallback possa re-enfileirá-las se necessário
