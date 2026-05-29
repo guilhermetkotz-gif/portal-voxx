@@ -12,7 +12,7 @@ import {
   MessageCircle, CheckCircle2, Clock, Send, AlertCircle, RefreshCw,
   FileText, Image, Video, Paperclip, Pencil, Trash2, Sparkles,
   Users, BarChart3, X, Eye, ChevronDown, ChevronUp, Loader2,
-  Wifi, WifiOff, FlaskConical, Zap, CheckCheck
+  Wifi, WifiOff, FlaskConical, Zap, CheckCheck, Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -223,6 +223,18 @@ export default function CentralComunicacao({ user }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['resumosDiarios'] })
   });
 
+  const handleExcluirPorStatus = async (status) => {
+    setExcluindoStatus(status);
+    const itens = await base44.entities.FilaComunicacaoCliente.filter({ status });
+    for (const item of itens) {
+      await base44.entities.FilaComunicacaoCliente.delete(item.id);
+    }
+    await queryClient.invalidateQueries({ queryKey: ['filaComun'] });
+    setExcluindoStatus(null);
+    setConfirmandoExclusao(null);
+    toast.success(`${itens.length} evento(s) com status "${status}" excluído(s).`);
+  };
+
   const handleAprovar = (id) => {
     mutacaoAtualizar.mutate({ id, data: {
       status_revisao: 'aprovado',
@@ -290,6 +302,8 @@ export default function CentralComunicacao({ user }) {
 
   const [diagnostico, setDiagnostico] = useState(null);
   const [progresso, setProgresso] = useState({ ativo: false, mensagem: '', clientes_processados: 0, total_estimado: 0 });
+  const [excluindoStatus, setExcluindoStatus] = useState(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(null);
 
   const handleGerarTodos = async () => {
     try {
@@ -636,6 +650,52 @@ export default function CentralComunicacao({ user }) {
 
         {/* Fila de eventos */}
         <TabsContent value="fila">
+          {/* Controles de exclusão por status */}
+          <div className="flex flex-wrap gap-2 mb-4 items-center">
+            <span className="text-sm text-slate-500 flex items-center gap-1.5"><Filter className="w-4 h-4" /> Excluir por status:</span>
+            {['aguardando', 'consolidado', 'descartado', 'enviado', 'erro'].map(s => (
+              <button
+                key={s}
+                onClick={() => setConfirmandoExclusao(s)}
+                disabled={!!excluindoStatus}
+                className="text-xs px-3 py-1.5 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 disabled:opacity-50 transition-colors"
+              >
+                {excluindoStatus === s ? <Loader2 className="w-3 h-3 animate-spin inline" /> : <Trash2 className="w-3 h-3 inline mr-1" />}
+                {s}
+              </button>
+            ))}
+          </div>
+
+          {/* Modal de confirmação */}
+          {confirmandoExclusao && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-100 rounded-lg"><Trash2 className="w-5 h-5 text-red-600" /></div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">Confirmar exclusão</h3>
+                    <p className="text-sm text-slate-500">Esta ação não pode ser desfeita.</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-700">
+                  Todos os eventos com status <strong className="text-red-600">"{confirmandoExclusao}"</strong> serão excluídos permanentemente.
+                </p>
+                <div className="flex gap-2 justify-end">
+                  <Button variant="outline" size="sm" onClick={() => setConfirmandoExclusao(null)}>Cancelar</Button>
+                  <Button
+                    size="sm"
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => handleExcluirPorStatus(confirmandoExclusao)}
+                    disabled={!!excluindoStatus}
+                  >
+                    {excluindoStatus ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />}
+                    Excluir todos
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {filaItens.length === 0 ? (
             <Card className="p-10 text-center">
               <BarChart3 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
