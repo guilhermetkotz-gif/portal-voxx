@@ -207,33 +207,67 @@ Deno.serve(async (req) => {
         return `- [${tipo}] ${item.resumo}`;
       }).join('\n');
 
+      // Agrupar ações por tipo para consolidação inteligente
+      const grupos = {};
+      for (const item of filaItens) {
+        const tipo = item.tipo_entrega || item.tipo_evento || 'Outro';
+        if (!grupos[tipo]) grupos[tipo] = [];
+        grupos[tipo].push(item.resumo);
+      }
+
+      const dataFormatada = new Date(hoje + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+
       // Gerar mensagem profissional com IA
       let mensagemGerada = '';
       try {
-        const prompt = `Você é um assistente de comunicação de uma agência de marketing digital chamada Voxx.
-Seu trabalho é gerar um resumo diário profissional e elegante para enviar ao cliente via WhatsApp.
+        const listaAgrupada = Object.entries(grupos).map(([tipo, resumos]) => {
+          return `[${tipo}] (${resumos.length} ação${resumos.length > 1 ? 'ões' : ''}):\n${resumos.map(r => `  - ${r}`).join('\n')}`;
+        }).join('\n\n');
+
+        const prompt = `Você é o gestor de contas da Voxx, agência de marketing digital. Gere a mensagem de atualização diária para o cliente.
 
 Cliente: ${cliente.nome}
-Data: ${new Date(hoje).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+Data: ${dataFormatada}
 
-Ações realizadas hoje pela equipe Voxx:
-${listaAcoes}
+Ações realizadas:
+${listaAgrupada}
 
-INSTRUÇÕES:
-- Escreva em linguagem orientada ao cliente (não use termos técnicos internos)
-- Transforme ações operacionais em benefícios para o cliente
-- Seja profissional, direto e positivo
-- Use emojis com moderação
-- Comece com uma saudação
-- Finalize com uma frase de comprometimento
-- NÃO copie os textos internos — transforme-os em comunicação elegante
-- Máximo de 300 palavras
-- Formato pronto para WhatsApp (use quebras de linha)`;
+REGRAS OBRIGATÓRIAS:
+1. Comece com: 📌 Atualização Voxx | ${dataFormatada}
+2. Agrupe ações por tipo usando os emojis corretos: 🎨 Arte · 🎬 Vídeo · 🌐 Landing Page · 📈 Meta Ads · 🔎 Google Ads · ⚙️ Automação · 📊 Relatório
+3. Liste a contagem de cada tipo quando houver mais de 1
+4. Destaque as 2 ou 3 principais ações em bullet points curtos (máx. 280 caracteres cada)
+5. Se houver anexos de arte/vídeo, finalize com: Arquivos em anexo.
+6. Formato para WhatsApp (quebras de linha)
+
+O QUE NÃO PODE APARECER NA MENSAGEM (estes elementos tornam a comunicação ruim):
+- "Espero que estejam bem"
+- "Nossa equipe trabalhou com dedicação"
+- "Estamos comprometidos"
+- "Seguimos à disposição"
+- "Agradecemos a confiança"
+- "Temos o prazer"
+- Frases motivacionais ou emocionais
+- Linguagem corporativa excessiva
+- Saudações genéricas
+
+TOM: executivo, objetivo, consultivo. Escreva como um gestor de conta humano, não como IA.
+TAMANHO MÁXIMO: 300 palavras. Priorize clareza e brevidade.`;
 
         const resp = await base44.asServiceRole.integrations.Core.InvokeLLM({ prompt });
         mensagemGerada = resp;
       } catch (err) {
-        mensagemGerada = `Olá! Segue o resumo das atividades realizadas hoje pela equipe Voxx para ${cliente.nome}:\n\n${filaItens.map(i => `• ${i.resumo}`).join('\n')}\n\nEstamos à disposição! 🚀`;
+        // Fallback estruturado sem IA
+        const linhas = [`📌 Atualização Voxx | ${dataFormatada}`, ''];
+        const emojiMap = { 'Arte': '🎨', 'Vídeo': '🎬', 'Landing Page': '🌐', 'Meta Ads': '📈', 'Google Ads': '🔎', 'Automação': '⚙️', 'Relatório': '📊', 'Outro': '📋' };
+        for (const [tipo, resumos] of Object.entries(grupos)) {
+          const emoji = emojiMap[tipo] || '📋';
+          linhas.push(`${emoji} ${resumos.length > 1 ? resumos.length + 'x ' : ''}${tipo}`);
+        }
+        linhas.push('');
+        linhas.push('Principais ações:');
+        filaItens.slice(0, 3).forEach(i => linhas.push(`• ${i.resumo}`));
+        mensagemGerada = linhas.join('\n');
       }
 
       // Criar/atualizar o resumo diário
