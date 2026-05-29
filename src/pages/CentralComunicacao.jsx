@@ -220,15 +220,26 @@ export default function CentralComunicacao({ user }) {
     }
   };
 
+  const [diagnostico, setDiagnostico] = useState(null);
+
   const handleGerarTodos = async () => {
     try {
       setGerando(true);
+      setDiagnostico(null);
       const res = await base44.functions.invoke('consolidarComunicacaoDiaria', {});
       await queryClient.invalidateQueries({ queryKey: ['resumosDiarios'] });
-      const gerados = res.data?.resultados?.filter(r => r.status === 'gerado').length || 0;
-      toast.success(`${gerados} resumo(s) gerado(s) com sucesso!`);
-    } catch {
-      toast.error('Erro ao gerar resumos.');
+      await queryClient.invalidateQueries({ queryKey: ['filaComun'] });
+      const gerados = res.data?.gerados || 0;
+      const diag = res.data?.diagnostico;
+      if (gerados === 0 && diag) {
+        setDiagnostico(diag);
+        toast.warning('Nenhum resumo gerado. Veja o diagnóstico abaixo.');
+      } else {
+        setDiagnostico(null);
+        toast.success(`${gerados} resumo(s) gerado(s) com sucesso!`);
+      }
+    } catch (e) {
+      toast.error('Erro ao gerar resumos: ' + (e.message || ''));
     } finally {
       setGerando(false);
     }
@@ -300,6 +311,56 @@ export default function CentralComunicacao({ user }) {
           </div>
         </Card>
       </div>
+
+      {/* Diagnóstico */}
+      {diagnostico && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-amber-600" />
+            <h3 className="font-semibold text-amber-900">Diagnóstico — Por que nenhum resumo foi gerado?</h3>
+            <button onClick={() => setDiagnostico(null)} className="ml-auto text-amber-500 hover:text-amber-700"><X className="w-4 h-4" /></button>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+            <div className="bg-white rounded-lg p-3 border border-amber-200">
+              <p className="text-slate-500 text-xs">Itens na fila (aguardando)</p>
+              <p className="text-2xl font-bold text-slate-900">{diagnostico.itens_aguardando}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-amber-200">
+              <p className="text-slate-500 text-xs">Clientes com envio ativo</p>
+              <p className="text-2xl font-bold text-slate-900">{diagnostico.clientes_com_envio_ativo}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-amber-200">
+              <p className="text-slate-500 text-xs">Itens sem cliente elegível</p>
+              <p className="text-2xl font-bold text-slate-900">{diagnostico.itens_sem_cliente_encontrado}</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-amber-200">
+              <p className="text-slate-500 text-xs">Total fila</p>
+              <p className="text-2xl font-bold text-slate-900">{diagnostico.total_itens_fila}</p>
+            </div>
+          </div>
+          {diagnostico.motivos_nao_geracao?.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Motivos:</p>
+              {diagnostico.motivos_nao_geracao.map((m, i) => (
+                <p key={i} className="text-sm text-amber-800 flex items-start gap-1.5">
+                  <span className="mt-1 w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                  {m}
+                </p>
+              ))}
+            </div>
+          )}
+          {diagnostico.detalhes_por_cliente?.filter(d => d.status !== 'gerado').length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Por cliente:</p>
+              {diagnostico.detalhes_por_cliente.filter(d => d.status !== 'gerado').map((d, i) => (
+                <p key={i} className="text-sm text-amber-700">
+                  <span className="font-medium">{d.cliente_nome}</span>: {d.motivo}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={tab} onValueChange={setTab}>

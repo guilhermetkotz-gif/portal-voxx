@@ -47,7 +47,9 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     descricao: demanda?.descricao || '',
     status: demanda?.status || '',
     prioridade: demanda?.prioridade || '',
-    previsao_entrega: demanda?.previsao_entrega || ''
+    previsao_entrega: demanda?.previsao_entrega || '',
+    comunicar_cliente: demanda?.comunicar_cliente || false,
+    resumo_entrega_cliente: demanda?.resumo_entrega_cliente || ''
   });
 
   const handleSaveTime = async (minutes) => {
@@ -699,6 +701,30 @@ ${statusValidacao}`.trim();
                       value={editData.previsao_entrega}
                       onChange={(e) => setEditData({ ...editData, previsao_entrega: e.target.value })}
                     />
+                  </div>
+                  <div className="border-t pt-4 space-y-3">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Comunicação com Cliente</p>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!editData.comunicar_cliente}
+                          onChange={(e) => setEditData({ ...editData, comunicar_cliente: e.target.checked })}
+                          className="w-4 h-4 rounded"
+                        />
+                        <span className="text-sm text-slate-700">Comunicar entrega ao cliente via WhatsApp</span>
+                      </label>
+                    </div>
+                    {editData.comunicar_cliente && (
+                      <div>
+                        <Label>Resumo da Entrega <span className="text-slate-400">(opcional)</span></Label>
+                        <Input
+                          value={editData.resumo_entrega_cliente}
+                          onChange={(e) => setEditData({ ...editData, resumo_entrega_cliente: e.target.value })}
+                          placeholder="Ex: Vídeo de implante concluído (se vazio, gerado automaticamente)"
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={handleSaveEdit} disabled={updateDemandaMutation.isPending}>

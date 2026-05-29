@@ -5,17 +5,34 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
-    // Allow admins or automation (no user = service role call from automation)
     if (user && user.role !== 'admin') {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
-    const { cliente_id, data } = body;
+    const { cliente_id, data, forcar_regenerar } = body;
 
     const hoje = data || new Date().toISOString().split('T')[0];
 
-    // Buscar clientes ativos com whatsapp configurado
+    // Diagnóstico completo
+    const diagnostico = {
+      data: hoje,
+      total_itens_fila: 0,
+      itens_aguardando: 0,
+      itens_consolidados: 0,
+      clientes_com_envio_ativo: 0,
+      clientes_sem_grupo_whatsapp: 0,
+      itens_sem_cliente_encontrado: 0,
+      detalhes_por_cliente: [],
+      motivos_nao_geracao: []
+    };
+
+    // Buscar todos os itens aguardando
+    const todosItens = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({ status: 'aguardando' });
+    diagnostico.total_itens_fila = todosItens.length;
+    diagnostico.itens_aguardando = todosItens.filter(i => i.status === 'aguardando').length;
+
+    // Buscar clientes com whatsapp ativo (ou cliente_id específico)
     let clientes;
     if (cliente_id) {
       const c = await base44.asServiceRole.entities.Cliente.filter({ id: cliente_id });
@@ -24,31 +41,47 @@ Deno.serve(async (req) => {
       clientes = await base44.asServiceRole.entities.Cliente.filter({ whatsapp_envio_ativo: true });
     }
 
+    diagnostico.clientes_com_envio_ativo = clientes.length;
+
+    if (clientes.length === 0 && !cliente_id) {
+      diagnostico.motivos_nao_geracao.push('Nenhum cliente com whatsapp_envio_ativo = true encontrado');
+    }
+
+    if (todosItens.length === 0) {
+      diagnostico.motivos_nao_geracao.push('Fila de comunicação vazia — nenhum evento com "comunicar ao cliente = sim" foi registrado');
+    }
+
     const resultados = [];
 
     for (const cliente of clientes) {
+      const clienteDiag = { cliente_id: cliente.id, cliente_nome: cliente.nome, status: '', motivo: '' };
+
       // Verificar se já existe resumo para hoje
       const existing = await base44.asServiceRole.entities.ResumoDiarioCliente.filter({
         cliente_id: cliente.id,
         data: hoje
       });
-      if (existing.length > 0 && !body.forcar_regenerar) {
+
+      if (existing.length > 0 && !forcar_regenerar) {
+        clienteDiag.status = 'ja_existe';
+        clienteDiag.motivo = 'Resumo para hoje já foi gerado anteriormente';
+        diagnostico.detalhes_por_cliente.push(clienteDiag);
         resultados.push({ cliente_id: cliente.id, cliente_nome: cliente.nome, status: 'ja_existe', resumo_id: existing[0].id });
         continue;
       }
 
       // Buscar itens da fila aguardando para este cliente
-      const filaItens = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({
-        cliente_id: cliente.id,
-        status: 'aguardando'
-      });
+      const filaItens = todosItens.filter(i => i.cliente_id === cliente.id && i.status === 'aguardando');
 
       if (filaItens.length === 0) {
+        clienteDiag.status = 'sem_itens';
+        clienteDiag.motivo = 'Nenhum evento na fila para este cliente hoje';
+        diagnostico.detalhes_por_cliente.push(clienteDiag);
         resultados.push({ cliente_id: cliente.id, cliente_nome: cliente.nome, status: 'sem_itens' });
         continue;
       }
 
-      // Coletar anexos para envio ao cliente
+      // Coletar anexos
       const todosAnexos = [];
       filaItens.forEach(item => {
         if (item.anexos && Array.isArray(item.anexos)) {
@@ -93,7 +126,7 @@ INSTRUÇÕES:
 
       // Criar/atualizar o resumo diário
       let resumo;
-      if (existing.length > 0 && body.forcar_regenerar) {
+      if (existing.length > 0 && forcar_regenerar) {
         resumo = await base44.asServiceRole.entities.ResumoDiarioCliente.update(existing[0].id, {
           mensagem_gerada: mensagemGerada,
           mensagem_editada: null,
@@ -132,6 +165,10 @@ INSTRUÇÕES:
         });
       }
 
+      clienteDiag.status = 'gerado';
+      clienteDiag.motivo = `${filaItens.length} ações consolidadas`;
+      diagnostico.detalhes_por_cliente.push(clienteDiag);
+
       resultados.push({
         cliente_id: cliente.id,
         cliente_nome: cliente.nome,
@@ -142,7 +179,27 @@ INSTRUÇÕES:
       });
     }
 
-    return Response.json({ success: true, data: hoje, resultados });
+    // Detectar itens na fila sem cliente com envio ativo
+    const clienteIdsComEnvio = new Set(clientes.map(c => c.id));
+    const itensSemCliente = todosItens.filter(i => !clienteIdsComEnvio.has(i.cliente_id));
+    diagnostico.itens_sem_cliente_encontrado = itensSemCliente.length;
+    if (itensSemCliente.length > 0) {
+      const semGrupo = [...new Set(itensSemCliente.map(i => i.cliente_nome))];
+      diagnostico.motivos_nao_geracao.push(`${itensSemCliente.length} evento(s) de cliente(s) sem whatsapp_envio_ativo: ${semGrupo.slice(0, 5).join(', ')}`);
+    }
+
+    const gerados = resultados.filter(r => r.status === 'gerado').length;
+    if (gerados === 0 && diagnostico.motivos_nao_geracao.length === 0) {
+      diagnostico.motivos_nao_geracao.push('Todos os clientes elegíveis já têm resumo gerado para hoje ou não têm itens na fila');
+    }
+
+    return Response.json({
+      success: true,
+      data: hoje,
+      resultados,
+      gerados,
+      diagnostico
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
