@@ -84,18 +84,24 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'comunicar_cliente = false' });
     }
 
-    // Verificar se já foi enviado para a fila
-    if (demanda.comunicacao_enviada_fila) {
-      return Response.json({ skipped: true, reason: 'ja na fila' });
+    // Idempotência: verificar flags na própria demanda
+    if (demanda.comunicacao_evento_gerado || demanda.comunicacao_enviada_fila) {
+      return Response.json({ skipped: true, reason: 'evento_ja_gerado', evento_id: demanda.comunicacao_evento_id });
     }
 
-    // Verificar duplicata na fila
+    // Idempotência: verificar se já existe qualquer item na fila para esta demanda (qualquer status)
     const existing = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({
-      origem_id: demandaId,
-      status: 'aguardando'
+      origem: 'demanda',
+      origem_id: demandaId
     });
     if (existing.length > 0) {
-      return Response.json({ skipped: true, reason: 'duplicata', fila_id: existing[0].id });
+      // Sincronizar flags da demanda para evitar re-disparo futuro
+      await base44.asServiceRole.entities.Demanda.update(demandaId, {
+        comunicacao_enviada_fila: true,
+        comunicacao_evento_gerado: true,
+        comunicacao_evento_id: existing[0].id
+      });
+      return Response.json({ skipped: true, reason: 'duplicata_fila', fila_id: existing[0].id });
     }
 
     // Preencher data_conclusao se não estiver definida
@@ -128,9 +134,12 @@ Deno.serve(async (req) => {
       status: 'aguardando'
     });
 
-    // Marcar demanda como enviada à fila
+    // Marcar demanda com todos os flags de idempotência
     await base44.asServiceRole.entities.Demanda.update(demandaId, {
-      comunicacao_enviada_fila: true
+      comunicacao_enviada_fila: true,
+      comunicacao_evento_gerado: true,
+      comunicacao_evento_id: item.id,
+      data_comunicacao_evento: agora
     });
 
     return Response.json({ success: true, fila_id: item.id, tipo_entrega: tipoEntrega, resumo });
