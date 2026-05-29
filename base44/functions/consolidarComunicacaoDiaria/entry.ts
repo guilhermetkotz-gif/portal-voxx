@@ -237,7 +237,7 @@ REGRAS OBRIGATÓRIAS:
 2. Agrupe ações por tipo usando os emojis corretos: 🎨 Arte · 🎬 Vídeo · 🌐 Landing Page · 📈 Meta Ads · 🔎 Google Ads · ⚙️ Automação · 📊 Relatório
 3. Liste a contagem de cada tipo quando houver mais de 1
 4. Destaque as 2 ou 3 principais ações em bullet points curtos (máx. 280 caracteres cada)
-5. Se houver anexos de arte/vídeo, finalize com: Arquivos em anexo.
+5. ${todosAnexos.length > 0 ? `Finalize com: 📎 Arquivos enviados\n${todosAnexos.map(a => `• ${a.nome || 'arquivo'}`).join('\n')}` : 'NÃO inclua nenhuma menção a arquivos ou anexos na mensagem — não há nenhum arquivo associado.'}
 6. Formato para WhatsApp (quebras de linha)
 
 O QUE NÃO PODE APARECER NA MENSAGEM (estes elementos tornam a comunicação ruim):

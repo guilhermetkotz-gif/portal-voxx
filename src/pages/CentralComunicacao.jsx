@@ -36,9 +36,15 @@ function ResumoCard({ resumo, onAprovar, onCancelar, onEditar, onRegenerar, isLo
     setEditando(false);
   };
 
-  const anexosImagens = (resumo.anexos || []).filter(a => a.tipo === 'imagem');
-  const anexosVideos = (resumo.anexos || []).filter(a => a.tipo === 'video');
-  const anexosOutros = (resumo.anexos || []).filter(a => !['imagem', 'video'].includes(a.tipo));
+  const todosAnexos = resumo.anexos || [];
+  const totalAnexos = todosAnexos.length;
+  const tipoIcone = (tipo) => {
+    if (tipo === 'imagem') return '🖼️';
+    if (tipo === 'video') return '🎬';
+    if (tipo === 'pdf') return '📄';
+    if (tipo === 'documento') return '📝';
+    return '📎';
+  };
 
   return (
     <Card className="overflow-hidden border border-slate-200">
@@ -67,28 +73,32 @@ function ResumoCard({ resumo, onAprovar, onCancelar, onEditar, onRegenerar, isLo
             <BarChart3 className="w-4 h-4 text-violet-500" />
             <span>{resumo.total_acoes || 0} ações</span>
           </div>
-          {(resumo.total_anexos || 0) > 0 && (
-            <div className="flex items-center gap-1.5 text-sm text-slate-600">
-              <Paperclip className="w-4 h-4 text-violet-500" />
-              <span>{resumo.total_anexos} anexos</span>
-            </div>
-          )}
-          {anexosImagens.length > 0 && (
-            <div className="flex items-center gap-1 text-sm text-slate-500">
-              <Image className="w-3.5 h-3.5" /> {anexosImagens.length}
-            </div>
-          )}
-          {anexosVideos.length > 0 && (
-            <div className="flex items-center gap-1 text-sm text-slate-500">
-              <Video className="w-3.5 h-3.5" /> {anexosVideos.length}
-            </div>
-          )}
-          {anexosOutros.length > 0 && (
-            <div className="flex items-center gap-1 text-sm text-slate-500">
-              <FileText className="w-3.5 h-3.5" /> {anexosOutros.length}
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 text-sm text-slate-600">
+            <Paperclip className="w-4 h-4 text-violet-500" />
+            <span>📎 Anexos encontrados: <strong>{totalAnexos}</strong></span>
+          </div>
         </div>
+
+        {/* Lista de Anexos */}
+        {totalAnexos > 0 && (
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-xs font-semibold text-blue-700 mb-2">📎 Arquivos a enviar ({totalAnexos})</p>
+            <ul className="space-y-1">
+              {todosAnexos.map((a, idx) => (
+                <li key={idx} className="flex items-center gap-2 text-xs text-blue-800">
+                  <span>{tipoIcone(a.tipo)}</span>
+                  <span className="font-medium">{a.nome || 'Arquivo sem nome'}</span>
+                  {a.tipo && <Badge className="bg-blue-100 text-blue-600 text-[10px] px-1.5 py-0">{a.tipo}</Badge>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {totalAnexos === 0 && (
+          <div className="mb-4 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+            <p className="text-xs text-slate-400">📎 Nenhum arquivo anexado — a frase "Arquivos em anexo" não será exibida na mensagem.</p>
+          </div>
+        )}
 
         {/* Mensagem */}
         {editando ? (
