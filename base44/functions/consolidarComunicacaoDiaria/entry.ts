@@ -51,6 +51,62 @@ Deno.serve(async (req) => {
       diagnostico.motivos_nao_geracao.push('Fila de comunicação vazia — nenhum evento com "comunicar ao cliente = sim" foi registrado');
     }
 
+    // FALLBACK: Escanear demandas concluídas hoje que a automação pode ter perdido
+    diagnostico.fallback_demandas_adicionadas = 0;
+    const agoraFallback = new Date().toISOString();
+    try {
+      const demandasConcluidas = await base44.asServiceRole.entities.Demanda.filter({ comunicar_cliente: true }, '-updated_date', 300);
+      const tipoMapFallback = { CRIACAO: 'Arte', EDICAO: 'Vídeo', TRAFEGO_META: 'Meta Ads', TRAFEGO_GOOGLE: 'Google Ads', TRAFEGO_TIKTOK: 'Meta Ads', BI_RELATORIO: 'Relatório', AUTOMACAO: 'Automação', ATENDIMENTO: 'Atendimento', IMPLANTACAO: 'Estratégia', ALTERACAO_CRIACAO: 'Arte' };
+
+      for (const dem of demandasConcluidas) {
+        if (dem.status !== 'concluida' && dem.status !== 'finalizada') continue;
+        if (dem.comunicacao_evento_gerado || dem.comunicacao_enviada_fila) continue;
+
+        // Usar data_conclusao ou updated_date como referência
+        const dataConclusao = dem.data_conclusao || dem.updated_date || agoraFallback;
+        if (!dataConclusao.startsWith(hoje)) continue;
+
+        // Verificar se já existe item na fila (qualquer status)
+        const existingFila = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({ origem: 'demanda', origem_id: dem.id });
+        if (existingFila.length > 0) {
+          // Sincronizar flags
+          await base44.asServiceRole.entities.Demanda.update(dem.id, { comunicacao_evento_gerado: true, comunicacao_enviada_fila: true, comunicacao_evento_id: existingFila[0].id });
+          continue;
+        }
+
+        // Adicionar à fila
+        const tipoEntrega = dem.tipo_entrega || tipoMapFallback[dem.setor] || 'Outro';
+        const resumoFallback = dem.resumo_entrega_cliente?.trim() || dem.titulo;
+        const dataEvento = dataConclusao.split('T')[0];
+
+        const itemFallback = await base44.asServiceRole.entities.FilaComunicacaoCliente.create({
+          cliente_id: dem.cliente_id,
+          cliente_nome: dem.cliente_nome || '',
+          origem: 'demanda',
+          origem_id: dem.id,
+          tipo_evento: 'entrega',
+          tipo_entrega: tipoEntrega,
+          resumo: resumoFallback,
+          data_evento: dataEvento,
+          status: 'aguardando'
+        });
+
+        await base44.asServiceRole.entities.Demanda.update(dem.id, {
+          comunicacao_evento_gerado: true,
+          comunicacao_enviada_fila: true,
+          comunicacao_evento_id: itemFallback.id,
+          data_comunicacao_evento: agoraFallback,
+          data_conclusao: dem.data_conclusao || agoraFallback
+        });
+
+        diagnostico.fallback_demandas_adicionadas++;
+        // Adicionar ao todosItens para que a consolidação já a inclua nesta rodada
+        todosItens.push(itemFallback);
+      }
+    } catch (errFallback) {
+      diagnostico.motivos_nao_geracao.push(`Erro no fallback scan: ${errFallback.message}`);
+    }
+
     const resultados = [];
 
     for (const cliente of clientes) {
