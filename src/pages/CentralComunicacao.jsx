@@ -226,12 +226,24 @@ export default function CentralComunicacao({ user }) {
   const handleLimparRevisaoHoje = async () => {
     setLimpandoHoje(true);
     const itens = resumosHoje.filter(r => r.data === hoje);
+    let filaResetados = 0;
     for (const item of itens) {
+      // Resetar itens da fila que foram consolidados por este resumo
+      const idsConsolidados = item.itens_consolidados || [];
+      for (const filaId of idsConsolidados) {
+        try {
+          await base44.entities.FilaComunicacaoCliente.update(filaId, { status: 'aguardando', resumo_diario_id: null });
+          filaResetados++;
+        } catch {}
+      }
       await base44.entities.ResumoDiarioCliente.delete(item.id);
     }
+    // Também resetar flag de idempotência nas demandas relacionadas
+    // para que o fallback possa re-enfileirá-las se necessário
     await queryClient.invalidateQueries({ queryKey: ['resumosDiarios'] });
+    await queryClient.invalidateQueries({ queryKey: ['filaComun'] });
     setLimpandoHoje(false);
-    toast.success(`${itens.length} resumo(s) de hoje excluído(s). Agora você pode gerar novamente.`);
+    toast.success(`${itens.length} resumo(s) excluído(s) e ${filaResetados} evento(s) da fila resetados. Agora você pode gerar novamente.`);
   };
 
   const handleExcluirPorStatus = async (status) => {
