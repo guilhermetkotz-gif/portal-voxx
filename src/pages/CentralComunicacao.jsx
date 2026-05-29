@@ -289,24 +289,37 @@ export default function CentralComunicacao({ user }) {
   };
 
   const [diagnostico, setDiagnostico] = useState(null);
+  const [progresso, setProgresso] = useState({ ativo: false, mensagem: '', clientes_processados: 0, total_estimado: 0 });
 
   const handleGerarTodos = async () => {
     try {
       setGerando(true);
       setDiagnostico(null);
+      setProgresso({ ativo: true, mensagem: 'Iniciando geração...', clientes_processados: 0, total_estimado: clientesComEnvio.length });
+      
       const res = await base44.functions.invoke('consolidarComunicacaoDiaria', {});
+      
+      setProgresso({ ativo: true, mensagem: 'Atualizando interface...', clientes_processados: res.data?.gerados || 0, total_estimado: clientesComEnvio.length });
+      
       await queryClient.invalidateQueries({ queryKey: ['resumosDiarios'] });
       await queryClient.invalidateQueries({ queryKey: ['filaComun'] });
+      
       const gerados = res.data?.gerados || 0;
       const diag = res.data?.diagnostico;
-      if (gerados === 0 && diag) {
-        setDiagnostico(diag);
-        toast.warning('Nenhum resumo gerado. Veja o diagnóstico abaixo.');
-      } else {
-        setDiagnostico(null);
-        toast.success(`${gerados} resumo(s) gerado(s) com sucesso!`);
-      }
+      
+      setTimeout(() => {
+        setProgresso({ ativo: false, mensagem: '', clientes_processados: 0, total_estimado: 0 });
+        
+        if (gerados === 0 && diag) {
+          setDiagnostico(diag);
+          toast.warning('Nenhum resumo gerado. Veja o diagnóstico abaixo.');
+        } else {
+          setDiagnostico(null);
+          toast.success(`${gerados} resumo(s) gerado(s) com sucesso!`);
+        }
+      }, 800);
     } catch (e) {
+      setProgresso({ ativo: false, mensagem: '', clientes_processados: 0, total_estimado: 0 });
       toast.error('Erro ao gerar resumos: ' + (e.message || ''));
     } finally {
       setGerando(false);
@@ -319,6 +332,37 @@ export default function CentralComunicacao({ user }) {
 
   return (
     <div className="space-y-6">
+      {/* Modal de Progresso */}
+      {progresso.ativo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4 space-y-4">
+            <div className="flex items-center justify-center">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-4 border-slate-200"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-violet-600 animate-spin"></div>
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="font-semibold text-slate-900 text-lg">Gerando resumos...</h3>
+              <p className="text-sm text-slate-600">{progresso.mensagem}</p>
+            </div>
+            {progresso.total_estimado > 0 && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Progresso</span>
+                  <span>{progresso.clientes_processados} de {progresso.total_estimado}</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-violet-600 transition-all duration-300"
+                    style={{ width: `${progresso.total_estimado > 0 ? (progresso.clientes_processados / progresso.total_estimado) * 100 : 0}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
