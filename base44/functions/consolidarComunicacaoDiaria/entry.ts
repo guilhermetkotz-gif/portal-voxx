@@ -107,6 +107,59 @@ Deno.serve(async (req) => {
       diagnostico.motivos_nao_geracao.push(`Erro no fallback scan: ${errFallback.message}`);
     }
 
+    // Fallback: MetaAdsOtimizacao com comunicar_cliente = true não enfileiradas de hoje
+    diagnostico.fallback_meta_ads_adicionadas = 0;
+    try {
+      const otimizacoes = await base44.asServiceRole.entities.MetaAdsOtimizacao.filter({ comunicar_cliente: true }, '-created_date', 200);
+      const todosClientesMeta = await base44.asServiceRole.entities.Cliente.list('-updated_date', 500);
+
+      for (const otim of otimizacoes) {
+        if (otim.comunicacao_enviada_fila) continue;
+        const dataOtim = otim.data_acao || otim.created_date?.split('T')[0] || '';
+        if (!dataOtim.startsWith(hoje)) continue;
+
+        const existingFila = await base44.asServiceRole.entities.FilaComunicacaoCliente.filter({ origem: 'meta_ads', origem_id: otim.id });
+        if (existingFila.length > 0) {
+          await base44.asServiceRole.entities.MetaAdsOtimizacao.update(otim.id, { comunicacao_enviada_fila: true });
+          continue;
+        }
+
+        const clienteOtim = todosClientesMeta.find(c => c.meta_ads_account_name === otim.account_name);
+        if (!clienteOtim) continue;
+
+        const resumoOtim = otim.resumo_para_cliente || otim.resumo_acao || otim.objetivo || 'Otimização realizada nas campanhas Meta Ads';
+        const itemOtim = await base44.asServiceRole.entities.FilaComunicacaoCliente.create({
+          cliente_id: clienteOtim.id,
+          cliente_nome: clienteOtim.nome,
+          origem: 'meta_ads',
+          origem_id: otim.id,
+          tipo_evento: 'otimizacao',
+          tipo_entrega: 'Meta Ads',
+          resumo: resumoOtim,
+          data_evento: dataOtim,
+          status: 'aguardando'
+        });
+
+        await base44.asServiceRole.entities.MetaAdsOtimizacao.update(otim.id, { comunicacao_enviada_fila: true });
+        todosItens.push(itemOtim);
+        diagnostico.fallback_meta_ads_adicionadas++;
+      }
+    } catch (errMeta) {
+      diagnostico.motivos_nao_geracao.push(`Erro no fallback Meta Ads: ${errMeta.message}`);
+    }
+
+    // Expandir clientes: incluir também clientes com itens na fila mas sem whatsapp_envio_ativo
+    if (!cliente_id) {
+      const clienteIdsNaFila = [...new Set(todosItens.map(i => i.cliente_id))];
+      const clienteIdsJaIncluidos = new Set(clientes.map(c => c.id));
+      const idsFaltando = clienteIdsNaFila.filter(id => !clienteIdsJaIncluidos.has(id));
+      if (idsFaltando.length > 0) {
+        const todosClientesList = await base44.asServiceRole.entities.Cliente.list('-updated_date', 500);
+        const extras = todosClientesList.filter(c => idsFaltando.includes(c.id));
+        clientes = [...clientes, ...extras];
+      }
+    }
+
     const resultados = [];
 
     for (const cliente of clientes) {
