@@ -7,10 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   MessageCircle, CheckCircle2, Clock, Send, AlertCircle, RefreshCw,
   FileText, Image, Video, Paperclip, Pencil, Trash2, Sparkles,
-  Users, BarChart3, X, Eye, ChevronDown, ChevronUp, Loader2
+  Users, BarChart3, X, Eye, ChevronDown, ChevronUp, Loader2,
+  Wifi, WifiOff, FlaskConical, Zap, CheckCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -154,6 +156,10 @@ export default function CentralComunicacao({ user }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState('revisao');
   const [gerando, setGerando] = useState(false);
+  const [ativando, setAtivando] = useState(false);
+  const [criandoTeste, setCriandoTeste] = useState(false);
+  const [clienteTesteId, setClienteTesteId] = useState('');
+  const [resultadoAtivacao, setResultadoAtivacao] = useState(null);
 
   const hoje = format(new Date(), 'yyyy-MM-dd');
 
@@ -169,11 +175,31 @@ export default function CentralComunicacao({ user }) {
     staleTime: 60 * 1000
   });
 
-  const { data: filaItens = [] } = useQuery({
+  const { data: filaItens = [], refetch: refetchFila } = useQuery({
     queryKey: ['filaComun'],
     queryFn: () => base44.entities.FilaComunicacaoCliente.filter({ status: 'aguardando' }, '-created_date', 100),
     staleTime: 0
   });
+
+  const { data: clientes = [] } = useQuery({
+    queryKey: ['clientesParaComunicacao'],
+    queryFn: () => base44.entities.Cliente.filter({ status: 'ativo' }, '-nome', 200),
+    staleTime: 60 * 1000
+  });
+
+  const { data: demandasHoje = [] } = useQuery({
+    queryKey: ['demandasConcluidasHoje', hoje],
+    queryFn: () => base44.entities.Demanda.filter({ comunicar_cliente: true }, '-updated_date', 200),
+    staleTime: 30 * 1000
+  });
+
+  const clientesComEnvio = clientes.filter(c => c.whatsapp_envio_ativo);
+  const clientesSemGrupo = clientesComEnvio.filter(c => !c.whatsapp_grupo_id);
+  const demandasConcluidasHoje = demandasHoje.filter(d =>
+    (d.status === 'concluida' || d.status === 'finalizada') &&
+    (d.updated_date || d.created_date)?.startsWith(hoje)
+  );
+  const filaHoje = filaItens.filter(i => i.data_evento === hoje);
 
   // Stats
   const pendentes = resumosHoje.filter(r => r.status_envio === 'aguardando_revisao').length;
@@ -205,6 +231,37 @@ export default function CentralComunicacao({ user }) {
   const handleEditar = (id, mensagem) => {
     mutacaoAtualizar.mutate({ id, data: { mensagem_editada: mensagem, status_revisao: 'editado' }});
     toast.success('Mensagem salva.');
+  };
+
+  const handleAtivarClientes = async () => {
+    setAtivando(true);
+    setResultadoAtivacao(null);
+    const res = await base44.functions.invoke('ativarComunicacaoClientes', {});
+    setResultadoAtivacao(res.data);
+    queryClient.invalidateQueries({ queryKey: ['clientesParaComunicacao'] });
+    setAtivando(false);
+    if (res.data?.success) toast.success(`${res.data.atualizados} cliente(s) habilitado(s)!`);
+  };
+
+  const handleCriarEventoTeste = async () => {
+    if (!clienteTesteId) { toast.error('Selecione um cliente para o evento de teste.'); return; }
+    const cliente = clientes.find(c => c.id === clienteTesteId);
+    setCriandoTeste(true);
+    await base44.entities.FilaComunicacaoCliente.create({
+      cliente_id: clienteTesteId,
+      cliente_nome: cliente?.nome || 'Cliente Teste',
+      origem: 'manual',
+      tipo_evento: 'entrega',
+      tipo_entrega: 'Meta Ads',
+      resumo: '[TESTE] Otimização de campanha realizada — ajuste de segmentação e criativos para melhorar CPL.',
+      data_evento: hoje,
+      usuario_responsavel: user?.email || '',
+      usuario_responsavel_nome: user?.full_name || '',
+      status: 'aguardando'
+    });
+    queryClient.invalidateQueries({ queryKey: ['filaComun'] });
+    setCriandoTeste(false);
+    toast.success('Evento de teste criado na fila!');
   };
 
   const handleRegenerar = async (id, clienteId) => {
@@ -270,6 +327,91 @@ export default function CentralComunicacao({ user }) {
           {gerando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
           Gerar Resumos de Hoje
         </Button>
+      </div>
+
+      {/* Ferramentas */}
+      <div className="flex flex-wrap gap-3 items-center">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleAtivarClientes}
+          disabled={ativando}
+          className="text-green-700 border-green-300 hover:bg-green-50"
+        >
+          {ativando ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5 mr-1.5" />}
+          Ativar comunicação para todos os clientes ativos
+        </Button>
+
+        <div className="flex items-center gap-2">
+          <Select value={clienteTesteId} onValueChange={setClienteTesteId}>
+            <SelectTrigger className="h-8 w-52 text-xs">
+              <SelectValue placeholder="Cliente para teste" />
+            </SelectTrigger>
+            <SelectContent>
+              {clientes.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCriarEventoTeste}
+            disabled={criandoTeste || !clienteTesteId}
+            className="text-violet-700 border-violet-300 hover:bg-violet-50"
+          >
+            {criandoTeste ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <FlaskConical className="w-3.5 h-3.5 mr-1.5" />}
+            Criar evento de teste
+          </Button>
+        </div>
+      </div>
+
+      {resultadoAtivacao?.success && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-800 flex items-center gap-2">
+          <CheckCheck className="w-4 h-4 text-green-600 flex-shrink-0" />
+          <span>
+            Ativação concluída: <strong>{resultadoAtivacao.atualizados}</strong> atualizado(s),
+            {' '}<strong>{resultadoAtivacao.ja_habilitados}</strong> já estavam habilitados.
+            Total de clientes ativos: <strong>{resultadoAtivacao.total_clientes_ativos}</strong>.
+          </span>
+          <button onClick={() => setResultadoAtivacao(null)} className="ml-auto"><X className="w-4 h-4" /></button>
+        </div>
+      )}
+
+      {/* Diagnóstico Permanente */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white border rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Wifi className="w-4 h-4 text-green-500" />
+            <p className="text-xs text-slate-500">Com comunicação ativa</p>
+          </div>
+          <p className="text-2xl font-bold text-slate-900">{clientesComEnvio.length}</p>
+          <p className="text-xs text-slate-400 mt-0.5">de {clientes.length} clientes ativos</p>
+        </div>
+        <div className="bg-white border rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <WifiOff className="w-4 h-4 text-amber-500" />
+            <p className="text-xs text-slate-500">Sem grupo WhatsApp</p>
+          </div>
+          <p className="text-2xl font-bold text-slate-900">{clientesSemGrupo.length}</p>
+          <p className="text-xs text-slate-400 mt-0.5">habilitados sem grupo configurado</p>
+        </div>
+        <div className="bg-white border rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle2 className="w-4 h-4 text-blue-500" />
+            <p className="text-xs text-slate-500">Concluídas hoje</p>
+          </div>
+          <p className="text-2xl font-bold text-slate-900">{demandasConcluidasHoje.length}</p>
+          <p className="text-xs text-slate-400 mt-0.5">demandas com comunicar = sim</p>
+        </div>
+        <div className="bg-white border rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Zap className="w-4 h-4 text-violet-500" />
+            <p className="text-xs text-slate-500">Eventos gerados hoje</p>
+          </div>
+          <p className="text-2xl font-bold text-slate-900">{filaHoje.length}</p>
+          <p className="text-xs text-slate-400 mt-0.5">na fila de comunicação</p>
+        </div>
       </div>
 
       {/* KPIs */}
