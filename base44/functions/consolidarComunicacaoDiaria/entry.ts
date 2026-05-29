@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
         todosItens.push(itemFallback);
       }
     } catch (errFallback) {
-      diagnostico.motivos_nao_geracao.push(`Erro no fallback scan: ${errFallback.message}`);
+      diagnostico.motivos_nao_geracao.push('Erro no fallback scan: ' + errFallback.message);
     }
 
     // Fallback: MetaAdsOtimizacao com comunicar_cliente = true não enfileiradas de hoje
@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const clienteOtim = todosClientesMeta.find(c => 
+        const clienteOtim = todosClientesMeta.find(c =>
           c.meta_ads_account_name === otim.account_name ||
           (c.contas_anuncio || []).some(ca => ca.plataforma === 'Meta' && ca.conta_nome === otim.account_name)
         );
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
         diagnostico.fallback_meta_ads_adicionadas++;
       }
     } catch (errMeta) {
-      diagnostico.motivos_nao_geracao.push(`Erro no fallback Meta Ads: ${errMeta.message}`);
+      diagnostico.motivos_nao_geracao.push('Erro no fallback Meta Ads: ' + errMeta.message);
     }
 
     // Expandir clientes: incluir também clientes com itens na fila mas sem whatsapp_envio_ativo
@@ -201,12 +201,6 @@ Deno.serve(async (req) => {
         }
       });
 
-      // Montar lista de ações para a IA
-      const listaAcoes = filaItens.map(item => {
-        const tipo = item.tipo_entrega || item.tipo_evento || 'ação';
-        return `- [${tipo}] ${item.resumo}`;
-      }).join('\n');
-
       // Agrupar ações por tipo para consolidação inteligente
       const grupos = {};
       for (const item of filaItens) {
@@ -217,57 +211,60 @@ Deno.serve(async (req) => {
 
       const dataFormatada = new Date(hoje + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
 
-      // Gerar mensagem profissional com IA
+      const emojiMap = { 'Arte': '🎨', 'Vídeo': '🎬', 'Landing Page': '🌐', 'Meta Ads': '📈', 'Google Ads': '🔎', 'Automação': '⚙️', 'Relatório': '📊', 'Atendimento': '🤝', 'Estratégia': '🎯', 'Outro': '📋' };
+
+      // Montar lista agrupada apenas com categorias que existem
+      const listaAgrupada = Object.entries(grupos).map(([tipo, resumos]) => {
+        const emoji = emojiMap[tipo] || '📋';
+        const linhas = resumos.map(r => '  - ' + r).join('\n');
+        return emoji + ' ' + tipo + ' (' + resumos.length + (resumos.length > 1 ? ' ações' : ' ação') + '):\n' + linhas;
+      }).join('\n\n');
+
+      // Montar linha de anexos
+      const linhaAnexos = todosAnexos.length > 0
+        ? '\n\n📎 Arquivos enviados\n' + todosAnexos.map(a => '• ' + (a.nome || 'arquivo')).join('\n')
+        : '';
+
+      // Gerar mensagem com IA
       let mensagemGerada = '';
       try {
-        const listaAgrupada = Object.entries(grupos).map(([tipo, resumos]) => {
-          return `[${tipo}] (${resumos.length} ação${resumos.length > 1 ? 'ões' : ''}):\n${resumos.map(r => `  - ${r}`).join('\n')}`;
-        }).join('\n\n');
+        const instrucaoAnexos = todosAnexos.length > 0
+          ? 'Ao final da mensagem, inclua exatamente:\n📎 Arquivos enviados\n' + todosAnexos.map(a => '• ' + (a.nome || 'arquivo')).join('\n')
+          : 'NÃO mencione arquivos, anexos ou materiais — não há nenhum arquivo vinculado a estas ações.';
 
-        const prompt = `Você é o gestor de contas da Voxx, agência de marketing digital. Gere a mensagem de atualização diária para o cliente.
-
-Cliente: ${cliente.nome}
-Data: ${dataFormatada}
-
-Ações realizadas:
-${listaAgrupada}
-
-REGRAS OBRIGATÓRIAS:
-1. Comece com: 📌 Atualização Voxx | ${dataFormatada}
-2. Agrupe ações por tipo usando os emojis corretos: 🎨 Arte · 🎬 Vídeo · 🌐 Landing Page · 📈 Meta Ads · 🔎 Google Ads · ⚙️ Automação · 📊 Relatório
-3. Liste a contagem de cada tipo quando houver mais de 1
-4. Destaque as 2 ou 3 principais ações em bullet points curtos (máx. 280 caracteres cada)
-5. ${todosAnexos.length > 0 ? `Finalize com: 📎 Arquivos enviados\n${todosAnexos.map(a => `• ${a.nome || 'arquivo'}`).join('\n')}` : 'NÃO inclua nenhuma menção a arquivos ou anexos na mensagem — não há nenhum arquivo associado.'}
-6. Formato para WhatsApp (quebras de linha)
-
-O QUE NÃO PODE APARECER NA MENSAGEM (estes elementos tornam a comunicação ruim):
-- "Espero que estejam bem"
-- "Nossa equipe trabalhou com dedicação"
-- "Estamos comprometidos"
-- "Seguimos à disposição"
-- "Agradecemos a confiança"
-- "Temos o prazer"
-- Frases motivacionais ou emocionais
-- Linguagem corporativa excessiva
-- Saudações genéricas
-
-TOM: executivo, objetivo, consultivo. Escreva como um gestor de conta humano, não como IA.
-TAMANHO MÁXIMO: 300 palavras. Priorize clareza e brevidade.`;
+        const prompt = 'Consolide os registros operacionais abaixo em uma mensagem de atualização para o cliente via WhatsApp.\n\n'
+          + 'Cliente: ' + cliente.nome + '\n'
+          + 'Data: ' + dataFormatada + '\n\n'
+          + 'REGISTROS (use SOMENTE estas informações, sem adicionar nada):\n'
+          + listaAgrupada + '\n\n'
+          + 'FORMATO OBRIGATÓRIO:\n'
+          + '1. Primeira linha: 📌 Atualização Voxx | ' + dataFormatada + '\n'
+          + '2. Mostre APENAS as categorias que aparecem nos registros acima. Não crie categorias inexistentes.\n'
+          + '3. Para cada categoria, liste os títulos/resumos exatamente como registrados. Pode condensar frases longas mantendo o conteúdo real.\n'
+          + '4. ' + instrucaoAnexos + '\n\n'
+          + 'PROIBIDO:\n'
+          + '- Inventar, inferir ou adicionar qualquer ação não registrada\n'
+          + '- Atendimentos, estratégias ou reuniões que não estão nos registros\n'
+          + '- Frases: "assegurando expectativas", "equipe dedicada", "comprometidos", "à disposição", "agradecemos a confiança"\n'
+          + '- Saudações ou fechamentos\n\n'
+          + 'Tom: executivo, direto. Máximo 200 palavras.';
 
         const resp = await base44.asServiceRole.integrations.Core.InvokeLLM({ prompt });
         mensagemGerada = resp;
       } catch (err) {
         // Fallback estruturado sem IA
-        const linhas = [`📌 Atualização Voxx | ${dataFormatada}`, ''];
-        const emojiMap = { 'Arte': '🎨', 'Vídeo': '🎬', 'Landing Page': '🌐', 'Meta Ads': '📈', 'Google Ads': '🔎', 'Automação': '⚙️', 'Relatório': '📊', 'Outro': '📋' };
+        const linhas = ['📌 Atualização Voxx | ' + dataFormatada, ''];
         for (const [tipo, resumos] of Object.entries(grupos)) {
           const emoji = emojiMap[tipo] || '📋';
-          linhas.push(`${emoji} ${resumos.length > 1 ? resumos.length + 'x ' : ''}${tipo}`);
+          linhas.push(emoji + ' ' + tipo + (resumos.length > 1 ? ' (' + resumos.length + ' ações)' : ''));
+          resumos.forEach(r => linhas.push('• ' + r));
+          linhas.push('');
         }
-        linhas.push('');
-        linhas.push('Principais ações:');
-        filaItens.slice(0, 3).forEach(i => linhas.push(`• ${i.resumo}`));
-        mensagemGerada = linhas.join('\n');
+        if (todosAnexos.length > 0) {
+          linhas.push('📎 Arquivos enviados');
+          todosAnexos.forEach(a => linhas.push('• ' + (a.nome || 'arquivo')));
+        }
+        mensagemGerada = linhas.join('\n').trim();
       }
 
       // Criar/atualizar o resumo diário
@@ -312,7 +309,7 @@ TAMANHO MÁXIMO: 300 palavras. Priorize clareza e brevidade.`;
       }
 
       clienteDiag.status = 'gerado';
-      clienteDiag.motivo = `${filaItens.length} ações consolidadas`;
+      clienteDiag.motivo = filaItens.length + ' ações consolidadas';
       diagnostico.detalhes_por_cliente.push(clienteDiag);
 
       resultados.push({
@@ -331,7 +328,7 @@ TAMANHO MÁXIMO: 300 palavras. Priorize clareza e brevidade.`;
     diagnostico.itens_sem_cliente_encontrado = itensSemCliente.length;
     if (itensSemCliente.length > 0) {
       const semGrupo = [...new Set(itensSemCliente.map(i => i.cliente_nome))];
-      diagnostico.motivos_nao_geracao.push(`${itensSemCliente.length} evento(s) de cliente(s) sem whatsapp_envio_ativo: ${semGrupo.slice(0, 5).join(', ')}`);
+      diagnostico.motivos_nao_geracao.push(itensSemCliente.length + ' evento(s) de cliente(s) sem whatsapp_envio_ativo: ' + semGrupo.slice(0, 5).join(', '));
     }
 
     const gerados = resultados.filter(r => r.status === 'gerado').length;
