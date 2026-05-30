@@ -93,6 +93,12 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     enabled: !!demanda?.id && open,
   });
 
+  const { data: historicoSetores = [] } = useQuery({
+    queryKey: ['historicoSetores', demanda?.id],
+    queryFn: () => base44.entities.DemandaHistoricoSetor.filter({ demanda_id: demanda?.id }, 'data_entrada', 50),
+    enabled: !!demanda?.id && open,
+  });
+
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -795,10 +801,19 @@ ${statusValidacao}`.trim();
                     <div className="flex items-start gap-2">
                       <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
                       <div className="flex-1">
-                        <p className="font-medium text-slate-700">Setor</p>
+                        <p className="font-medium text-slate-700">Setor Atual (Kanban)</p>
                         <p className="text-slate-600">{currentDemanda.setor.replace(/_/g, ' ')}</p>
                       </div>
                     </div>
+                    {currentDemanda.setor_responsavel_original && (
+                      <div className="flex items-start gap-2">
+                        <FileText className="h-4 w-4 text-violet-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-medium text-slate-700">Setor Responsável Original</p>
+                          <p className="text-violet-700 font-medium">{currentDemanda.setor_responsavel_original.replace(/_/g, ' ')}</p>
+                        </div>
+                      </div>
+                    )}
                     {currentDemanda.subcategoria && (
                       <div className="flex items-start gap-2">
                         <FileText className="h-4 w-4 text-slate-500 mt-0.5" />
@@ -1215,6 +1230,39 @@ ${bu.estrutura_criativo || 'Não gerado'}
                     </Card>
                   );
                 })()}
+
+                {/* Histórico de Movimentação por Setor */}
+                {historicoSetores.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Histórico de Movimentação</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {historicoSetores.map((h, idx) => (
+                        <div key={h.id || idx} className="flex gap-3 text-sm border-l-2 border-violet-200 pl-3 py-1.5">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {h.setor_anterior && (
+                                <span className="text-slate-500 text-xs">{h.setor_anterior.replace(/_/g, ' ')} →</span>
+                              )}
+                              <span className="font-medium text-violet-700 text-xs">{h.setor?.replace(/_/g, ' ')}</span>
+                              {!h.data_saida && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Atual</span>
+                              )}
+                              {h.minutos_no_setor > 0 && (
+                                <span className="text-[10px] text-slate-400">({h.minutos_no_setor >= 60 ? `${Math.floor(h.minutos_no_setor/60)}h ${h.minutos_no_setor%60}m` : `${h.minutos_no_setor}m`})</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-400 mt-0.5">
+                              {moment(h.data_entrada).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}
+                              {h.data_saida && ` → ${moment(h.data_saida).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}`}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Timeline */}
                 <Card>

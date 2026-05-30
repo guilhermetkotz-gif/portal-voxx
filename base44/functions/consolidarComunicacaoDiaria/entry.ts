@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       // Agrupar demandas por tipo
       const grupos = {};
       for (const dem of demandas) {
-        const tipo = dem.tipo_entrega || tipoMap[dem.setor] || 'Outro';
+        const tipo = dem.tipo_entrega || tipoMap[dem.setor_responsavel_original || dem.setor] || 'Outro';
         if (!grupos[tipo]) grupos[tipo] = [];
         grupos[tipo].push(dem.resumo_entrega_cliente?.trim() || dem.titulo);
       }
