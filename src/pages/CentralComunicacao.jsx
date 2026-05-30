@@ -346,7 +346,11 @@ export default function CentralComunicacao({ user }) {
       setDiagnostico(null);
       setProgresso({ ativo: true, mensagem: 'Iniciando geração...', clientes_processados: 0, total_estimado: clientesComEnvio.length });
       
-      const res = await base44.functions.invoke('consolidarComunicacaoDiaria', { data: dataSelecionada });
+      const semResumos = resumosHoje.length === 0;
+      const res = await base44.functions.invoke('consolidarComunicacaoDiaria', { 
+        data: dataSelecionada,
+        forcar_regenerar: semResumos
+      });
       
       setProgresso({ ativo: true, mensagem: 'Atualizando interface...', clientes_processados: res.data?.gerados || 0, total_estimado: clientesComEnvio.length });
       
