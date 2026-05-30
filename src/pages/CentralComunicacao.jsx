@@ -172,10 +172,11 @@ export default function CentralComunicacao({ user }) {
   const [resultadoAtivacao, setResultadoAtivacao] = useState(null);
 
   const hoje = format(new Date(), 'yyyy-MM-dd');
+  const [dataSelecionada, setDataSelecionada] = useState(hoje);
 
   const { data: resumosHoje = [], isLoading } = useQuery({
-    queryKey: ['resumosDiarios', hoje],
-    queryFn: () => base44.entities.ResumoDiarioCliente.filter({ data: hoje }, '-created_date', 50),
+    queryKey: ['resumosDiarios', dataSelecionada],
+    queryFn: () => base44.entities.ResumoDiarioCliente.filter({ data: dataSelecionada }, '-created_date', 50),
     staleTime: 0
   });
 
@@ -235,7 +236,7 @@ export default function CentralComunicacao({ user }) {
 
   const handleLimparRevisaoHoje = async () => {
     setLimpandoHoje(true);
-    const itens = resumosHoje.filter(r => r.data === hoje);
+    const itens = resumosHoje.filter(r => r.data === dataSelecionada);
     let filaResetados = 0;
     for (const item of itens) {
       // Resetar itens da fila que foram consolidados por este resumo
@@ -345,7 +346,7 @@ export default function CentralComunicacao({ user }) {
       setDiagnostico(null);
       setProgresso({ ativo: true, mensagem: 'Iniciando geração...', clientes_processados: 0, total_estimado: clientesComEnvio.length });
       
-      const res = await base44.functions.invoke('consolidarComunicacaoDiaria', {});
+      const res = await base44.functions.invoke('consolidarComunicacaoDiaria', { data: dataSelecionada });
       
       setProgresso({ ativo: true, mensagem: 'Atualizando interface...', clientes_processados: res.data?.gerados || 0, total_estimado: clientesComEnvio.length });
       
@@ -423,14 +424,23 @@ export default function CentralComunicacao({ user }) {
           </h1>
           <p className="text-slate-500 mt-1">Geração e revisão de resumos diários para clientes via WhatsApp</p>
         </div>
-        <Button
-          onClick={handleGerarTodos}
-          disabled={gerando}
-          className="bg-violet-600 hover:bg-violet-700 text-white"
-        >
-          {gerando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-          Gerar Resumos de Hoje
-        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={dataSelecionada}
+            onChange={e => setDataSelecionada(e.target.value)}
+            max={hoje}
+            className="h-10 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
+          <Button
+            onClick={handleGerarTodos}
+            disabled={gerando}
+            className="bg-violet-600 hover:bg-violet-700 text-white"
+          >
+            {gerando ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            Gerar Resumos
+          </Button>
+        </div>
       </div>
 
       {/* Ferramentas */}
