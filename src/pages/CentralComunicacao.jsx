@@ -335,6 +335,7 @@ export default function CentralComunicacao({ user }) {
   };
 
   const [diagnostico, setDiagnostico] = useState(null);
+  const [auditoria, setAuditoria] = useState([]);
   const [progresso, setProgresso] = useState({ ativo: false, mensagem: '', clientes_processados: 0, total_estimado: 0 });
   const [excluindoStatus, setExcluindoStatus] = useState(null);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(null);
@@ -351,6 +352,7 @@ export default function CentralComunicacao({ user }) {
         data: dataSelecionada,
         forcar_regenerar: semResumos
       });
+      if (res.data?.auditoria) setAuditoria(res.data.auditoria);
       
       setProgresso({ ativo: true, mensagem: 'Atualizando interface...', clientes_processados: res.data?.gerados || 0, total_estimado: clientesComEnvio.length });
       
@@ -654,6 +656,10 @@ export default function CentralComunicacao({ user }) {
             Histórico
             {enviados > 0 && <Badge className="ml-2 bg-green-500 text-white text-[10px] px-1.5 py-0">{enviados}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="auditoria">
+            Auditoria
+            {auditoria.length > 0 && <Badge className="ml-2 bg-slate-500 text-white text-[10px] px-1.5 py-0">{auditoria.length}</Badge>}
+          </TabsTrigger>
           <TabsTrigger value="fluxo">Status do Fluxo</TabsTrigger>
         </TabsList>
 
@@ -844,6 +850,83 @@ export default function CentralComunicacao({ user }) {
                 </tbody>
               </table>
             </Card>
+          )}
+        </TabsContent>
+
+        {/* Auditoria */}
+        <TabsContent value="auditoria">
+          {auditoria.length === 0 ? (
+            <Card className="p-10 text-center">
+              <Eye className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-600 font-medium">Nenhuma auditoria disponível</p>
+              <p className="text-sm text-slate-400 mt-1">Clique em "Gerar Resumos" para ver o relatório de auditoria</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {/* Sumário */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-green-700">{auditoria.filter(a => a.status === 'gerado').length}</p>
+                  <p className="text-xs text-green-600">Gerados agora</p>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-700">{auditoria.filter(a => a.status === 'ja_existe').length}</p>
+                  <p className="text-xs text-blue-600">Já existiam</p>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-amber-700">{auditoria.reduce((s, a) => s + a.demandas_count, 0)}</p>
+                  <p className="text-xs text-amber-600">Demandas</p>
+                </div>
+                <div className="bg-violet-50 border border-violet-200 rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-violet-700">{auditoria.reduce((s, a) => s + a.otimizacoes_count, 0)}</p>
+                  <p className="text-xs text-violet-600">Otimizações Meta</p>
+                </div>
+              </div>
+
+              {/* Tabela */}
+              <Card className="overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">Cliente</th>
+                      <th className="text-center px-4 py-3 font-medium text-slate-600">Demandas</th>
+                      <th className="text-center px-4 py-3 font-medium text-slate-600">Otimizações</th>
+                      <th className="text-center px-4 py-3 font-medium text-slate-600">Anexos</th>
+                      <th className="text-center px-4 py-3 font-medium text-slate-600">Resumo</th>
+                      <th className="text-left px-4 py-3 font-medium text-slate-600">Divergências</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auditoria.map((a, i) => (
+                      <tr key={i} className={`border-b border-slate-100 ${a.divergencias?.length > 0 ? 'bg-amber-50' : 'hover:bg-slate-50'}`}>
+                        <td className="px-4 py-3 font-medium text-slate-900">{a.cliente_nome}</td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge className="bg-blue-100 text-blue-700">{a.demandas_count}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge className="bg-violet-100 text-violet-700">{a.otimizacoes_count}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Badge className="bg-slate-100 text-slate-600">{a.anexos_count}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {a.resumo_gerado
+                            ? <Badge className="bg-green-100 text-green-700"><CheckCircle2 className="w-3 h-3 mr-1" />Sim</Badge>
+                            : <Badge className="bg-slate-100 text-slate-500">Não</Badge>
+                          }
+                        </td>
+                        <td className="px-4 py-3">
+                          {a.divergencias?.length > 0
+                            ? <span className="text-xs text-amber-700">{a.divergencias.join('; ')}</span>
+                            : <span className="text-xs text-slate-400">—</span>
+                          }
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+            </div>
           )}
         </TabsContent>
 

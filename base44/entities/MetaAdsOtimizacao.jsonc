@@ -2,6 +2,14 @@
   "name": "MetaAdsOtimizacao",
   "type": "object",
   "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente vinculado (obrigat\u00f3rio para comunica\u00e7\u00e3o direta)"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
     "conta_meta_ads_id": {
       "type": "string",
       "description": "ID da Conta Meta Ads"
