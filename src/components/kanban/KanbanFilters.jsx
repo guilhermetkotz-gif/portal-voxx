@@ -75,7 +75,7 @@ const KanbanFilters = ({ filters, setFilters, clientes, availableTags = [] }) =>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Todos os clientes" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent modal={false}>
               <div className="p-2 sticky top-0 bg-white">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
@@ -153,7 +153,7 @@ const KanbanFilters = ({ filters, setFilters, clientes, availableTags = [] }) =>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Prioridade" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent modal={false}>
               <SelectItem value="all">Todas</SelectItem>
               <SelectItem value="alta">Alta</SelectItem>
               <SelectItem value="media">Média</SelectItem>
@@ -165,7 +165,7 @@ const KanbanFilters = ({ filters, setFilters, clientes, availableTags = [] }) =>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Prazo" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent modal={false}>
               <SelectItem value="all">Todos os prazos</SelectItem>
               <SelectItem value="atrasado">Atrasado</SelectItem>
               <SelectItem value="hoje">Vence hoje</SelectItem>
