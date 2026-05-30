@@ -353,17 +353,18 @@ export default function CentralComunicacao({ user }) {
       await queryClient.invalidateQueries({ queryKey: ['filaComun'] });
       
       const gerados = res.data?.gerados || 0;
-      const diag = res.data?.diagnostico;
+      const jaExistem = (res.data?.resultados || []).filter(r => r.status === 'ja_existe').length;
       
       setTimeout(() => {
         setProgresso({ ativo: false, mensagem: '', clientes_processados: 0, total_estimado: 0 });
+        setDiagnostico(null);
         
-        if (gerados === 0 && diag) {
-          setDiagnostico(diag);
-          toast.warning('Nenhum resumo gerado. Veja o diagnóstico abaixo.');
-        } else {
-          setDiagnostico(null);
+        if (gerados > 0) {
           toast.success(`${gerados} resumo(s) gerado(s) com sucesso!`);
+        } else if (jaExistem > 0) {
+          toast.info(`${jaExistem} resumo(s) já existem para hoje — use "Limpar resumos de hoje" para regenerar.`);
+        } else {
+          toast.info('Nenhuma ação pendente para consolidar hoje.');
         }
       }, 800);
     } catch (e) {
