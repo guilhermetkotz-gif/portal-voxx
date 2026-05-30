@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 
 const KanbanFilters = ({ filters, setFilters, clientes, availableTags = [] }) => {
   const [searchCliente, setSearchCliente] = useState('');
+  const [clientePopoverOpen, setClientePopoverOpen] = useState(false);
   const [statusPopoverOpen, setStatusPopoverOpen] = useState(false);
   const [tagsPopoverOpen, setTagsPopoverOpen] = useState(false);
   
@@ -71,34 +72,51 @@ const KanbanFilters = ({ filters, setFilters, clientes, availableTags = [] }) =>
             <span className="font-medium text-sm">Filtros:</span>
           </div>
 
-          <Select value={filters.cliente_id} onValueChange={(v) => setFilters({ ...filters, cliente_id: v })}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Todos os clientes" />
-            </SelectTrigger>
-            <SelectContent modal={false}>
-              <div className="p-2 sticky top-0 bg-white">
+          <Popover open={clientePopoverOpen} onOpenChange={setClientePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-[200px] justify-start">
+                <span className="truncate">
+                  {filters.cliente_id === 'all'
+                    ? 'Todos os clientes'
+                    : (clientes.find(c => c.id === filters.cliente_id)?.nome || 'Cliente selecionado')
+                  }
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[240px] p-0" align="start">
+              <div className="p-2 border-b">
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
                   <Input
                     placeholder="Pesquisar cliente..."
                     value={searchCliente}
                     onChange={(e) => setSearchCliente(e.target.value)}
-                    className="pl-8"
-                    onClick={(e) => e.stopPropagation()}
+                    className="pl-8 h-8 text-sm"
                   />
                 </div>
               </div>
-              <SelectItem value="all">Todos os clientes</SelectItem>
-              {filteredClientes.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-              ))}
-              {filteredClientes.length === 0 && searchCliente && (
-                <div className="py-6 text-center text-sm text-slate-500">
-                  Nenhum cliente encontrado
-                </div>
-              )}
-            </SelectContent>
-          </Select>
+              <div className="max-h-60 overflow-y-auto p-1">
+                <button
+                  onClick={() => { setFilters({ ...filters, cliente_id: 'all' }); setClientePopoverOpen(false); setSearchCliente(''); }}
+                  className={cn('w-full text-left px-3 py-2 text-sm rounded-md hover:bg-slate-100 transition-colors', filters.cliente_id === 'all' && 'bg-slate-100 font-medium')}
+                >
+                  Todos os clientes
+                </button>
+                {filteredClientes.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => { setFilters({ ...filters, cliente_id: c.id }); setClientePopoverOpen(false); setSearchCliente(''); }}
+                    className={cn('w-full text-left px-3 py-2 text-sm rounded-md hover:bg-slate-100 transition-colors truncate', filters.cliente_id === c.id && 'bg-slate-100 font-medium')}
+                  >
+                    {c.nome}
+                  </button>
+                ))}
+                {filteredClientes.length === 0 && searchCliente && (
+                  <div className="py-4 text-center text-sm text-slate-400">Nenhum cliente encontrado</div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
 
           <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen}>
             <PopoverTrigger asChild>
@@ -153,7 +171,7 @@ const KanbanFilters = ({ filters, setFilters, clientes, availableTags = [] }) =>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Prioridade" />
             </SelectTrigger>
-            <SelectContent modal={false}>
+            <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               <SelectItem value="alta">Alta</SelectItem>
               <SelectItem value="media">Média</SelectItem>
@@ -165,7 +183,7 @@ const KanbanFilters = ({ filters, setFilters, clientes, availableTags = [] }) =>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Prazo" />
             </SelectTrigger>
-            <SelectContent modal={false}>
+            <SelectContent>
               <SelectItem value="all">Todos os prazos</SelectItem>
               <SelectItem value="atrasado">Atrasado</SelectItem>
               <SelectItem value="hoje">Vence hoje</SelectItem>
