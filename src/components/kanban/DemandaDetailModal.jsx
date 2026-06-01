@@ -48,6 +48,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPauseConfirm, setShowPauseConfirm] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [liveSessionSeconds, setLiveSessionSeconds] = useState(0);
   const pendingCloseRef = React.useRef(false);
   const timerRef = useRef(null);
   const [comentarioAnexo, setComentarioAnexo] = useState(null);
@@ -668,9 +669,10 @@ ${statusValidacao}`.trim();
                   demandaId={demanda.id}
                   onSaveTime={handleSaveTime}
                   initialMinutes={0}
-                  onRunningChange={setIsTimerRunning}
+                  onRunningChange={(running) => { setIsTimerRunning(running); if (!running) setLiveSessionSeconds(0); }}
+                  onTick={setLiveSessionSeconds}
                 />
-                <TempoLimiteDemanda demanda={currentDemanda} />
+                <TempoLimiteDemanda demanda={currentDemanda} liveExtraSeconds={liveSessionSeconds} />
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">

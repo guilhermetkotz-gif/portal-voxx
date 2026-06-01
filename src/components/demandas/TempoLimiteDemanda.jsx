@@ -12,7 +12,7 @@ const formatMinutes = (min) => {
   return `${m}m`;
 };
 
-export default function TempoLimiteDemanda({ demanda }) {
+export default function TempoLimiteDemanda({ demanda, liveExtraSeconds = 0 }) {
   const { data: configs = [] } = useQuery({
     queryKey: ['configTempoDemanda'],
     queryFn: () => base44.entities.ConfiguracaoTempoDemanda.filter({ ativo: true }),
@@ -42,7 +42,7 @@ export default function TempoLimiteDemanda({ demanda }) {
     return null;
   }, [configs, demanda]);
 
-  const utilizado = demanda.tempo_trabalho_minutos || 0;
+  const utilizado = (demanda.tempo_trabalho_minutos || 0) + Math.floor(liveExtraSeconds / 60);
   const limite = config?.tempo_limite_minutos;
   const pct = limite ? Math.round((utilizado / limite) * 100) : null;
   const excedido = pct !== null && pct >= 100;

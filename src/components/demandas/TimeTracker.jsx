@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, CheckCircle2, RotateCcw, Clock } from 'lucide-react';
 
-const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onRunningChange }, ref) => {
+const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onRunningChange, onTick }, ref) => {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -51,7 +51,11 @@ const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onR
     if (isRunning) {
       intervalRef.current = setInterval(() => {
         setTotalSeconds(prev => prev + 1);
-        setSessionSeconds(prev => prev + 1);
+        setSessionSeconds(prev => {
+          const next = prev + 1;
+          if (onTick) onTick(next);
+          return next;
+        });
       }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
