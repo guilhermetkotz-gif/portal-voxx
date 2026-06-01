@@ -1,0 +1,59 @@
+{
+  "name": "RespostaAprovacaoEntrega",
+  "type": "object",
+  "properties": {
+    "entrega_id": {
+      "type": "string",
+      "description": "ID da EntregaDemanda"
+    },
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da demanda"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "token_publico": {
+      "type": "string",
+      "description": "Token do link utilizado"
+    },
+    "numero_versao": {
+      "type": "number",
+      "description": "Vers\u00e3o da entrega que foi respondida"
+    },
+    "tipo_resposta": {
+      "type": "string",
+      "enum": [
+        "aprovado",
+        "solicitou_alteracao"
+      ],
+      "description": "Tipo da resposta do cliente"
+    },
+    "nome_responsavel": {
+      "type": "string",
+      "description": "Nome informado pelo cliente"
+    },
+    "observacao_cliente": {
+      "type": "string",
+      "description": "Observa\u00e7\u00e3o da altera\u00e7\u00e3o ou aprova\u00e7\u00e3o"
+    },
+    "data_resposta": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ip": {
+      "type": "string",
+      "description": "IP de origem"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User-Agent do navegador"
+    }
+  },
+  "required": [
+    "entrega_id",
+    "tipo_resposta",
+    "nome_responsavel"
+  ]
+}

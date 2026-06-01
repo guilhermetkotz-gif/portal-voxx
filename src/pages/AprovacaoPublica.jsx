@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle, AlertCircle, Loader2, ExternalLink, FileText, Package } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, ExternalLink, FileText, Package, Image, Video, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import moment from 'moment';
 import 'moment-timezone';
@@ -57,12 +57,22 @@ export default function AprovacaoPublica() {
     </div>
   );
 
+  const errorMessages = {
+    link_invalido: { title: 'Link inválido', msg: 'Este link não existe ou foi removido.' },
+    link_inativo: { title: 'Link desativado', msg: 'Este link de aprovação foi desativado pela equipe Voxx.' },
+    link_expirado: { title: 'Link expirado', msg: 'Este link de aprovação expirou. Solicite um novo link à equipe Voxx.' },
+  };
+  const errInfo = errorMessages[error] || { title: 'Link indisponível', msg: error || 'Este link não está disponível.' };
+
   if (error) return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="text-center">
-        <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-        <h2 className="text-xl font-semibold text-slate-800 mb-1">Link inválido</h2>
-        <p className="text-slate-500">{error}</p>
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="text-center max-w-sm">
+        <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-8 h-8 text-red-400" />
+        </div>
+        <h2 className="text-xl font-semibold text-slate-800 mb-2">{errInfo.title}</h2>
+        <p className="text-slate-500 text-sm">{errInfo.msg}</p>
+        <p className="text-slate-400 text-xs mt-4">Portal Voxx — Plataforma de Gestão de Marketing</p>
       </div>
     </div>
   );
@@ -111,10 +121,18 @@ export default function AprovacaoPublica() {
             )}
           </div>
 
+          {/* Observação da Voxx */}
+          {entrega?.observacao_voxx && (
+            <div className="bg-violet-50 border border-violet-100 rounded-xl p-4">
+              <p className="text-xs font-semibold text-violet-400 uppercase tracking-wide mb-1">Mensagem da Equipe Voxx</p>
+              <p className="text-sm text-violet-800">{entrega.observacao_voxx}</p>
+            </div>
+          )}
+
           {/* Material */}
           {(entrega?.arquivos?.length > 0 || entrega?.link_externo) && (
-            <div className="border border-slate-100 rounded-xl p-4 space-y-2.5">
-              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Material</p>
+            <div className="border border-slate-100 rounded-xl p-4 space-y-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Material entregue</p>
 
               {entrega.link_externo && (
                 <a href={entrega.link_externo} target="_blank" rel="noopener noreferrer"
@@ -124,13 +142,40 @@ export default function AprovacaoPublica() {
                 </a>
               )}
 
-              {entrega.arquivos?.map((a, i) => (
-                <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg hover:bg-violet-50 border border-slate-200 hover:border-violet-300 transition-colors">
-                  <FileText className="w-4 h-4 text-violet-600" />
-                  <span className="text-sm text-violet-700 font-medium truncate">{a.nome}</span>
-                </a>
-              ))}
+              {entrega.arquivos?.map((a, i) => {
+                const url = a.url || '';
+                const isImg = /\.(png|jpg|jpeg|gif|webp|svg)/i.test(url) || (a.tipo || '').startsWith('image/');
+                const isVid = /\.(mp4|webm|mov|avi)/i.test(url) || (a.tipo || '').startsWith('video/');
+                const isPdf = /\.pdf/i.test(url) || a.tipo === 'application/pdf';
+                return (
+                  <div key={i} className="rounded-xl border border-slate-200 overflow-hidden">
+                    {isImg && (
+                      <a href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} alt={a.nome} className="w-full max-h-96 object-contain bg-slate-900" />
+                      </a>
+                    )}
+                    {isVid && (
+                      <video controls className="w-full max-h-80 bg-black">
+                        <source src={url} />
+                        Seu navegador não suporta vídeos HTML5.
+                      </video>
+                    )}
+                    {isPdf && (
+                      <iframe src={url} className="w-full h-80 border-0" title={a.nome} />
+                    )}
+                    <a href={url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center justify-between gap-2 p-3 bg-slate-50 hover:bg-violet-50 transition-colors">
+                      <div className="flex items-center gap-2">
+                        {isImg ? <Image className="w-4 h-4 text-violet-600" /> :
+                         isVid ? <Video className="w-4 h-4 text-violet-600" /> :
+                         <FileText className="w-4 h-4 text-violet-600" />}
+                        <span className="text-sm text-violet-700 font-medium truncate">{a.nome}</span>
+                      </div>
+                      <Download className="w-4 h-4 text-slate-400" />
+                    </a>
+                  </div>
+                );
+              })}
             </div>
           )}
 

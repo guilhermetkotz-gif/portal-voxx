@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, ExternalLink, Copy, Package, CheckCircle, AlertCircle, Clock, RotateCcw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ExternalLink, Copy, Package, CheckCircle, AlertCircle, Link, RotateCcw, ChevronDown, ChevronUp, Shield, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import moment from 'moment';
@@ -27,7 +27,8 @@ function EntregaCard({ entrega, demanda, user }) {
   const [showNovaVersao, setShowNovaVersao] = useState(false);
   const [showHistorico, setShowHistorico] = useState(false);
 
-  const publicUrl = `${window.location.origin}/aprovacao/${entrega.token_publico}`;
+  const gerarToken = () => Math.random().toString(36).substring(2, 10) + Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+  const publicUrl = entrega.token_publico ? `${window.location.origin}/aprovacao/${entrega.token_publico}` : null;
   const status = STATUS_CONFIG[entrega.status_entrega] || STATUS_CONFIG.rascunho;
 
   const updateStatus = useMutation({
@@ -35,6 +36,33 @@ function EntregaCard({ entrega, demanda, user }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['entregas', demanda.id] });
       toast.success('Status atualizado!');
+    }
+  });
+
+  const gerarLink = useMutation({
+    mutationFn: async () => {
+      const token = entrega.token_publico || gerarToken();
+      const link = `${window.location.origin}/aprovacao/${token}`;
+      await base44.entities.EntregaDemanda.update(entrega.id, {
+        token_publico: token,
+        link_publico_aprovacao: link,
+        link_ativo: true,
+        status_entrega: entrega.status_entrega === 'rascunho' ? 'enviado' : entrega.status_entrega
+      });
+      return link;
+    },
+    onSuccess: (link) => {
+      queryClient.invalidateQueries({ queryKey: ['entregas', demanda.id] });
+      navigator.clipboard.writeText(link);
+      toast.success('Link gerado e copiado!');
+    }
+  });
+
+  const toggleLink = useMutation({
+    mutationFn: (ativo) => base44.entities.EntregaDemanda.update(entrega.id, { link_ativo: ativo }),
+    onSuccess: (_, ativo) => {
+      queryClient.invalidateQueries({ queryKey: ['entregas', demanda.id] });
+      toast.success(ativo ? 'Link ativado!' : 'Link desativado!');
     }
   });
 
@@ -88,17 +116,27 @@ function EntregaCard({ entrega, demanda, user }) {
 
       {/* Ações */}
       <div className="mt-2.5 flex flex-wrap gap-1.5 items-center">
-        {entrega.token_publico && (
-          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={copyLink}>
-            <Copy className="w-3 h-3" /> Link Aprovação
+        {/* Gerar / gerenciar link */}
+        {!entrega.link_ativo ? (
+          <Button size="sm" className="h-7 text-xs gap-1 bg-violet-600 hover:bg-violet-700" onClick={() => gerarLink.mutate()} disabled={gerarLink.isPending}>
+            <Link className="w-3 h-3" /> Gerar Link de Aprovação
           </Button>
-        )}
-        {entrega.token_publico && (
-          <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
-              <ExternalLink className="w-3 h-3" /> Abrir
+        ) : (
+          <>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={copyLink}>
+              <Copy className="w-3 h-3" /> Copiar Link
             </Button>
-          </a>
+            {publicUrl && (
+              <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
+                  <ExternalLink className="w-3 h-3" /> Abrir
+                </Button>
+              </a>
+            )}
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-slate-400 hover:text-red-500" onClick={() => toggleLink.mutate(false)}>
+              <ShieldOff className="w-3 h-3" /> Desativar
+            </Button>
+          </>
         )}
         {(entrega.status_entrega === 'solicitacao_alteracao' || entrega.status_entrega === 'reenviado') && (
           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => setShowNovaVersao(true)}>

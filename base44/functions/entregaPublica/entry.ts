@@ -10,14 +10,24 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Token obrigatório' }, { status: 400 });
     }
 
-    // Buscar entrega pelo token (sem auth)
+    // Buscar entrega pelo token (sem auth — usa serviceRole)
     const entregas = await base44.asServiceRole.entities.EntregaDemanda.filter({ token_publico: token });
     if (!entregas || entregas.length === 0) {
-      return Response.json({ error: 'Entrega não encontrada' }, { status: 404 });
+      return Response.json({ error: 'link_invalido' }, { status: 404 });
     }
     const entrega = entregas[0];
 
-    // Apenas GET — retornar dados públicos
+    // Verificar se link está ativo
+    if (entrega.link_ativo === false) {
+      return Response.json({ error: 'link_inativo' }, { status: 403 });
+    }
+
+    // Verificar expiração
+    if (entrega.link_expira_em && new Date(entrega.link_expira_em) < new Date()) {
+      return Response.json({ error: 'link_expirado' }, { status: 403 });
+    }
+
+    // GET — retornar dados públicos
     if (!action) {
       return Response.json({
         success: true,
@@ -29,56 +39,79 @@ Deno.serve(async (req) => {
           status_entrega: entrega.status_entrega,
           arquivos: entrega.arquivos || [],
           link_externo: entrega.link_externo || null,
+          observacao_voxx: entrega.observacao_voxx || null,
           versoes: entrega.versoes || [],
           cliente_nome: entrega.cliente_nome,
           data_envio: entrega.data_envio,
           numero_versao_atual: entrega.numero_versao_atual || 1,
-          observacao_cliente: entrega.observacao_cliente || null
+          observacao_cliente: entrega.observacao_cliente || null,
+          historico_aprovacoes: entrega.historico_aprovacoes || []
         }
       });
     }
 
-    // Ação: aprovar ou solicitar_alteracao
+    // Validar ação
     if (action !== 'aprovar' && action !== 'solicitacao_alteracao') {
       return Response.json({ error: 'Ação inválida' }, { status: 400 });
     }
+    if (!nome_responsavel?.trim()) {
+      return Response.json({ error: 'Nome obrigatório' }, { status: 400 });
+    }
 
     const agora = new Date().toISOString();
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'desconhecido';
+    const userAgent = req.headers.get('user-agent') || '';
+
+    // Salvar na entidade RespostaAprovacaoEntrega
+    await base44.asServiceRole.entities.RespostaAprovacaoEntrega.create({
+      entrega_id: entrega.id,
+      demanda_id: entrega.demanda_id,
+      cliente_id: entrega.cliente_id,
+      token_publico: token,
+      numero_versao: entrega.numero_versao_atual || 1,
+      tipo_resposta: action === 'aprovar' ? 'aprovado' : 'solicitou_alteracao',
+      nome_responsavel: nome_responsavel.trim(),
+      observacao_cliente: observacao || '',
+      data_resposta: agora,
+      ip,
+      user_agent: userAgent
+    });
+
+    // Atualizar historico_aprovacoes na entrega
     const historico = entrega.historico_aprovacoes || [];
     historico.push({
       acao: action,
-      nome_responsavel: nome_responsavel || 'Cliente',
+      nome_responsavel: nome_responsavel.trim(),
       observacao: observacao || '',
       data: agora,
-      ip: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'desconhecido'
+      ip,
+      versao: entrega.numero_versao_atual || 1
     });
 
-    const updates = {
-      historico_aprovacoes: historico,
-      observacao_cliente: observacao || entrega.observacao_cliente || ''
-    };
+    const updates = { historico_aprovacoes: historico };
 
     if (action === 'aprovar') {
       updates.status_entrega = 'aprovado';
       updates.data_aprovacao = agora;
-      updates.usuario_aprovacao = nome_responsavel || 'Cliente';
+      updates.usuario_aprovacao = nome_responsavel.trim();
     } else {
       updates.status_entrega = 'solicitacao_alteracao';
+      updates.observacao_cliente = observacao || '';
     }
 
     await base44.asServiceRole.entities.EntregaDemanda.update(entrega.id, updates);
 
-    // Registrar evento na timeline da demanda
-    const descricaoEvento = action === 'aprovar'
-      ? `✅ Cliente aprovou a entrega: ${entrega.nome_entrega}`
-      : `✏️ Cliente solicitou alteração na entrega: ${entrega.nome_entrega}${observacao ? ` — "${observacao}"` : ''}`;
+    // Criar evento na timeline da demanda
+    const descEvento = action === 'aprovar'
+      ? `✅ ${nome_responsavel.trim()} aprovou a entrega: ${entrega.nome_entrega}`
+      : `✏️ ${nome_responsavel.trim()} solicitou alteração em: ${entrega.nome_entrega}${observacao ? ` — "${observacao}"` : ''}`;
 
     await base44.asServiceRole.entities.TimelineEvent.create({
       demanda_id: entrega.demanda_id,
       cliente_id: entrega.cliente_id,
       tipo: action === 'aprovar' ? 'aprovacao' : 'solicitacao_alteracao',
-      descricao: descricaoEvento,
-      autor: nome_responsavel || 'Cliente',
+      descricao: descEvento,
+      autor: nome_responsavel.trim(),
       autor_tipo: 'cliente'
     });
 
