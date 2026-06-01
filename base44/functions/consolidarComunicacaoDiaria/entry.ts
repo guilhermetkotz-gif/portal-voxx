@@ -153,11 +153,15 @@ Deno.serve(async (req) => {
       const dataFormatada = new Date(hoje + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
 
       // Agrupar demandas por tipo
+      // Prioridade resumo: 1º resumo_cliente, 2º resumo_entrega_cliente, 3º título
       const grupos = {};
       for (const dem of demandas) {
+        // Ignorar demandas marcadas como Não Comunicar
+        if (dem.tipo_comunicacao === 'Não Comunicar') continue;
         const tipo = dem.tipo_entrega || tipoMap[dem.setor_responsavel_original || dem.setor] || 'Outro';
         if (!grupos[tipo]) grupos[tipo] = [];
-        grupos[tipo].push(dem.resumo_entrega_cliente?.trim() || dem.titulo);
+        const resumo = dem.resumo_cliente?.trim() || dem.resumo_entrega_cliente?.trim() || dem.titulo;
+        grupos[tipo].push(resumo);
       }
       // Otimizações Meta
       if (otimizacoes.length > 0) {
@@ -167,11 +171,18 @@ Deno.serve(async (req) => {
         });
       }
 
-      const listaAgrupada = Object.entries(grupos).map(([tipo, items]) => {
-        const emoji = emojiMap[tipo] || '📋';
-        const linhas = items.map(r => '  - ' + r).join('\n');
-        return `${emoji} ${tipo} (${items.length} ${items.length > 1 ? 'ações' : 'ação'}):\n${linhas}`;
-      }).join('\n\n');
+      // Eliminar itens duplicados dentro de cada grupo
+      for (const tipo of Object.keys(grupos)) {
+        grupos[tipo] = [...new Set(grupos[tipo])];
+      }
+
+      const listaAgrupada = Object.entries(grupos)
+        .filter(([, items]) => items.length > 0)
+        .map(([tipo, items]) => {
+          const emoji = emojiMap[tipo] || '📋';
+          const linhas = items.map(r => '  - ' + r).join('\n');
+          return `${emoji} ${tipo} (${items.length} ${items.length > 1 ? 'ações' : 'ação'}):\n${linhas}`;
+        }).join('\n\n');
 
       // Gerar mensagem com IA
       let mensagemGerada = '';
@@ -185,17 +196,18 @@ Deno.serve(async (req) => {
 Cliente: ${clienteNome}
 Data: ${dataFormatada}
 
-REGISTROS (use SOMENTE estas informações):
+REGISTROS (use SOMENTE estas informações — estes já são os resumos para o cliente, escritos pela equipe operacional):
 ${listaAgrupada}
 
 FORMATO OBRIGATÓRIO:
 1. Primeira linha: 📌 Atualização Voxx | ${dataFormatada}
 2. Mostre APENAS as categorias que aparecem nos registros acima.
-3. Para cada categoria, liste os títulos/resumos exatamente como registrados.
-4. ${instrucaoAnexos}
+3. Para cada categoria, reproduza o conteúdo de forma clara e profissional, sem alterar o significado.
+4. Não agrupe categorias diferentes. Não crie categorias vazias.
+5. ${instrucaoAnexos}
 
-PROIBIDO: inventar ações, frases genéricas, saudações ou fechamentos.
-Tom: executivo, direto. Máximo 200 palavras.`;
+PROIBIDO: inventar ações, alterar o conteúdo dos resumos fornecidos, usar títulos técnicos internos, usar linguagem operacional.
+Tom: gestor de contas experiente, executivo, direto. Máximo 300 caracteres por ação. Máximo 200 palavras no total.`;
 
         mensagemGerada = await base44.asServiceRole.integrations.Core.InvokeLLM({ prompt });
       } catch (_) {

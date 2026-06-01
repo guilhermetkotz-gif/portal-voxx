@@ -159,9 +159,24 @@
       ],
       "description": "Tipo da entrega para comunica\u00e7\u00e3o"
     },
+    "resumo_cliente": {
+      "type": "string",
+      "description": "Resumo para o cliente \u2014 vers\u00e3o da entrega ou atualiza\u00e7\u00e3o que ser\u00e1 comunicada. Prioridade m\u00e1xima na Central de Comunica\u00e7\u00e3o."
+    },
+    "tipo_comunicacao": {
+      "type": "string",
+      "enum": [
+        "Entrega",
+        "Atualiza\u00e7\u00e3o",
+        "Aprova\u00e7\u00e3o",
+        "Problema Cr\u00edtico",
+        "N\u00e3o Comunicar"
+      ],
+      "description": "Tipo de comunica\u00e7\u00e3o a ser usada na Central de Comunica\u00e7\u00e3o"
+    },
     "resumo_entrega_cliente": {
       "type": "string",
-      "description": "Resumo curto da entrega para uso pela IA na comunica\u00e7\u00e3o com o cliente"
+      "description": "Resumo curto da entrega para uso pela IA na comunica\u00e7\u00e3o com o cliente (legado \u2014 usar resumo_cliente)"
     },
     "anexos_cliente": {
       "type": "array",

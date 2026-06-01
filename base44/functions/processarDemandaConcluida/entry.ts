@@ -3,7 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 // Inferir tipo_entrega automaticamente com base nos dados da demanda
 function inferirTipoEntrega(demanda) {
   const sub = (demanda.subcategoria || '').toLowerCase();
-  const setor = demanda.setor || '';
+  // Prioridade: setor_responsavel_original, depois setor atual
+  const setor = demanda.setor_responsavel_original || demanda.setor || '';
 
   // Prioridade 1: subcategoria
   if (sub) {
@@ -18,7 +19,7 @@ function inferirTipoEntrega(demanda) {
     if (/estrateg|planejamento/.test(sub)) return 'Estratégia';
   }
 
-  // Prioridade 2: setor
+  // Prioridade 2: setor original
   const setorMap = {
     CRIACAO: 'Arte',
     EDICAO: 'Vídeo',
@@ -37,16 +38,14 @@ function inferirTipoEntrega(demanda) {
 }
 
 // Gerar resumo automaticamente se não preenchido
+// Prioridade: 1º resumo_cliente, 2º resumo_entrega_cliente, 3º título da demanda
 function gerarResumoAutomatico(demanda) {
+  if (demanda.resumo_cliente?.trim()) return demanda.resumo_cliente.trim();
   if (demanda.resumo_entrega_cliente?.trim()) return demanda.resumo_entrega_cliente.trim();
 
-  // Montar resumo a partir dos dados disponíveis
+  // Fallback: montar resumo a partir dos dados disponíveis
   const partes = [demanda.titulo];
   if (demanda.subcategoria) partes.push(`(${demanda.subcategoria})`);
-  const setor = demanda.setor?.replace(/_/g, ' ').toLowerCase() || '';
-  if (setor && !demanda.titulo.toLowerCase().includes(setor.split(' ')[0])) {
-    partes.push(`— ${setor}`);
-  }
   return partes.join(' ');
 }
 
@@ -82,6 +81,11 @@ Deno.serve(async (req) => {
 
     if (!demanda.comunicar_cliente) {
       return Response.json({ skipped: true, reason: 'comunicar_cliente = false' });
+    }
+
+
+    if (demanda.tipo_comunicacao === 'Não Comunicar') {
+      return Response.json({ skipped: true, reason: 'tipo_comunicacao = Não Comunicar' });
     }
 
     // Idempotência: verificar flags na própria demanda

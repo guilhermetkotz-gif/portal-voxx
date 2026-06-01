@@ -61,7 +61,9 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     prioridade: demanda?.prioridade || '',
     previsao_entrega: demanda?.previsao_entrega || '',
     comunicar_cliente: demanda?.comunicar_cliente || false,
-    resumo_entrega_cliente: demanda?.resumo_entrega_cliente || ''
+    resumo_entrega_cliente: demanda?.resumo_entrega_cliente || '',
+    resumo_cliente: demanda?.resumo_cliente || '',
+    tipo_comunicacao: demanda?.tipo_comunicacao || ''
   });
 
   const handleSaveTime = async (minutes) => {
@@ -807,13 +809,31 @@ ${statusValidacao}`.trim();
                       </label>
                     </div>
                     {editData.comunicar_cliente && (
-                      <div>
-                        <Label>Resumo da Entrega <span className="text-slate-400">(opcional)</span></Label>
-                        <Input
-                          value={editData.resumo_entrega_cliente}
-                          onChange={(e) => setEditData({ ...editData, resumo_entrega_cliente: e.target.value })}
-                          placeholder="Ex: Vídeo de implante concluído (se vazio, gerado automaticamente)"
-                        />
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="font-semibold">Resumo para Cliente <span className="text-amber-500">*</span></Label>
+                          <p className="text-xs text-slate-400 mb-1">Texto que será enviado ao cliente. Prioridade máxima na Central de Comunicação.</p>
+                          <Input
+                            value={editData.resumo_cliente}
+                            onChange={(e) => setEditData({ ...editData, resumo_cliente: e.target.value })}
+                            placeholder="Ex: Vídeo finalizado e disponível para aprovação."
+                          />
+                        </div>
+                        <div>
+                          <Label>Tipo de Comunicação</Label>
+                          <select
+                            value={editData.tipo_comunicacao}
+                            onChange={(e) => setEditData({ ...editData, tipo_comunicacao: e.target.value })}
+                            className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                          >
+                            <option value="">Selecionar tipo...</option>
+                            <option value="Entrega">Entrega</option>
+                            <option value="Atualização">Atualização</option>
+                            <option value="Aprovação">Aprovação</option>
+                            <option value="Problema Crítico">Problema Crítico</option>
+                            <option value="Não Comunicar">Não Comunicar</option>
+                          </select>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -943,6 +963,16 @@ ${statusValidacao}`.trim();
                   </CardContent>
                 </Card>
 
+                {/* Alerta: comunicar_cliente sem resumo_cliente */}
+                {currentDemanda.comunicar_cliente && !currentDemanda.resumo_cliente?.trim() && (
+                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-amber-50 border-amber-200">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
+                    <p className="text-sm text-amber-800">
+                      Esta demanda está marcada para comunicação, mas não possui <strong>Resumo para Cliente</strong> preenchido. Edite a demanda para adicionar.
+                    </p>
+                  </div>
+                )}
+
                 {/* Comunicação com o Cliente */}
                 {(currentDemanda.comunicar_cliente !== undefined) && (
                   <div className={`flex items-start gap-3 p-3 rounded-lg border ${
@@ -959,15 +989,16 @@ ${statusValidacao}`.trim();
                       }`}>
                         {currentDemanda.comunicar_cliente ? 'Será comunicado ao cliente' : 'Demanda interna (não comunicar)'}
                       </p>
-                      {currentDemanda.comunicar_cliente && currentDemanda.resumo_entrega_cliente && (
-                        <p className="text-xs text-green-700 mt-0.5">"{currentDemanda.resumo_entrega_cliente}"</p>
+                      {currentDemanda.comunicar_cliente && currentDemanda.resumo_cliente && (
+                        <p className="text-xs text-green-700 mt-0.5">📝 {currentDemanda.resumo_cliente}</p>
                       )}
-                      {currentDemanda.comunicar_cliente && !currentDemanda.resumo_entrega_cliente && (
-                        <p className="text-xs text-green-600 mt-0.5">Resumo será gerado automaticamente ao concluir</p>
+                      {currentDemanda.comunicar_cliente && currentDemanda.tipo_comunicacao && (
+                        <p className="text-xs text-green-600 mt-0.5">Tipo: {currentDemanda.tipo_comunicacao}</p>
                       )}
                     </div>
                   </div>
                 )}
+
 
                 {/* Anexos */}
                 {currentDemanda.anexos && currentDemanda.anexos.length > 0 && (
