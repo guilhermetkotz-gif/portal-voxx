@@ -40,7 +40,7 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
   // Verifica inatividade > 72h úteis
   const lastActivity = demanda.updated_date || demanda.created_date;
   const businessHoursInactive = lastActivity ? calcBusinessHours(lastActivity) : 0;
-  const isInactive = businessHoursInactive >= 72;
+  const isInactive = businessHoursInactive >= 48;
 
   const priorityColors = {
     alta: 'bg-red-500',
