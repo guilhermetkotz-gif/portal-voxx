@@ -102,10 +102,24 @@ Deno.serve(async (req) => {
 
     await base44.asServiceRole.entities.EntregaDemanda.update(entrega.id, updates);
 
+    // Se cliente solicitou alteração: mover demanda de volta para setor original com status aguardando_cliente
+    if (action === 'solicitacao_alteracao' && entrega.demanda_id) {
+      const demandas = await base44.asServiceRole.entities.Demanda.filter({ id: entrega.demanda_id });
+      const demanda = demandas[0];
+      if (demanda) {
+        const setorDestino = demanda.setor_responsavel_original || demanda.setor;
+        await base44.asServiceRole.entities.Demanda.update(demanda.id, {
+          status: 'aguardando_cliente',
+          setor: setorDestino,
+          ultima_atividade_kanban: agora
+        });
+      }
+    }
+
     // Criar evento na timeline da demanda
     const descEvento = action === 'aprovar'
-      ? `✅ ${nome_responsavel.trim()} aprovou a entrega: ${entrega.nome_entrega}`
-      : `✏️ ${nome_responsavel.trim()} solicitou alteração em: ${entrega.nome_entrega}${observacao ? ` — "${observacao}"` : ''}`;
+      ? `\u2705 ${nome_responsavel.trim()} aprovou a entrega: ${entrega.nome_entrega}`
+      : `\u270f\ufe0f ${nome_responsavel.trim()} solicitou altera\u00e7\u00e3o em: ${entrega.nome_entrega}${observacao ? ` \u2014 "${observacao}"` : ''}`;
 
     await base44.asServiceRole.entities.TimelineEvent.create({
       demanda_id: entrega.demanda_id,
