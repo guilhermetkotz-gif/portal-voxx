@@ -208,7 +208,17 @@ const Kanban = ({ user, selectedClienteId }) => {
   }, [demandas, selectedClienteId, user, filters, allColumnDefinitions, viewMode]);
 
   const updateDemandaMutation = useMutation({
-    mutationFn: ({ id, setor }) => base44.entities.Demanda.update(id, { setor }),
+    mutationFn: async ({ id, setor, setorAnterior }) => {
+      await base44.entities.Demanda.update(id, { setor });
+      // Registrar movimentação no histórico
+      base44.functions.invoke('registrarMovimentacaoSetor', {
+        demanda_id: id,
+        setor_novo: setor,
+        setor_anterior: setorAnterior || null,
+        usuario_id: user?.id || null,
+        usuario_nome: user?.full_name || user?.email || 'Sistema'
+      }).catch(() => {}); // fire-and-forget, não bloquear UX
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['demandasKanban']);
       toast.success('Setor atualizado com sucesso!');
@@ -351,7 +361,7 @@ const Kanban = ({ user, selectedClienteId }) => {
         [destination.droppableId]: { ...destColumn, items: destItems },
       });
 
-      updateDemandaMutation.mutate({ id: draggableId, setor: destination.droppableId });
+      updateDemandaMutation.mutate({ id: draggableId, setor: destination.droppableId, setorAnterior: source.droppableId });
     } else {
       const copiedItems = [...sourceColumn.items];
       const [removed] = copiedItems.splice(source.index, 1);

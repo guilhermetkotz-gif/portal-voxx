@@ -1,0 +1,57 @@
+{
+  "name": "ClientAdAccount",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente (FK para Cliente)"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "Meta",
+        "Google",
+        "TikTok",
+        "Outros"
+      ],
+      "description": "Plataforma de an\u00fancio"
+    },
+    "account_name": {
+      "type": "string",
+      "description": "Nome da conta de an\u00fancio"
+    },
+    "account_id": {
+      "type": "string",
+      "description": "ID da conta na plataforma"
+    },
+    "is_primary": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica se \u00e9 a conta principal do cliente para esta plataforma"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "pending"
+      ],
+      "default": "active",
+      "description": "Status da conta de an\u00fancio"
+    },
+    "meta_ad_account_id": {
+      "type": "string",
+      "description": "ID real da conta Meta Ads (se aplic\u00e1vel)"
+    },
+    "meta_ad_account_name": {
+      "type": "string",
+      "description": "Nome da conta Meta Ads (se aplic\u00e1vel)"
+    }
+  },
+  "required": [
+    "client_id",
+    "platform",
+    "account_name",
+    "account_id"
+  ]
+}

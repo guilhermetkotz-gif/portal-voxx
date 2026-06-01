@@ -1,0 +1,77 @@
+{
+  "name": "AccessRequest",
+  "type": "object",
+  "properties": {
+    "usuario_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio solicitante"
+    },
+    "usuario_nome": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio"
+    },
+    "usuario_email": {
+      "type": "string",
+      "description": "Email do usu\u00e1rio"
+    },
+    "contas_solicitadas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dos clientes solicitados"
+    },
+    "contas_solicitadas_nomes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Nomes dos clientes (cache)"
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Justificativa da solicita\u00e7\u00e3o"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "aprovado",
+        "aprovado_parcial",
+        "rejeitado"
+      ],
+      "default": "pendente",
+      "description": "Status da solicita\u00e7\u00e3o"
+    },
+    "decidido_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da decis\u00e3o"
+    },
+    "decidido_por_usuario_id": {
+      "type": "string",
+      "description": "Admin que decidiu"
+    },
+    "decidido_por_nome": {
+      "type": "string",
+      "description": "Nome do admin"
+    },
+    "observacao_admin": {
+      "type": "string",
+      "description": "Observa\u00e7\u00e3o do admin ao decidir"
+    },
+    "contas_aprovadas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dos clientes efetivamente aprovados"
+    }
+  },
+  "required": [
+    "usuario_id",
+    "usuario_email",
+    "contas_solicitadas",
+    "motivo"
+  ]
+}

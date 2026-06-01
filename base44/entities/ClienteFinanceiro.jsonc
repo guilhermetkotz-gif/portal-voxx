@@ -1,0 +1,80 @@
+{
+  "name": "ClienteFinanceiro",
+  "type": "object",
+  "properties": {
+    "nome": {
+      "type": "string",
+      "description": "Nome do cliente"
+    },
+    "unidade": {
+      "type": "string",
+      "description": "Unidade / filial"
+    },
+    "valor_mensal": {
+      "type": "number",
+      "description": "Valor mensal do contrato"
+    },
+    "tipo_contrato": {
+      "type": "string",
+      "enum": [
+        "mensal",
+        "trimestral",
+        "anual",
+        "avulso"
+      ],
+      "default": "mensal"
+    },
+    "dia_cobranca": {
+      "type": "number",
+      "description": "Dia do m\u00eas para cobran\u00e7a (1-31)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "pausado",
+        "encerrado",
+        "em_implantacao"
+      ],
+      "default": "ativo"
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de in\u00edcio do contrato"
+    },
+    "data_fim": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de encerramento do contrato"
+    },
+    "motivo_saida": {
+      "type": "string",
+      "enum": [
+        "cancelamento_por_preco",
+        "encerramento_de_operacao",
+        "baixa_performance_percebida",
+        "reestruturacao_interna",
+        "outro"
+      ],
+      "description": "Motivo de encerramento do contrato"
+    },
+    "observacoes": {
+      "type": "string"
+    },
+    "recorrente": {
+      "type": "boolean",
+      "default": true
+    },
+    "anexos_contrato": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs dos arquivos de contrato"
+    }
+  },
+  "required": [
+    "nome"
+  ]
+}

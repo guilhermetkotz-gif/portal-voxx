@@ -1,0 +1,326 @@
+{
+  "name": "LeadComercial",
+  "type": "object",
+  "properties": {
+    "nome_empresa": {
+      "type": "string",
+      "description": "Nome da empresa"
+    },
+    "nome_contato": {
+      "type": "string",
+      "description": "Nome do contato principal"
+    },
+    "telefone": {
+      "type": "string",
+      "description": "Telefone/WhatsApp"
+    },
+    "whatsapp_lead": {
+      "type": "string",
+      "description": "WhatsApp do lead com DDI, apenas n\u00fameros (ex: 5511999999999)"
+    },
+    "email": {
+      "type": "string",
+      "description": "E-mail do contato"
+    },
+    "cidade": {
+      "type": "string",
+      "description": "Cidade"
+    },
+    "estado": {
+      "type": "string",
+      "description": "Estado (UF)"
+    },
+    "segmento": {
+      "type": "string",
+      "description": "Segmento do neg\u00f3cio"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "indicacao",
+        "inbound",
+        "outbound",
+        "evento",
+        "redes_sociais",
+        "outro"
+      ],
+      "description": "Origem do lead"
+    },
+    "etapa": {
+      "type": "string",
+      "enum": [
+        "novo_lead",
+        "contato_iniciado",
+        "diagnostico_reuniao",
+        "qualificado",
+        "proposta_enviada",
+        "negociacao",
+        "fechado_ganho",
+        "fechado_perdido"
+      ],
+      "default": "novo_lead",
+      "description": "Etapa no pipeline"
+    },
+    "responsavel_voxx": {
+      "type": "string",
+      "description": "Email do respons\u00e1vel Voxx"
+    },
+    "responsavel_nome": {
+      "type": "string",
+      "description": "Nome do respons\u00e1vel Voxx"
+    },
+    "valor_estimado": {
+      "type": "number",
+      "description": "Valor estimado do contrato (R$)"
+    },
+    "fit_score": {
+      "type": "number",
+      "description": "Fit Voxx Score (0-100)"
+    },
+    "fit_classificacao": {
+      "type": "string",
+      "enum": [
+        "alto_fit",
+        "medio_fit",
+        "baixo_fit"
+      ],
+      "description": "Classifica\u00e7\u00e3o do Fit Score"
+    },
+    "ultima_interacao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da \u00faltima intera\u00e7\u00e3o"
+    },
+    "motivo_perda": {
+      "type": "string",
+      "description": "Motivo de perda (se fechado perdido)"
+    },
+    "leitura_estrategica": {
+      "type": "string",
+      "description": "Leitura estrat\u00e9gica Voxx (interno)"
+    },
+    "observacoes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es gerais"
+    },
+    "alerta_inatividade": {
+      "type": "boolean",
+      "default": false,
+      "description": "Lead com alerta de inatividade"
+    },
+    "link_instagram": {
+      "type": "string",
+      "description": "Link do perfil Instagram do lead"
+    },
+    "link_biblioteca_ads": {
+      "type": "string",
+      "description": "Link da Biblioteca de An\u00fancios Meta do lead"
+    },
+    "gmn_link": {
+      "type": "string",
+      "description": "Link do Google Meu Neg\u00f3cio do lead"
+    },
+    "nota_google": {
+      "type": "number",
+      "description": "Nota Google Meu Neg\u00f3cio (0-5)"
+    },
+    "total_avaliacoes_google": {
+      "type": "number",
+      "description": "Total de avalia\u00e7\u00f5es no Google"
+    },
+    "score_oportunidade": {
+      "type": "number",
+      "description": "Score de oportunidade gerado pelo Scanner Voxx (0-100)"
+    },
+    "temperatura_lead": {
+      "type": "string",
+      "enum": [
+        "Fervendo",
+        "Quente",
+        "Morno",
+        "Frio"
+      ],
+      "description": "Temperatura do lead baseada no score de oportunidade"
+    },
+    "falhas_identificadas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Falhas de presen\u00e7a digital identificadas pelo Scanner Voxx"
+    },
+    "mensagem_whatsapp_sugerida": {
+      "type": "string",
+      "description": "Mensagem sugerida para abordagem via WhatsApp"
+    },
+    "data_analise": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da \u00faltima an\u00e1lise Scanner Voxx"
+    },
+    "criterios_analise": {
+      "type": "object",
+      "description": "Pontua\u00e7\u00f5es por crit\u00e9rio do Scanner Voxx",
+      "properties": {
+        "bio_instagram": {
+          "type": "number"
+        },
+        "stories_instagram": {
+          "type": "number"
+        },
+        "feed_instagram": {
+          "type": "number"
+        },
+        "anuncios_meta": {
+          "type": "number"
+        },
+        "reputacao_google": {
+          "type": "number"
+        }
+      }
+    },
+    "gmn_analise": {
+      "type": "object",
+      "description": "An\u00e1lise do Google Meu Neg\u00f3cio pelo Scanner Voxx",
+      "properties": {
+        "gmn_score": {
+          "type": "number"
+        },
+        "rating": {
+          "type": "number"
+        },
+        "reviews_count": {
+          "type": "number"
+        },
+        "diagnosis": {
+          "type": "string"
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "impact": {
+          "type": "string"
+        },
+        "opportunity": {
+          "type": "string"
+        }
+      }
+    },
+    "qualificacao": {
+      "type": "object",
+      "description": "Dados de qualifica\u00e7\u00e3o Fit Score",
+      "properties": {
+        "potencial_ticket": {
+          "type": "number"
+        },
+        "segmento_score": {
+          "type": "number"
+        },
+        "maturidade_marketing": {
+          "type": "number"
+        },
+        "estrutura_operacional": {
+          "type": "number"
+        },
+        "urgencia_contratacao": {
+          "type": "number"
+        }
+      }
+    },
+    "briefing": {
+      "type": "object",
+      "description": "Briefing comercial",
+      "properties": {
+        "segmento": {
+          "type": "string"
+        },
+        "cidade_regiao": {
+          "type": "string"
+        },
+        "principais_servicos": {
+          "type": "string"
+        },
+        "ticket_medio": {
+          "type": "number"
+        },
+        "realiza_trafego_pago": {
+          "type": "boolean"
+        },
+        "principais_dores": {
+          "type": "string"
+        },
+        "objetivos": {
+          "type": "string"
+        },
+        "diferenciais": {
+          "type": "string"
+        },
+        "concorrencia": {
+          "type": "string"
+        }
+      }
+    },
+    "plano_servicos": {
+      "type": "object",
+      "description": "Plano de servi\u00e7os",
+      "properties": {
+        "servicos_recomendados": {
+          "type": "string"
+        },
+        "canais_sugeridos": {
+          "type": "string"
+        },
+        "estrategia_geral": {
+          "type": "string"
+        },
+        "estimativa_investimento": {
+          "type": "number"
+        },
+        "prioridade_execucao": {
+          "type": "string"
+        }
+      }
+    },
+    "proposta": {
+      "type": "object",
+      "description": "Proposta comercial",
+      "properties": {
+        "tipo_servico": {
+          "type": "string"
+        },
+        "valor_proposto": {
+          "type": "number"
+        },
+        "prazo": {
+          "type": "string"
+        },
+        "escopo": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "nao_enviada",
+            "enviada",
+            "em_negociacao",
+            "aceita",
+            "recusada"
+          ],
+          "default": "nao_enviada"
+        },
+        "data_envio": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    }
+  },
+  "required": [
+    "nome_empresa",
+    "nome_contato",
+    "etapa"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID da conversa"
+    },
+    "remetente_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que enviou"
+    },
+    "remetente_nome": {
+      "type": "string",
+      "description": "Nome do remetente"
+    },
+    "remetente_tipo": {
+      "type": "string",
+      "enum": [
+        "cliente",
+        "voxx"
+      ],
+      "description": "Tipo do remetente"
+    },
+    "mensagem": {
+      "type": "string",
+      "description": "Conte\u00fado da mensagem"
+    },
+    "anexos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs de anexos"
+    },
+    "lida": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se foi lida pelo destinat\u00e1rio"
+    },
+    "lida_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando foi lida"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "remetente_id",
+    "remetente_nome",
+    "remetente_tipo",
+    "mensagem"
+  ]
+}

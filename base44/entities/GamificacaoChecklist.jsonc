@@ -1,0 +1,36 @@
+{
+  "name": "GamificacaoChecklist",
+  "type": "object",
+  "properties": {
+    "analista_id": {
+      "type": "string",
+      "description": "ID do analista"
+    },
+    "data": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do checklist"
+    },
+    "itens_concluidos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dos itens conclu\u00eddos"
+    },
+    "completo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se todos os itens foram conclu\u00eddos"
+    },
+    "pontos_bonus": {
+      "type": "number",
+      "default": 0,
+      "description": "Pontos b\u00f4nus por completar 100%"
+    }
+  },
+  "required": [
+    "analista_id",
+    "data"
+  ]
+}

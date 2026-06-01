@@ -1,0 +1,33 @@
+{
+  "name": "ConfiguracaoSetorOperacional",
+  "type": "object",
+  "properties": {
+    "setor_nome": {
+      "type": "string",
+      "description": "Chave do setor (ex: TRAFEGO_META, CRIACAO)"
+    },
+    "horas_disponiveis_dia": {
+      "type": "number",
+      "description": "Horas dispon\u00edveis por dia neste setor"
+    },
+    "custo_diario_setor": {
+      "type": "number",
+      "description": "Custo di\u00e1rio total do setor (R$)"
+    },
+    "meta_diaria_demandas": {
+      "type": "number",
+      "description": "Meta de demandas conclu\u00eddas por dia"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    },
+    "observacoes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es internas sobre o setor"
+    }
+  },
+  "required": [
+    "setor_nome"
+  ]
+}

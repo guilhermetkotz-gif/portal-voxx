@@ -1,0 +1,47 @@
+{
+  "name": "LogAuditoria",
+  "type": "object",
+  "properties": {
+    "acao": {
+      "type": "string",
+      "description": "Tipo de a\u00e7\u00e3o executada"
+    },
+    "usuario_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que executou a a\u00e7\u00e3o"
+    },
+    "usuario_email": {
+      "type": "string",
+      "description": "Email do usu\u00e1rio"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente relacionado"
+    },
+    "entidade": {
+      "type": "string",
+      "description": "Entidade afetada (Demanda, Cliente, User, etc)"
+    },
+    "entidade_id": {
+      "type": "string",
+      "description": "ID do registro afetado"
+    },
+    "detalhes": {
+      "type": "object",
+      "description": "Detalhes adicionais da a\u00e7\u00e3o"
+    },
+    "ip": {
+      "type": "string",
+      "description": "Endere\u00e7o IP"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User agent do navegador"
+    }
+  },
+  "required": [
+    "acao",
+    "usuario_id",
+    "usuario_email"
+  ]
+}

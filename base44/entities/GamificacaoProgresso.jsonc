@@ -1,0 +1,89 @@
+{
+  "name": "GamificacaoProgresso",
+  "type": "object",
+  "properties": {
+    "analista_id": {
+      "type": "string",
+      "description": "ID do analista"
+    },
+    "analista_nome": {
+      "type": "string",
+      "description": "Nome do analista"
+    },
+    "pontos_dia": {
+      "type": "number",
+      "default": 0,
+      "description": "Pontos acumulados hoje"
+    },
+    "pontos_semana": {
+      "type": "number",
+      "default": 0,
+      "description": "Pontos acumulados na semana"
+    },
+    "pontos_mes": {
+      "type": "number",
+      "default": 0,
+      "description": "Pontos acumulados no m\u00eas"
+    },
+    "pontos_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Pontos totais acumulados"
+    },
+    "streak_atual": {
+      "type": "number",
+      "default": 0,
+      "description": "Dias consecutivos com atividade"
+    },
+    "melhor_streak": {
+      "type": "number",
+      "default": 0,
+      "description": "Maior streak j\u00e1 alcan\u00e7ado"
+    },
+    "badges": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Badges conquistados"
+    },
+    "missoes_concluidas_dia": {
+      "type": "number",
+      "default": 0,
+      "description": "Miss\u00f5es conclu\u00eddas hoje"
+    },
+    "missoes_concluidas_semana": {
+      "type": "number",
+      "default": 0,
+      "description": "Miss\u00f5es conclu\u00eddas na semana"
+    },
+    "acoes_registradas_dia": {
+      "type": "number",
+      "default": 0,
+      "description": "A\u00e7\u00f5es registradas hoje"
+    },
+    "acoes_registradas_semana": {
+      "type": "number",
+      "default": 0,
+      "description": "A\u00e7\u00f5es registradas na semana"
+    },
+    "checklist_completo_dias": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantos dias completou 100% do checklist"
+    },
+    "ultima_atualizacao": {
+      "type": "string",
+      "format": "date",
+      "description": "\u00daltima data de atualiza\u00e7\u00e3o"
+    },
+    "semana_atual": {
+      "type": "string",
+      "description": "Semana atual (YYYY-WW) para reset semanal"
+    }
+  },
+  "required": [
+    "analista_id",
+    "analista_nome"
+  ]
+}

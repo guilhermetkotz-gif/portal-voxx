@@ -1,0 +1,65 @@
+{
+  "name": "RadarMetaData",
+  "type": "object",
+  "properties": {
+    "account_name": {
+      "type": "string",
+      "description": "Nome da conta Meta Ads"
+    },
+    "cpl_ontem": {
+      "type": "number",
+      "description": "CPL de ontem"
+    },
+    "leads_ontem": {
+      "type": "number",
+      "description": "Leads de ontem"
+    },
+    "ctr_ontem": {
+      "type": "number",
+      "description": "CTR de ontem (%)"
+    },
+    "frequencia_ontem": {
+      "type": "number",
+      "description": "Frequ\u00eancia de ontem"
+    },
+    "amount_spent_ontem": {
+      "type": "number",
+      "description": "Investimento di\u00e1rio (Amount Spent de ontem)"
+    },
+    "cpl_7d": {
+      "type": "number",
+      "description": "CPL m\u00e9dio dos \u00faltimos 7 dias"
+    },
+    "leads_7d": {
+      "type": "number",
+      "description": "Total de leads dos \u00faltimos 7 dias"
+    },
+    "leads_7d_media_dia": {
+      "type": "number",
+      "description": "M\u00e9dia di\u00e1ria de leads dos \u00faltimos 7 dias"
+    },
+    "ctr_7d": {
+      "type": "number",
+      "description": "CTR m\u00e9dio dos \u00faltimos 7 dias (%)"
+    },
+    "frequencia_7d": {
+      "type": "number",
+      "description": "Frequ\u00eancia m\u00e9dia dos \u00faltimos 7 dias"
+    },
+    "variacao_cpl": {
+      "type": "number",
+      "description": "Varia\u00e7\u00e3o percentual do CPL (ontem vs 7 dias)"
+    },
+    "variacao_ctr": {
+      "type": "number",
+      "description": "Varia\u00e7\u00e3o percentual do CTR (ontem vs 7 dias)"
+    },
+    "variacao_frequencia": {
+      "type": "number",
+      "description": "Varia\u00e7\u00e3o percentual da Frequ\u00eancia (ontem vs 7 dias)"
+    }
+  },
+  "required": [
+    "account_name"
+  ]
+}

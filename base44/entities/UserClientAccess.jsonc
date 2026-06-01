@@ -1,0 +1,67 @@
+{
+  "name": "UserClientAccess",
+  "type": "object",
+  "properties": {
+    "usuario_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "usuario_email": {
+      "type": "string",
+      "description": "Email do usu\u00e1rio"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "nivel_acesso": {
+      "type": "string",
+      "enum": [
+        "viewer",
+        "editor"
+      ],
+      "default": "viewer",
+      "description": "N\u00edvel de acesso ao cliente"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "revogado"
+      ],
+      "default": "ativo",
+      "description": "Status do acesso"
+    },
+    "data_atribuicao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando o acesso foi atribu\u00eddo"
+    },
+    "atribuido_por_usuario_id": {
+      "type": "string",
+      "description": "ID do admin que atribuiu"
+    },
+    "atribuido_por_nome": {
+      "type": "string",
+      "description": "Nome do admin que atribuiu"
+    },
+    "data_revogacao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando foi revogado"
+    },
+    "revogado_por_usuario_id": {
+      "type": "string",
+      "description": "Quem revogou"
+    }
+  },
+  "required": [
+    "usuario_id",
+    "cliente_id",
+    "nivel_acesso"
+  ]
+}

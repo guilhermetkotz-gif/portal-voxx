@@ -1,0 +1,37 @@
+{
+  "name": "KanbanColumn",
+  "type": "object",
+  "properties": {
+    "column_id": {
+      "type": "string",
+      "description": "ID \u00fanico da coluna (ex: TRAFEGO_META, CUSTOM_1)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome exibido da coluna"
+    },
+    "order": {
+      "type": "number",
+      "description": "Ordem de exibi\u00e7\u00e3o da coluna"
+    },
+    "is_custom": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se \u00e9 uma coluna customizada ou padr\u00e3o"
+    },
+    "color": {
+      "type": "string",
+      "description": "Cor da coluna (hex)"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se a coluna est\u00e1 ativa"
+    }
+  },
+  "required": [
+    "column_id",
+    "name",
+    "order"
+  ]
+}

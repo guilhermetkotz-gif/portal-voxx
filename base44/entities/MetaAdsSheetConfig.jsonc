@@ -1,0 +1,120 @@
+{
+  "name": "MetaAdsSheetConfig",
+  "type": "object",
+  "properties": {
+    "nome_configuracao": {
+      "type": "string",
+      "description": "Nome da configura\u00e7\u00e3o (ex: Radar Meta, Monitoramento de Contas)"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "radar",
+        "monitoramento"
+      ],
+      "description": "Tipo da configura\u00e7\u00e3o"
+    },
+    "planilha_url": {
+      "type": "string",
+      "description": "URL completa da planilha Google Sheets"
+    },
+    "spreadsheet_id": {
+      "type": "string",
+      "description": "ID da planilha (extra\u00eddo da URL)"
+    },
+    "aba_ontem": {
+      "type": "string",
+      "description": "Nome exato da aba com dados de ontem"
+    },
+    "aba_7dias": {
+      "type": "string",
+      "description": "Nome exato da aba com dados de 7 dias (apenas para radar)"
+    },
+    "mapeamento_colunas": {
+      "type": "object",
+      "description": "Mapeamento de colunas da planilha",
+      "properties": {
+        "account_name": {
+          "type": "string",
+          "description": "Nome da coluna Account Name"
+        },
+        "impressions": {
+          "type": "string",
+          "description": "Nome da coluna Impressions"
+        },
+        "clicks_all": {
+          "type": "string",
+          "description": "Nome da coluna Clicks (All)"
+        },
+        "amount_spent": {
+          "type": "string",
+          "description": "Nome da coluna Amount Spent"
+        },
+        "frequency": {
+          "type": "string",
+          "description": "Nome da coluna Frequency"
+        },
+        "cost_per_messaging": {
+          "type": "string",
+          "description": "Nome da coluna Cost per Messaging Conversations"
+        },
+        "messaging_conversations": {
+          "type": "string",
+          "description": "Nome da coluna Messaging Conversations Started"
+        },
+        "cost_per_new_messaging": {
+          "type": "string",
+          "description": "Nome da coluna Cost per New Messaging Connection"
+        },
+        "new_messaging_connections": {
+          "type": "string",
+          "description": "Nome da coluna New Messaging Connections"
+        },
+        "cost_per_unique_link": {
+          "type": "string",
+          "description": "Nome da coluna Cost per Unique Link Click"
+        },
+        "page_engagement": {
+          "type": "string",
+          "description": "Nome da coluna Page Engagement"
+        },
+        "page_likes": {
+          "type": "string",
+          "description": "Nome da coluna Page Likes"
+        },
+        "reach": {
+          "type": "string",
+          "description": "Nome da coluna Reach"
+        },
+        "cpc": {
+          "type": "string",
+          "description": "Nome da coluna CPC (Cost Per Link Click)"
+        },
+        "custo_engajamento": {
+          "type": "string",
+          "description": "Nome da coluna Custo por Engajamento"
+        },
+        "leads_repetidos": {
+          "type": "string",
+          "description": "Nome da coluna Leads Repetidos %"
+        },
+        "nota_gpt": {
+          "type": "string",
+          "description": "Nome da coluna Nota GPT"
+        }
+      }
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se a configura\u00e7\u00e3o est\u00e1 ativa"
+    }
+  },
+  "required": [
+    "nome_configuracao",
+    "tipo",
+    "spreadsheet_id",
+    "aba_ontem",
+    "mapeamento_colunas"
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "name": "CrcLead",
+  "type": "object",
+  "properties": {
+    "unidade_id": {
+      "type": "string",
+      "description": "ID do cliente/unidade"
+    },
+    "data_chegada": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora de chegada do lead"
+    },
+    "nome": {
+      "type": "string",
+      "description": "Nome do lead"
+    },
+    "telefone": {
+      "type": "string",
+      "description": "Telefone normalizado"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "whats_sem_origem",
+        "facebook_whats",
+        "instagram_whats",
+        "meta_ads_cadastro",
+        "google_cadastro",
+        "google_ligacao",
+        "messenger_direct"
+      ],
+      "description": "Origem do lead"
+    },
+    "canal": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "ligacao",
+        "messenger",
+        "direct",
+        "formulario"
+      ],
+      "description": "Canal de comunica\u00e7\u00e3o"
+    },
+    "tratamento": {
+      "type": "string",
+      "enum": [
+        "implante",
+        "protese",
+        "protese_protocolo",
+        "zigomatico",
+        "tratamento_clinico",
+        "lentes_de_contato",
+        "ortodontia",
+        "rof",
+        "nao_informado"
+      ],
+      "description": "Tipo de tratamento"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "sem_contato",
+        "em_tratativa",
+        "agendou",
+        "compareceu",
+        "interesse_futuro",
+        "perda"
+      ],
+      "default": "sem_contato",
+      "description": "Status do lead"
+    },
+    "motivo_perda": {
+      "type": "string",
+      "enum": [
+        "sem_interesse",
+        "distancia",
+        "sem_poder_aquisitivo",
+        "fechou_em_outro_lugar",
+        "clicou_sem_querer"
+      ],
+      "description": "Motivo de perda (obrigat\u00f3rio se status=perda)"
+    },
+    "link_anuncio": {
+      "type": "string",
+      "description": "URL do an\u00fancio"
+    },
+    "observacoes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es gerais"
+    },
+    "responsavel_crc": {
+      "type": "string",
+      "description": "ID do respons\u00e1vel CRC"
+    },
+    "data_agendamento": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data do agendamento"
+    },
+    "data_comparecimento": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data do comparecimento"
+    },
+    "data_retorno": {
+      "type": "string",
+      "format": "date",
+      "description": "Data para retorno futuro"
+    },
+    "fonte_cadastro": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "google_sheet"
+      ],
+      "default": "manual",
+      "description": "Fonte do cadastro"
+    },
+    "external_source": {
+      "type": "string",
+      "description": "Fonte externa (ex: google_sheets)"
+    },
+    "external_row_id": {
+      "type": "string",
+      "description": "ID da linha na planilha"
+    },
+    "external_created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp do lead na origem externa"
+    },
+    "qtd_tentativas": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de tentativas"
+    },
+    "ultima_tentativa_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da \u00faltima tentativa"
+    },
+    "sla_atrasado": {
+      "type": "boolean",
+      "default": false,
+      "description": "SLA atrasado"
+    },
+    "tempo_primeira_resposta_min": {
+      "type": "number",
+      "description": "Tempo em minutos at\u00e9 primeira resposta"
+    }
+  },
+  "required": [
+    "unidade_id",
+    "telefone",
+    "origem",
+    "tratamento",
+    "status",
+    "fonte_cadastro"
+  ]
+}

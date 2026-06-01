@@ -1,0 +1,66 @@
+{
+  "name": "TarefaComercial",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "ID do lead relacionado"
+    },
+    "lead_nome": {
+      "type": "string",
+      "description": "Nome do lead (cache)"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo da tarefa"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "follow_up",
+        "ligar",
+        "enviar_proposta",
+        "enviar_material",
+        "agendar_reuniao",
+        "outro"
+      ],
+      "default": "follow_up"
+    },
+    "data_prazo": {
+      "type": "string",
+      "format": "date",
+      "description": "Data prazo"
+    },
+    "responsavel_voxx": {
+      "type": "string",
+      "description": "Email do respons\u00e1vel"
+    },
+    "responsavel_nome": {
+      "type": "string",
+      "description": "Nome do respons\u00e1vel"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "concluida",
+        "cancelada"
+      ],
+      "default": "pendente"
+    },
+    "notas": {
+      "type": "string",
+      "description": "Notas da tarefa"
+    },
+    "automatica": {
+      "type": "boolean",
+      "default": false,
+      "description": "Gerada automaticamente pelo sistema"
+    }
+  },
+  "required": [
+    "lead_id",
+    "titulo",
+    "data_prazo"
+  ]
+}

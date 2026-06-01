@@ -1,0 +1,156 @@
+{
+  "name": "AgendaReuniao",
+  "type": "object",
+  "properties": {
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo da reuni\u00e3o"
+    },
+    "unidade_id": {
+      "type": "string",
+      "description": "ID da unidade (cliente)"
+    },
+    "unidade_nome": {
+      "type": "string",
+      "description": "Nome da unidade (cache)"
+    },
+    "tipo_reuniao": {
+      "type": "string",
+      "enum": [
+        "comercial",
+        "onboarding",
+        "alinhamento",
+        "resultados",
+        "estrategico",
+        "operacional",
+        "retencao"
+      ]
+    },
+    "participantes_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "participantes_nomes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "start_datetime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_datetime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "agendada",
+        "realizada",
+        "nao_realizada",
+        "cancelada",
+        "reagendada"
+      ],
+      "default": "agendada"
+    },
+    "objetivo": {
+      "type": "string"
+    },
+    "observacoes": {
+      "type": "string"
+    },
+    "criado_por_id": {
+      "type": "string"
+    },
+    "criado_por_nome": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "discussion_points": {
+      "type": "string"
+    },
+    "pending_items": {
+      "type": "string"
+    },
+    "next_steps": {
+      "type": "string"
+    },
+    "followup_owner_id": {
+      "type": "string"
+    },
+    "followup_owner_nome": {
+      "type": "string"
+    },
+    "followup_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "internal_notes": {
+      "type": "string"
+    },
+    "non_completion_reason": {
+      "type": "string"
+    },
+    "non_completion_notes": {
+      "type": "string"
+    },
+    "is_recurring": {
+      "type": "boolean",
+      "default": false
+    },
+    "recurrence_type": {
+      "type": "string",
+      "enum": [
+        "nao_recorrente",
+        "semanal",
+        "quinzenal",
+        "mensal"
+      ],
+      "default": "nao_recorrente"
+    },
+    "original_meeting_id": {
+      "type": "string"
+    },
+    "rescheduled_from": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reschedule_reason": {
+      "type": "string"
+    },
+    "alert_flag": {
+      "type": "string"
+    },
+    "linked_lead_id": {
+      "type": "string",
+      "description": "ID do lead vinculado (reuni\u00f5es comerciais)"
+    },
+    "linked_lead_nome": {
+      "type": "string",
+      "description": "Nome do lead (cache)"
+    },
+    "meeting_result": {
+      "type": "string",
+      "enum": [
+        "avancou",
+        "proposta_enviada",
+        "aguardando",
+        "perdido",
+        "fechado"
+      ],
+      "description": "Resultado da reuni\u00e3o comercial"
+    }
+  },
+  "required": [
+    "titulo",
+    "unidade_id",
+    "start_datetime",
+    "end_datetime"
+  ]
+}

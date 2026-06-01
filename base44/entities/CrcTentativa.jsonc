@@ -1,0 +1,52 @@
+{
+  "name": "CrcTentativa",
+  "type": "object",
+  "properties": {
+    "lead_id": {
+      "type": "string",
+      "description": "ID do lead"
+    },
+    "data_hora": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data e hora da tentativa"
+    },
+    "canal": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "ligacao",
+        "messenger",
+        "direct",
+        "outro"
+      ],
+      "description": "Canal da tentativa"
+    },
+    "resultado": {
+      "type": "string",
+      "enum": [
+        "sem_resposta",
+        "contato_feito",
+        "retornar",
+        "ocupado",
+        "caixa_postal",
+        "outro"
+      ],
+      "description": "Resultado da tentativa"
+    },
+    "nota": {
+      "type": "string",
+      "description": "Notas sobre a tentativa"
+    },
+    "usuario_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio que registrou"
+    }
+  },
+  "required": [
+    "lead_id",
+    "data_hora",
+    "canal",
+    "resultado"
+  ]
+}

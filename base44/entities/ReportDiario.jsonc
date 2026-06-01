@@ -1,0 +1,49 @@
+{
+  "name": "ReportDiario",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente"
+    },
+    "data_report": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do report (YYYY-MM-DD)"
+    },
+    "enviado": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se o report foi enviado ao cliente"
+    },
+    "enviado_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora do envio"
+    },
+    "enviado_por": {
+      "type": "string",
+      "description": "Email de quem marcou como enviado"
+    },
+    "destaque_positivo": {
+      "type": "string",
+      "description": "Destaque positivo do dia (edit\u00e1vel)"
+    },
+    "ponto_atencao": {
+      "type": "string",
+      "description": "Ponto de aten\u00e7\u00e3o do dia (edit\u00e1vel)"
+    },
+    "proximos_passos": {
+      "type": "string",
+      "description": "Pr\u00f3ximos passos personalizados"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "data_report"
+  ]
+}

@@ -26,7 +26,11 @@ import {
   Copy,
   CheckCircle,
   Zap,
-  MessageCircle
+  MessageCircle,
+  ArrowRight,
+  Building2,
+  Tag,
+  Layers
 } from 'lucide-react';
 import moment from 'moment';
 import { toast } from 'sonner';
@@ -568,6 +572,26 @@ ${statusValidacao}`.trim();
 
   if (!demanda) return null;
 
+  // Mapa de labels dos setores
+  const SETOR_LABELS = {
+    ATENDIMENTO: 'Atendimento', TRAFEGO_META: 'Tráfego Meta Ads', TRAFEGO_GOOGLE: 'Tráfego Google Ads',
+    TRAFEGO_TIKTOK: 'Tráfego TikTok', CRIACAO: 'Criação', EDICAO: 'Edição de Vídeo',
+    BI_RELATORIO: 'BI & Relatórios', IMPLANTACAO: 'Implantação', FINANCEIRO: 'Financeiro',
+    ALTERACAO_CRIACAO: 'Alteração Criação', AUTOMACAO: 'Automação', SALDOS: 'Saldos',
+  };
+  const setorLabel = (s) => SETOR_LABELS[s] || s?.replace(/_/g, ' ') || '–';
+
+  // Calcular setores envolvidos a partir do histórico
+  const setoresEnvolvidos = (() => {
+    const map = {};
+    historicoSetores.forEach(h => {
+      if (!map[h.setor]) map[h.setor] = { setor: h.setor, minutos: 0, atual: false };
+      if (h.minutos_no_setor) map[h.setor].minutos += h.minutos_no_setor;
+      if (!h.data_saida) map[h.setor].atual = true;
+    });
+    return Object.values(map);
+  })();
+
   const isOralSin = currentDemanda?.cliente_nome?.toLowerCase().includes('oral sin');
   const mostrarBriefingVOXX = currentDemanda?.setor === 'CRIACAO' && isOralSin && currentDemanda?.campos_adicionais;
   const mostrarBriefingEdicao = currentDemanda?.setor === 'EDICAO' && currentDemanda?.campos_adicionais;
@@ -645,6 +669,32 @@ ${statusValidacao}`.trim();
         </div>
 
         <div className="p-6 space-y-6">
+            {/* Identidade da Demanda */}
+            <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+              <div>
+                <p className="text-slate-400 font-medium uppercase tracking-wide mb-0.5">Setor Principal</p>
+                <p className="font-semibold text-violet-700">{setorLabel(currentDemanda.setor_responsavel_original || currentDemanda.setor)}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-medium uppercase tracking-wide mb-0.5">Setor Atual (Kanban)</p>
+                <p className="font-semibold text-slate-700">{setorLabel(currentDemanda.setor)}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-medium uppercase tracking-wide mb-0.5">Criado em</p>
+                <p className="text-slate-600">{moment(currentDemanda.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</p>
+              </div>
+              <div>
+                <p className="text-slate-400 font-medium uppercase tracking-wide mb-0.5">Status</p>
+                <p className="text-slate-600 capitalize">{currentDemanda.status?.replace(/_/g, ' ')}</p>
+              </div>
+              {currentDemanda.data_conclusao && (
+                <div className="col-span-2">
+                  <p className="text-slate-400 font-medium uppercase tracking-wide mb-0.5">Concluído em</p>
+                  <p className="text-green-700 font-semibold">{moment(currentDemanda.data_conclusao).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</p>
+                </div>
+              )}
+            </div>
+
             {/* Status e Prioridade */}
             <div className="flex flex-wrap gap-2">
               {currentDemanda.urgente && (
@@ -1231,31 +1281,93 @@ ${bu.estrutura_criativo || 'Não gerado'}
                   );
                 })()}
 
+                {/* Setores Envolvidos */}
+                {setoresEnvolvidos.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Layers className="w-4 h-4 text-violet-600" />
+                        Setores Envolvidos
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-2">
+                        {setoresEnvolvidos.map((se, idx) => (
+                          <div key={idx} className={cn(
+                            'p-2.5 rounded-lg border text-xs',
+                            se.atual ? 'bg-violet-50 border-violet-200' : 'bg-slate-50 border-slate-200'
+                          )}>
+                            <p className={cn('font-semibold', se.atual ? 'text-violet-700' : 'text-slate-700')}>
+                              {setorLabel(se.setor)}
+                            </p>
+                            <p className="text-slate-500 mt-0.5">
+                              {se.atual ? (
+                                <span className="inline-flex items-center gap-1 text-violet-600 font-medium">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-violet-500 inline-block"></span>
+                                  Atual
+                                </span>
+                              ) : se.minutos > 0 ? (
+                                se.minutos >= 60 ? `${Math.floor(se.minutos/60)}h ${se.minutos%60}m` : `${se.minutos}m`
+                              ) : 'Em trânsito'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Histórico de Movimentação por Setor */}
                 {historicoSetores.length > 0 && (
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Histórico de Movimentação</CardTitle>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <ArrowRight className="w-4 h-4 text-violet-600" />
+                        Histórico de Movimentação
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-2">
+                    <CardContent className="space-y-0">
                       {historicoSetores.map((h, idx) => (
-                        <div key={h.id || idx} className="flex gap-3 text-sm border-l-2 border-violet-200 pl-3 py-1.5">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                        <div key={h.id || idx} className="relative flex gap-3 pb-4">
+                          {/* Linha vertical conectando itens */}
+                          {idx < historicoSetores.length - 1 && (
+                            <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-slate-200" />
+                          )}
+                          {/* Ponto */}
+                          <div className={cn(
+                            'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 z-10',
+                            !h.data_saida ? 'bg-violet-600 text-white' : 'bg-slate-200 text-slate-500'
+                          )}>
+                            <Building2 className="w-3 h-3" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {h.setor_anterior && (
-                                <span className="text-slate-500 text-xs">{h.setor_anterior.replace(/_/g, ' ')} →</span>
+                                <>
+                                  <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">{setorLabel(h.setor_anterior)}</span>
+                                  <ArrowRight className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                                </>
                               )}
-                              <span className="font-medium text-violet-700 text-xs">{h.setor?.replace(/_/g, ' ')}</span>
+                              <span className={cn(
+                                'text-xs font-semibold px-1.5 py-0.5 rounded',
+                                !h.data_saida ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-700'
+                              )}>
+                                {setorLabel(h.setor)}
+                              </span>
                               {!h.data_saida && (
                                 <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Atual</span>
                               )}
-                              {h.minutos_no_setor > 0 && (
-                                <span className="text-[10px] text-slate-400">({h.minutos_no_setor >= 60 ? `${Math.floor(h.minutos_no_setor/60)}h ${h.minutos_no_setor%60}m` : `${h.minutos_no_setor}m`})</span>
-                              )}
                             </div>
-                            <div className="text-xs text-slate-400 mt-0.5">
-                              {moment(h.data_entrada).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}
-                              {h.data_saida && ` → ${moment(h.data_saida).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}`}
+                            <div className="text-xs text-slate-400 mt-1 space-y-0.5">
+                              <div>Entrada: {moment(h.data_entrada).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</div>
+                              {h.data_saida && (
+                                <div>Saída: {moment(h.data_saida).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</div>
+                              )}
+                              {h.minutos_no_setor > 0 && (
+                                <div className="font-medium text-slate-500">
+                                  Tempo: {h.minutos_no_setor >= 60 ? `${Math.floor(h.minutos_no_setor/60)}h ${h.minutos_no_setor%60}m` : `${h.minutos_no_setor}m`}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

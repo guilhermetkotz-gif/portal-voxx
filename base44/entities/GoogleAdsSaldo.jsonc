@@ -1,0 +1,116 @@
+{
+  "name": "GoogleAdsSaldo",
+  "type": "object",
+  "properties": {
+    "account_name": {
+      "type": "string",
+      "description": "Nome da conta Google Ads (chave de matching)"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente relacionado"
+    },
+    "month_year": {
+      "type": "string",
+      "description": "M\u00eas/Ano de refer\u00eancia (formato: YYYY-MM-01)"
+    },
+    "saldo_atual": {
+      "type": "number",
+      "description": "Saldo dispon\u00edvel atual (R$)"
+    },
+    "valor_planejado_google": {
+      "type": "number",
+      "description": "Valor planejado Google Ads para o m\u00eas (R$)"
+    },
+    "valor_pago": {
+      "type": "number",
+      "description": "Valor j\u00e1 pago no m\u00eas (R$) \u2014 calculado do hist\u00f3rico"
+    },
+    "gasto_diario": {
+      "type": "number",
+      "description": "Gasto di\u00e1rio estimado (R$)"
+    },
+    "qtd_tomadas": {
+      "type": "number",
+      "default": 4,
+      "description": "Quantidade de tomadas/parcelas no m\u00eas"
+    },
+    "tomadas_pagas": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de tomadas j\u00e1 pagas"
+    },
+    "valor_enviado": {
+      "type": "number",
+      "description": "Valor da \u00faltima tomada enviada (R$)"
+    },
+    "data_ultima_tomada": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do envio da \u00faltima tomada"
+    },
+    "metodo_pagamento": {
+      "type": "string",
+      "enum": [
+        "Boleto",
+        "Pix",
+        "Cart\u00e3o",
+        "Outro"
+      ],
+      "description": "M\u00e9todo de pagamento"
+    },
+    "observacoes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es e notas"
+    },
+    "historico_tomadas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "numero": {
+            "type": "number"
+          },
+          "valor": {
+            "type": "number"
+          },
+          "data_envio": {
+            "type": "string",
+            "format": "date"
+          },
+          "pago": {
+            "type": "boolean",
+            "default": false
+          },
+          "data_pagamento": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "description": "Hist\u00f3rico de tomadas do m\u00eas"
+    },
+    "responsavel_voxx_google": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio VOXX respons\u00e1vel por esta conta Google Ads (exclusivo, n\u00e3o compartilhado com Meta)"
+    },
+    "status_saldo": {
+      "type": "string",
+      "enum": [
+        "Saud\u00e1vel",
+        "Aten\u00e7\u00e3o",
+        "Cr\u00edtico",
+        "Sem dados"
+      ],
+      "description": "Status do saldo (calculado)"
+    }
+  },
+  "required": [
+    "account_name",
+    "month_year"
+  ]
+}

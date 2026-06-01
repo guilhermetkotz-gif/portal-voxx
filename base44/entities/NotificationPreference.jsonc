@@ -1,0 +1,68 @@
+{
+  "name": "NotificationPreference",
+  "type": "object",
+  "properties": {
+    "usuario_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio"
+    },
+    "usuario_email": {
+      "type": "string",
+      "description": "Email do usu\u00e1rio"
+    },
+    "saldo_baixo_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Alertas de saldo baixo ativos"
+    },
+    "saldo_baixo_dias": {
+      "type": "number",
+      "default": 3,
+      "description": "Dias cr\u00edticos para alerta de saldo"
+    },
+    "tomada_vencimento_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Alertas de tomada pr\u00f3xima ao vencimento"
+    },
+    "tomada_vencimento_dias": {
+      "type": "number",
+      "default": 2,
+      "description": "Dias de anteced\u00eancia para alerta de vencimento"
+    },
+    "gasto_excedido_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Alertas de gasto excedido"
+    },
+    "gasto_excedido_percentual": {
+      "type": "number",
+      "default": 120,
+      "description": "Percentual de excesso para alertar (ex: 120 = 120%)"
+    },
+    "enviar_email": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enviar alertas por email"
+    },
+    "enviar_inapp": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enviar alertas in-app"
+    },
+    "frequencia_email": {
+      "type": "string",
+      "enum": [
+        "imediato",
+        "diario",
+        "semanal"
+      ],
+      "default": "diario",
+      "description": "Frequ\u00eancia de envio de emails"
+    }
+  },
+  "required": [
+    "usuario_id",
+    "usuario_email"
+  ]
+}

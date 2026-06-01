@@ -1,0 +1,54 @@
+{
+  "name": "AcaoVoxx",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "otimizacao",
+        "teste_criativo",
+        "ajuste_segmentacao",
+        "pausa_anuncio",
+        "analise",
+        "recomendacao"
+      ],
+      "description": "Tipo da a\u00e7\u00e3o"
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo da a\u00e7\u00e3o"
+    },
+    "descricao": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada"
+    },
+    "plataforma": {
+      "type": "string",
+      "enum": [
+        "meta",
+        "google",
+        "tiktok",
+        "geral"
+      ],
+      "description": "Plataforma relacionada"
+    },
+    "impacto": {
+      "type": "string",
+      "description": "Impacto esperado ou resultado"
+    },
+    "data_acao": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da a\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "tipo",
+    "titulo"
+  ]
+}

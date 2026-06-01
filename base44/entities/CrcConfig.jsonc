@@ -1,0 +1,54 @@
+{
+  "name": "CrcConfig",
+  "type": "object",
+  "properties": {
+    "unidade_id": {
+      "type": "string",
+      "description": "ID da unidade (ou 'global' para config geral)"
+    },
+    "sla_primeira_tentativa_min": {
+      "type": "number",
+      "default": 30,
+      "description": "SLA em minutos para primeira tentativa"
+    },
+    "max_tentativas_recomendado": {
+      "type": "number",
+      "default": 6,
+      "description": "M\u00e1ximo de tentativas recomendado"
+    },
+    "cadencia_config": {
+      "type": "object",
+      "description": "Configura\u00e7\u00e3o de cad\u00eancia (ex: {D0: 3, D1: 2, D2: 1})"
+    },
+    "mapeamento_planilha": {
+      "type": "object",
+      "properties": {
+        "coluna_nome": {
+          "type": "string"
+        },
+        "coluna_telefone": {
+          "type": "string"
+        },
+        "coluna_data": {
+          "type": "string"
+        },
+        "coluna_origem": {
+          "type": "string"
+        },
+        "coluna_campanha": {
+          "type": "string"
+        },
+        "coluna_link_anuncio": {
+          "type": "string"
+        },
+        "coluna_observacao": {
+          "type": "string"
+        }
+      },
+      "description": "Mapeamento de colunas da planilha Google"
+    }
+  },
+  "required": [
+    "unidade_id"
+  ]
+}

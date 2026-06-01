@@ -1,0 +1,77 @@
+{
+  "name": "PlanejamentoEstrategico",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente"
+    },
+    "mes_referencia": {
+      "type": "string",
+      "format": "date",
+      "description": "M\u00eas/Ano de refer\u00eancia (YYYY-MM-01)"
+    },
+    "meta_faturamento": {
+      "type": "number",
+      "description": "Meta de faturamento total (R$)"
+    },
+    "ticket_medio": {
+      "type": "number",
+      "description": "Ticket m\u00e9dio da unidade - TKM (R$)"
+    },
+    "percentual_investimento_marketing": {
+      "type": "number",
+      "description": "% de investimento em marketing"
+    },
+    "percentual_impostos": {
+      "type": "number",
+      "description": "% de impostos sobre faturamento"
+    },
+    "investimento_feed": {
+      "type": "number",
+      "description": "Investimento em Feed/Engajamento (R$)"
+    },
+    "investimento_google": {
+      "type": "number",
+      "description": "Investimento em Google Ads (R$)"
+    },
+    "investimento_tiktok": {
+      "type": "number",
+      "description": "Investimento em TikTok Ads (R$)"
+    },
+    "investimento_meta_mes": {
+      "type": "number",
+      "description": "Total de investimento Meta Ads no m\u00eas (calculado automaticamente)"
+    },
+    "cpl_planejado": {
+      "type": "number",
+      "description": "CPL planejado para leads (R$)"
+    },
+    "conversao_leads_contatos": {
+      "type": "number",
+      "description": "% convers\u00e3o de leads em contatos \u00fanicos"
+    },
+    "conversao_contatos_agendamento": {
+      "type": "number",
+      "description": "% convers\u00e3o de contatos em agendamento"
+    },
+    "conversao_agendamento_comparecimento": {
+      "type": "number",
+      "description": "% convers\u00e3o de agendamentos em comparecimento"
+    },
+    "conversao_comparecimento_fechamento": {
+      "type": "number",
+      "description": "% convers\u00e3o de comparecimentos em fechamentos"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "mes_referencia",
+    "meta_faturamento",
+    "ticket_medio"
+  ]
+}

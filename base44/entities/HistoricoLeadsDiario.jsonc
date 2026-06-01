@@ -1,0 +1,50 @@
+{
+  "name": "HistoricoLeadsDiario",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente/unidade"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "data_snapshot": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do snapshot (YYYY-MM-DD)"
+    },
+    "leads_meta": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de leads Meta Ads no dia"
+    },
+    "leads_google": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de leads Google Ads no dia"
+    },
+    "leads_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de leads Meta + Google no dia"
+    },
+    "cpl_meta": {
+      "type": "number",
+      "description": "CPL Meta no dia"
+    },
+    "investimento_meta": {
+      "type": "number",
+      "description": "Investimento Meta no dia"
+    },
+    "cpc_google": {
+      "type": "number",
+      "description": "CPC Google no dia"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "data_snapshot"
+  ]
+}

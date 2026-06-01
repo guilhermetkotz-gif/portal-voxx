@@ -1,0 +1,59 @@
+{
+  "name": "TimelineEvent",
+  "type": "object",
+  "properties": {
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da demanda relacionada"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "tipo": {
+      "type": "string",
+      "enum": [
+        "status_change",
+        "comentario",
+        "anexo",
+        "criacao",
+        "acao_voxx"
+      ],
+      "description": "Tipo do evento"
+    },
+    "descricao": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do evento"
+    },
+    "autor": {
+      "type": "string",
+      "description": "Quem realizou a a\u00e7\u00e3o"
+    },
+    "autor_tipo": {
+      "type": "string",
+      "enum": [
+        "cliente",
+        "voxx"
+      ],
+      "description": "Tipo do autor"
+    },
+    "status_anterior": {
+      "type": "string",
+      "description": "Status antes da mudan\u00e7a"
+    },
+    "status_novo": {
+      "type": "string",
+      "description": "Status ap\u00f3s mudan\u00e7a"
+    },
+    "anexo_url": {
+      "type": "string",
+      "description": "URL do anexo se houver"
+    }
+  },
+  "required": [
+    "demanda_id",
+    "cliente_id",
+    "tipo",
+    "descricao"
+  ]
+}

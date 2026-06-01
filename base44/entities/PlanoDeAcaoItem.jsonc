@@ -1,0 +1,66 @@
+{
+  "name": "PlanoDeAcaoItem",
+  "type": "object",
+  "properties": {
+    "plano_id": {
+      "type": "string",
+      "description": "ID do plano de a\u00e7\u00e3o"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "problema_identificado": {
+      "type": "string",
+      "description": "Problema identificado"
+    },
+    "acao_proposta": {
+      "type": "string",
+      "description": "A\u00e7\u00e3o proposta para resolver o problema"
+    },
+    "responsavel": {
+      "type": "string",
+      "enum": [
+        "Unidade",
+        "Ag\u00eancia Voxx"
+      ],
+      "description": "Respons\u00e1vel pela a\u00e7\u00e3o"
+    },
+    "data_abertura": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de abertura da a\u00e7\u00e3o"
+    },
+    "prazo": {
+      "type": "string",
+      "format": "date",
+      "description": "Prazo para conclus\u00e3o"
+    },
+    "status_acao": {
+      "type": "string",
+      "enum": [
+        "Nova",
+        "Em andamento",
+        "Conclu\u00edda"
+      ],
+      "default": "Nova",
+      "description": "Status da a\u00e7\u00e3o"
+    },
+    "observacoes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es da a\u00e7\u00e3o"
+    },
+    "demanda_id_relacionada": {
+      "type": "string",
+      "description": "ID da demanda relacionada (se houver)"
+    }
+  },
+  "required": [
+    "plano_id",
+    "cliente_id",
+    "problema_identificado",
+    "acao_proposta",
+    "responsavel",
+    "prazo"
+  ]
+}

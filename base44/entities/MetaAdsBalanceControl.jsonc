@@ -1,0 +1,107 @@
+{
+  "name": "MetaAdsBalanceControl",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "month_year": {
+      "type": "string",
+      "description": "M\u00eas/Ano de refer\u00eancia (formato: YYYY-MM-01)"
+    },
+    "ad_account_id": {
+      "type": "string",
+      "description": "ID da conta Meta Ads principal"
+    },
+    "saldo": {
+      "type": "number",
+      "description": "Saldo dispon\u00edvel (R$)"
+    },
+    "valor_planejado_meta": {
+      "type": "number",
+      "description": "Valor planejado Meta Ads para o m\u00eas (pull do planejamento)"
+    },
+    "valor_pago": {
+      "type": "number",
+      "description": "Valor j\u00e1 pago no m\u00eas (R$)"
+    },
+    "gasto_diario": {
+      "type": "number",
+      "description": "Gasto di\u00e1rio estimado (R$)"
+    },
+    "qtd_tomadas": {
+      "type": "number",
+      "default": 4,
+      "description": "Quantidade de tomadas/parcelas no m\u00eas"
+    },
+    "tomadas_pagas": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantidade de tomadas j\u00e1 pagas"
+    },
+    "valor_enviado": {
+      "type": "number",
+      "description": "Valor da \u00faltima tomada enviada (R$)"
+    },
+    "data_ultima_tomada": {
+      "type": "string",
+      "format": "date",
+      "description": "Data do envio da \u00faltima tomada"
+    },
+    "metodo_pagamento": {
+      "type": "string",
+      "enum": [
+        "Boleto",
+        "Pix",
+        "Cart\u00e3o",
+        "Outro"
+      ],
+      "description": "M\u00e9todo de pagamento"
+    },
+    "observacoes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es e notas"
+    },
+    "historico_tomadas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "numero": {
+            "type": "number",
+            "description": "N\u00famero da tomada"
+          },
+          "valor": {
+            "type": "number",
+            "description": "Valor da tomada (R$)"
+          },
+          "data_envio": {
+            "type": "string",
+            "format": "date",
+            "description": "Data de envio da tomada"
+          },
+          "pago": {
+            "type": "boolean",
+            "default": false,
+            "description": "Se foi pago"
+          },
+          "data_pagamento": {
+            "type": "string",
+            "format": "date",
+            "description": "Data do pagamento"
+          }
+        }
+      },
+      "description": "Hist\u00f3rico de tomadas do m\u00eas"
+    }
+  },
+  "required": [
+    "client_id",
+    "month_year"
+  ]
+}

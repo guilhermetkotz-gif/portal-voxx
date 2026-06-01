@@ -1,0 +1,75 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "cargo": {
+      "type": "string",
+      "description": "Cargo do usu\u00e1rio"
+    },
+    "telefone": {
+      "type": "string",
+      "description": "Telefone de contato"
+    },
+    "notificacoes_email": {
+      "type": "boolean",
+      "default": true,
+      "description": "Receber notifica\u00e7\u00f5es por email"
+    },
+    "notificacoes_whatsapp": {
+      "type": "boolean",
+      "default": false,
+      "description": "Receber notifica\u00e7\u00f5es por WhatsApp"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente associado"
+    },
+    "tipo_acesso": {
+      "type": "string",
+      "enum": [
+        "cliente_admin",
+        "cliente_viewer",
+        "voxx_admin",
+        "voxx_operacao",
+        "voxx_manager",
+        "oral_sin_franqueadora"
+      ],
+      "description": "Tipo de acesso do usu\u00e1rio"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "ativo",
+        "inativo"
+      ],
+      "default": "pendente",
+      "description": "Status do usu\u00e1rio"
+    },
+    "clientes_atribuidos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dos clientes atribu\u00eddos"
+    },
+    "ultimo_acesso": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data do \u00faltimo acesso"
+    },
+    "profile_picture": {
+      "type": "string",
+      "description": "URL da foto de perfil"
+    }
+  },
+  "required": [
+    "cargo",
+    "telefone",
+    "cliente_id",
+    "tipo_acesso",
+    "clientes_atribuidos",
+    "ultimo_acesso",
+    "profile_picture"
+  ]
+}
