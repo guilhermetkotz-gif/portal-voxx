@@ -207,14 +207,18 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const [mostrarNovaSubcategoria, setMostrarNovaSubcategoria] = useState(false);
   const [mostrarWizardOralSin, setMostrarWizardOralSin] = useState(false);
   const [mostrarWizardEdicao, setMostrarWizardEdicao] = useState(false);
+  const [demandaId, setDemandaId] = useState(null);
 
-  // Check URL params for pre-fill
+  // Check URL params for pre-fill or edit
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tipo = params.get('tipo');
     const subtipo = params.get('subtipo');
+    const editId = params.get('demanda_id');
     
-    if (tipo) {
+    if (editId) {
+      setDemandaId(editId);
+    } else if (tipo) {
       setSetor(tipo);
       if (subtipo === 'investimento') {
         setSubcategoria('Tomada de investimento');
@@ -222,6 +226,32 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       }
     }
   }, []);
+
+  // Buscar demanda existente para edição
+  const { data: demandaExistente } = useQuery({
+    queryKey: ['demandaEdit', demandaId],
+    queryFn: () => base44.entities.Demanda.get(demandaId),
+    enabled: !!demandaId,
+    staleTime: 0
+  });
+
+  // Pré-preencher campos quando dados chegarem
+  useEffect(() => {
+    if (!demandaExistente) return;
+    setClienteId(demandaExistente.cliente_id || '');
+    setSearchCliente('');
+    setSetor(demandaExistente.setor || '');
+    setSubcategoria(demandaExistente.subcategoria || '');
+    setTitulo(demandaExistente.titulo || '');
+    setDescricao(demandaExistente.descricao || '');
+    setUrgente(demandaExistente.urgente || false);
+    setPrioridade(demandaExistente.prioridade || 'media');
+    setPrevisaoEntrega(demandaExistente.previsao_entrega || '');
+    setCamposAdicionais(demandaExistente.campos_adicionais || {});
+    setAnexos(demandaExistente.anexos || []);
+    setComunicarCliente(demandaExistente.comunicar_cliente ?? true);
+    setResumoEntregaCliente(demandaExistente.resumo_entrega_cliente || '');
+  }, [demandaExistente]);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -309,10 +339,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
 
   const createDemanda = useMutation({
     mutationFn: async (data) => {
-      // Create demanda
       const demanda = await base44.entities.Demanda.create(data);
-      
-      // Create initial timeline event
       await base44.entities.TimelineEvent.create({
         demanda_id: demanda.id,
         cliente_id: data.cliente_id,
@@ -321,11 +348,29 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
         autor: user?.full_name || user?.email,
         autor_tipo: 'cliente'
       });
-
       return demanda;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['demandas'] });
+      setSuccess(true);
+    }
+  });
+
+  const updateDemanda = useMutation({
+    mutationFn: async (data) => {
+      await base44.entities.Demanda.update(demandaId, data);
+      await base44.entities.TimelineEvent.create({
+        demanda_id: demandaId,
+        cliente_id: data.cliente_id,
+        tipo: 'edicao',
+        descricao: `Demanda editada: ${data.titulo}`,
+        autor: user?.full_name || user?.email,
+        autor_tipo: 'voxx'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['demandas'] });
+      queryClient.invalidateQueries({ queryKey: ['demandaEdit', demandaId] });
       setSuccess(true);
     }
   });
@@ -376,7 +421,11 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       anexos_cliente: anexosClienteFinal
     };
 
-    await createDemanda.mutateAsync(data);
+    if (demandaId) {
+      await updateDemanda.mutateAsync(data);
+    } else {
+      await createDemanda.mutateAsync(data);
+    }
   };
 
   const handleWizardUniversalComplete = async (wizardData) => {
@@ -469,10 +518,11 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
         <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <CheckCircle className="w-8 h-8 text-emerald-600" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Demanda registrada!</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">{demandaId ? 'Demanda atualizada!' : 'Demanda registrada!'}</h2>
         <p className="text-slate-500 mb-6">
-          Nosso time já recebeu sua solicitação e você pode acompanhar o andamento pela timeline.
-          Assim que houver atualização, você será notificado.
+          {demandaId
+            ? 'As informações da demanda foram salvas com sucesso.'
+            : 'Nosso time já recebeu sua solicitação e você pode acompanhar o andamento pela timeline. Assim que houver atualização, você será notificado.'}
         </p>
         <div className="flex gap-3 justify-center">
           <Button variant="outline" onClick={() => navigate(createPageUrl('Demandas'))}>
@@ -1005,15 +1055,15 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           <Button 
             type="submit" 
             className="w-full bg-violet-600 hover:bg-violet-700"
-            disabled={!clienteId || !setor || !titulo || createDemanda.isPending || (mostrarNovaSubcategoria && !novaSubcategoria)}
+            disabled={!clienteId || !setor || !titulo || createDemanda.isPending || updateDemanda.isPending || (mostrarNovaSubcategoria && !novaSubcategoria)}
           >
-            {createDemanda.isPending ? (
+            {(createDemanda.isPending || updateDemanda.isPending) ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Enviando...
+                {demandaId ? 'Salvando...' : 'Enviando...'}
               </>
             ) : (
-              'Enviar Demanda'
+              demandaId ? 'Salvar Alterações' : 'Enviar Demanda'
             )}
           </Button>
         </Card>
