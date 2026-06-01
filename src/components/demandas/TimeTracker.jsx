@@ -184,10 +184,7 @@ const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onR
           className="h-7 w-7 p-0 bg-violet-600 hover:bg-violet-700 text-white rounded">
           <CheckCircle2 className="w-3.5 h-3.5" />
         </Button>
-        <Button onClick={handleReset} variant="ghost" size="sm"
-          className="h-7 w-7 p-0 text-slate-400 hover:text-slate-600">
-          <RotateCcw className="w-3.5 h-3.5" />
-        </Button>
+
       </div>
     </div>
   );
