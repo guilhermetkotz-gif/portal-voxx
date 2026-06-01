@@ -37,8 +37,10 @@ function calcBusinessHours(fromDate) {
 const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by, tags = [] } = demanda;
 
-  // Verifica inatividade > 72h úteis
-  const lastActivity = demanda.updated_date || demanda.created_date;
+  // Verifica inatividade > 48h úteis
+  // Usa ultima_atividade_kanban (comentário ou mudança de coluna) como referência
+  // Fallback para created_date se ainda não houver atividade registrada
+  const lastActivity = demanda.ultima_atividade_kanban || demanda.created_date;
   const businessHoursInactive = lastActivity ? calcBusinessHours(lastActivity) : 0;
   const isInactive = businessHoursInactive >= 48;
 

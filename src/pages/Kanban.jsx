@@ -209,7 +209,7 @@ const Kanban = ({ user, selectedClienteId }) => {
 
   const updateDemandaMutation = useMutation({
     mutationFn: async ({ id, setor, setorAnterior }) => {
-      await base44.entities.Demanda.update(id, { setor });
+      await base44.entities.Demanda.update(id, { setor, ultima_atividade_kanban: new Date().toISOString() });
       // Registrar movimentação no histórico
       base44.functions.invoke('registrarMovimentacaoSetor', {
         demanda_id: id,

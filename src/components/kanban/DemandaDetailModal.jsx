@@ -137,10 +137,13 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
         autor_tipo: user?.tipo_usuario?.startsWith('voxx') ? 'voxx' : 'cliente',
         anexo_url: anexo || null
       });
+      // Atualiza última atividade relevante no kanban
+      await base44.entities.Demanda.update(demanda.id, { ultima_atividade_kanban: new Date().toISOString() });
       return event;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      queryClient.invalidateQueries({ queryKey: ['demandasKanban'] });
       setComentario('');
       setComentarioAnexo(null);
       toast.success('Comentário adicionado!');
