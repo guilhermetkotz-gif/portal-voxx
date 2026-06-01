@@ -19,6 +19,7 @@ import {
   Layers, Target, Settings2
 } from 'lucide-react';
 import ConfiguracaoSetoresModal from '@/components/operacional/ConfiguracaoSetoresModal.jsx';
+import ConfiguracaoTempoDemandaAdmin from '@/components/operacional/ConfiguracaoTempoDemandaAdmin';
 
 // ─── CONSTANTES ──────────────────────────────────────────────────────────────
 const SETOR_CONFIG = {
@@ -725,6 +726,8 @@ export default function PerformanceOperacional() {
       {showConfig && (
         <ConfiguracaoSetoresModal onClose={() => setShowConfig(false)} existingConfigs={configSetores} />
       )}
+
+      <ConfiguracaoTempoDemandaAdmin />
     </div>
   );
 }

@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import 'moment-timezone';
 import TimeTracker from '@/components/demandas/TimeTracker';
+import TempoLimiteDemanda from '@/components/demandas/TempoLimiteDemanda';
 import EntregasSection from '@/components/demandas/EntregasSection';
 
 const DemandaDetailModal = ({ demanda, open, onClose }) => {
@@ -669,6 +670,7 @@ ${statusValidacao}`.trim();
                   initialMinutes={0}
                   onRunningChange={setIsTimerRunning}
                 />
+                <TempoLimiteDemanda demanda={currentDemanda} />
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
