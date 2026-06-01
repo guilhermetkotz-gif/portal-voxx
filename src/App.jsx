@@ -42,6 +42,15 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { user, isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
+  // Rotas públicas — acessíveis sem login
+  if (window.location.pathname.startsWith('/aprovacao/')) {
+    return (
+      <Routes>
+        <Route path="/aprovacao/:token" element={<AprovacaoPublica />} />
+      </Routes>
+    );
+  }
+
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
