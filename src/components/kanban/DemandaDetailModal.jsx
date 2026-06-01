@@ -48,6 +48,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const [showPauseConfirm, setShowPauseConfirm] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const pendingCloseRef = React.useRef(false);
+  const timerRef = useRef(null);
   const [comentarioAnexo, setComentarioAnexo] = useState(null);
   const [enviandoN8n, setEnviandoN8n] = useState(false);
   
@@ -662,6 +663,7 @@ ${statusValidacao}`.trim();
               <p className="text-sm text-muted-foreground mt-1">Cliente: {currentDemanda.cliente_nome}</p>
               <div className="mt-2">
                 <TimeTracker
+                  ref={timerRef}
                   demandaId={demanda.id}
                   onSaveTime={handleSaveTime}
                   initialMinutes={0}
@@ -1569,13 +1571,10 @@ ${bu.estrutura_criativo || 'Não gerado'}
                   className="bg-violet-600 hover:bg-violet-700 text-white"
                   onClick={async () => {
                     setShowPauseConfirm(false);
-                    // Pausar o cronômetro via entity update
-                    await base44.entities.Demanda.update(demanda.id, {
-                      cronometro_ativo: false,
-                      cronometro_inicio: null,
-                      cronometro_usuario_id: null,
-                      cronometro_usuario_nome: null
-                    });
+                    // Pausar via ref do TimeTracker (para o interval local também)
+                    if (timerRef.current?.pause) {
+                      await timerRef.current.pause();
+                    }
                     onClose();
                   }}
                 >

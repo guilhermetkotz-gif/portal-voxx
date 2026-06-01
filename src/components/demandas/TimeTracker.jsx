@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Play, Pause, CheckCircle2, RotateCcw, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChange }) => {
+const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onRunningChange }, ref) => {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -17,7 +14,7 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
     queryKey: ['demanda', demandaId],
     queryFn: () => base44.entities.Demanda.filter({ id: demandaId }).then(d => d[0]),
     enabled: !!demandaId,
-    refetchInterval: 2000, // Atualiza a cada 2 segundos para pegar mudanças
+    refetchInterval: 2000,
   });
   
   const [isRunning, setIsRunning] = useState(false);
@@ -42,10 +39,8 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
       setSessionSeconds(segundosDecorridos);
       setIsRunning(true);
     } else if (!demandaAtual?.cronometro_ativo && isRunning) {
-      // Se o cronômetro foi pausado em outro lugar
       setIsRunning(false);
     } else if (demandaAtual && !demandaAtual?.cronometro_ativo && !isRunning && !autoStartedRef.current && user) {
-      // Auto-iniciar ao abrir a demanda pela primeira vez
       autoStartedRef.current = true;
       handleStart();
     }
@@ -79,7 +74,6 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
 
   const handleStart = async () => {
     setIsRunning(true);
-    
     try {
       await base44.entities.Demanda.update(demandaId, {
         cronometro_ativo: true,
@@ -94,7 +88,6 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
   
   const handleStop = async () => {
     setIsRunning(false);
-    
     try {
       await base44.entities.Demanda.update(demandaId, {
         cronometro_ativo: false,
@@ -113,7 +106,6 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
     if (onSaveTime) {
       await onSaveTime(totalMinutes);
     }
-    
     try {
       await base44.entities.Demanda.update(demandaId, {
         cronometro_ativo: false,
@@ -124,7 +116,6 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
     } catch (error) {
       console.error('Erro ao salvar tempo:', error);
     }
-    
     setSessionSeconds(0);
   };
 
@@ -132,7 +123,6 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
     setIsRunning(false);
     setTotalSeconds(0);
     setSessionSeconds(0);
-    
     try {
       await base44.entities.Demanda.update(demandaId, {
         cronometro_ativo: false,
@@ -145,21 +135,19 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
     }
   };
 
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const displayMinutes = totalMinutes % 60;
+  // Expõe método pause para o componente pai via ref
+  useImperativeHandle(ref, () => ({
+    pause: handleStop
+  }));
 
   return (
     <div className="border border-violet-200 bg-violet-50 rounded-lg px-4 py-2.5 flex items-center gap-3">
-      {/* Clock icon + label */}
       <Clock className="w-5 h-5 text-violet-500 flex-shrink-0" />
 
-      {/* Timer display */}
       <div className="font-mono text-base font-semibold text-violet-800 min-w-[90px]">
         {formatTime(totalSeconds)}
       </div>
 
-      {/* Status badge */}
       <div className="flex-1">
         {isRunning ? (
           <span className="inline-flex items-center gap-1 text-xs text-green-700">
@@ -172,7 +160,6 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
         )}
       </div>
 
-      {/* Controles compactos */}
       <div className="flex items-center gap-1">
         <Button onClick={handleStart} disabled={isRunning} size="sm"
           className="h-7 w-7 p-0 bg-green-600 hover:bg-green-700 text-white rounded">
@@ -194,6 +181,6 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChang
       </div>
     </div>
   );
-};
+});
 
 export default TimeTracker;
