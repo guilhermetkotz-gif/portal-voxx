@@ -2,13 +2,45 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { CalendarDays, User, Tag } from 'lucide-react';
+import { CalendarDays, User, Tag, AlertTriangle } from 'lucide-react';
 import moment from 'moment-timezone';
 import ActiveTimerIndicator from './ActiveTimerIndicator';
 import TagManagerPopover from './TagManagerPopover';
 
+// Calcula horas úteis decorridas desde uma data (Seg-Sex, 9h-18h, fuso Brasília)
+function calcBusinessHours(fromDate) {
+  const tz = 'America/Sao_Paulo';
+  const now = moment().tz(tz);
+  const from = moment(fromDate).tz(tz);
+  if (now.isBefore(from)) return 0;
+
+  let totalMinutes = 0;
+  const cursor = from.clone();
+
+  while (cursor.isBefore(now)) {
+    const dow = cursor.day(); // 0=Dom, 6=Sáb
+    if (dow >= 1 && dow <= 5) {
+      const dayStart = cursor.clone().startOf('day').hour(9);
+      const dayEnd = cursor.clone().startOf('day').hour(18);
+      const segStart = moment.max(cursor, dayStart);
+      const segEnd = moment.min(now, dayEnd);
+      if (segEnd.isAfter(segStart)) {
+        totalMinutes += segEnd.diff(segStart, 'minutes');
+      }
+    }
+    cursor.add(1, 'day').startOf('day').hour(9);
+  }
+
+  return totalMinutes / 60;
+}
+
 const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by, tags = [] } = demanda;
+
+  // Verifica inatividade > 72h úteis
+  const lastActivity = demanda.updated_date || demanda.created_date;
+  const businessHoursInactive = lastActivity ? calcBusinessHours(lastActivity) : 0;
+  const isInactive = businessHoursInactive >= 72;
 
   const priorityColors = {
     alta: 'bg-red-500',
@@ -29,7 +61,9 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
   if (isMinimized) {
     return (
       <Card 
-        className="mb-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+        className={cn('mb-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow',
+          isInactive && 'border-amber-400 bg-amber-50'
+        )}
         onClick={(e) => {
           e.stopPropagation();
           onClick?.(demanda);
@@ -41,6 +75,7 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
             <p className="text-xs text-slate-500 truncate">{cliente_nome}</p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            {isInactive && <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" />}
             {demanda.cronometro_ativo && (
               <ActiveTimerIndicator 
                 cronometro_inicio={demanda.cronometro_inicio}
@@ -57,7 +92,9 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
 
   return (
     <Card 
-      className="mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow"
+      className={cn('mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow',
+        isInactive && 'border-amber-400 bg-amber-50'
+      )}
       onClick={(e) => {
         e.stopPropagation();
         onClick?.(demanda);
@@ -65,7 +102,14 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
     >
       <CardHeader className="flex flex-row items-start justify-between space-y-0 p-3">
         <CardTitle className="text-sm font-semibold line-clamp-2">{titulo}</CardTitle>
-        {urgente && <Badge variant="destructive" className="ml-2 shrink-0">Urgente</Badge>}
+        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+          {isInactive && (
+            <span title={`Sem movimentação há ${Math.round(businessHoursInactive)}h úteis`}>
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+            </span>
+          )}
+          {urgente && <Badge variant="destructive" className="shrink-0">Urgente</Badge>}
+        </div>
       </CardHeader>
       <CardContent className="p-3 pt-0 text-xs text-muted-foreground space-y-2">
         <p className="font-medium text-sm text-slate-800 truncate">{cliente_nome}</p>
