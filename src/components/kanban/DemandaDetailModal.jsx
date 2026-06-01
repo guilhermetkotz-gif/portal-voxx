@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import 'moment-timezone';
 import TimeTracker from '@/components/demandas/TimeTracker';
+import EntregasSection from '@/components/demandas/EntregasSection';
 
 const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const queryClient = useQueryClient();
@@ -800,6 +801,9 @@ ${statusValidacao}`.trim();
               </Card>
             ) : (
               <>
+                {/* Entregas e Aprovações */}
+                <EntregasSection demanda={currentDemanda} user={user} />
+
                 {/* Cronômetro de Trabalho */}
                 <TimeTracker 
                   demandaId={demanda.id}

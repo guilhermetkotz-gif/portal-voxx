@@ -1,0 +1,177 @@
+{
+  "name": "EntregaDemanda",
+  "type": "object",
+  "properties": {
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da demanda vinculada"
+    },
+    "demanda_titulo": {
+      "type": "string",
+      "description": "T\u00edtulo da demanda (cache)"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "nome_entrega": {
+      "type": "string",
+      "description": "Nome da entrega"
+    },
+    "descricao": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da entrega"
+    },
+    "tipo_entrega": {
+      "type": "string",
+      "enum": [
+        "Imagem",
+        "V\u00eddeo",
+        "Landing Page",
+        "Documento",
+        "PDF",
+        "Link",
+        "Relat\u00f3rio",
+        "Automa\u00e7\u00e3o",
+        "Outro"
+      ],
+      "description": "Tipo da entrega"
+    },
+    "status_entrega": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "enviado",
+        "em_aprovacao",
+        "aprovado",
+        "solicitacao_alteracao",
+        "reenviado",
+        "publicado",
+        "arquivado"
+      ],
+      "default": "rascunho",
+      "description": "Status independente da demanda"
+    },
+    "arquivos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Arquivos da vers\u00e3o atual"
+    },
+    "link_externo": {
+      "type": "string",
+      "description": "Link externo (Drive, Vimeo, etc.)"
+    },
+    "versoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "numero": {
+            "type": "number"
+          },
+          "arquivos": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "link_externo": {
+            "type": "string"
+          },
+          "data_upload": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usuario_nome": {
+            "type": "string"
+          },
+          "observacao": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Hist\u00f3rico de vers\u00f5es"
+    },
+    "historico_aprovacoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "acao": {
+            "type": "string",
+            "enum": [
+              "aprovado",
+              "solicitacao_alteracao"
+            ]
+          },
+          "nome_responsavel": {
+            "type": "string"
+          },
+          "observacao": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ip": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "observacao_interna": {
+      "type": "string"
+    },
+    "observacao_cliente": {
+      "type": "string"
+    },
+    "data_envio": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_aprovacao": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "usuario_envio": {
+      "type": "string"
+    },
+    "usuario_envio_nome": {
+      "type": "string"
+    },
+    "usuario_aprovacao": {
+      "type": "string"
+    },
+    "token_publico": {
+      "type": "string",
+      "description": "Token \u00fanico para link p\u00fablico de aprova\u00e7\u00e3o"
+    },
+    "numero_versao_atual": {
+      "type": "number",
+      "default": 1
+    }
+  },
+  "required": [
+    "demanda_id",
+    "nome_entrega",
+    "tipo_entrega"
+  ]
+}

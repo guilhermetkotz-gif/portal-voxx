@@ -26,6 +26,7 @@ import BriefingVisualizacao from './pages/BriefingVisualizacao';
 import InteligeniciaOperacional from './pages/InteligeniciaOperacional';
 import CentralComunicacao from './pages/CentralComunicacao';
 import MigracaoComunicacao from './pages/MigracaoComunicacao';
+import AprovacaoPublica from './pages/AprovacaoPublica';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -136,6 +137,7 @@ const AuthenticatedApp = () => {
       <Route path="/InteligeniciaOperacional" element={<LayoutWrapper currentPageName="InteligeniciaOperacional"><InteligeniciaOperacional /></LayoutWrapper>} />
       <Route path="/CentralComunicacao" element={<LayoutWrapper currentPageName="CentralComunicacao"><CentralComunicacao /></LayoutWrapper>} />
       <Route path="/MigracaoComunicacao" element={<LayoutWrapper currentPageName="CentralComunicacao"><MigracaoComunicacao /></LayoutWrapper>} />
+      <Route path="/aprovacao/:token" element={<AprovacaoPublica />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
