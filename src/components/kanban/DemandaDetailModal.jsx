@@ -649,6 +649,13 @@ ${statusValidacao}`.trim();
             <div className="flex-1">
               <h2 className="text-xl font-semibold pr-8">{currentDemanda.titulo}</h2>
               <p className="text-sm text-muted-foreground mt-1">Cliente: {currentDemanda.cliente_nome}</p>
+              <div className="mt-2">
+                <TimeTracker
+                  demandaId={demanda.id}
+                  onSaveTime={handleSaveTime}
+                  initialMinutes={0}
+                />
+              </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
               <Button
@@ -803,13 +810,6 @@ ${statusValidacao}`.trim();
               <>
                 {/* Entregas e Aprovações */}
                 <EntregasSection demanda={currentDemanda} user={user} />
-
-                {/* Cronômetro de Trabalho */}
-                <TimeTracker 
-                  demandaId={demanda.id}
-                  onSaveTime={handleSaveTime}
-                  initialMinutes={0}
-                />
 
                 {/* Tempo Total de Trabalho */}
                 {currentDemanda.tempo_trabalho_minutos > 0 && (
