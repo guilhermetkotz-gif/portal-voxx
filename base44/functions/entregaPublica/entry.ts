@@ -34,6 +34,7 @@ Deno.serve(async (req) => {
         entrega: {
           id: entrega.id,
           nome_entrega: entrega.nome_entrega,
+          demanda_titulo: entrega.demanda_titulo || null,
           descricao: entrega.descricao,
           tipo_entrega: entrega.tipo_entrega,
           status_entrega: entrega.status_entrega,
