@@ -88,6 +88,12 @@ const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onR
   
   const handleStop = async () => {
     setIsRunning(false);
+    // Salva os minutos da sessão atual ao pausar
+    const sessionMinutes = Math.floor(sessionSeconds / 60);
+    if (sessionMinutes > 0 && onSaveTime) {
+      await onSaveTime(sessionMinutes);
+    }
+    setSessionSeconds(0);
     try {
       await base44.entities.Demanda.update(demandaId, {
         cronometro_ativo: false,
