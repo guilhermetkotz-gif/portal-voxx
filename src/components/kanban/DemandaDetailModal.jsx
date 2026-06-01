@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // Sheet substituído por painel inline - evita conflito de portal (removeChild crash)
@@ -45,6 +45,9 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showPauseConfirm, setShowPauseConfirm] = useState(false);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const pendingCloseRef = React.useRef(false);
   const [comentarioAnexo, setComentarioAnexo] = useState(null);
   const [enviandoN8n, setEnviandoN8n] = useState(false);
   
@@ -637,9 +640,18 @@ ${statusValidacao}`.trim();
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+  const handleClose = () => {
+    if (isTimerRunning) {
+      setShowPauseConfirm(true);
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end" onMouseDown={(e) => { if (e.target === e.currentTarget) handleClose(); }} onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}>
       {/* Overlay */}
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
       
       {/* Painel lateral */}
       <div className="relative w-full sm:max-w-2xl bg-white h-full overflow-y-auto shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -654,6 +666,7 @@ ${statusValidacao}`.trim();
                   demandaId={demanda.id}
                   onSaveTime={handleSaveTime}
                   initialMinutes={0}
+                  onRunningChange={setIsTimerRunning}
                 />
               </div>
             </div>
@@ -668,7 +681,7 @@ ${statusValidacao}`.trim();
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onClose}
+                onClick={handleClose}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -1536,6 +1549,43 @@ ${bu.estrutura_criativo || 'Não gerado'}
               </>
             )}
         </div>
+
+        {/* Dialog de Confirmação de Pausar Cronômetro */}
+        {showPauseConfirm && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute inset-0 bg-black/50" onClick={() => setShowPauseConfirm(false)} />
+            <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
+                <Clock className="h-5 w-5 text-violet-500" />
+                Pausar cronômetro?
+              </h3>
+              <p className="text-sm text-slate-600 mb-6">
+                O cronômetro está em execução. Deseja pausá-lo ao fechar a demanda?
+              </p>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => { setShowPauseConfirm(false); onClose(); }}>
+                  Não, continuar
+                </Button>
+                <Button
+                  className="bg-violet-600 hover:bg-violet-700 text-white"
+                  onClick={async () => {
+                    setShowPauseConfirm(false);
+                    // Pausar o cronômetro via entity update
+                    await base44.entities.Demanda.update(demanda.id, {
+                      cronometro_ativo: false,
+                      cronometro_inicio: null,
+                      cronometro_usuario_id: null,
+                      cronometro_usuario_nome: null
+                    });
+                    onClose();
+                  }}
+                >
+                  Sim, pausar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Dialog de Confirmação de Exclusão - inline, sem portal */}
         {showDeleteDialog && (

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Play, Pause, CheckCircle2, RotateCcw, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0 }) => {
+const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0, onRunningChange }) => {
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -24,7 +24,13 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0 }) => {
   const [totalSeconds, setTotalSeconds] = useState(initialMinutes * 60);
   const [sessionSeconds, setSessionSeconds] = useState(0);
   const intervalRef = useRef(null);
+  const autoStartedRef = useRef(false);
   
+  // Notifica pai sobre mudança de estado
+  useEffect(() => {
+    if (onRunningChange) onRunningChange(isRunning);
+  }, [isRunning]);
+
   // Restaurar cronômetro ativo ao montar ou quando demanda atualizar
   useEffect(() => {
     if (demandaAtual?.cronometro_ativo && demandaAtual?.cronometro_inicio) {
@@ -38,8 +44,12 @@ const TimeTracker = ({ demandaId, onSaveTime, initialMinutes = 0 }) => {
     } else if (!demandaAtual?.cronometro_ativo && isRunning) {
       // Se o cronômetro foi pausado em outro lugar
       setIsRunning(false);
+    } else if (demandaAtual && !demandaAtual?.cronometro_ativo && !isRunning && !autoStartedRef.current && user) {
+      // Auto-iniciar ao abrir a demanda pela primeira vez
+      autoStartedRef.current = true;
+      handleStart();
     }
-  }, [demandaAtual?.cronometro_ativo, demandaAtual?.cronometro_inicio]);
+  }, [demandaAtual?.cronometro_ativo, demandaAtual?.cronometro_inicio, demandaAtual?.id, user?.id]);
 
   // Atualiza a cada segundo
   useEffect(() => {
