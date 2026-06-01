@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, ExternalLink, Copy, Package, CheckCircle, AlertCircle, Link, RotateCcw, ChevronDown, ChevronUp, Shield, ShieldOff } from 'lucide-react';
+import { Plus, ExternalLink, Copy, Package, CheckCircle, AlertCircle, Link, RotateCcw, ChevronDown, ChevronUp, Shield, ShieldOff, MessageSquare } from 'lucide-react';
+import EnvioAprovacaoModal from './EnvioAprovacaoModal';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import moment from 'moment';
@@ -22,7 +23,7 @@ const STATUS_CONFIG = {
   arquivado:            { label: 'Arquivado',             color: 'bg-slate-100 text-slate-500' },
 };
 
-function EntregaCard({ entrega, demanda, user }) {
+function EntregaCard({ entrega, demanda, user, onEnviarAprovacao }) {
   const queryClient = useQueryClient();
   const [showNovaVersao, setShowNovaVersao] = useState(false);
   const [showHistorico, setShowHistorico] = useState(false);
@@ -143,6 +144,12 @@ function EntregaCard({ entrega, demanda, user }) {
             <RotateCcw className="w-3 h-3" /> Nova Versão
           </Button>
         )}
+        {entrega.link_ativo && entrega.link_publico_aprovacao && (
+          <Button size="sm" className="h-7 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => onEnviarAprovacao(entrega)}>
+            <MessageSquare className="w-3 h-3" /> Enviar para Aprovação
+          </Button>
+        )}
         <select
           value={entrega.status_entrega}
           onChange={e => updateStatus.mutate(e.target.value)}
@@ -194,6 +201,7 @@ function EntregaCard({ entrega, demanda, user }) {
 
 export default function EntregasSection({ demanda, user }) {
   const [showModal, setShowModal] = useState(false);
+  const [entregaParaEnvio, setEntregaParaEnvio] = useState(null);
 
   const { data: entregas = [] } = useQuery({
     queryKey: ['entregas', demanda?.id],
@@ -239,12 +247,20 @@ export default function EntregasSection({ demanda, user }) {
             Nenhuma entrega registrada ainda
           </div>
         ) : (
-          entregas.map(e => <EntregaCard key={e.id} entrega={e} demanda={demanda} user={user} />)
+          entregas.map(e => <EntregaCard key={e.id} entrega={e} demanda={demanda} user={user} onEnviarAprovacao={setEntregaParaEnvio} />)
         )}
       </CardContent>
 
       {showModal && (
         <NovaEntregaModal demanda={demanda} user={user} onClose={() => setShowModal(false)} />
+      )}
+      {entregaParaEnvio && (
+        <EnvioAprovacaoModal
+          entrega={entregaParaEnvio}
+          demanda={demanda}
+          user={user}
+          onClose={() => setEntregaParaEnvio(null)}
+        />
       )}
     </Card>
   );

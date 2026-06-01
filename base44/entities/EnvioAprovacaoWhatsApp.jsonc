@@ -1,0 +1,91 @@
+{
+  "name": "EnvioAprovacaoWhatsApp",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da demanda"
+    },
+    "demanda_titulo": {
+      "type": "string",
+      "description": "T\u00edtulo da demanda (cache)"
+    },
+    "entrega_id": {
+      "type": "string",
+      "description": "ID da EntregaDemanda"
+    },
+    "entrega_nome": {
+      "type": "string",
+      "description": "Nome da entrega (cache)"
+    },
+    "whatsapp_grupo_id": {
+      "type": "string",
+      "description": "ID do grupo WhatsApp destino"
+    },
+    "mensagem": {
+      "type": "string",
+      "description": "Mensagem enviada"
+    },
+    "tipo_envio": {
+      "type": "string",
+      "enum": [
+        "texto",
+        "imagem",
+        "lovable"
+      ],
+      "description": "Tipo do envio"
+    },
+    "status_envio": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "enviado",
+        "erro",
+        "cancelado"
+      ],
+      "default": "rascunho"
+    },
+    "zapi_message_id": {
+      "type": "string"
+    },
+    "zapi_zaap_id": {
+      "type": "string"
+    },
+    "erro_envio": {
+      "type": "string",
+      "description": "Detalhe do erro, se houver"
+    },
+    "enviado_por": {
+      "type": "string",
+      "description": "Email de quem enviou"
+    },
+    "enviado_por_nome": {
+      "type": "string"
+    },
+    "enviado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload_enviado": {
+      "type": "object",
+      "description": "Payload completo enviado \u00e0 API"
+    },
+    "link_aprovacao": {
+      "type": "string",
+      "description": "Link p\u00fablico de aprova\u00e7\u00e3o enviado"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "entrega_id",
+    "mensagem"
+  ]
+}
