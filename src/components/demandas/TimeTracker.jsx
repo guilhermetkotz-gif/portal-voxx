@@ -20,6 +20,7 @@ const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onR
   const [isRunning, setIsRunning] = useState(false);
   const [totalSeconds, setTotalSeconds] = useState(initialMinutes * 60);
   const [sessionSeconds, setSessionSeconds] = useState(0);
+  const sessionSecondsRef = useRef(0);
   const intervalRef = useRef(null);
   const autoStartedRef = useRef(false);
   
@@ -53,6 +54,7 @@ const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onR
         setTotalSeconds(prev => prev + 1);
         setSessionSeconds(prev => {
           const next = prev + 1;
+          sessionSecondsRef.current = next;
           if (onTick) onTick(next);
           return next;
         });
@@ -92,11 +94,13 @@ const TimeTracker = forwardRef(({ demandaId, onSaveTime, initialMinutes = 0, onR
   
   const handleStop = async () => {
     setIsRunning(false);
-    // Salva os minutos da sessão atual ao pausar
-    const sessionMinutes = Math.floor(sessionSeconds / 60);
-    if (sessionMinutes > 0 && onSaveTime) {
+    // Usa ref para evitar stale closure e salva até segundos parciais (mínimo 1 min)
+    const currentSeconds = sessionSecondsRef.current;
+    const sessionMinutes = Math.max(1, Math.floor(currentSeconds / 60));
+    if (currentSeconds >= 30 && onSaveTime) {
       await onSaveTime(sessionMinutes);
     }
+    sessionSecondsRef.current = 0;
     setSessionSeconds(0);
     try {
       await base44.entities.Demanda.update(demandaId, {
