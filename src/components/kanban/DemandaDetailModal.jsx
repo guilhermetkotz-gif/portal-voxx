@@ -639,7 +639,6 @@ ${statusValidacao}`.trim();
 
   if (!open) return null;
 
-  return (
   const handleClose = () => {
     if (isTimerRunning) {
       setShowPauseConfirm(true);
