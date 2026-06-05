@@ -104,6 +104,7 @@ export default function ConfiguracaoWhatsApp({ user }) {
   const [novoGrupo, setNovoGrupo] = useState({ grupo_id: '', nome_grupo: '' });
   const [vinculandoId, setVinculandoId] = useState(null);
   const [clienteSelecionado, setClienteSelecionado] = useState('');
+  const [buscaCliente, setBuscaCliente] = useState('');
 
   const { data: grupos = [], isLoading: loadingGrupos } = useQuery({
     queryKey: ['whatsappGrupos'],
@@ -333,25 +334,38 @@ export default function ConfiguracaoWhatsApp({ user }) {
                     <td className="px-4 py-3 font-mono text-xs text-slate-500 max-w-xs truncate">{grupo.grupo_id}</td>
                     <td className="px-4 py-3 text-slate-700">
                       {vinculandoId === grupo.id ? (
-                        <div className="flex items-center gap-2">
-                          <Select value={clienteSelecionado} onValueChange={setClienteSelecionado}>
-                            <SelectTrigger className="h-7 text-xs w-48">
-                              <SelectValue placeholder="Selecionar cliente" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {clientes.map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button size="sm" className="h-7 text-xs bg-green-600 hover:bg-green-700"
-                            disabled={!clienteSelecionado || vincularMutation.isPending}
-                            onClick={() => vincularMutation.mutate({ grupo, clienteId: clienteSelecionado })}>
-                            {vincularMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Salvar'}
-                          </Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setVinculandoId(null); setClienteSelecionado(''); }}>
-                            Cancelar
-                          </Button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex flex-col gap-1">
+                            <Input
+                              placeholder="Buscar cliente..."
+                              value={buscaCliente}
+                              onChange={e => setBuscaCliente(e.target.value)}
+                              className="h-7 text-xs w-48"
+                              autoFocus
+                            />
+                            <Select value={clienteSelecionado} onValueChange={setClienteSelecionado}>
+                              <SelectTrigger className="h-7 text-xs w-48">
+                                <SelectValue placeholder="Selecionar cliente" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {clientes
+                                  .filter(c => c.nome.toLowerCase().includes(buscaCliente.toLowerCase()))
+                                  .map(c => (
+                                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="sm" className="h-7 text-xs bg-green-600 hover:bg-green-700"
+                              disabled={!clienteSelecionado || vincularMutation.isPending}
+                              onClick={() => vincularMutation.mutate({ grupo, clienteId: clienteSelecionado })}>
+                              {vincularMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Salvar'}
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setVinculandoId(null); setClienteSelecionado(''); setBuscaCliente(''); }}>
+                              Cancelar
+                            </Button>
+                          </div>
                         </div>
                       ) : (
                         grupo.cliente_nome || <span className="text-slate-400 italic">Não vinculado</span>
