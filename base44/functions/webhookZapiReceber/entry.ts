@@ -2,13 +2,19 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   try {
+    console.log('[webhookZapiReceber] Requisição recebida:', { method: req.method });
+    
     if (req.method !== 'POST') {
       return Response.json({ error: 'Method not allowed' }, { status: 405 });
     }
 
-    const body = await req.json().catch(() => ({}));
+    const body = await req.json().catch((e) => {
+      console.error('[webhookZapiReceber] Erro ao fazer parse JSON:', e.message);
+      return {};
+    });
 
     if (!body.phone && !body.instanceId && !body.zaapId) {
+      console.log('[webhookZapiReceber] Payload inválido:', JSON.stringify(body));
       return Response.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
@@ -90,14 +96,13 @@ Deno.serve(async (req) => {
     }
 
     // Extrair conteúdo da mensagem
-    const conteudo =
-      body.text?.message ||
-      body.image?.caption ||
-      body.video?.caption ||
-      body.document?.fileName ||
-      body.audio ? '[Áudio]' : null ||
-      body.sticker ? '[Sticker]' : null ||
-      '[Mensagem]';
+    let conteudo = '[Mensagem]';
+    if (body.text?.message) conteudo = body.text.message;
+    else if (body.image?.caption) conteudo = body.image.caption;
+    else if (body.video?.caption) conteudo = body.video.caption;
+    else if (body.document?.fileName) conteudo = body.document.fileName;
+    else if (body.audio) conteudo = '[Áudio]';
+    else if (body.sticker) conteudo = '[Sticker]';
 
     const tipoEnvio = body.image ? 'imagem' : 'texto';
     const remetenteNome = body.senderName || body.pushName || 'Desconhecido';
