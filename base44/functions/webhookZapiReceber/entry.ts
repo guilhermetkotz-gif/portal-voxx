@@ -20,12 +20,7 @@ Deno.serve(async (req) => {
 
     const base44 = createClientFromRequest(req);
 
-    // Ignorar mensagens enviadas pelo próprio bot
-    if (body.fromMe === true) {
-      return Response.json({ ok: true, ignored: 'fromMe' });
-    }
-
-    // Ignorar notificações de sistema (ex: participante entrou/saiu)
+    // Ignorar apenas notificações de sistema vazias (ex: participante entrou/saiu sem conteúdo)
     if (body.type === 'ReceivedCallback' && !body.text && !body.image && !body.video && !body.audio && !body.document) {
       return Response.json({ ok: true, ignored: 'no_content' });
     }
@@ -109,6 +104,10 @@ Deno.serve(async (req) => {
     const timestamp = body.momment
       ? new Date(body.momment * 1000).toISOString()
       : new Date().toISOString();
+    
+    // Detectar se é mensagem da VOXX (fromMe=true) ou do cliente/outros
+    const isFromMe = body.fromMe === true;
+    const remetenteTipo = isFromMe ? 'voxx' : 'cliente';
 
     await base44.asServiceRole.entities.WhatsappEnvioLog.create({
       cliente_id: clienteId,
@@ -120,7 +119,17 @@ Deno.serve(async (req) => {
       mensagem: conteudo,
       status_envio: 'enviado',
       remetente_nome: remetenteNome,
+      remetente_tipo: remetenteTipo,
       enviado_em: timestamp,
+      enviado_por: isFromMe ? 'voxx_bot' : remetenteNome,
+    });
+
+    console.log('[webhookZapiReceber] Mensagem salva:', {
+      cliente: clienteNome,
+      remetente: remetenteNome,
+      fromMe: isFromMe,
+      tipo: remetenteTipo,
+      conteudo: conteudo.substring(0, 50)
     });
 
     console.log('[webhookZapiReceber] Mensagem salva para cliente:', clienteNome);

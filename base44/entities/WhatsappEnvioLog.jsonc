@@ -70,6 +70,15 @@
     "remetente_nome": {
       "type": "string",
       "description": "Nome do remetente (para mensagens recebidas)"
+    },
+    "remetente_tipo": {
+      "type": "string",
+      "enum": [
+        "voxx",
+        "cliente",
+        "desconhecido"
+      ],
+      "description": "Tipo do remetente: voxx (enviado pela VOXX), cliente (mensagem do cliente), desconhecido"
     }
   },
   "required": [
