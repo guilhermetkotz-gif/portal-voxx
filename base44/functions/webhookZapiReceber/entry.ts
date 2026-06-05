@@ -125,6 +125,9 @@ Deno.serve(async (req) => {
     const isFromMe = body.fromMe === true;
     const remetenteTipo = isFromMe ? 'voxx' : 'cliente';
     
+    // Definir origem corretamente: 'enviada' para fromMe=true, 'recebida' para fromMe=false
+    const origem = isFromMe ? 'enviada' : 'recebida';
+    
     // Usar nome do grupo do chatName se disponível, senão usar do banco
     const grupoNomeFinal = chatName || grupoNome || 'Grupo WhatsApp';
 
@@ -134,7 +137,7 @@ Deno.serve(async (req) => {
       grupo_id: grupoIdFinal,
       grupo_nome: grupoNomeFinal,
       tipo_envio: tipoEnvio,
-      origem: 'recebida',
+      origem: origem,
       mensagem: conteudo,
       status_envio: 'enviado',
       remetente_nome: senderName,
@@ -157,19 +160,10 @@ Deno.serve(async (req) => {
       participante: senderName,
       participantPhone,
       fromMe: isFromMe,
+      origem: origem,
       tipo: remetenteTipo,
       conteudo: conteudo.substring(0, 50)
     });
-
-    console.log('[webhookZapiReceber] Mensagem salva:', {
-      cliente: clienteNome,
-      remetente: remetenteNome,
-      fromMe: isFromMe,
-      tipo: remetenteTipo,
-      conteudo: conteudo.substring(0, 50)
-    });
-
-    console.log('[webhookZapiReceber] Mensagem salva para cliente:', clienteNome);
     return Response.json({ ok: true, saved: true, clienteId, clienteNome });
 
   } catch (error) {

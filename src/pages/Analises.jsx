@@ -257,26 +257,31 @@ function RankingRow({ item, position, onVerAnalise }) {
           )}
         </div>
 
-        {/* Conteúdo da última mensagem recebida */}
-        <div className="shrink-0 max-w-[280px] min-w-0">
+        {/* Conteúdo da última mensagem (enviada ou recebida) */}
+        <div className="shrink-0 max-w-[300px] min-w-0">
           <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. mensagem</p>
-          {item._ultima_msg_cliente_conteudo ? (
+          {item.ultima_msg_raw ? (
             <div className="space-y-0.5">
-              <span className="text-[10px] text-slate-300 truncate block" title={item._ultima_msg_cliente_conteudo}>
-                {item._ultima_msg_cliente_conteudo}
+              <span className="text-[10px] truncate block" title={item.ultima_msg_raw.mensagem}>
+                {item.ultima_msg_raw.mensagem?.substring(0, 80) || '[Mídia]'}
               </span>
-              {item.ultima_msg_raw?.retorno_zapi && (
-                <span className="text-[9px] text-slate-500 truncate block">
-                  {(() => {
-                    try {
-                      const info = JSON.parse(item.ultima_msg_raw.retorno_zapi);
-                      return info.participantPhone ? `Participante: ${info.participantPhone}` : null;
-                    } catch {
-                      return null;
-                    }
-                  })()}
+              <div className="flex items-center gap-2">
+                <span className={`text-[9px] ${item.ultima_msg_raw.origem === 'recebida' ? 'text-blue-400' : 'text-violet-400'}`}>
+                  {item.ultima_msg_raw.origem === 'recebida' ? '← Recebida' : '→ Enviada'}
                 </span>
-              )}
+                {item.ultima_msg_raw.retorno_zapi && (
+                  <span className="text-[9px] text-slate-500 truncate">
+                    {(() => {
+                      try {
+                        const info = JSON.parse(item.ultima_msg_raw.retorno_zapi);
+                        return info.participantPhone ? `(${info.participantPhone})` : null;
+                      } catch {
+                        return null;
+                      }
+                    })()}
+                  </span>
+                )}
+              </div>
             </div>
           ) : (
             <span className="text-[10px] text-slate-700 italic">—</span>
@@ -434,12 +439,24 @@ export default function Analises({ user }) {
 
     // Índices para lookup rápido
     const ultimoLogPorCliente = {};
+    const ultimoLogGeralPorCliente = {};
     const totalMsgsPorCliente = {};
     logsEnvio.forEach(log => {
       if (!log.cliente_id || !log.enviado_em) return;
-      if (!ultimoLogPorCliente[log.cliente_id] || log.enviado_em > ultimoLogPorCliente[log.cliente_id]) {
-        ultimoLogPorCliente[log.cliente_id] = log.enviado_em;
+      
+      // Última mensagem (qualquer origem)
+      if (!ultimoLogGeralPorCliente[log.cliente_id] || log.enviado_em > ultimoLogGeralPorCliente[log.cliente_id]) {
+        ultimoLogGeralPorCliente[log.cliente_id] = log.enviado_em;
       }
+      
+      // Última mensagem do cliente (apenas recebidas)
+      if (log.origem === 'recebida') {
+        if (!ultimoLogPorCliente[log.cliente_id] || log.enviado_em > ultimoLogPorCliente[log.cliente_id]) {
+          ultimoLogPorCliente[log.cliente_id] = log.enviado_em;
+        }
+      }
+      
+      // Total de mensagens no período
       if (moment(log.enviado_em).isAfter(corte)) {
         totalMsgsPorCliente[log.cliente_id] = (totalMsgsPorCliente[log.cliente_id] || 0) + 1;
       }
@@ -477,6 +494,11 @@ export default function Analises({ user }) {
     logsEnvio.forEach(log => {
       if (!log.cliente_id || !log.enviado_em) return;
       
+      // Atualizar último log geral (independente da origem)
+      if (!ultimoLogGeralPorCliente[log.cliente_id] || log.enviado_em > ultimoLogGeralPorCliente[log.cliente_id]) {
+        ultimoLogGeralPorCliente[log.cliente_id] = log;
+      }
+      
       // Usar origem='recebida' como indicador principal de mensagem do cliente
       // (funciona para logs antigos e novos)
       const isFromCliente = log.origem === 'recebida';
@@ -497,11 +519,12 @@ export default function Analises({ user }) {
 
     return clientes.map(c => {
       const ultimoLog = ultimoLogPorCliente[c.id];
+      const ultimoLogGeral = ultimoLogGeralPorCliente[c.id] || null;
       const diasSemContato = ultimoLog
         ? moment().tz('America/Sao_Paulo').diff(moment(ultimoLog).tz('America/Sao_Paulo'), 'days')
         : null;
       const totalMsgsPeriodo = totalMsgsPorCliente[c.id] || 0;
-      const ultimaMsgRaw = ultimoLog || null;
+      const ultimaMsgRaw = ultimoLogGeral || null;
       const ultimaMsgVoxx = ultimoLogVoxxPorCliente[c.id] || null;
       const ultimaMsgCliente = ultimoLogClientePorCliente[c.id] || null;
       const grupo = gruposPorCliente[c.id] || null;
