@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Brain, Settings2, TrendingUp, TrendingDown, Minus,
   Clock, BarChart3, ChevronRight,
-  Flame, Zap, Activity, ArrowUpDown
+  Flame, Zap, Activity, ArrowUpDown, AlertTriangle
 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -38,13 +38,14 @@ const TENDENCIA_CONFIG = {
 };
 
 function ScoreBar({ score }) {
+  if (score == null) return <span className="text-xs text-slate-600 font-mono">—</span>;
   const color = score >= 70 ? '#22c55e' : score >= 40 ? '#f59e0b' : '#ef4444';
   return (
-    <div className="flex items-center gap-2">
-      <div className="w-16 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${score}%`, backgroundColor: color }} />
+    <div className="flex items-center gap-1.5">
+      <div className="w-12 h-1 bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${score}%`, backgroundColor: color }} />
       </div>
-      <span className="text-xs font-mono font-bold" style={{ color }}>{score ?? '—'}</span>
+      <span className="text-xs font-mono font-bold tabular-nums" style={{ color }}>{score}</span>
     </div>
   );
 }
@@ -54,112 +55,114 @@ function RankingRow({ item, position, onVerAnalise }) {
   const clima = CLIMA_CONFIG[item.clima_emocional] || CLIMA_CONFIG.sem_dados;
   const tendencia = TENDENCIA_CONFIG[item.tendencia] || TENDENCIA_CONFIG.sem_dados;
   const TendIcon = tendencia.icon;
-
-  const posColor = position <= 3 ? 'text-red-400' : position <= 7 ? 'text-amber-400' : 'text-slate-500';
-
   const hasAlertaVoxx = item.qtd_alertas > 0;
+  const posColor = position <= 3 ? 'text-red-400' : position <= 7 ? 'text-amber-400' : 'text-slate-600';
+
+  const riscoTexto = item._estado_sem_analise || item.principal_risco || null;
 
   return (
-    <div className={`flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors group ${hasAlertaVoxx ? 'bg-amber-500/5 border-l-2 border-l-amber-500/60' : ''}`}>
-      {/* Posição */}
-      <span className={`w-6 text-center text-xs font-bold font-mono ${posColor} shrink-0`}>{position}</span>
+    <div className={`px-3 py-1.5 border-b border-slate-800/50 hover:bg-slate-800/25 transition-colors group ${
+      hasAlertaVoxx ? 'bg-amber-500/5 border-l-2 border-l-amber-500/50' : 'border-l-2 border-l-transparent'
+    }`}>
 
-      {/* Nome */}
-      <div className="w-36 shrink-0">
-        <p className="text-sm font-medium text-slate-100 truncate">{item.nome}</p>
-        <p className="text-xs text-slate-500 truncate">{item.cidade || '—'}</p>
-      </div>
+      {/* Linha 1 — dados principais */}
+      <div className="flex items-center gap-2">
+        {/* # */}
+        <span className={`w-5 text-center text-[10px] font-bold font-mono shrink-0 ${posColor}`}>{position}</span>
 
-      {/* Score */}
-      <div className="w-24 shrink-0">
-        <ScoreBar score={item.score ?? 0} />
-      </div>
+        {/* Nome + cidade */}
+        <div className="w-32 shrink-0">
+          <p className="text-xs font-semibold text-slate-100 truncate leading-tight">{item.nome}</p>
+          <p className="text-[10px] text-slate-500 truncate leading-tight">{item.cidade || '—'}</p>
+        </div>
 
-      {/* Status */}
-      <div className="w-20 shrink-0">
-        <Badge className={`text-xs px-1.5 py-0 border ${
+        {/* Alerta VOXX */}
+        {hasAlertaVoxx && (
+          <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-1 py-0.5 leading-none">
+            <AlertTriangle className="w-2.5 h-2.5" />{item.qtd_alertas}
+          </span>
+        )}
+
+        {/* Score */}
+        <div className="shrink-0">
+          <ScoreBar score={item.score} />
+        </div>
+
+        {/* Status */}
+        <Badge className={`shrink-0 text-[10px] px-1 py-0 leading-4 border h-4 ${
           item.status === 'ativo' ? 'bg-green-500/10 text-green-400 border-green-500/20' :
           item.status === 'pausado' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
           'bg-slate-700/50 text-slate-400 border-slate-600/20'
         }`}>
           {item.status || '—'}
         </Badge>
-      </div>
 
-      {/* Risco Churn */}
-      <div className="w-20 shrink-0">
-        <Badge className={`text-xs px-1.5 py-0 border ${risco.color}`}>{risco.label}</Badge>
-      </div>
+        {/* Churn */}
+        <Badge className={`shrink-0 text-[10px] px-1 py-0 leading-4 border h-4 ${risco.color}`}>
+          {risco.label}
+        </Badge>
 
-      {/* Clima */}
-      <div className="w-24 shrink-0">
-        <span className={`text-xs ${clima.color}`}>{clima.label}</span>
-      </div>
+        {/* Clima */}
+        <span className={`shrink-0 text-[10px] ${clima.color}`}>{clima.label}</span>
 
-      {/* Tendência */}
-      <div className="w-24 shrink-0 flex items-center gap-1">
-        <TendIcon className={`w-3.5 h-3.5 ${tendencia.color}`} />
-        <span className={`text-xs ${tendencia.color}`}>{tendencia.label}</span>
-      </div>
+        {/* Tendência */}
+        <span className={`shrink-0 flex items-center gap-0.5 text-[10px] ${tendencia.color}`}>
+          <TendIcon className="w-3 h-3" />
+          {tendencia.label}
+        </span>
 
-      {/* Pressão cliente */}
-      <div className="w-16 shrink-0 text-center">
-        {item.pressao_cliente != null ? (
-          <div className="flex items-center justify-center gap-0.5">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= item.pressao_cliente ? 'bg-red-400' : 'bg-slate-700'}`} />
-            ))}
-          </div>
-        ) : <span className="text-xs text-slate-600">—</span>}
-      </div>
+        {/* Pressão */}
+        <div className="shrink-0 flex items-center gap-px">
+          {item.pressao_cliente != null
+            ? [1,2,3,4,5].map(i => (
+                <div key={i} className={`w-1 h-1 rounded-full ${i <= item.pressao_cliente ? 'bg-red-400' : 'bg-slate-700'}`} />
+              ))
+            : <span className="text-[10px] text-slate-700">—</span>
+          }
+        </div>
 
-      {/* Sem contato */}
-      <div className="w-20 shrink-0 text-center">
+        {/* Sem contato */}
         {item.dias_sem_contato != null ? (
-          <span className={`text-xs font-mono ${item.dias_sem_contato > 14 ? 'text-red-400' : item.dias_sem_contato > 7 ? 'text-amber-400' : 'text-slate-400'}`}>
+          <span className={`shrink-0 text-[10px] font-mono tabular-nums ${
+            item.dias_sem_contato > 14 ? 'text-red-400' : item.dias_sem_contato > 7 ? 'text-amber-400' : 'text-slate-500'
+          }`}>
             {item.dias_sem_contato}d
           </span>
-        ) : <span className="text-xs text-slate-600">—</span>}
-      </div>
+        ) : <span className="shrink-0 text-[10px] text-slate-700">—</span>}
 
-      {/* Alertas */}
-      <div className="w-12 shrink-0 text-center">
-        {item.qtd_alertas > 0 ? (
-          <span className="text-xs font-bold text-red-400 bg-red-400/10 rounded px-1.5 py-0.5">{item.qtd_alertas}</span>
-        ) : <span className="text-xs text-slate-600">0</span>}
-      </div>
+        {/* Spacer */}
+        <div className="flex-1" />
 
-      {/* Principal risco */}
-      <div className="flex-1 min-w-0">
-        {item._estado_sem_analise ? (
-          <span className="text-xs text-slate-600 italic truncate block">{item._estado_sem_analise}</span>
-        ) : item.principal_risco ? (
-          <span className="text-xs text-slate-400 truncate block">{item.principal_risco}</span>
-        ) : (
-          <span className="text-xs text-slate-700 truncate block">—</span>
-        )}
-      </div>
-
-      {/* Última análise */}
-      <div className="w-20 shrink-0 text-right">
-        {item.ultima_analise ? (
-          <span className="text-xs text-slate-400">{item.ultima_analise}</span>
-        ) : (
-          <Badge className="text-xs px-1.5 py-0 bg-slate-800 text-slate-600 border border-slate-700">Sem análise</Badge>
-        )}
-      </div>
-
-      {/* Ação */}
-      <div className="w-24 shrink-0 flex justify-end">
+        {/* Botão Ver */}
         <Button
           size="sm"
           variant="ghost"
-          className="h-6 text-xs text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-5 text-[10px] text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 gap-0.5 px-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
           onClick={() => onVerAnalise(item)}
         >
-          Ver <ChevronRight className="w-3 h-3" />
+          Ver <ChevronRight className="w-2.5 h-2.5" />
         </Button>
       </div>
+
+      {/* Linha 2 — risco + última análise */}
+      <div className="flex items-center gap-2 mt-0.5 pl-7">
+        <div className="flex-1 min-w-0">
+          {riscoTexto ? (
+            <p
+              className={`text-[10px] truncate leading-tight ${item._estado_sem_analise ? 'text-slate-600 italic' : 'text-slate-500'}`}
+              title={riscoTexto}
+            >
+              {riscoTexto}
+            </p>
+          ) : (
+            <span className="text-[10px] text-slate-700">—</span>
+          )}
+        </div>
+        <span className="shrink-0 text-[10px] text-slate-600 tabular-nums">
+          {item.ultima_analise || <span className="italic text-slate-700">sem análise</span>}
+        </span>
+      </div>
+
     </div>
   );
 }
@@ -326,7 +329,7 @@ export default function Analises({ user }) {
         qtd_alertas: qtdAlertas,
         principal_risco: estadoSemAnalise || (ultimoResumo?.mensagem_gerada ? null : null),
         ultima_analise: ultimoResumo
-          ? moment(ultimoResumo.data).tz('America/Sao_Paulo').format('DD/MM/YY')
+          ? moment(ultimoResumo.updated_date || ultimoResumo.data).tz('America/Sao_Paulo').format('DD/MM HH:mm')
           : null,
         _tem_resumo: !!ultimoResumo,
         _estado_sem_analise: estadoSemAnalise,
@@ -626,20 +629,16 @@ export default function Analises({ user }) {
         {/* Tabela */}
         <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden">
           {/* Cabeçalho da tabela */}
-          <div className="flex items-center gap-3 px-4 py-2 bg-slate-800/60 border-b border-slate-700/50">
-            <span className="w-6 text-center text-xs text-slate-500 font-medium">#</span>
-            <span className="w-36 text-xs text-slate-500 font-medium">Cliente</span>
-            <span className="w-24 text-xs text-slate-500 font-medium">Score</span>
-            <span className="w-20 text-xs text-slate-500 font-medium">Status</span>
-            <span className="w-20 text-xs text-slate-500 font-medium">Churn</span>
-            <span className="w-24 text-xs text-slate-500 font-medium">Clima</span>
-            <span className="w-24 text-xs text-slate-500 font-medium">Tendência</span>
-            <span className="w-16 text-center text-xs text-slate-500 font-medium">Pressão</span>
-            <span className="w-20 text-center text-xs text-slate-500 font-medium">S/ contato</span>
-            <span className="w-12 text-center text-xs text-slate-500 font-medium">Alertas</span>
-            <span className="flex-1 text-xs text-slate-500 font-medium">Principal risco</span>
-            <span className="w-20 text-right text-xs text-slate-500 font-medium">Últ. análise</span>
-            <span className="w-24" />
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800/60 border-b border-slate-700/50">
+            <span className="w-5 text-center text-[10px] text-slate-600 font-medium">#</span>
+            <span className="w-32 text-[10px] text-slate-500 font-medium">Cliente</span>
+            <span className="text-[10px] text-slate-500 font-medium">Score</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-1">Status</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-1">Churn</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-1">Clima</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-1">Tend.</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-1">Pressão</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-1">S/contato</span>
           </div>
 
           {isLoading ? (
