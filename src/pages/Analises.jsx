@@ -14,6 +14,13 @@ import 'moment-timezone';
 import AnalisesParametrizacao from '@/components/analises/AnalisesParametrizacao';
 import ClienteAnaliseDrawer from '@/components/analises/ClienteAnaliseDrawer';
 import RemetentesParametrizacao from '@/components/analises/RemetentesParametrizacao';
+import { useAlertaSemRetornoVoxx } from '@/hooks/useAlertaSemRetornoVoxx';
+
+const NIVEL_ALERTA_CONFIG = {
+  alerta:      { label: 'Sem retorno +30min', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30', border: 'border-l-amber-500/60' },
+  critico:     { label: 'Sem retorno +1h',    color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', border: 'border-l-orange-500/70' },
+  emergencial: { label: 'Sem retorno +2h',    color: 'text-red-400 bg-red-500/10 border-red-500/30', border: 'border-l-red-500' },
+};
 
 const RISCO_CONFIG = {
   critico: { label: 'Crítico', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -58,14 +65,31 @@ function RankingRow({ item, position, onVerAnalise }) {
   const tendencia = TENDENCIA_CONFIG[item.tendencia] || TENDENCIA_CONFIG.sem_dados;
   const TendIcon = tendencia.icon;
   const hasAlertaVoxx = item.qtd_alertas > 0;
+  const alertaSemRetorno = item._alertaSemRetorno; // { nivel, minutosUteis, label }
+  const nivelCfg = alertaSemRetorno ? NIVEL_ALERTA_CONFIG[alertaSemRetorno.nivel] : null;
   const posColor = position <= 3 ? 'text-red-400' : position <= 7 ? 'text-amber-400' : 'text-slate-600';
 
   const riscoTexto = item._estado_sem_analise || item.principal_risco || null;
 
+  // Borda pulsante baseada no nível
+  const borderClass = nivelCfg
+    ? `border-l-2 ${nivelCfg.border}`
+    : hasAlertaVoxx
+      ? 'border-l-2 border-l-amber-500/50'
+      : 'border-l-2 border-l-transparent';
+
+  const bgClass = alertaSemRetorno?.nivel === 'emergencial'
+    ? 'bg-red-500/5'
+    : alertaSemRetorno?.nivel === 'critico'
+      ? 'bg-orange-500/5'
+      : alertaSemRetorno?.nivel === 'alerta'
+        ? 'bg-amber-500/5'
+        : hasAlertaVoxx
+          ? 'bg-amber-500/5'
+          : '';
+
   return (
-    <div className={`px-3 py-1.5 border-b border-slate-800/50 hover:bg-slate-800/25 transition-colors group ${
-      hasAlertaVoxx ? 'bg-amber-500/5 border-l-2 border-l-amber-500/50' : 'border-l-2 border-l-transparent'
-    }`}>
+    <div className={`px-3 py-1.5 border-b border-slate-800/50 hover:bg-slate-800/25 transition-colors group ${borderClass} ${bgClass} ${nivelCfg ? 'animate-pulse-border' : ''}`}>
 
       {/* Linha 1 — dados principais */}
       <div className="flex items-center gap-2">
@@ -78,8 +102,15 @@ function RankingRow({ item, position, onVerAnalise }) {
           <p className="text-[10px] text-slate-500 truncate leading-tight">{item.cidade || '—'}</p>
         </div>
 
-        {/* Alerta VOXX */}
-        {hasAlertaVoxx && (
+        {/* Badge alerta sem retorno VOXX */}
+        {nivelCfg && (
+          <span className={`shrink-0 flex items-center gap-0.5 text-[10px] border rounded px-1 py-0.5 leading-none font-medium ${nivelCfg.color} animate-pulse`}>
+            <AlertTriangle className="w-2.5 h-2.5" />{nivelCfg.label}
+          </span>
+        )}
+
+        {/* Alerta VOXX legado */}
+        {hasAlertaVoxx && !nivelCfg && (
           <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-1 py-0.5 leading-none">
             <AlertTriangle className="w-2.5 h-2.5" />{item.qtd_alertas}
           </span>
@@ -202,6 +233,9 @@ export default function Analises({ user }) {
 
   const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
 
+  // --- Alertas sem retorno VOXX ---
+  const alertasSemRetorno = useAlertaSemRetornoVoxx();
+
   // --- Dados reais ---
   const { data: clientes = [], isLoading: loadingClientes } = useQuery({
     queryKey: ['clientesAnalises'],
@@ -248,6 +282,8 @@ export default function Analises({ user }) {
 
   // --- Enriquecimento ---
   const clientesEnriquecidos = useMemo(() => {
+    // alertasSemRetorno é um Map<clienteId, { nivel, minutosUteis, label }>
+
     // Índices para lookup rápido
     const ultimoLogPorCliente = {};
     logsEnvio.forEach(log => {
@@ -324,39 +360,46 @@ export default function Analises({ user }) {
       else if (score != null && score >= 70) tendencia = 'melhorando';
       else if (score != null) tendencia = 'estavel';
 
+      const alertaSemRetorno = alertasSemRetorno.get(c.id) || null;
+
       return {
         ...c,
         score: score ?? null,
         risco_churn,
-        clima_emocional: null, // campo futuro — sem fonte de dados ainda
+        clima_emocional: null,
         tendencia,
         pressao_cliente: pressaoNivel > 0 ? pressaoNivel : null,
         dias_sem_contato: diasSemContato,
         qtd_alertas: qtdAlertas,
-        principal_risco: estadoSemAnalise || (ultimoResumo?.mensagem_gerada ? null : null),
+        principal_risco: estadoSemAnalise || null,
         ultima_analise: ultimoResumo
           ? moment(ultimoResumo.updated_date || ultimoResumo.data).tz('America/Sao_Paulo').format('DD/MM HH:mm')
           : null,
         _tem_resumo: !!ultimoResumo,
         _estado_sem_analise: estadoSemAnalise,
+        _alertaSemRetorno: alertaSemRetorno,
       };
     });
-  }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos]);
+  }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos, alertasSemRetorno]);
 
   // --- Ordenação ---
 
   // Grupo de prioridade para ordenação "pior para melhor"
   // 0 = alerta VOXX ativo (topo absoluto), 1-6 = faixas de score, 7 = sem análise
+  const NIVEL_ORDEM_SEM_RETORNO = { emergencial: 0, critico: 1, alerta: 2 };
+
   const getGrupoOrdem = (c) => {
-    if (c.qtd_alertas > 0) return 0;           // Alerta operacional VOXX
-    if (!c._tem_resumo) return 7;               // Sem análise (fundo)
+    // Alertas de sem retorno VOXX têm prioridade máxima (0, 1, 2 por nível)
+    if (c._alertaSemRetorno) return NIVEL_ORDEM_SEM_RETORNO[c._alertaSemRetorno.nivel] ?? 2;
+    if (c.qtd_alertas > 0) return 3;           // Alerta operacional VOXX legado
+    if (!c._tem_resumo) return 9;               // Sem análise (fundo)
     const s = c.score;
-    if (s == null) return 7;
-    if (s < 20) return 1;                       // Emergencial
-    if (s < 40) return 2;                       // Crítico
-    if (s < 60) return 3;                       // Atenção
-    if (s < 75) return 4;                       // Saudável
-    return 5;                                   // Excelente
+    if (s == null) return 9;
+    if (s < 20) return 4;                       // Emergencial score
+    if (s < 40) return 5;                       // Crítico score
+    if (s < 60) return 6;                       // Atenção
+    if (s < 75) return 7;                       // Saudável
+    return 8;                                   // Excelente
   };
 
   const RISCO_ORDEM = { critico: 0, alto: 1, medio: 2, baixo: 3 };
