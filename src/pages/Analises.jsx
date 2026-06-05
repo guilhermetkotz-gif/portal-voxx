@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Brain, Settings2, TrendingUp, TrendingDown, Minus,
   Clock, BarChart3, ChevronRight, Loader2,
-  Flame, Zap, Activity, ArrowUpDown, AlertTriangle, MessageSquare, Search, X
+  Flame, Zap, Activity, ArrowUpDown, AlertTriangle, MessageSquare, Search, X, RefreshCw
 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -313,6 +313,12 @@ export default function Analises({ user }) {
   const [buscaCliente, setBuscaCliente] = useState('');
   const queryClient = useQueryClient();
 
+  // Forçar atualização manual
+  const handleAtualizar = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
+    toast.info('Atualizando mensagens...');
+  }, [queryClient]);
+
   const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
 
   // --- Som de alertas ---
@@ -347,10 +353,11 @@ export default function Analises({ user }) {
   });
 
   // Último envio por cliente (último contato via WhatsApp)
-  const { data: logsEnvio = [] } = useQuery({
+  const { data: logsEnvio = [], isFetching } = useQuery({
     queryKey: ['analisesLogsEnvio'],
     queryFn: () => base44.entities.WhatsappEnvioLog.list('-enviado_em', 500),
-    staleTime: 60 * 1000
+    staleTime: 15 * 1000,
+    refetchInterval: 30 * 1000
   });
 
   // Alertas/notificações não lidas por cliente
@@ -734,6 +741,16 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
                 <Settings2 className="w-4 h-4" /> Parametrização
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
+              onClick={handleAtualizar}
+              title="Forçar atualização das mensagens do WhatsApp"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+              {isFetching ? 'Atualizando...' : 'Atualizar'}
+            </Button>
             <Button
               size="sm"
               className="gap-2 bg-violet-600 hover:bg-violet-700 text-white"
