@@ -8,13 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Settings, Save, Eye, EyeOff, Copy, Check, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const WEBHOOK_URL = `${window.location.origin}/functions/webhookZapiReceber`;
+
 export default function ConfiguracaoZapiSection() {
   const queryClient = useQueryClient();
   const [config, setConfig] = useState({
     instance_id: '',
     token_instancia: '',
     token_global: '',
-    webhook_url_receber: ''
+    webhook_url_receber: WEBHOOK_URL
   });
   const [configId, setConfigId] = useState(null);
   const [showToken, setShowToken] = useState({ token_instancia: false, token_global: false });
@@ -31,7 +33,7 @@ export default function ConfiguracaoZapiSection() {
           instance_id: c.instance_id || '',
           token_instancia: c.token_instancia || '',
           token_global: c.token_global || '',
-          webhook_url_receber: c.webhook_url_receber || ''
+          webhook_url_receber: c.webhook_url_receber || WEBHOOK_URL
         });
       }
     }
@@ -164,9 +166,7 @@ export default function ConfiguracaoZapiSection() {
           <div className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
             <ExternalLink className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
             <p className="text-xs text-slate-500 leading-relaxed">
-              Para obter a URL do webhook, acesse{' '}
-              <strong className="text-slate-700">Base44 Dashboard → Código → Funções → webhookZapiReceber</strong>{' '}
-              e copie a URL exibida. Configure essa URL no painel Z-API em{' '}
+              URL gerada automaticamente. Configure-a no painel Z-API em{' '}
               <strong className="text-slate-700">Instância → Webhooks → Ao Receber</strong>.
             </p>
           </div>
