@@ -27,7 +27,7 @@ export default function BotaoSomAlertas({ somAtivado, onToggle }) {
             </span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent className="bg-slate-800 border-slate-700 text-slate-200 text-xs">
           {somAtivado
             ? 'Som de alertas ativado — clique para desativar'
             : 'Ativar som para alertas importantes'
