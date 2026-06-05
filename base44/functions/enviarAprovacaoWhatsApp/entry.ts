@@ -2,6 +2,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const ZAPI_BASE = 'https://api.z-api.io';
 
+async function getZapiCredentials(base44) {
+  const configs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1).catch(() => []);
+  const entityConfig = configs?.[0];
+
+  const zapiInstanceId = entityConfig?.instance_id || Deno.env.get('ZAPI_INSTANCE_ID');
+  const zapiToken = entityConfig?.token_instancia || Deno.env.get('ZAPI_TOKEN');
+  const zapiClientToken = entityConfig?.token_global || Deno.env.get('ZAPI_CLIENT_TOKEN');
+
+  return { zapiInstanceId, zapiToken, zapiClientToken };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -46,9 +57,7 @@ Deno.serve(async (req) => {
     let tipoEnvioFinal = tipo_midia;
 
     const endpointLovable = Deno.env.get('ENDPOINT_LOVABLE_ENVIO');
-    const zapiInstanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-    const zapiToken = Deno.env.get('ZAPI_TOKEN');
-    const zapiClientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
 
     const payloadLovable = {
       tipo: 'envio_aprovacao',
