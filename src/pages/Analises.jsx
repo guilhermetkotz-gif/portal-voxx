@@ -239,47 +239,6 @@ export default function Analises({ user }) {
 
   const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
 
-  const handleGerarAnaliseGlobal = useCallback(async () => {
-    const candidatos = clientesEnriquecidos.filter(c => c.whatsapp_grupo_id || c._tem_resumo);
-    if (candidatos.length === 0) {
-      toast.info('Nenhum cliente com grupo WhatsApp vinculado encontrado.');
-      return;
-    }
-    setGerandoGlobal(true);
-    toast.info(`Gerando análise para ${candidatos.length} cliente(s)...`);
-    try {
-      let ok = 0;
-      for (const c of candidatos) {
-        const prompt = `Você é analista executivo da agência VOXX Digital. Gere análise executiva de saúde relacional para:
-
-Cliente: ${c.nome} — ${c.cidade || ''}, ${c.estado || ''}
-Status: ${c.status || '—'} | Health Score: ${c.score ?? 'N/A'} | Risco: ${c.risco_churn || 'N/A'}
-Tendência: ${c.tendencia || 'N/A'} | Dias sem contato: ${c.dias_sem_contato ?? 'N/A'}
-Demandas aguardando: ${c.pressao_cliente || 0} | Alertas ativos: ${c.qtd_alertas || 0}
-
-Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações recomendadas). Português, direto.`;
-        const resultado = await base44.integrations.Core.InvokeLLM({ prompt });
-        await base44.entities.ResumoDiarioCliente.create({
-          cliente_id: c.id,
-          cliente_nome: c.nome,
-          data: new Date().toISOString().split('T')[0],
-          mensagem_gerada: resultado,
-          status_revisao: 'pendente',
-          status_envio: 'aguardando_revisao',
-          total_acoes: 0,
-          total_anexos: 0,
-        });
-        ok++;
-      }
-      queryClient.invalidateQueries({ queryKey: ['analisesResumos'] });
-      toast.success(`${ok} análise(s) gerada(s) com sucesso!`);
-    } catch (err) {
-      toast.error('Erro ao gerar análises: ' + err.message);
-    } finally {
-      setGerandoGlobal(false);
-    }
-  }, [clientesEnriquecidos, queryClient]);
-
   // --- Som de alertas ---
   const { somAtivado, toggleSom, tocarSom } = useAlertaSound();
 
@@ -431,6 +390,47 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
       };
     });
   }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos, alertasSemRetorno]);
+
+  const handleGerarAnaliseGlobal = useCallback(async () => {
+    const candidatos = clientesEnriquecidos.filter(c => c.whatsapp_grupo_id || c._tem_resumo);
+    if (candidatos.length === 0) {
+      toast.info('Nenhum cliente com grupo WhatsApp vinculado encontrado.');
+      return;
+    }
+    setGerandoGlobal(true);
+    toast.info(`Gerando análise para ${candidatos.length} cliente(s)...`);
+    try {
+      let ok = 0;
+      for (const c of candidatos) {
+        const prompt = `Você é analista executivo da agência VOXX Digital. Gere análise executiva de saúde relacional para:
+
+Cliente: ${c.nome} — ${c.cidade || ''}, ${c.estado || ''}
+Status: ${c.status || '—'} | Health Score: ${c.score ?? 'N/A'} | Risco: ${c.risco_churn || 'N/A'}
+Tendência: ${c.tendencia || 'N/A'} | Dias sem contato: ${c.dias_sem_contato ?? 'N/A'}
+Demandas aguardando: ${c.pressao_cliente || 0} | Alertas ativos: ${c.qtd_alertas || 0}
+
+Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações recomendadas). Português, direto.`;
+        const resultado = await base44.integrations.Core.InvokeLLM({ prompt });
+        await base44.entities.ResumoDiarioCliente.create({
+          cliente_id: c.id,
+          cliente_nome: c.nome,
+          data: new Date().toISOString().split('T')[0],
+          mensagem_gerada: resultado,
+          status_revisao: 'pendente',
+          status_envio: 'aguardando_revisao',
+          total_acoes: 0,
+          total_anexos: 0,
+        });
+        ok++;
+      }
+      queryClient.invalidateQueries({ queryKey: ['analisesResumos'] });
+      toast.success(`${ok} análise(s) gerada(s) com sucesso!`);
+    } catch (err) {
+      toast.error('Erro ao gerar análises: ' + err.message);
+    } finally {
+      setGerandoGlobal(false);
+    }
+  }, [clientesEnriquecidos, queryClient]);
 
   // --- Ordenação ---
 
