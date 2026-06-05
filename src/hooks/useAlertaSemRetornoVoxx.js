@@ -52,23 +52,7 @@ const NIVEL_TOAST_COLOR = {
   emergencial: 'error',
 };
 
-function tocarSom() {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.4);
-  } catch (_) { /* silencia se bloqueado */ }
-}
-
-export function useAlertaSemRetornoVoxx(clientesIds = []) {
+export function useAlertaSemRetornoVoxx(clientesIds = [], tocarSom = null) {
   // alertas: Map<clienteId, { nivel, minutosUteis, ultimaMsgCliente: ISO string }>
   const [alertas, setAlertas] = useState(new Map());
   // Rastreia quais clientes já tiveram toast/som disparado neste nível
@@ -143,7 +127,7 @@ export function useAlertaSemRetornoVoxx(clientesIds = []) {
 
       if (ordemAtual > ordemAnterior) {
         // Novo alerta ou escalada de nível
-        tocarSom();
+        if (typeof tocarSom === 'function') tocarSom(info.nivel);
         toast[NIVEL_TOAST_COLOR[info.nivel] === 'error' ? 'error' : 'warning'](info.label, {
           description: `Cliente requer retorno imediato.`,
           duration: 8000,

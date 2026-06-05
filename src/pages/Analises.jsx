@@ -15,6 +15,8 @@ import AnalisesParametrizacao from '@/components/analises/AnalisesParametrizacao
 import ClienteAnaliseDrawer from '@/components/analises/ClienteAnaliseDrawer';
 import RemetentesParametrizacao from '@/components/analises/RemetentesParametrizacao';
 import { useAlertaSemRetornoVoxx } from '@/hooks/useAlertaSemRetornoVoxx';
+import { useAlertaSound } from '@/hooks/useAlertaSound';
+import BotaoSomAlertas from '@/components/analises/BotaoSomAlertas';
 
 const NIVEL_ALERTA_CONFIG = {
   alerta:      { label: 'Sem retorno +30min', color: 'text-amber-400 bg-amber-500/10 border-amber-500/30', border: 'border-l-amber-500/60' },
@@ -233,8 +235,11 @@ export default function Analises({ user }) {
 
   const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
 
+  // --- Som de alertas ---
+  const { somAtivado, toggleSom, tocarSom } = useAlertaSound();
+
   // --- Alertas sem retorno VOXX ---
-  const alertasSemRetorno = useAlertaSemRetornoVoxx();
+  const alertasSemRetorno = useAlertaSemRetornoVoxx([], tocarSom);
 
   // --- Dados reais ---
   const { data: clientes = [], isLoading: loadingClientes } = useQuery({
@@ -540,6 +545,7 @@ export default function Analises({ user }) {
             <p className="text-slate-500 text-sm ml-12">Ranking executivo de saúde relacional, atendimento e operação.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <BotaoSomAlertas somAtivado={somAtivado} onToggle={toggleSom} />
             {isAdmin && (
               <Button
                 variant="outline"
