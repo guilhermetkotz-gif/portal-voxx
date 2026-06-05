@@ -120,9 +120,12 @@ export default function ConfiguracaoWhatsApp({ user }) {
 
   const { data: logs = [] } = useQuery({
     queryKey: ['whatsappEnvioLogs'],
-    queryFn: () => base44.entities.WhatsappEnvioLog.list('-enviado_em', 100),
+    queryFn: () => base44.entities.WhatsappEnvioLog.filter({}, '-enviado_em', 200),
     staleTime: 30 * 1000
   });
+
+  const logsEnviados = logs.filter(l => l.origem === 'enviada' || l.remetente_tipo === 'voxx');
+  const logsRecebidos = logs.filter(l => l.origem === 'recebida' || l.remetente_tipo === 'cliente');
 
   const handleVerificar = async () => {
     setLoadingStatus(true);
@@ -252,10 +255,93 @@ export default function ConfiguracaoWhatsApp({ user }) {
           <p className="text-2xl font-bold text-amber-600">{clientesSemGrupo.length}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-slate-500">Envios registrados</p>
-          <p className="text-2xl font-bold text-slate-900">{logs.length}</p>
+          <p className="text-xs text-slate-500">Mensagens enviadas</p>
+          <p className="text-2xl font-bold text-green-700">{logsEnviados.length}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs text-slate-500">Mensagens recebidas</p>
+          <p className="text-2xl font-bold text-blue-700">{logsRecebidos.length}</p>
         </Card>
       </div>
+
+      {/* Logs de Mensagens */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="w-5 h-5 text-green-600" />
+            Histórico de Mensagens
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {/* Mensagens Recebidas */}
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                Recebidas ({logsRecebidos.length})
+              </h3>
+              {logsRecebidos.length === 0 ? (
+                <p className="text-sm text-slate-400 italic">Nenhuma mensagem recebida registrada</p>
+              ) : (
+                <div className="space-y-2">
+                  {logsRecebidos.slice(0, 10).map(log => (
+                    <div key={log.id} className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-blue-900">{log.remetente_nome}</span>
+                            <Badge className="bg-blue-100 text-blue-700 text-[10px]">Cliente</Badge>
+                            {log.cliente_nome && (
+                              <span className="text-xs text-blue-600">• {log.cliente_nome}</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-blue-800">{log.mensagem}</p>
+                          <p className="text-xs text-blue-600 mt-1">
+                            {moment(log.enviado_em).tz('America/Sao_Paulo').format('DD/MM HH:mm:ss')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mensagens Enviadas */}
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                Enviadas ({logsEnviados.length})
+              </h3>
+              {logsEnviados.length === 0 ? (
+                <p className="text-sm text-slate-400 italic">Nenhuma mensagem enviada registrada</p>
+              ) : (
+                <div className="space-y-2">
+                  {logsEnviados.slice(0, 10).map(log => (
+                    <div key={log.id} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-green-900">{log.enviado_por || 'VOXX'}</span>
+                            <Badge className="bg-green-100 text-green-700 text-[10px]">VOXX</Badge>
+                            {log.cliente_nome && (
+                              <span className="text-xs text-green-600">• {log.cliente_nome}</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-green-800">{log.mensagem}</p>
+                          <p className="text-xs text-green-600 mt-1">
+                            {moment(log.enviado_em).tz('America/Sao_Paulo').format('DD/MM HH:mm:ss')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Section 1: Credentials */}
       <ConfiguracaoZapiSection />
