@@ -49,6 +49,8 @@ Deno.serve(async (req) => {
       numericBase,
       candidatos,
       senderName: body.senderName || body.pushName,
+      text: body.text,
+      timestamp: body.momment,
     }));
 
     // Buscar o cliente vinculado a esse grupo tentando todos os formatos

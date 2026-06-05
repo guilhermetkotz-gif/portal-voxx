@@ -330,14 +330,6 @@ export default function Analises({ user }) {
   // --- Atualização em tempo real dos logs de WhatsApp ---
   useEffect(() => {
     const unsubscribe = base44.entities.WhatsappEnvioLog.subscribe((event) => {
-      queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
-    });
-    return unsubscribe;
-  }, [queryClient]);
-
-  // --- Atualização em tempo real dos logs de envio ---
-  React.useEffect(() => {
-    const unsubscribe = base44.entities.WhatsappEnvioLog.subscribe((event) => {
       if (event.type === 'create' || event.type === 'update' || event.type === 'delete') {
         queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
       }
@@ -355,9 +347,9 @@ export default function Analises({ user }) {
   // Último envio por cliente (último contato via WhatsApp)
   const { data: logsEnvio = [], isFetching } = useQuery({
     queryKey: ['analisesLogsEnvio'],
-    queryFn: () => base44.entities.WhatsappEnvioLog.list('-enviado_em', 500),
-    staleTime: 15 * 1000,
-    refetchInterval: 30 * 1000
+    queryFn: () => base44.entities.WhatsappEnvioLog.list('-enviado_em', 2000),
+    staleTime: 10 * 1000,
+    refetchInterval: 20 * 1000
   });
 
   // Alertas/notificações não lidas por cliente
@@ -744,12 +736,15 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
+              className="gap-2 border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-slate-100 relative"
               onClick={handleAtualizar}
               title="Forçar atualização das mensagens do WhatsApp"
             >
               <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
               {isFetching ? 'Atualizando...' : 'Atualizar'}
+              {!isFetching && logsEnvio.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" title={`${logsEnvio.length} mensagens carregadas`} />
+              )}
             </Button>
             <Button
               size="sm"
@@ -891,10 +886,22 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
 
         {/* Contador */}
         <div className="flex items-center justify-between">
-          <p className="text-xs text-slate-500">
-            <span className="text-slate-300 font-medium">{clientesFiltrados.length}</span> unidades
-            {isFiltered && ` de ${clientes.length}`}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-slate-500">
+              <span className="text-slate-300 font-medium">{clientesFiltrados.length}</span> unidades
+              {isFiltered && ` de ${clientes.length}`}
+            </p>
+            <span className="text-[10px] text-slate-600 flex items-center gap-1">
+              <MessageSquare className="w-2.5 h-2.5" />
+              {logsEnvio.length} msgs carregadas
+            </span>
+            {isFetching && (
+              <span className="text-[10px] text-violet-400 flex items-center gap-1">
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                Atualizando...
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-4 text-xs text-slate-600">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500/60 inline-block" /> Crítico &lt; 40</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500/60 inline-block" /> Atenção 40–70</span>
