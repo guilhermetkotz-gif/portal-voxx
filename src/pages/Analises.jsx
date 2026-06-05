@@ -181,46 +181,86 @@ function RankingRow({ item, position, onVerAnalise }) {
         </Button>
       </div>
 
-      {/* Linha 2 — risco + msgs período + última msg + última análise */}
-      <div className="flex items-center gap-3 mt-0.5 pl-7">
-        <div className="flex-1 min-w-0">
-          {riscoTexto ? (
-            <p
-              className={`text-[10px] truncate leading-tight ${item._estado_sem_analise ? 'text-slate-600 italic' : 'text-slate-500'}`}
-              title={riscoTexto}
-            >
-              {riscoTexto}
+      {/* Linha 2 — grupo WA + métricas de mensagens */}
+      <div className="flex items-center gap-3 mt-0.5 pl-7 overflow-x-hidden">
+
+        {/* Grupo WA (nome + ID) */}
+        <div className="w-44 shrink-0 min-w-0">
+          {item._grupo_nome ? (
+            <p className="text-[10px] text-slate-500 truncate leading-tight" title={item._grupo_nome}>
+              {item._grupo_nome}
             </p>
           ) : (
-            <span className="text-[10px] text-slate-700">—</span>
+            <span className="text-[10px] text-slate-700 italic">sem grupo</span>
+          )}
+          {item._grupo_id && (
+            <p className="text-[9px] text-slate-700 truncate leading-tight font-mono" title={item._grupo_id}>
+              {item._grupo_id}
+            </p>
           )}
         </div>
 
+        {/* Status grupo */}
+        <span className={`shrink-0 text-[10px] border rounded px-1 py-0 leading-4 font-medium ${
+          item._grupo_id
+            ? 'text-green-400 bg-green-500/10 border-green-500/20'
+            : 'text-slate-600 bg-slate-800 border-slate-700'
+        }`}>
+          {item._grupo_id ? 'Ativo' : 'Sem grupo'}
+        </span>
+
         {/* Total msgs no período */}
-        <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-slate-500 tabular-nums" title="Total de mensagens enviadas no período">
+        <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-slate-500 tabular-nums" title="Mensagens enviadas no período">
           <MessageSquare className="w-2.5 h-2.5 text-slate-600" />
-          {item.total_msgs_periodo > 0 ? (
-            <span className={item.total_msgs_periodo >= 10 ? 'text-green-500' : item.total_msgs_periodo >= 3 ? 'text-slate-400' : 'text-amber-500'}>
-              {item.total_msgs_periodo}
+          <span className={
+            item.total_msgs_periodo >= 10 ? 'text-green-400 font-medium' :
+            item.total_msgs_periodo >= 3 ? 'text-slate-400' :
+            item.total_msgs_periodo > 0 ? 'text-amber-400' : 'text-slate-700'
+          }>
+            {item.total_msgs_periodo}
+          </span>
+        </span>
+
+        {/* Última msg (qualquer) */}
+        <div className="shrink-0 text-right">
+          <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. msg</p>
+          {item.ultima_msg_raw ? (
+            <span className="text-[10px] text-slate-400 tabular-nums font-mono">
+              {moment(item.ultima_msg_raw).tz('America/Sao_Paulo').format('DD/MM, HH:mm')}
             </span>
           ) : (
-            <span className="text-slate-700">0</span>
+            <span className="text-[10px] text-slate-700 italic">—</span>
           )}
-        </span>
+        </div>
 
-        {/* Última mensagem */}
-        {item.ultima_msg_raw ? (
-          <span className="shrink-0 text-[10px] text-slate-500 tabular-nums" title="Data/hora da última mensagem enviada">
-            {moment(item.ultima_msg_raw).tz('America/Sao_Paulo').format('DD/MM HH:mm')}
-          </span>
-        ) : (
-          <span className="shrink-0 text-[10px] text-slate-700 italic">sem msg</span>
-        )}
+        {/* Última msg VOXX */}
+        <div className="shrink-0 text-right">
+          <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. VOXX</p>
+          {item.ultima_msg_voxx ? (
+            <span className="text-[10px] text-violet-400 tabular-nums font-mono">
+              {moment(item.ultima_msg_voxx).tz('America/Sao_Paulo').format('DD/MM, HH:mm')}
+            </span>
+          ) : (
+            <span className="text-[10px] text-slate-700 italic">—</span>
+          )}
+        </div>
+
+        <div className="flex-1" />
 
         {/* Última análise */}
-        <span className="shrink-0 text-[10px] text-slate-600 tabular-nums" title="Data/hora da última análise gerada">
-          {item.ultima_analise || <span className="italic text-slate-700">sem análise</span>}
-        </span>
+        <div className="shrink-0 text-right">
+          <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. análise</p>
+          <span className="text-[10px] text-slate-500 tabular-nums">
+            {item.ultima_analise || <span className="italic text-slate-700">—</span>}
+          </span>
+        </div>
+
+        {/* Risco / estado */}
+        {riscoTexto && (
+          <p className="shrink-0 text-[10px] text-slate-600 italic truncate max-w-[120px]" title={riscoTexto}>
+            {riscoTexto}
+          </p>
+        )}
       </div>
 
     </div>
@@ -358,6 +398,18 @@ export default function Analises({ user }) {
       if (g.cliente_id) gruposPorCliente[g.cliente_id] = g;
     });
 
+    // Separar último log por origem (voxx vs cliente)
+    const ultimoLogVoxxPorCliente = {};
+    const ultimoLogClientePorCliente = {};
+    logsEnvio.forEach(log => {
+      if (!log.cliente_id || !log.enviado_em) return;
+      // logs da voxx têm origem 'resumo_diario' ou 'aprovacao_entrega' ou 'manual'
+      // para simplificar: todo log no WhatsappEnvioLog é da VOXX (a agência envia)
+      if (!ultimoLogVoxxPorCliente[log.cliente_id] || log.enviado_em > ultimoLogVoxxPorCliente[log.cliente_id]) {
+        ultimoLogVoxxPorCliente[log.cliente_id] = log.enviado_em;
+      }
+    });
+
     return clientes.map(c => {
       const ultimoLog = ultimoLogPorCliente[c.id];
       const diasSemContato = ultimoLog
@@ -365,6 +417,8 @@ export default function Analises({ user }) {
         : null;
       const totalMsgsPeriodo = totalMsgsPorCliente[c.id] || 0;
       const ultimaMsgRaw = ultimoLog || null;
+      const ultimaMsgVoxx = ultimoLogVoxxPorCliente[c.id] || null;
+      const grupo = gruposPorCliente[c.id] || null;
 
       const qtdDemandasAguardando = pressaoPorCliente[c.id] || 0;
       // pressão 1-5 baseada em quantidade de demandas aguardando
@@ -422,6 +476,10 @@ export default function Analises({ user }) {
         _alertaSemRetorno: alertaSemRetorno,
         total_msgs_periodo: totalMsgsPeriodo,
         ultima_msg_raw: ultimaMsgRaw,
+        ultima_msg_voxx: ultimaMsgVoxx,
+        _grupo: grupo,
+        _grupo_nome: c.whatsapp_grupo_nome || grupo?.nome_grupo || null,
+        _grupo_id: c.whatsapp_grupo_id || grupo?.grupo_id || null,
       };
     });
   }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos, alertasSemRetorno, periodo]);
@@ -779,10 +837,6 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
             <span className="text-[10px] text-slate-500 font-medium ml-1">Tend.</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">Pressão</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">S/contato</span>
-            <div className="flex-1" />
-            <span className="text-[10px] text-slate-500 font-medium">Msgs</span>
-            <span className="text-[10px] text-slate-500 font-medium ml-3">Últ. msg</span>
-            <span className="text-[10px] text-slate-500 font-medium ml-3">Últ. análise</span>
           </div>
 
           {isLoading ? (
