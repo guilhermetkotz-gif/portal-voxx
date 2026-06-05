@@ -75,7 +75,8 @@ Deno.serve(async (req) => {
       text: body.text?.message || body.text,
       timestamp: body.momment,
       fromMe: body.fromMe,
-    }));
+      fullBody: body
+    }, null, 2));
 
     // Buscar o cliente vinculado a esse grupo tentando todos os formatos
     let clienteId = null;
@@ -113,8 +114,19 @@ Deno.serve(async (req) => {
       clienteId = `grupo_${numericBase}`;
       clienteNome = chatName || grupoIdRaw;
       grupoNome = chatName || grupoIdRaw;
-      console.log('[webhookZapiReceber] Grupo sem cliente vinculado, usando fallback:', { clienteId, clienteNome });
+      console.log('[webhookZapiReceber] Grupo sem cliente vinculado, usando fallback:', { clienteId, clienteNome, grupoIdRaw, numericBase });
     }
+    
+    console.log('[webhookZapiReceber] Antes de salvar:', {
+      cliente_id: clienteId,
+      cliente_nome: clienteNome,
+      grupo_id: grupoIdFinal,
+      grupo_nome: grupoNomeFinal,
+      mensagem: conteudo,
+      remetente_nome: senderName,
+      fromMe: isFromMe,
+      origem: origem
+    });
 
     // Extrair conteúdo da mensagem (suporta múltiplos formatos Z-API)
     let conteudo = '[Atividade]';
@@ -149,42 +161,43 @@ Deno.serve(async (req) => {
     // Usar nome do grupo do chatName se disponível, senão usar do banco
     const grupoNomeFinal = chatName || grupoNome || 'Grupo WhatsApp';
 
-    await base44.asServiceRole.entities.WhatsappEnvioLog.create({
-      cliente_id: clienteId,
-      cliente_nome: clienteNome,
-      grupo_id: grupoIdFinal,
-      grupo_nome: grupoNomeFinal,
-      tipo_envio: tipoEnvio,
-      origem: origem,
-      mensagem: conteudo,
-      status_envio: 'enviado',
-      remetente_nome: senderName,
-      remetente_tipo: remetenteTipo,
-      enviado_em: timestamp,
-      enviado_por: isFromMe ? 'voxx_bot' : senderName,
-      // Campos adicionais para rastreabilidade
-      midia_url: body.image?.url || body.video?.url || body.document?.url || null,
-      retorno_zapi: JSON.stringify({
-        participantPhone,
-        chatName,
-        fromMe: isFromMe,
-        type: body.type,
-      }),
-    });
-
-    console.log('[webhookZapiReceber] Mensagem salva:', {
-      cliente: clienteNome,
-      grupo: grupoNomeFinal,
-      grupoIdRaw,
-      participante: senderName,
-      participantPhone,
-      fromMe: isFromMe,
-      origem: origem,
-      tipo: remetenteTipo,
-      conteudo: conteudo.substring(0, 100),
-      text: body.text,
-      body: body.body
-    });
+    try {
+      await base44.asServiceRole.entities.WhatsappEnvioLog.create({
+        cliente_id: clienteId,
+        cliente_nome: clienteNome,
+        grupo_id: grupoIdFinal,
+        grupo_nome: grupoNomeFinal,
+        tipo_envio: tipoEnvio,
+        origem: origem,
+        mensagem: conteudo,
+        status_envio: 'enviado',
+        remetente_nome: senderName,
+        remetente_tipo: remetenteTipo,
+        enviado_em: timestamp,
+        enviado_por: isFromMe ? 'voxx_bot' : senderName,
+        // Campos adicionais para rastreabilidade
+        midia_url: body.image?.url || body.video?.url || body.document?.url || null,
+        retorno_zapi: JSON.stringify({
+          participantPhone,
+          chatName,
+          fromMe: isFromMe,
+          type: body.type,
+        }),
+      });
+      console.log('[webhookZapiReceber] ✅ Mensagem salva com sucesso:', {
+        id: clienteId,
+        cliente: clienteNome,
+        grupo: grupoNomeFinal,
+        mensagem: conteudo.substring(0, 100)
+      });
+    } catch (saveError) {
+      console.error('[webhookZapiReceber] ❌ ERRO ao salvar mensagem:', saveError.message, {
+        cliente_id: clienteId,
+        grupo_id: grupoIdFinal,
+        mensagem: conteudo
+      });
+      throw saveError;
+    }
     return Response.json({ ok: true, saved: true, clienteId, clienteNome });
 
   } catch (error) {
