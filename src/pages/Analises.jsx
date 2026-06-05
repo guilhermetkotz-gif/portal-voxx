@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Brain, Settings2, TrendingUp, TrendingDown, Minus,
-  Clock, BarChart3, ChevronRight,
+  Clock, BarChart3, ChevronRight, Loader2,
   Flame, Zap, Activity, ArrowUpDown, AlertTriangle
 } from 'lucide-react';
 import moment from 'moment';
@@ -232,8 +234,51 @@ export default function Analises({ user }) {
   const [showRemetentes, setShowRemetentes] = useState(false);
   const [ordenacao, setOrdenacao] = useState('pior_melhor');
   const [clienteAnalise, setClienteAnalise] = useState(null);
+  const [gerandoGlobal, setGerandoGlobal] = useState(false);
+  const queryClient = useQueryClient();
 
   const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
+
+  const handleGerarAnaliseGlobal = useCallback(async () => {
+    const candidatos = clientesEnriquecidos.filter(c => c.whatsapp_grupo_id || c._tem_resumo);
+    if (candidatos.length === 0) {
+      toast.info('Nenhum cliente com grupo WhatsApp vinculado encontrado.');
+      return;
+    }
+    setGerandoGlobal(true);
+    toast.info(`Gerando análise para ${candidatos.length} cliente(s)...`);
+    try {
+      let ok = 0;
+      for (const c of candidatos) {
+        const prompt = `Você é analista executivo da agência VOXX Digital. Gere análise executiva de saúde relacional para:
+
+Cliente: ${c.nome} — ${c.cidade || ''}, ${c.estado || ''}
+Status: ${c.status || '—'} | Health Score: ${c.score ?? 'N/A'} | Risco: ${c.risco_churn || 'N/A'}
+Tendência: ${c.tendencia || 'N/A'} | Dias sem contato: ${c.dias_sem_contato ?? 'N/A'}
+Demandas aguardando: ${c.pressao_cliente || 0} | Alertas ativos: ${c.qtd_alertas || 0}
+
+Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações recomendadas). Português, direto.`;
+        const resultado = await base44.integrations.Core.InvokeLLM({ prompt });
+        await base44.entities.ResumoDiarioCliente.create({
+          cliente_id: c.id,
+          cliente_nome: c.nome,
+          data: new Date().toISOString().split('T')[0],
+          mensagem_gerada: resultado,
+          status_revisao: 'pendente',
+          status_envio: 'aguardando_revisao',
+          total_acoes: 0,
+          total_anexos: 0,
+        });
+        ok++;
+      }
+      queryClient.invalidateQueries({ queryKey: ['analisesResumos'] });
+      toast.success(`${ok} análise(s) gerada(s) com sucesso!`);
+    } catch (err) {
+      toast.error('Erro ao gerar análises: ' + err.message);
+    } finally {
+      setGerandoGlobal(false);
+    }
+  }, [clientesEnriquecidos, queryClient]);
 
   // --- Som de alertas ---
   const { somAtivado, toggleSom, tocarSom } = useAlertaSound();
@@ -559,8 +604,11 @@ export default function Analises({ user }) {
             <Button
               size="sm"
               className="gap-2 bg-violet-600 hover:bg-violet-700 text-white"
+              onClick={handleGerarAnaliseGlobal}
+              disabled={gerandoGlobal}
             >
-              <Brain className="w-4 h-4" /> Gerar análise
+              {gerandoGlobal ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+              {gerandoGlobal ? 'Gerando...' : 'Gerar análise'}
             </Button>
           </div>
         </div>

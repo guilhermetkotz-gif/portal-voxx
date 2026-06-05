@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   X, TrendingUp, TrendingDown, Minus, Brain, AlertTriangle,
-  MessageSquare, Clock, CheckCircle2, XCircle, ChevronRight,
-  Activity, Shield, Heart, Zap, BarChart3, Eye
+  MessageSquare, Clock, Activity, Shield, Heart, Zap, BarChart3, Eye, Loader2
 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -162,8 +163,62 @@ function ResumoVisualizador({ resumo, onClose }) {
   );
 }
 
+async function gerarAnaliseCliente(cliente, clienteEnriquecido) {
+  const prompt = `Você é um analista executivo da agência VOXX Digital.
+Gere uma análise executiva de saúde relacional para o cliente abaixo.
+
+Cliente: ${cliente.nome}
+Cidade: ${cliente.cidade || '—'}, ${cliente.estado || '—'}
+Status: ${cliente.status || '—'}
+Health Score: ${clienteEnriquecido?.score ?? 'não disponível'}
+Risco de Churn: ${clienteEnriquecido?.risco_churn || 'não classificado'}
+Tendência: ${clienteEnriquecido?.tendencia || 'não identificada'}
+Dias sem contato: ${clienteEnriquecido?.dias_sem_contato ?? 'desconhecido'}
+Demandas aguardando cliente: ${clienteEnriquecido?.pressao_cliente || 0}
+Alertas ativos: ${clienteEnriquecido?.qtd_alertas || 0}
+
+Gere um resumo executivo em 3 a 5 parágrafos curtos cobrindo:
+1. Situação atual do relacionamento
+2. Principais riscos identificados
+3. Ações recomendadas para a equipe VOXX
+
+Escreva de forma direta e profissional, em português.`;
+
+  const resultado = await base44.integrations.Core.InvokeLLM({ prompt });
+
+  const hoje = new Date().toISOString().split('T')[0];
+  const novoResumo = await base44.entities.ResumoDiarioCliente.create({
+    cliente_id: cliente.id,
+    cliente_nome: cliente.nome,
+    data: hoje,
+    mensagem_gerada: resultado,
+    status_revisao: 'pendente',
+    status_envio: 'aguardando_revisao',
+    total_acoes: 0,
+    total_anexos: 0,
+  });
+
+  return novoResumo;
+}
+
 export default function ClienteAnaliseDrawer({ cliente, clienteEnriquecido, onClose }) {
   const [resumoVisualizado, setResumoVisualizado] = useState(null);
+  const [gerando, setGerando] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleGerarAnalise = useCallback(async () => {
+    setGerando(true);
+    try {
+      await gerarAnaliseCliente(cliente, clienteEnriquecido);
+      queryClient.invalidateQueries({ queryKey: ['analisesHistorico', cliente.id] });
+      queryClient.invalidateQueries({ queryKey: ['analisesResumos'] });
+      toast.success('Análise gerada com sucesso!');
+    } catch (err) {
+      toast.error('Erro ao gerar análise: ' + err.message);
+    } finally {
+      setGerando(false);
+    }
+  }, [cliente, clienteEnriquecido, queryClient]);
 
   const risco = RISCO_CONFIG[clienteEnriquecido?.risco_churn] || RISCO_CONFIG.sem_dados;
   const clima = CLIMA_CONFIG[clienteEnriquecido?.clima_emocional] || CLIMA_CONFIG.sem_dados;
@@ -243,8 +298,9 @@ export default function ClienteAnaliseDrawer({ cliente, clienteEnriquecido, onCl
               <p className="text-xs text-slate-500 mb-4 max-w-xs mx-auto">
                 {clienteEnriquecido?._estado_sem_analise || 'Este cliente ainda não possui análises geradas.'}
               </p>
-              <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
-                <Brain className="w-4 h-4" /> Gerar primeira análise
+              <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-2" onClick={handleGerarAnalise} disabled={gerando}>
+                {gerando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
+                {gerando ? 'Gerando...' : 'Gerar primeira análise'}
               </Button>
             </div>
           )}
@@ -385,8 +441,9 @@ export default function ClienteAnaliseDrawer({ cliente, clienteEnriquecido, onCl
           <p className="text-[10px] text-slate-600">
             {temAnalise ? `Última análise: ${clienteEnriquecido?.ultima_analise}` : 'Sem análise disponível'}
           </p>
-          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-2 h-7 text-xs">
-            <Brain className="w-3.5 h-3.5" /> Gerar análise
+          <Button size="sm" className="bg-violet-600 hover:bg-violet-700 text-white gap-2 h-7 text-xs" onClick={handleGerarAnalise} disabled={gerando}>
+            {gerando ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Brain className="w-3.5 h-3.5" />}
+            {gerando ? 'Gerando...' : 'Gerar análise'}
           </Button>
         </div>
       </div>
