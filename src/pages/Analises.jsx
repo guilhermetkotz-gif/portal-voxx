@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Brain, Settings2, TrendingUp, TrendingDown, Minus,
   Clock, BarChart3, ChevronRight, Loader2,
-  Flame, Zap, Activity, ArrowUpDown, AlertTriangle
+  Flame, Zap, Activity, ArrowUpDown, AlertTriangle, MessageSquare
 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -181,8 +181,8 @@ function RankingRow({ item, position, onVerAnalise }) {
         </Button>
       </div>
 
-      {/* Linha 2 — risco + última análise */}
-      <div className="flex items-center gap-2 mt-0.5 pl-7">
+      {/* Linha 2 — risco + msgs período + última msg + última análise */}
+      <div className="flex items-center gap-3 mt-0.5 pl-7">
         <div className="flex-1 min-w-0">
           {riscoTexto ? (
             <p
@@ -195,7 +195,30 @@ function RankingRow({ item, position, onVerAnalise }) {
             <span className="text-[10px] text-slate-700">—</span>
           )}
         </div>
-        <span className="shrink-0 text-[10px] text-slate-600 tabular-nums">
+
+        {/* Total msgs no período */}
+        <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-slate-500 tabular-nums" title="Total de mensagens enviadas no período">
+          <MessageSquare className="w-2.5 h-2.5 text-slate-600" />
+          {item.total_msgs_periodo > 0 ? (
+            <span className={item.total_msgs_periodo >= 10 ? 'text-green-500' : item.total_msgs_periodo >= 3 ? 'text-slate-400' : 'text-amber-500'}>
+              {item.total_msgs_periodo}
+            </span>
+          ) : (
+            <span className="text-slate-700">0</span>
+          )}
+        </span>
+
+        {/* Última mensagem */}
+        {item.ultima_msg_raw ? (
+          <span className="shrink-0 text-[10px] text-slate-500 tabular-nums" title="Data/hora da última mensagem enviada">
+            {moment(item.ultima_msg_raw).tz('America/Sao_Paulo').format('DD/MM HH:mm')}
+          </span>
+        ) : (
+          <span className="shrink-0 text-[10px] text-slate-700 italic">sem msg</span>
+        )}
+
+        {/* Última análise */}
+        <span className="shrink-0 text-[10px] text-slate-600 tabular-nums" title="Data/hora da última análise gerada">
           {item.ultima_analise || <span className="italic text-slate-700">sem análise</span>}
         </span>
       </div>
@@ -293,12 +316,20 @@ export default function Analises({ user }) {
   const clientesEnriquecidos = useMemo(() => {
     // alertasSemRetorno é um Map<clienteId, { nivel, minutosUteis, label }>
 
+    // Calcular corte de período
+    const periodoDias = periodo === '7d' ? 7 : periodo === '90d' ? 90 : 30;
+    const corte = moment().subtract(periodoDias, 'days');
+
     // Índices para lookup rápido
     const ultimoLogPorCliente = {};
+    const totalMsgsPorCliente = {};
     logsEnvio.forEach(log => {
       if (!log.cliente_id || !log.enviado_em) return;
       if (!ultimoLogPorCliente[log.cliente_id] || log.enviado_em > ultimoLogPorCliente[log.cliente_id]) {
         ultimoLogPorCliente[log.cliente_id] = log.enviado_em;
+      }
+      if (moment(log.enviado_em).isAfter(corte)) {
+        totalMsgsPorCliente[log.cliente_id] = (totalMsgsPorCliente[log.cliente_id] || 0) + 1;
       }
     });
 
@@ -332,6 +363,8 @@ export default function Analises({ user }) {
       const diasSemContato = ultimoLog
         ? moment().diff(moment(ultimoLog), 'days')
         : null;
+      const totalMsgsPeriodo = totalMsgsPorCliente[c.id] || 0;
+      const ultimaMsgRaw = ultimoLog || null;
 
       const qtdDemandasAguardando = pressaoPorCliente[c.id] || 0;
       // pressão 1-5 baseada em quantidade de demandas aguardando
@@ -387,9 +420,11 @@ export default function Analises({ user }) {
         _tem_resumo: !!ultimoResumo,
         _estado_sem_analise: estadoSemAnalise,
         _alertaSemRetorno: alertaSemRetorno,
+        total_msgs_periodo: totalMsgsPeriodo,
+        ultima_msg_raw: ultimaMsgRaw,
       };
     });
-  }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos, alertasSemRetorno]);
+  }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos, alertasSemRetorno, periodo]);
 
   const handleGerarAnaliseGlobal = useCallback(async () => {
     const candidatos = clientesEnriquecidos.filter(c => c.whatsapp_grupo_id || c._tem_resumo);
@@ -744,6 +779,10 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
             <span className="text-[10px] text-slate-500 font-medium ml-1">Tend.</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">Pressão</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">S/contato</span>
+            <div className="flex-1" />
+            <span className="text-[10px] text-slate-500 font-medium">Msgs</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-3">Últ. msg</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-3">Últ. análise</span>
           </div>
 
           {isLoading ? (
