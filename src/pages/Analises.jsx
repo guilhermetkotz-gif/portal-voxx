@@ -462,9 +462,12 @@ export default function Analises({ user }) {
     const ultimoLogClienteConteudo = {};
     logsEnvio.forEach(log => {
       if (!log.cliente_id || !log.enviado_em) return;
-      // Usar campo remetente_tipo se existir, senão usar origem como fallback
-      const isFromVoxx = log.remetente_tipo === 'voxx' || log.origem !== 'recebida';
-      if (isFromVoxx) {
+      
+      // Usar origem='recebida' como indicador principal de mensagem do cliente
+      // (funciona para logs antigos e novos)
+      const isFromCliente = log.origem === 'recebida';
+      
+      if (!isFromCliente) {
         // Mensagem enviada pela VOXX
         if (!ultimoLogVoxxPorCliente[log.cliente_id] || log.enviado_em > ultimoLogVoxxPorCliente[log.cliente_id]) {
           ultimoLogVoxxPorCliente[log.cliente_id] = log.enviado_em;
@@ -473,7 +476,7 @@ export default function Analises({ user }) {
         // Mensagem recebida do cliente
         if (!ultimoLogClientePorCliente[log.cliente_id] || log.enviado_em > ultimoLogClientePorCliente[log.cliente_id]) {
           ultimoLogClientePorCliente[log.cliente_id] = log.enviado_em;
-          ultimoLogClienteConteudo[log.cliente_id] = log.mensagem;
+          ultimoLogClienteConteudo[log.cliente_id] = log.mensagem || '';
         }
       }
     });
