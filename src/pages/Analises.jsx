@@ -319,6 +319,22 @@ export default function Analises({ user }) {
     toast.info('Atualizando mensagens...');
   }, [queryClient]);
 
+  // Sincronizar timezone de mensagens antigas (usa função backend)
+  const handleSincronizarTimezone = useCallback(async () => {
+    try {
+      toast.info('Sincronizando mensagens para horário de Brasília...');
+      const res = await base44.functions.invoke('sincronizarTimezoneWhatsapp', {});
+      if (res.data.success) {
+        toast.success(`${res.data.registros_atualizados} mensagens sincronizadas!`);
+        queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
+      } else {
+        toast.error('Erro na sincronização');
+      }
+    } catch (err) {
+      toast.error('Erro: ' + err.message);
+    }
+  }, [queryClient]);
+
   const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
 
   // --- Som de alertas ---
@@ -748,6 +764,18 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" title={`${logsEnvio.length} mensagens carregadas`} />
               )}
             </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
+                onClick={handleSincronizarTimezone}
+                title="Sincronizar mensagens antigas para horário de Brasília"
+              >
+                <Clock className="w-4 h-4" />
+                Sincronizar TZ
+              </Button>
+            )}
             <Button
               size="sm"
               className="gap-2 bg-violet-600 hover:bg-violet-700 text-white"
