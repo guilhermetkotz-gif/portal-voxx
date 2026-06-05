@@ -190,6 +190,32 @@ Deno.serve(async (req) => {
         grupo: grupoNomeFinal,
         mensagem: conteudo.substring(0, 100)
       });
+
+      // Marcar mensagem como lida (apenas para mensagens recebidas de clientes)
+      if (!isFromMe && body.messageId) {
+        try {
+          const config = await base44.asServiceRole.entities.ConfiguracaoZapi.list();
+          const instanceConfig = config[0];
+          
+          if (instanceConfig?.instance_id && instanceConfig?.token_instancia) {
+            await fetch(`https://api.z-api.io/instances/${instanceConfig.instance_id}/token/${instanceConfig.token_instancia}/read-message`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Client-Token': instanceConfig.token_global || instanceConfig.token_instancia,
+              },
+              body: JSON.stringify({
+                phone: participantPhone || numericBase,
+                messageId: body.messageId,
+              }),
+            });
+            console.log('[webhookZapiReceber] ✅ Mensagem marcada como lida:', { messageId: body.messageId, phone: participantPhone || numericBase });
+          }
+        } catch (markReadError) {
+          console.error('[webhookZapiReceber] ⚠️ Erro ao marcar como lida:', markReadError.message);
+          // Não falhar o webhook por causa disso
+        }
+      }
     } catch (saveError) {
       console.error('[webhookZapiReceber] ❌ ERRO ao salvar mensagem:', saveError.message, {
         cliente_id: clienteId,
