@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
@@ -320,6 +320,24 @@ export default function Analises({ user }) {
 
   // --- Alertas sem retorno VOXX ---
   const alertasSemRetorno = useAlertaSemRetornoVoxx([], tocarSom);
+
+  // --- Atualização em tempo real dos logs de WhatsApp ---
+  useEffect(() => {
+    const unsubscribe = base44.entities.WhatsappEnvioLog.subscribe((event) => {
+      queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
+    });
+    return unsubscribe;
+  }, [queryClient]);
+
+  // --- Atualização em tempo real dos logs de envio ---
+  React.useEffect(() => {
+    const unsubscribe = base44.entities.WhatsappEnvioLog.subscribe((event) => {
+      if (event.type === 'create' || event.type === 'update' || event.type === 'delete') {
+        queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
+      }
+    });
+    return unsubscribe;
+  }, [queryClient]);
 
   // --- Dados reais ---
   const { data: clientes = [], isLoading: loadingClientes } = useQuery({
