@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Brain, Settings2, TrendingUp, TrendingDown, Minus,
   Clock, BarChart3, ChevronRight,
-  Flame, Zap, Activity
+  Flame, Zap, Activity, ArrowUpDown
 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -57,8 +57,10 @@ function RankingRow({ item, position, onVerAnalise }) {
 
   const posColor = position <= 3 ? 'text-red-400' : position <= 7 ? 'text-amber-400' : 'text-slate-500';
 
+  const hasAlertaVoxx = item.qtd_alertas > 0;
+
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors group">
+    <div className={`flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors group ${hasAlertaVoxx ? 'bg-amber-500/5 border-l-2 border-l-amber-500/60' : ''}`}>
       {/* Posição */}
       <span className={`w-6 text-center text-xs font-bold font-mono ${posColor} shrink-0`}>{position}</span>
 
@@ -189,6 +191,7 @@ export default function Analises({ user }) {
   const [somenteSemAnalise, setSomenteSemAnalise] = useState(false);
   const [somenteAlertasVoxx, setSomenteAlertasVoxx] = useState(false);
   const [showParametrizacao, setShowParametrizacao] = useState(false);
+  const [ordenacao, setOrdenacao] = useState('pior_melhor');
 
   // --- Dados reais ---
   const { data: clientes = [], isLoading: loadingClientes } = useQuery({
@@ -331,19 +334,111 @@ export default function Analises({ user }) {
     });
   }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos]);
 
-  // Ordenar: com score do pior para o melhor; sem score ao final
+  // --- Ordenação ---
+
+  // Grupo de prioridade para ordenação "pior para melhor"
+  // 0 = alerta VOXX ativo (topo absoluto), 1-6 = faixas de score, 7 = sem análise
+  const getGrupoOrdem = (c) => {
+    if (c.qtd_alertas > 0) return 0;           // Alerta operacional VOXX
+    if (!c._tem_resumo) return 7;               // Sem análise (fundo)
+    const s = c.score;
+    if (s == null) return 7;
+    if (s < 20) return 1;                       // Emergencial
+    if (s < 40) return 2;                       // Crítico
+    if (s < 60) return 3;                       // Atenção
+    if (s < 75) return 4;                       // Saudável
+    return 5;                                   // Excelente
+  };
+
+  const RISCO_ORDEM = { critico: 0, alto: 1, medio: 2, baixo: 3 };
+  const TENDENCIA_ORDEM = { piorando: 0, estavel: 1, melhorando: 2 };
+
+  // Desempate multi-critério dentro do mesmo grupo
+  const desempate = (a, b) => {
+    // 1. Menor score
+    const sa = a.score ?? 999, sb = b.score ?? 999;
+    if (sa !== sb) return sa - sb;
+    // 2. Risco de churn mais alto
+    const ra = RISCO_ORDEM[a.risco_churn] ?? 9, rb = RISCO_ORDEM[b.risco_churn] ?? 9;
+    if (ra !== rb) return ra - rb;
+    // 3. Tendência piorando
+    const ta = TENDENCIA_ORDEM[a.tendencia] ?? 9, tb = TENDENCIA_ORDEM[b.tendencia] ?? 9;
+    if (ta !== tb) return ta - tb;
+    // 4. Maior pressão do cliente
+    const pa = a.pressao_cliente ?? 0, pb = b.pressao_cliente ?? 0;
+    if (pb !== pa) return pb - pa;
+    // 5. Maior tempo sem contato
+    const da = a.dias_sem_contato ?? -1, db = b.dias_sem_contato ?? -1;
+    if (db !== da) return db - da;
+    // 6. Análise mais recente primeiro
+    const ua = a.ultima_analise || '', ub = b.ultima_analise || '';
+    return ub.localeCompare(ua);
+  };
+
   const clientesOrdenados = useMemo(() => {
-    return [...clientesEnriquecidos].sort((a, b) => {
-      const aSemAnalise = !a._tem_resumo;
-      const bSemAnalise = !b._tem_resumo;
-      if (aSemAnalise && !bSemAnalise) return 1;
-      if (!aSemAnalise && bSemAnalise) return -1;
-      if (a.score == null && b.score == null) return 0;
-      if (a.score == null) return 1;
-      if (b.score == null) return -1;
-      return a.score - b.score;
-    });
-  }, [clientesEnriquecidos]);
+    const arr = [...clientesEnriquecidos];
+
+    switch (ordenacao) {
+      case 'pior_melhor':
+        return arr.sort((a, b) => {
+          const ga = getGrupoOrdem(a), gb = getGrupoOrdem(b);
+          if (ga !== gb) return ga - gb;
+          return desempate(a, b);
+        });
+
+      case 'melhor_pior':
+        return arr.sort((a, b) => {
+          // Sem análise vai ao fundo
+          if (!a._tem_resumo && b._tem_resumo) return 1;
+          if (a._tem_resumo && !b._tem_resumo) return -1;
+          // Alerta VOXX vai ao topo mesmo na direção "melhor para pior"
+          if (a.qtd_alertas > 0 && b.qtd_alertas === 0) return -1;
+          if (b.qtd_alertas > 0 && a.qtd_alertas === 0) return 1;
+          const sa = a.score ?? -1, sb = b.score ?? -1;
+          return sb - sa;
+        });
+
+      case 'maior_risco':
+        return arr.sort((a, b) => {
+          const ra = RISCO_ORDEM[a.risco_churn] ?? 9, rb = RISCO_ORDEM[b.risco_churn] ?? 9;
+          if (ra !== rb) return ra - rb;
+          return desempate(a, b);
+        });
+
+      case 'menor_score':
+        return arr.sort((a, b) => {
+          if (a.score == null && b.score == null) return 0;
+          if (a.score == null) return 1;
+          if (b.score == null) return -1;
+          return a.score - b.score;
+        });
+
+      case 'sem_contato':
+        return arr.sort((a, b) => {
+          const da = a.dias_sem_contato ?? -1, db = b.dias_sem_contato ?? -1;
+          return db - da;
+        });
+
+      case 'mais_recente':
+        return arr.sort((a, b) => {
+          const ua = a.ultima_analise || '', ub = b.ultima_analise || '';
+          if (!ua && ub) return 1;
+          if (ua && !ub) return -1;
+          return ub.localeCompare(ua);
+        });
+
+      case 'sem_analise':
+        return arr.sort((a, b) => {
+          if (!a._tem_resumo && b._tem_resumo) return -1;
+          if (a._tem_resumo && !b._tem_resumo) return 1;
+          return desempate(a, b);
+        });
+
+      default:
+        return arr;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientesEnriquecidos, ordenacao]);
 
   // Filtros
   const clientesFiltrados = useMemo(() => {
@@ -483,17 +578,36 @@ export default function Analises({ user }) {
             activeColor="border-amber-500/50 bg-amber-500/10 text-amber-400"
           />
 
-          {isFiltered && (
-            <button
-              className="ml-auto text-xs text-slate-500 hover:text-slate-300 transition-colors"
-              onClick={() => {
-                setFiltroStatus('todos'); setFiltroRisco('todos'); setFiltroTendencia('todos');
-                setSomenteCriticos(false); setSomenteSemAnalise(false); setSomenteAlertasVoxx(false);
-              }}
-            >
-              Limpar filtros
-            </button>
-          )}
+          <div className="ml-auto flex items-center gap-2">
+            {isFiltered && (
+              <button
+                className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+                onClick={() => {
+                  setFiltroStatus('todos'); setFiltroRisco('todos'); setFiltroTendencia('todos');
+                  setSomenteCriticos(false); setSomenteSemAnalise(false); setSomenteAlertasVoxx(false);
+                }}
+              >
+                Limpar filtros
+              </button>
+            )}
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown className="w-3.5 h-3.5 text-slate-500" />
+              <Select value={ordenacao} onValueChange={setOrdenacao}>
+                <SelectTrigger className="h-8 w-44 text-xs bg-slate-800 border-slate-700 text-slate-300">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700 text-slate-200">
+                  <SelectItem value="pior_melhor">Pior para melhor</SelectItem>
+                  <SelectItem value="melhor_pior">Melhor para pior</SelectItem>
+                  <SelectItem value="maior_risco">Maior risco de churn</SelectItem>
+                  <SelectItem value="menor_score">Menor score</SelectItem>
+                  <SelectItem value="sem_contato">Mais tempo sem contato</SelectItem>
+                  <SelectItem value="mais_recente">Análise mais recente</SelectItem>
+                  <SelectItem value="sem_analise">Sem análise primeiro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         {/* Contador */}
