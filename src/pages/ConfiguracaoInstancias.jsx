@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Settings2, Wifi, WifiOff, RefreshCw, Loader2, Save, AlertTriangle,
-  MessageSquare, Search, X, Clock
+  MessageSquare, Search, X, Clock, Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import moment from 'moment';
@@ -25,6 +25,18 @@ export default function ConfiguracaoInstancias({ user }) {
   const [registroAtivo, setRegistroAtivo] = useState(true);
   const [buscaLog, setBuscaLog] = useState('');
   const [loadingLogs, setLoadingLogs] = useState(false);
+
+  // Ativar leitura automática
+  const ativarLeituraMutation = useMutation({
+    mutationFn: async () => {
+      const res = await base44.functions.invoke('ativarLeituraAutomaticaZapi', {});
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Leitura automática ativada! Todas as mensagens serão marcadas como lidas automaticamente.');
+    },
+    onError: (e) => toast.error('Erro ao ativar: ' + e.message)
+  });
 
   // Carregar configurações
   const { data: configs = [] } = useQuery({
@@ -148,10 +160,21 @@ export default function ConfiguracaoInstancias({ user }) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Button onClick={handleVerificarStatus} disabled={loadingStatus} variant="outline" className="gap-2">
-                {loadingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Verificar Conexão
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleVerificarStatus} disabled={loadingStatus} variant="outline" className="gap-2">
+                  {loadingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Verificar Conexão
+                </Button>
+                <Button 
+                  onClick={() => ativarLeituraMutation.mutate()} 
+                  disabled={ativarLeituraMutation.isPending} 
+                  variant="outline" 
+                  className="gap-2"
+                >
+                  {ativarLeituraMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                  Ativar Leitura Automática
+                </Button>
+              </div>
 
               {zapiStatus && (
                 <div className={`mt-4 p-4 rounded-lg border-2 ${
