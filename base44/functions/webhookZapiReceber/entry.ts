@@ -21,8 +21,10 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
 
     // Ignorar apenas notificações de sistema vazias (ex: participante entrou/saiu sem conteúdo)
+    // MAS registrar atividade mesmo sem conteúdo
     if (body.type === 'ReceivedCallback' && !body.text && !body.image && !body.video && !body.audio && !body.document) {
-      return Response.json({ ok: true, ignored: 'no_content' });
+      console.log('[webhookZapiReceber] Notificação de sistema sem conteúdo:', JSON.stringify(body));
+      // Não retornar - continuar para registrar a atividade do grupo
     }
 
     // Nova estrutura Z-API para grupos:
@@ -108,13 +110,14 @@ Deno.serve(async (req) => {
     }
 
     // Extrair conteúdo da mensagem
-    let conteudo = '[Mensagem]';
+    let conteudo = '[Atividade]';
     if (body.text?.message) conteudo = body.text.message;
     else if (body.image?.caption) conteudo = body.image.caption;
     else if (body.video?.caption) conteudo = body.video.caption;
     else if (body.document?.fileName) conteudo = body.document.fileName;
     else if (body.audio) conteudo = '[Áudio]';
     else if (body.sticker) conteudo = '[Sticker]';
+    else if (body.type === 'ReceivedCallback') conteudo = '[Notificação]';
 
     const tipoEnvio = body.image ? 'imagem' : 'texto';
     const timestamp = body.momment
