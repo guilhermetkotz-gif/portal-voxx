@@ -5,6 +5,8 @@
  * Retorna: Map<clienteId, { nivel, minutosUteis, ultimaMsgCliente }>
  */
 
+import moment from 'moment';
+import 'moment-timezone';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -68,7 +70,7 @@ export function useAlertaSemRetornoVoxx(clientesIds = [], tocarSom = null) {
   const calcular = useCallback(() => {
     if (!logsRecentes.length) return;
 
-    const agora = new Date().toISOString();
+    const agora = moment().tz('America/Sao_Paulo').toISOString();
     const novosAlertas = new Map();
 
     // Agrupar logs por cliente

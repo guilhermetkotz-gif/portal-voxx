@@ -387,9 +387,9 @@ export default function Analises({ user }) {
   const clientesEnriquecidos = useMemo(() => {
     // alertasSemRetorno é um Map<clienteId, { nivel, minutosUteis, label }>
 
-    // Calcular corte de período
+    // Calcular corte de período (usando horário de Brasília)
     const periodoDias = periodo === '7d' ? 7 : periodo === '90d' ? 90 : 30;
-    const corte = moment().subtract(periodoDias, 'days');
+    const corte = moment().tz('America/Sao_Paulo').subtract(periodoDias, 'days');
 
     // Índices para lookup rápido
     const ultimoLogPorCliente = {};
@@ -450,7 +450,7 @@ export default function Analises({ user }) {
     return clientes.map(c => {
       const ultimoLog = ultimoLogPorCliente[c.id];
       const diasSemContato = ultimoLog
-        ? moment().diff(moment(ultimoLog), 'days')
+        ? moment().tz('America/Sao_Paulo').diff(moment(ultimoLog).tz('America/Sao_Paulo'), 'days')
         : null;
       const totalMsgsPeriodo = totalMsgsPorCliente[c.id] || 0;
       const ultimaMsgRaw = ultimoLog || null;
