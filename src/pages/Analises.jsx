@@ -12,6 +12,7 @@ import {
 import moment from 'moment';
 import 'moment-timezone';
 import AnalisesParametrizacao from '@/components/analises/AnalisesParametrizacao';
+import ClienteAnaliseDrawer from '@/components/analises/ClienteAnaliseDrawer';
 
 const RISCO_CONFIG = {
   critico: { label: 'Crítico', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -195,6 +196,7 @@ export default function Analises({ user }) {
   const [somenteAlertasVoxx, setSomenteAlertasVoxx] = useState(false);
   const [showParametrizacao, setShowParametrizacao] = useState(false);
   const [ordenacao, setOrdenacao] = useState('pior_melhor');
+  const [clienteAnalise, setClienteAnalise] = useState(null); // { cliente, clienteEnriquecido }
 
   // --- Dados reais ---
   const { data: clientes = [], isLoading: loadingClientes } = useQuery({
@@ -459,8 +461,8 @@ export default function Analises({ user }) {
   const isFiltered = filtroStatus !== 'todos' || filtroRisco !== 'todos' || filtroTendencia !== 'todos'
     || somenteCriticos || somenteSemAnalise || somenteAlertasVoxx;
 
-  const handleVerAnalise = (cliente) => {
-    // Futuro: abrir modal/drawer de análise detalhada
+  const handleVerAnalise = (clienteEnriquecido) => {
+    setClienteAnalise(clienteEnriquecido);
   };
 
   const ToggleFilter = ({ label, active, onToggle, icon: Icon, activeColor = 'border-violet-500 bg-violet-500/10 text-violet-300' }) => (
@@ -658,6 +660,14 @@ export default function Analises({ user }) {
 
       {showParametrizacao && (
         <AnalisesParametrizacao onClose={() => setShowParametrizacao(false)} />
+      )}
+
+      {clienteAnalise && (
+        <ClienteAnaliseDrawer
+          cliente={clienteAnalise}
+          clienteEnriquecido={clienteAnalise}
+          onClose={() => setClienteAnalise(null)}
+        />
       )}
     </div>
   );
