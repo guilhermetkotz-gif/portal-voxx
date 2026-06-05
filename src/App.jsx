@@ -31,6 +31,7 @@ import MigracaoComunicacao from './pages/MigracaoComunicacao';
 import AprovacaoPublica from './pages/AprovacaoPublica';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { RealtimeProvider } from '@/lib/RealtimeContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -162,12 +163,14 @@ function App() {
   return (
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
+        <RealtimeProvider>
         <Router>
           <NavigationTracker />
           <AuthenticatedApp />
         </Router>
         <Toaster />
         <SonnerToaster richColors position="top-right" />
+        </RealtimeProvider>
       </QueryClientProvider>
     </AuthProvider>
   )

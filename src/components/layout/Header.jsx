@@ -12,6 +12,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ClienteContext from './ClienteContext';
+import RealtimeIndicator from './RealtimeIndicator';
 
 export default function Header({ 
   title, 
@@ -47,6 +48,9 @@ export default function Header({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Indicador Realtime */}
+          <RealtimeIndicator />
+
           {/* Cliente Context */}
           <ClienteContext 
             user={user} 
