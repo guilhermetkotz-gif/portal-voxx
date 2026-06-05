@@ -33,10 +33,10 @@ export default function ConfiguracaoInstancias({ user }) {
     staleTime: 60 * 1000
   });
 
-  // Carregar logs de recebimento
+  // Carregar logs de recebimento (todas as origens: recebida, enviada, manual)
   const { data: logs = [], isLoading: loadingLogsQuery } = useQuery({
     queryKey: ['webhookLogs'],
-    queryFn: () => base44.entities.WhatsappEnvioLog.filter({ origem: 'recebida' }, '-enviado_em', 200),
+    queryFn: () => base44.entities.WhatsappEnvioLog.filter({}, '-enviado_em', 200),
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000
   });
