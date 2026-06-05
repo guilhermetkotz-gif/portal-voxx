@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Brain, Settings2, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, Clock, BarChart3, ChevronRight,
-  Flame, Shield, Zap, Activity
+  Clock, BarChart3, ChevronRight,
+  Flame, Zap, Activity
 } from 'lucide-react';
+import moment from 'moment';
+import 'moment-timezone';
 import AnalisesParametrizacao from '@/components/analises/AnalisesParametrizacao';
 
 const RISCO_CONFIG = {
@@ -127,14 +129,22 @@ function RankingRow({ item, position, onVerAnalise }) {
 
       {/* Principal risco */}
       <div className="flex-1 min-w-0">
-        <span className="text-xs text-slate-400 truncate block">
-          {item.principal_risco || <span className="text-slate-600 italic">Sem análise</span>}
-        </span>
+        {item._estado_sem_analise ? (
+          <span className="text-xs text-slate-600 italic truncate block">{item._estado_sem_analise}</span>
+        ) : item.principal_risco ? (
+          <span className="text-xs text-slate-400 truncate block">{item.principal_risco}</span>
+        ) : (
+          <span className="text-xs text-slate-700 truncate block">—</span>
+        )}
       </div>
 
       {/* Última análise */}
-      <div className="w-20 shrink-0 text-right text-xs text-slate-600">
-        {item.ultima_analise ? item.ultima_analise : <span className="italic">—</span>}
+      <div className="w-20 shrink-0 text-right">
+        {item.ultima_analise ? (
+          <span className="text-xs text-slate-400">{item.ultima_analise}</span>
+        ) : (
+          <Badge className="text-xs px-1.5 py-0 bg-slate-800 text-slate-600 border border-slate-700">Sem análise</Badge>
+        )}
       </div>
 
       {/* Ação */}
@@ -180,44 +190,173 @@ export default function Analises({ user }) {
   const [somenteAlertasVoxx, setSomenteAlertasVoxx] = useState(false);
   const [showParametrizacao, setShowParametrizacao] = useState(false);
 
-  const { data: clientes = [], isLoading } = useQuery({
+  // --- Dados reais ---
+  const { data: clientes = [], isLoading: loadingClientes } = useQuery({
     queryKey: ['clientesAnalises'],
     queryFn: () => base44.entities.Cliente.filter({ status: 'ativo' }, 'nome', 300),
     staleTime: 60 * 1000
   });
 
-  // Enriquece clientes com campos de análise (vindos de campos do cliente ou zerados)
-  const clientesEnriquecidos = clientes.map(c => ({
-    ...c,
-    score: c.health_score ?? null,
-    risco_churn: null,
-    clima_emocional: null,
-    tendencia: null,
-    pressao_cliente: null,
-    dias_sem_contato: null,
-    qtd_alertas: 0,
-    principal_risco: null,
-    ultima_analise: null,
-  }));
-
-  // Ordenar do pior para o melhor (score null vai para o topo = sem dados = pior)
-  const clientesOrdenados = [...clientesEnriquecidos].sort((a, b) => {
-    if (a.score == null && b.score == null) return 0;
-    if (a.score == null) return -1;
-    if (b.score == null) return 1;
-    return a.score - b.score;
+  // Último envio por cliente (último contato via WhatsApp)
+  const { data: logsEnvio = [] } = useQuery({
+    queryKey: ['analisesLogsEnvio'],
+    queryFn: () => base44.entities.WhatsappEnvioLog.list('-enviado_em', 500),
+    staleTime: 60 * 1000
   });
+
+  // Alertas/notificações não lidas por cliente
+  const { data: notificacoes = [] } = useQuery({
+    queryKey: ['analisesNotificacoes'],
+    queryFn: () => base44.entities.Notificacao.filter({ lida: false }, '-created_date', 500),
+    staleTime: 60 * 1000
+  });
+
+  // Demandas aguardando cliente (pressão)
+  const { data: demandasAguardando = [] } = useQuery({
+    queryKey: ['analisesDemandasAguardando'],
+    queryFn: () => base44.entities.Demanda.filter({ status: 'aguardando_cliente' }, '-created_date', 500),
+    staleTime: 60 * 1000
+  });
+
+  // Resumos diários (última análise gerada)
+  const { data: resumos = [] } = useQuery({
+    queryKey: ['analisesResumos'],
+    queryFn: () => base44.entities.ResumoDiarioCliente.list('-data', 500),
+    staleTime: 60 * 1000
+  });
+
+  // Grupos WhatsApp
+  const { data: grupos = [] } = useQuery({
+    queryKey: ['analisesGrupos'],
+    queryFn: () => base44.entities.WhatsappGrupo.list('-created_date', 200),
+    staleTime: 60 * 1000
+  });
+
+  const isLoading = loadingClientes;
+
+  // --- Enriquecimento ---
+  const clientesEnriquecidos = useMemo(() => {
+    // Índices para lookup rápido
+    const ultimoLogPorCliente = {};
+    logsEnvio.forEach(log => {
+      if (!log.cliente_id || !log.enviado_em) return;
+      if (!ultimoLogPorCliente[log.cliente_id] || log.enviado_em > ultimoLogPorCliente[log.cliente_id]) {
+        ultimoLogPorCliente[log.cliente_id] = log.enviado_em;
+      }
+    });
+
+    const alertasPorCliente = {};
+    notificacoes.forEach(n => {
+      if (!n.cliente_id) return;
+      alertasPorCliente[n.cliente_id] = (alertasPorCliente[n.cliente_id] || 0) + 1;
+    });
+
+    const pressaoPorCliente = {};
+    demandasAguardando.forEach(d => {
+      if (!d.cliente_id) return;
+      pressaoPorCliente[d.cliente_id] = (pressaoPorCliente[d.cliente_id] || 0) + 1;
+    });
+
+    const ultimoResumoPorCliente = {};
+    resumos.forEach(r => {
+      if (!r.cliente_id) return;
+      if (!ultimoResumoPorCliente[r.cliente_id] || r.data > ultimoResumoPorCliente[r.cliente_id].data) {
+        ultimoResumoPorCliente[r.cliente_id] = r;
+      }
+    });
+
+    const gruposPorCliente = {};
+    grupos.forEach(g => {
+      if (g.cliente_id) gruposPorCliente[g.cliente_id] = g;
+    });
+
+    return clientes.map(c => {
+      const ultimoLog = ultimoLogPorCliente[c.id];
+      const diasSemContato = ultimoLog
+        ? moment().diff(moment(ultimoLog), 'days')
+        : null;
+
+      const qtdDemandasAguardando = pressaoPorCliente[c.id] || 0;
+      // pressão 1-5 baseada em quantidade de demandas aguardando
+      const pressaoNivel = Math.min(5, qtdDemandasAguardando);
+
+      const qtdAlertas = alertasPorCliente[c.id] || 0;
+      const ultimoResumo = ultimoResumoPorCliente[c.id];
+      const temGrupo = !!(c.whatsapp_grupo_id || gruposPorCliente[c.id]);
+
+      // Estado sem análise inteligente
+      let estadoSemAnalise = null;
+      if (!ultimoResumo) {
+        if (!temGrupo) estadoSemAnalise = 'Vincule um grupo para gerar análise';
+        else if (!ultimoLog) estadoSemAnalise = 'Sem mensagens suficientes';
+        else estadoSemAnalise = 'Sem análise gerada';
+      }
+
+      // Inferir risco de churn baseado em dados disponíveis
+      let risco_churn = null;
+      const score = c.health_score;
+      if (score != null) {
+        if (score < 30) risco_churn = 'critico';
+        else if (score < 50) risco_churn = 'alto';
+        else if (score < 70) risco_churn = 'medio';
+        else risco_churn = 'baixo';
+      } else if (diasSemContato != null && diasSemContato > 30) {
+        risco_churn = 'alto';
+      } else if (qtdAlertas > 5) {
+        risco_churn = 'medio';
+      }
+
+      // Inferir tendência pela variação de score e pressão
+      let tendencia = null;
+      if (qtdDemandasAguardando > 3) tendencia = 'piorando';
+      else if (score != null && score >= 70) tendencia = 'melhorando';
+      else if (score != null) tendencia = 'estavel';
+
+      return {
+        ...c,
+        score: score ?? null,
+        risco_churn,
+        clima_emocional: null, // campo futuro — sem fonte de dados ainda
+        tendencia,
+        pressao_cliente: pressaoNivel > 0 ? pressaoNivel : null,
+        dias_sem_contato: diasSemContato,
+        qtd_alertas: qtdAlertas,
+        principal_risco: estadoSemAnalise || (ultimoResumo?.mensagem_gerada ? null : null),
+        ultima_analise: ultimoResumo
+          ? moment(ultimoResumo.data).tz('America/Sao_Paulo').format('DD/MM/YY')
+          : null,
+        _tem_resumo: !!ultimoResumo,
+        _estado_sem_analise: estadoSemAnalise,
+      };
+    });
+  }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos]);
+
+  // Ordenar: com score do pior para o melhor; sem score ao final
+  const clientesOrdenados = useMemo(() => {
+    return [...clientesEnriquecidos].sort((a, b) => {
+      const aSemAnalise = !a._tem_resumo;
+      const bSemAnalise = !b._tem_resumo;
+      if (aSemAnalise && !bSemAnalise) return 1;
+      if (!aSemAnalise && bSemAnalise) return -1;
+      if (a.score == null && b.score == null) return 0;
+      if (a.score == null) return 1;
+      if (b.score == null) return -1;
+      return a.score - b.score;
+    });
+  }, [clientesEnriquecidos]);
 
   // Filtros
-  const clientesFiltrados = clientesOrdenados.filter(c => {
-    if (filtroStatus !== 'todos' && c.status !== filtroStatus) return false;
-    if (filtroRisco !== 'todos' && c.risco_churn !== filtroRisco) return false;
-    if (filtroTendencia !== 'todos' && c.tendencia !== filtroTendencia) return false;
-    if (somenteCriticos && (c.score == null || c.score >= 40)) return false;
-    if (somenteSemAnalise && c.ultima_analise != null) return false;
-    if (somenteAlertasVoxx && c.qtd_alertas === 0) return false;
-    return true;
-  });
+  const clientesFiltrados = useMemo(() => {
+    return clientesOrdenados.filter(c => {
+      if (filtroStatus !== 'todos' && c.status !== filtroStatus) return false;
+      if (filtroRisco !== 'todos' && c.risco_churn !== filtroRisco) return false;
+      if (filtroTendencia !== 'todos' && c.tendencia !== filtroTendencia) return false;
+      if (somenteCriticos && (c.score == null || c.score >= 40)) return false;
+      if (somenteSemAnalise && c._tem_resumo) return false;
+      if (somenteAlertasVoxx && c.qtd_alertas === 0) return false;
+      return true;
+    });
+  }, [clientesOrdenados, filtroStatus, filtroRisco, filtroTendencia, somenteCriticos, somenteSemAnalise, somenteAlertasVoxx]);
 
   const isFiltered = filtroStatus !== 'todos' || filtroRisco !== 'todos' || filtroTendencia !== 'todos'
     || somenteCriticos || somenteSemAnalise || somenteAlertasVoxx;
