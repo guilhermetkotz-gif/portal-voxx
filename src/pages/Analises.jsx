@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
   Brain, Settings2, TrendingUp, TrendingDown, Minus,
   Clock, BarChart3, ChevronRight, Loader2,
-  Flame, Zap, Activity, ArrowUpDown, AlertTriangle, MessageSquare
+  Flame, Zap, Activity, ArrowUpDown, AlertTriangle, MessageSquare, Search, X
 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -298,6 +298,7 @@ export default function Analises({ user }) {
   const [ordenacao, setOrdenacao] = useState('pior_melhor');
   const [clienteAnalise, setClienteAnalise] = useState(null);
   const [gerandoGlobal, setGerandoGlobal] = useState(false);
+  const [buscaCliente, setBuscaCliente] = useState('');
   const queryClient = useQueryClient();
 
   const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
@@ -644,12 +645,13 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
       if (somenteCriticos && (c.score == null || c.score >= 40)) return false;
       if (somenteSemAnalise && c._tem_resumo) return false;
       if (somenteAlertasVoxx && c.qtd_alertas === 0) return false;
+      if (buscaCliente && !(c.nome?.toLowerCase().includes(buscaCliente.toLowerCase()) || c.cidade?.toLowerCase().includes(buscaCliente.toLowerCase()))) return false;
       return true;
     });
-  }, [clientesOrdenados, filtroStatus, filtroRisco, filtroTendencia, somenteCriticos, somenteSemAnalise, somenteAlertasVoxx]);
+  }, [clientesOrdenados, filtroStatus, filtroRisco, filtroTendencia, somenteCriticos, somenteSemAnalise, somenteAlertasVoxx, buscaCliente]);
 
   const isFiltered = filtroStatus !== 'todos' || filtroRisco !== 'todos' || filtroTendencia !== 'todos'
-    || somenteCriticos || somenteSemAnalise || somenteAlertasVoxx;
+    || somenteCriticos || somenteSemAnalise || somenteAlertasVoxx || buscaCliente;
 
   const handleVerAnalise = (clienteEnriquecido) => {
     setClienteAnalise(clienteEnriquecido);
@@ -708,6 +710,26 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
 
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl border border-slate-800 bg-slate-900/50">
+          {/* Busca por Cliente */}
+          <div className="relative flex items-center">
+            <Search className="absolute left-2.5 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar cliente..."
+              value={buscaCliente}
+              onChange={(e) => setBuscaCliente(e.target.value)}
+              className="h-8 pl-8 pr-8 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-xs placeholder-slate-600 focus:outline-none focus:border-violet-600 focus:ring-1 focus:ring-violet-600/20"
+            />
+            {buscaCliente && (
+              <button
+                onClick={() => setBuscaCliente('')}
+                className="absolute right-2.5 text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
           <Select value={periodo} onValueChange={setPeriodo}>
             <SelectTrigger className="h-8 w-32 text-xs bg-slate-800 border-slate-700 text-slate-300">
               <SelectValue />
@@ -786,6 +808,7 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
                 onClick={() => {
                   setFiltroStatus('todos'); setFiltroRisco('todos'); setFiltroTendencia('todos');
                   setSomenteCriticos(false); setSomenteSemAnalise(false); setSomenteAlertasVoxx(false);
+                  setBuscaCliente('');
                 }}
               >
                 Limpar filtros
