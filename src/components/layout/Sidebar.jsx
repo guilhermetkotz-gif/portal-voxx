@@ -42,7 +42,8 @@ import {
   Gauge,
   BookOpen,
   Network,
-  MessageSquare
+  MessageSquare,
+  Smartphone
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -64,6 +65,7 @@ const menuItems = [
   { name: "Briefing Clientes", icon: BookOpen, page: "BriefingClientes", voxxOnly: true },
   { name: "Inteligência Operacional", icon: Network, page: "InteligeniciaOperacional", voxxOnly: true },
   { name: "Central de Comunicação", icon: MessageSquare, page: "CentralComunicacao", voxxOnly: true },
+  { name: "WhatsApp Clientes", icon: Smartphone, page: "ConfiguracaoWhatsApp", voxxOnly: true },
   { name: "Timeline", icon: Clock, page: "Timeline" },
   { name: "Cronograma", icon: Calendar, page: "Cronograma" },
   { name: "Planejamento Estratégico", icon: TrendingUp, page: "PlanejamentoEstrategico" },

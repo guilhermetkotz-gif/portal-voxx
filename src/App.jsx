@@ -25,6 +25,7 @@ import BriefingClientes from './pages/BriefingClientes';
 import BriefingVisualizacao from './pages/BriefingVisualizacao';
 import InteligeniciaOperacional from './pages/InteligeniciaOperacional';
 import CentralComunicacao from './pages/CentralComunicacao';
+import ConfiguracaoWhatsApp from './pages/ConfiguracaoWhatsApp';
 import MigracaoComunicacao from './pages/MigracaoComunicacao';
 import AprovacaoPublica from './pages/AprovacaoPublica';
 import PageNotFound from './lib/PageNotFound';
@@ -145,6 +146,7 @@ const AuthenticatedApp = () => {
       <Route path="/BriefingVisualizacao" element={<LayoutWrapper currentPageName="BriefingClientes"><BriefingVisualizacao /></LayoutWrapper>} />
       <Route path="/InteligeniciaOperacional" element={<LayoutWrapper currentPageName="InteligeniciaOperacional"><InteligeniciaOperacional /></LayoutWrapper>} />
       <Route path="/CentralComunicacao" element={<LayoutWrapper currentPageName="CentralComunicacao"><CentralComunicacao /></LayoutWrapper>} />
+      <Route path="/ConfiguracaoWhatsApp" element={<LayoutWrapper currentPageName="ConfiguracaoWhatsApp"><ConfiguracaoWhatsApp /></LayoutWrapper>} />
       <Route path="/MigracaoComunicacao" element={<LayoutWrapper currentPageName="CentralComunicacao"><MigracaoComunicacao /></LayoutWrapper>} />
       <Route path="/aprovacao/:token" element={<AprovacaoPublica />} />
       <Route path="*" element={<PageNotFound />} />

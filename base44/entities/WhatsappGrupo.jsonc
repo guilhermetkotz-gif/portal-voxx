@@ -1,0 +1,57 @@
+{
+  "name": "WhatsappGrupo",
+  "type": "object",
+  "properties": {
+    "grupo_id": {
+      "type": "string",
+      "description": "ID do grupo no WhatsApp (usado no campo phone da Z-API)"
+    },
+    "nome_grupo": {
+      "type": "string",
+      "description": "Nome do grupo"
+    },
+    "telefone_instancia": {
+      "type": "string",
+      "description": "N\u00famero da inst\u00e2ncia Z-API conectada"
+    },
+    "ultima_mensagem": {
+      "type": "string",
+      "description": "Pr\u00e9via da \u00faltima mensagem"
+    },
+    "ultima_atividade": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente Voxx vinculado"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "status_vinculo": {
+      "type": "string",
+      "enum": [
+        "nao_vinculado",
+        "vinculado",
+        "possivel_correspondencia",
+        "inativo"
+      ],
+      "default": "nao_vinculado"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "manual",
+        "webhook",
+        "importacao"
+      ],
+      "default": "manual"
+    }
+  },
+  "required": [
+    "grupo_id",
+    "nome_grupo"
+  ]
+}

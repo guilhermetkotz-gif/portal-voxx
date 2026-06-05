@@ -24,7 +24,7 @@ const statusConfig = {
   cancelado: { label: 'Cancelado', color: 'bg-slate-100 text-slate-500', icon: X }
 };
 
-function ResumoCard({ resumo, onAprovar, onCancelar, onEditar, onRegenerar, isLoading }) {
+function ResumoCard({ resumo, onAprovar, onCancelar, onEditar, onRegenerar, onEnviarWhatsApp, isLoading }) {
   const [expanded, setExpanded] = useState(false);
   const [editando, setEditando] = useState(false);
   const [mensagem, setMensagem] = useState(resumo.mensagem_editada || resumo.mensagem_gerada || '');
@@ -149,10 +149,10 @@ function ResumoCard({ resumo, onAprovar, onCancelar, onEditar, onRegenerar, isLo
         </div>
       )}
       {resumo.status_envio === 'pronto_envio' && (
-        <div className="px-5 pb-4 flex gap-2 border-t border-slate-100 pt-4">
-          <Badge className="bg-blue-100 text-blue-700 flex items-center gap-1">
-            <Send className="w-3 h-3" /> Aguardando integração WhatsApp
-          </Badge>
+        <div className="px-5 pb-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+          <Button size="sm" className="bg-green-600 hover:bg-green-700 gap-1.5" onClick={() => onEnviarWhatsApp(resumo)} disabled={isLoading}>
+            <Send className="w-3.5 h-3.5" /> Enviar WhatsApp
+          </Button>
           <Button size="sm" variant="ghost" className="text-slate-500" onClick={() => setEditando(true)}>
             <Pencil className="w-3.5 h-3.5 mr-1" /> Editar
           </Button>
@@ -319,6 +319,29 @@ export default function CentralComunicacao({ user }) {
     queryClient.invalidateQueries({ queryKey: ['filaComun'] });
     setCriandoTeste(false);
     toast.success('Evento de teste criado na fila!');
+  };
+
+  const handleEnviarWhatsApp = async (resumo) => {
+    const cliente = clientes.find(c => c.id === resumo.cliente_id);
+    if (!cliente?.whatsapp_grupo_id) {
+      toast.error(`Cliente "${resumo.cliente_nome}" não possui grupo WhatsApp vinculado. Configure na página "WhatsApp Clientes".`);
+      return;
+    }
+    if (!confirm(`Enviar resumo para o grupo WhatsApp do cliente "${resumo.cliente_nome}"?\n\nGrupo: ${cliente.whatsapp_grupo_nome || cliente.whatsapp_grupo_id}`)) return;
+    try {
+      setGerando(true);
+      const res = await base44.functions.invoke('enviarMensagemWhatsApp', { resumo_id: resumo.id });
+      if (res.data?.success) {
+        toast.success('Mensagem enviada com sucesso para o WhatsApp!');
+        queryClient.invalidateQueries({ queryKey: ['resumosDiarios'] });
+      } else {
+        toast.error('Erro ao enviar: ' + (res.data?.erro || 'Desconhecido'));
+      }
+    } catch (e) {
+      toast.error('Erro: ' + e.message);
+    } finally {
+      setGerando(false);
+    }
   };
 
   const handleRegenerar = async (id, clienteId) => {
@@ -695,6 +718,7 @@ export default function CentralComunicacao({ user }) {
                 <ResumoCard key={r.id} resumo={r}
                   onAprovar={handleAprovar} onCancelar={handleCancelar}
                   onEditar={handleEditar} onRegenerar={handleRegenerar}
+                  onEnviarWhatsApp={handleEnviarWhatsApp}
                   isLoading={mutacaoAtualizar.isPending || gerando}
                 />
               ))}
@@ -716,7 +740,8 @@ export default function CentralComunicacao({ user }) {
                 <ResumoCard key={r.id} resumo={r}
                   onAprovar={handleAprovar} onCancelar={handleCancelar}
                   onEditar={handleEditar} onRegenerar={handleRegenerar}
-                  isLoading={mutacaoAtualizar.isPending}
+                  onEnviarWhatsApp={handleEnviarWhatsApp}
+                  isLoading={mutacaoAtualizar.isPending || gerando}
                 />
               ))}
             </div>

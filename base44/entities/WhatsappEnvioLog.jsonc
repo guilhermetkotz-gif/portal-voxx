@@ -1,0 +1,74 @@
+{
+  "name": "WhatsappEnvioLog",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "grupo_id": {
+      "type": "string"
+    },
+    "grupo_nome": {
+      "type": "string"
+    },
+    "tipo_envio": {
+      "type": "string",
+      "enum": [
+        "texto",
+        "imagem",
+        "lovable"
+      ],
+      "default": "texto"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "resumo_diario",
+        "aprovacao_entrega",
+        "manual"
+      ],
+      "default": "resumo_diario"
+    },
+    "origem_id": {
+      "type": "string",
+      "description": "ID do resumo ou entrega de origem"
+    },
+    "mensagem": {
+      "type": "string"
+    },
+    "midia_url": {
+      "type": "string"
+    },
+    "status_envio": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "enviado",
+        "erro",
+        "cancelado"
+      ],
+      "default": "pendente"
+    },
+    "retorno_zapi": {
+      "type": "string",
+      "description": "JSON do retorno da Z-API"
+    },
+    "erro": {
+      "type": "string"
+    },
+    "enviado_por": {
+      "type": "string"
+    },
+    "enviado_em": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "mensagem"
+  ]
+}
