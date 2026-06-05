@@ -13,8 +13,11 @@ Deno.serve(async (req) => {
       return {};
     });
 
-    if (!body.phone && !body.instanceId && !body.zaapId) {
-      console.log('[webhookZapiReceber] Payload inválido:', JSON.stringify(body));
+    // Log completo do payload para debug
+    console.log('[webhookZapiReceber] Payload completo:', JSON.stringify(body, null, 2));
+
+    if (!body.phone && !body.instanceId && !body.zaapId && !body.chatId) {
+      console.log('[webhookZapiReceber] Payload inválido (sem phone/instanceId/zaapId/chatId):', JSON.stringify(body));
       return Response.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
@@ -33,16 +36,17 @@ Deno.serve(async (req) => {
     // - participantPhone: número de quem enviou (ex: "5544999999999")
     // - senderName: nome do participante
     // - chatName: nome do grupo
-    const isGroup = body.isGroup === true || body.phone?.includes('-group') || body.phone?.includes('@g.us');
+    const isGroup = body.isGroup === true || body.phone?.includes('-group') || body.phone?.includes('@g.us') || body.chatId?.includes('@g.us');
     
-    if (!isGroup) {
-      return Response.json({ ok: true, ignored: 'not_group' });
-    }
+    // NÃO ignorar mensagens que não são de grupo - registrar tudo
+    // if (!isGroup) {
+    //   return Response.json({ ok: true, ignored: 'not_group' });
+    // }
 
-    const grupoIdRaw = body.phone || body.chatId || '';
+    const grupoIdRaw = body.phone || body.chatId || body.to || '';
     if (!grupoIdRaw) {
-      console.log('[webhookZapiReceber] Grupo sem ID:', JSON.stringify(body));
-      return Response.json({ ok: true, ignored: 'no_group_id' });
+      console.log('[webhookZapiReceber] Mensagem sem ID de grupo/chat:', JSON.stringify(body));
+      // Continuar mesmo sem grupo - pode ser mensagem individual
     }
 
     // Extrair a parte numérica base (sem @g.us, sem -group, sem timestamp)
@@ -114,17 +118,21 @@ Deno.serve(async (req) => {
 
     // Extrair conteúdo da mensagem (suporta múltiplos formatos Z-API)
     let conteudo = '[Atividade]';
-    if (typeof body.text === 'string') conteudo = body.text;
-    else if (body.text?.message) conteudo = body.text.message;
-    else if (body.text?.text) conteudo = body.text.text;
-    else if (body.message?.text) conteudo = body.message.text;
+    // Verifica todos os possíveis campos de texto
+    if (body.text && typeof body.text === 'object' && body.text.message) conteudo = body.text.message;
+    else if (body.text && typeof body.text === 'object' && body.text.text) conteudo = body.text.text;
+    else if (body.text && typeof body.text === 'string') conteudo = body.text;
+    else if (body.message && body.message.text) conteudo = body.message.text;
+    else if (body.body && typeof body.body === 'string') conteudo = body.body;
+    else if (body.caption) conteudo = body.caption;
     else if (body.image?.caption) conteudo = body.image.caption;
     else if (body.video?.caption) conteudo = body.video.caption;
     else if (body.document?.fileName) conteudo = body.document.fileName;
     else if (body.audio) conteudo = '[Áudio]';
     else if (body.sticker) conteudo = '[Sticker]';
     else if (body.type === 'ReceivedCallback') conteudo = '[Notificação]';
-    else if (body.body) conteudo = body.body;
+    else if (body.type === 'chat') conteudo = '[Mensagem]';
+    else if (body.mimetype) conteudo = `[Mídia: ${body.mimetype}]`;
 
     const tipoEnvio = body.image ? 'imagem' : 'texto';
     const timestamp = body.momment
@@ -167,12 +175,15 @@ Deno.serve(async (req) => {
     console.log('[webhookZapiReceber] Mensagem salva:', {
       cliente: clienteNome,
       grupo: grupoNomeFinal,
+      grupoIdRaw,
       participante: senderName,
       participantPhone,
       fromMe: isFromMe,
       origem: origem,
       tipo: remetenteTipo,
-      conteudo: conteudo.substring(0, 50)
+      conteudo: conteudo.substring(0, 100),
+      text: body.text,
+      body: body.body
     });
     return Response.json({ ok: true, saved: true, clienteId, clienteNome });
 
