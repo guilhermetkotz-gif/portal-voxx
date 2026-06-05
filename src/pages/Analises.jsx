@@ -13,6 +13,7 @@ import moment from 'moment';
 import 'moment-timezone';
 import AnalisesParametrizacao from '@/components/analises/AnalisesParametrizacao';
 import ClienteAnaliseDrawer from '@/components/analises/ClienteAnaliseDrawer';
+import RemetentesParametrizacao from '@/components/analises/RemetentesParametrizacao';
 
 const RISCO_CONFIG = {
   critico: { label: 'Crítico', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
@@ -195,8 +196,11 @@ export default function Analises({ user }) {
   const [somenteSemAnalise, setSomenteSemAnalise] = useState(false);
   const [somenteAlertasVoxx, setSomenteAlertasVoxx] = useState(false);
   const [showParametrizacao, setShowParametrizacao] = useState(false);
+  const [showRemetentes, setShowRemetentes] = useState(false);
   const [ordenacao, setOrdenacao] = useState('pior_melhor');
-  const [clienteAnalise, setClienteAnalise] = useState(null); // { cliente, clienteEnriquecido }
+  const [clienteAnalise, setClienteAnalise] = useState(null);
+
+  const isAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin';
 
   // --- Dados reais ---
   const { data: clientes = [], isLoading: loadingClientes } = useQuery({
@@ -493,14 +497,16 @@ export default function Analises({ user }) {
             <p className="text-slate-500 text-sm ml-12">Ranking executivo de saúde relacional, atendimento e operação.</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2 border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
-              onClick={() => setShowParametrizacao(true)}
-            >
-              <Settings2 className="w-4 h-4" /> Parametrização
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-700 hover:text-slate-100"
+                onClick={() => setShowRemetentes(true)}
+              >
+                <Settings2 className="w-4 h-4" /> Parametrização
+              </Button>
+            )}
             <Button
               size="sm"
               className="gap-2 bg-violet-600 hover:bg-violet-700 text-white"
@@ -660,6 +666,15 @@ export default function Analises({ user }) {
 
       {showParametrizacao && (
         <AnalisesParametrizacao onClose={() => setShowParametrizacao(false)} />
+      )}
+
+      {showRemetentes && (
+        <RemetentesParametrizacao
+          clienteId={clienteAnalise?.id || null}
+          clienteNome={clienteAnalise?.nome || 'Todos os clientes'}
+          onClose={() => setShowRemetentes(false)}
+          onReprocessar={() => setShowRemetentes(false)}
+        />
       )}
 
       {clienteAnalise && (
