@@ -26,6 +26,7 @@ import BriefingVisualizacao from './pages/BriefingVisualizacao';
 import InteligeniciaOperacional from './pages/InteligeniciaOperacional';
 import CentralComunicacao from './pages/CentralComunicacao';
 import ConfiguracaoWhatsApp from './pages/ConfiguracaoWhatsApp';
+import ConfiguracaoInstancias from './pages/ConfiguracaoInstancias';
 import Analises from './pages/Analises';
 import ImportarHistoricoWhatsapp from './pages/ImportarHistoricoWhatsapp';
 import MigracaoComunicacao from './pages/MigracaoComunicacao';
@@ -150,6 +151,7 @@ const AuthenticatedApp = () => {
       <Route path="/InteligeniciaOperacional" element={<LayoutWrapper currentPageName="InteligeniciaOperacional"><InteligeniciaOperacional /></LayoutWrapper>} />
       <Route path="/CentralComunicacao" element={<LayoutWrapper currentPageName="CentralComunicacao"><CentralComunicacao /></LayoutWrapper>} />
       <Route path="/ConfiguracaoWhatsApp" element={<LayoutWrapper currentPageName="ConfiguracaoWhatsApp"><ConfiguracaoWhatsApp /></LayoutWrapper>} />
+      <Route path="/ConfiguracaoInstancias" element={<LayoutWrapper currentPageName="ConfiguracaoInstancias"><ConfiguracaoInstancias /></LayoutWrapper>} />
       <Route path="/MigracaoComunicacao" element={<LayoutWrapper currentPageName="CentralComunicacao"><MigracaoComunicacao /></LayoutWrapper>} />
       <Route path="/Analises" element={<LayoutWrapper currentPageName="Analises"><Analises /></LayoutWrapper>} />
       <Route path="/ImportarHistoricoWhatsapp" element={<LayoutWrapper currentPageName="Analises"><ImportarHistoricoWhatsapp /></LayoutWrapper>} />
