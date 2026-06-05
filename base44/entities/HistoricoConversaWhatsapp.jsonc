@@ -1,0 +1,177 @@
+{
+  "name": "HistoricoConversaWhatsapp",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente vinculado"
+    },
+    "cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "nome_arquivo": {
+      "type": "string",
+      "description": "Nome original do arquivo importado"
+    },
+    "data_inicio": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da primeira mensagem no hist\u00f3rico"
+    },
+    "data_fim": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da \u00faltima mensagem no hist\u00f3rico"
+    },
+    "total_mensagens": {
+      "type": "number",
+      "description": "Total de mensagens no hist\u00f3rico"
+    },
+    "participantes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "voxx",
+              "cliente",
+              "desconhecido"
+            ]
+          },
+          "total_mensagens": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Lista de participantes identificados"
+    },
+    "mensagens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "string"
+          },
+          "hora": {
+            "type": "string"
+          },
+          "remetente": {
+            "type": "string"
+          },
+          "tipo_remetente": {
+            "type": "string",
+            "enum": [
+              "voxx",
+              "cliente",
+              "desconhecido"
+            ]
+          },
+          "conteudo": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "texto",
+              "midia",
+              "sistema"
+            ]
+          }
+        }
+      },
+      "description": "Mensagens parseadas (\u00faltimas 500 para an\u00e1lise)"
+    },
+    "analise_ia": {
+      "type": "object",
+      "properties": {
+        "resumo_executivo": {
+          "type": "string"
+        },
+        "pontos_positivos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pontos_atencao": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acoes_recomendadas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "clima_relacional": {
+          "type": "string",
+          "enum": [
+            "otimo",
+            "bom",
+            "neutro",
+            "tenso",
+            "critico"
+          ]
+        },
+        "score_engajamento": {
+          "type": "number"
+        },
+        "score_satisfacao": {
+          "type": "number"
+        },
+        "media_leads_dia": {
+          "type": "number"
+        },
+        "media_agendamentos_dia": {
+          "type": "number"
+        },
+        "taxa_conversao_media": {
+          "type": "number"
+        },
+        "principal_objecao": {
+          "type": "string"
+        },
+        "principais_problemas": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "gerado_em": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "description": "An\u00e1lise gerada pela IA"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "importado",
+        "analisando",
+        "analisado",
+        "erro"
+      ],
+      "default": "importado"
+    },
+    "importado_por": {
+      "type": "string"
+    },
+    "importado_por_nome": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "cliente_nome"
+  ]
+}
