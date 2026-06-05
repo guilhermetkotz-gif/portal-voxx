@@ -245,6 +245,18 @@ function RankingRow({ item, position, onVerAnalise }) {
           )}
         </div>
 
+        {/* Última msg Cliente */}
+        <div className="shrink-0 text-right">
+          <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. cliente</p>
+          {item.ultima_msg_cliente ? (
+            <span className="text-[10px] text-blue-400 tabular-nums font-mono">
+              {moment(item.ultima_msg_cliente).tz('America/Sao_Paulo').format('DD/MM, HH:mm')}
+            </span>
+          ) : (
+            <span className="text-[10px] text-slate-700 italic">—</span>
+          )}
+        </div>
+
         <div className="flex-1" />
 
         {/* Última análise */}
@@ -404,10 +416,16 @@ export default function Analises({ user }) {
     const ultimoLogClientePorCliente = {};
     logsEnvio.forEach(log => {
       if (!log.cliente_id || !log.enviado_em) return;
-      // logs da voxx têm origem 'resumo_diario' ou 'aprovacao_entrega' ou 'manual'
-      // para simplificar: todo log no WhatsappEnvioLog é da VOXX (a agência envia)
-      if (!ultimoLogVoxxPorCliente[log.cliente_id] || log.enviado_em > ultimoLogVoxxPorCliente[log.cliente_id]) {
-        ultimoLogVoxxPorCliente[log.cliente_id] = log.enviado_em;
+      if (log.origem === 'recebida') {
+        // Mensagem recebida do cliente
+        if (!ultimoLogClientePorCliente[log.cliente_id] || log.enviado_em > ultimoLogClientePorCliente[log.cliente_id]) {
+          ultimoLogClientePorCliente[log.cliente_id] = log.enviado_em;
+        }
+      } else {
+        // Mensagem enviada pela VOXX
+        if (!ultimoLogVoxxPorCliente[log.cliente_id] || log.enviado_em > ultimoLogVoxxPorCliente[log.cliente_id]) {
+          ultimoLogVoxxPorCliente[log.cliente_id] = log.enviado_em;
+        }
       }
     });
 
@@ -419,6 +437,7 @@ export default function Analises({ user }) {
       const totalMsgsPeriodo = totalMsgsPorCliente[c.id] || 0;
       const ultimaMsgRaw = ultimoLog || null;
       const ultimaMsgVoxx = ultimoLogVoxxPorCliente[c.id] || null;
+      const ultimaMsgCliente = ultimoLogClientePorCliente[c.id] || null;
       const grupo = gruposPorCliente[c.id] || null;
 
       const qtdDemandasAguardando = pressaoPorCliente[c.id] || 0;
@@ -478,6 +497,7 @@ export default function Analises({ user }) {
         total_msgs_periodo: totalMsgsPeriodo,
         ultima_msg_raw: ultimaMsgRaw,
         ultima_msg_voxx: ultimaMsgVoxx,
+        ultima_msg_cliente: ultimaMsgCliente,
         _grupo: grupo,
         _grupo_nome: c.whatsapp_grupo_nome || grupo?.nome_grupo || null,
         _grupo_id: c.whatsapp_grupo_id || grupo?.grupo_id || null,

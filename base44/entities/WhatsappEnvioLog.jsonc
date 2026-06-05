@@ -28,7 +28,8 @@
       "enum": [
         "resumo_diario",
         "aprovacao_entrega",
-        "manual"
+        "manual",
+        "recebida"
       ],
       "default": "resumo_diario"
     },
@@ -65,6 +66,10 @@
     "enviado_em": {
       "type": "string",
       "format": "date-time"
+    },
+    "remetente_nome": {
+      "type": "string",
+      "description": "Nome do remetente (para mensagens recebidas)"
     }
   },
   "required": [
