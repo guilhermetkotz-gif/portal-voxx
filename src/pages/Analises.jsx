@@ -245,12 +245,12 @@ function RankingRow({ item, position, onVerAnalise }) {
           )}
         </div>
 
-        {/* Última msg Cliente */}
-        <div className="shrink-0 text-right">
-          <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. cliente</p>
-          {item.ultima_msg_cliente ? (
-            <span className="text-[10px] text-blue-400 tabular-nums font-mono">
-              {moment(item.ultima_msg_cliente).tz('America/Sao_Paulo').format('DD/MM, HH:mm')}
+        {/* Grupo WhatsApp */}
+        <div className="shrink-0 max-w-[150px] min-w-0">
+          <p className="text-[9px] text-slate-600 leading-none mb-0.5">Grupo</p>
+          {item._grupo_nome ? (
+            <span className="text-[10px] text-slate-300 truncate block" title={item._grupo_nome}>
+              {item._grupo_nome}
             </span>
           ) : (
             <span className="text-[10px] text-slate-700 italic">—</span>
@@ -258,12 +258,26 @@ function RankingRow({ item, position, onVerAnalise }) {
         </div>
 
         {/* Conteúdo da última mensagem recebida */}
-        <div className="shrink-0 max-w-[250px] min-w-0">
+        <div className="shrink-0 max-w-[280px] min-w-0">
           <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. mensagem</p>
           {item._ultima_msg_cliente_conteudo ? (
-            <span className="text-[10px] text-slate-300 truncate block" title={item._ultima_msg_cliente_conteudo}>
-              {item._ultima_msg_cliente_conteudo}
-            </span>
+            <div className="space-y-0.5">
+              <span className="text-[10px] text-slate-300 truncate block" title={item._ultima_msg_cliente_conteudo}>
+                {item._ultima_msg_cliente_conteudo}
+              </span>
+              {item.ultima_msg_raw?.retorno_zapi && (
+                <span className="text-[9px] text-slate-500 truncate block">
+                  {(() => {
+                    try {
+                      const info = JSON.parse(item.ultima_msg_raw.retorno_zapi);
+                      return info.participantPhone ? `Participante: ${info.participantPhone}` : null;
+                    } catch {
+                      return null;
+                    }
+                  })()}
+                </span>
+              )}
+            </div>
           ) : (
             <span className="text-[10px] text-slate-700 italic">—</span>
           )}
@@ -970,6 +984,7 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
             <span className="text-[10px] text-slate-500 font-medium ml-1">Tend.</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">Pressão</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">S/contato</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-1">Grupo</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">Últ. mensagem</span>
           </div>
 

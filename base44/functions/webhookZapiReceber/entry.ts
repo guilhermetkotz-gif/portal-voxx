@@ -25,14 +25,22 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, ignored: 'no_content' });
     }
 
-    const grupoIdRaw = body.phone || body.chatId || '';
-
-    // Z-API envia grupos como "XXXXXXXX@g.us" ou "XXXXXXXX-TIMESTAMP"
-    // Banco armazena como "XXXXXXXX-group" ou "XXXXXXXX@g.us"
-    // Detectar se é grupo: contém @g.us OU termina em -group OU tem hífen com número longo
-    const isGroup = grupoIdRaw.includes('@g.us') || grupoIdRaw.includes('-group') || /^\d{15,}-\d+$/.test(grupoIdRaw);
-    if (!grupoIdRaw || !isGroup) {
+    // Nova estrutura Z-API para grupos:
+    // - isGroup: true indica que é grupo
+    // - phone: ID do grupo (ex: "120363019502650977-group")
+    // - participantPhone: número de quem enviou (ex: "5544999999999")
+    // - senderName: nome do participante
+    // - chatName: nome do grupo
+    const isGroup = body.isGroup === true || body.phone?.includes('-group') || body.phone?.includes('@g.us');
+    
+    if (!isGroup) {
       return Response.json({ ok: true, ignored: 'not_group' });
+    }
+
+    const grupoIdRaw = body.phone || body.chatId || '';
+    if (!grupoIdRaw) {
+      console.log('[webhookZapiReceber] Grupo sem ID:', JSON.stringify(body));
+      return Response.json({ ok: true, ignored: 'no_group_id' });
     }
 
     // Extrair a parte numérica base (sem @g.us, sem -group, sem timestamp)
@@ -45,13 +53,22 @@ Deno.serve(async (req) => {
       `${numericBase}@g.us`,
     ];
 
+    // Capturar informações do participante (quem enviou a mensagem no grupo)
+    const participantPhone = body.participantPhone || body.participant || '';
+    const senderName = body.senderName || body.pushName || 'Desconhecido';
+    const chatName = body.chatName || body.groupName || '';
+
     console.log('[webhookZapiReceber] Mensagem de grupo recebida:', JSON.stringify({
+      isGroup: true,
       grupoIdRaw,
       numericBase,
       candidatos,
-      senderName: body.senderName || body.pushName,
-      text: body.text,
+      participantPhone,
+      senderName,
+      chatName,
+      text: body.text?.message || body.text,
       timestamp: body.momment,
+      fromMe: body.fromMe,
     }));
 
     // Buscar o cliente vinculado a esse grupo tentando todos os formatos
@@ -100,7 +117,6 @@ Deno.serve(async (req) => {
     else if (body.sticker) conteudo = '[Sticker]';
 
     const tipoEnvio = body.image ? 'imagem' : 'texto';
-    const remetenteNome = body.senderName || body.pushName || 'Desconhecido';
     const timestamp = body.momment
       ? new Date(body.momment * 1000).toISOString()
       : new Date().toISOString();
@@ -108,20 +124,41 @@ Deno.serve(async (req) => {
     // Detectar se é mensagem da VOXX (fromMe=true) ou do cliente/outros
     const isFromMe = body.fromMe === true;
     const remetenteTipo = isFromMe ? 'voxx' : 'cliente';
+    
+    // Usar nome do grupo do chatName se disponível, senão usar do banco
+    const grupoNomeFinal = chatName || grupoNome || 'Grupo WhatsApp';
 
     await base44.asServiceRole.entities.WhatsappEnvioLog.create({
       cliente_id: clienteId,
       cliente_nome: clienteNome,
       grupo_id: grupoIdFinal,
-      grupo_nome: grupoNome,
+      grupo_nome: grupoNomeFinal,
       tipo_envio: tipoEnvio,
       origem: 'recebida',
       mensagem: conteudo,
       status_envio: 'enviado',
-      remetente_nome: remetenteNome,
+      remetente_nome: senderName,
       remetente_tipo: remetenteTipo,
       enviado_em: timestamp,
-      enviado_por: isFromMe ? 'voxx_bot' : remetenteNome,
+      enviado_por: isFromMe ? 'voxx_bot' : senderName,
+      // Campos adicionais para rastreabilidade
+      midia_url: body.image?.url || body.video?.url || body.document?.url || null,
+      retorno_zapi: JSON.stringify({
+        participantPhone,
+        chatName,
+        fromMe: isFromMe,
+        type: body.type,
+      }),
+    });
+
+    console.log('[webhookZapiReceber] Mensagem salva:', {
+      cliente: clienteNome,
+      grupo: grupoNomeFinal,
+      participante: senderName,
+      participantPhone,
+      fromMe: isFromMe,
+      tipo: remetenteTipo,
+      conteudo: conteudo.substring(0, 50)
     });
 
     console.log('[webhookZapiReceber] Mensagem salva:', {
