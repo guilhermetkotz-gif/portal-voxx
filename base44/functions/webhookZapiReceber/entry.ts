@@ -116,17 +116,6 @@ Deno.serve(async (req) => {
       grupoNome = chatName || grupoIdRaw;
       console.log('[webhookZapiReceber] Grupo sem cliente vinculado, usando fallback:', { clienteId, clienteNome, grupoIdRaw, numericBase });
     }
-    
-    console.log('[webhookZapiReceber] Antes de salvar:', {
-      cliente_id: clienteId,
-      cliente_nome: clienteNome,
-      grupo_id: grupoIdFinal,
-      grupo_nome: grupoNomeFinal,
-      mensagem: conteudo,
-      remetente_nome: senderName,
-      fromMe: isFromMe,
-      origem: origem
-    });
 
     // Extrair conteúdo da mensagem (suporta múltiplos formatos Z-API)
     let conteudo = '[Atividade]';
@@ -160,6 +149,17 @@ Deno.serve(async (req) => {
     
     // Usar nome do grupo do chatName se disponível, senão usar do banco
     const grupoNomeFinal = chatName || grupoNome || 'Grupo WhatsApp';
+
+    console.log('[webhookZapiReceber] Antes de salvar:', {
+      cliente_id: clienteId,
+      cliente_nome: clienteNome,
+      grupo_id: grupoIdFinal,
+      grupo_nome: grupoNomeFinal,
+      mensagem: conteudo,
+      remetente_nome: senderName,
+      fromMe: isFromMe,
+      origem: origem
+    });
 
     try {
       await base44.asServiceRole.entities.WhatsappEnvioLog.create({
