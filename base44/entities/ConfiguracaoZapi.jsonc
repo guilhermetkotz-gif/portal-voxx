@@ -1,0 +1,23 @@
+{
+  "name": "ConfiguracaoZapi",
+  "type": "object",
+  "properties": {
+    "instance_id": {
+      "type": "string",
+      "description": "ID da inst\u00e2ncia Z-API"
+    },
+    "token_instancia": {
+      "type": "string",
+      "description": "Token da inst\u00e2ncia Z-API"
+    },
+    "token_global": {
+      "type": "string",
+      "description": "Token Global / Client-Token Z-API"
+    },
+    "webhook_url_receber": {
+      "type": "string",
+      "description": "URL do webhook configurada no Z-API para receber mensagens"
+    }
+  },
+  "required": []
+}

@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import moment from 'moment';
 import 'moment-timezone';
+import ConfiguracaoZapiSection from '@/components/whatsapp/ConfiguracaoZapiSection';
 
 function StatusCard({ status, loading, onVerificar }) {
   if (loading) return (
@@ -255,7 +256,10 @@ export default function ConfiguracaoWhatsApp({ user }) {
         </Card>
       </div>
 
-      {/* Section 1: Z-API Status */}
+      {/* Section 1: Credentials */}
+      <ConfiguracaoZapiSection />
+
+      {/* Section 2: Z-API Status */}
       <div>
         <h2 className="text-base font-semibold text-slate-800 mb-3 flex items-center gap-2">
           <Wifi className="w-4 h-4 text-green-600" /> Status da Instância Z-API

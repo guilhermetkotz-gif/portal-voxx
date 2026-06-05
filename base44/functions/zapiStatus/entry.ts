@@ -1,6 +1,18 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const ZAPI_BASE = 'https://api.z-api.io';
+
+async function getZapiCredentials(base44) {
+  // Try entity config first
+  const configs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1).catch(() => []);
+  const entityConfig = configs?.[0];
+
+  const zapiInstanceId = entityConfig?.instance_id || Deno.env.get('ZAPI_INSTANCE_ID');
+  const zapiToken = entityConfig?.token_instancia || Deno.env.get('ZAPI_TOKEN');
+  const zapiClientToken = entityConfig?.token_global || Deno.env.get('ZAPI_CLIENT_TOKEN');
+
+  return { zapiInstanceId, zapiToken, zapiClientToken };
+}
 
 Deno.serve(async (req) => {
   try {
@@ -8,27 +20,23 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const zapiInstanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-    const zapiToken = Deno.env.get('ZAPI_TOKEN');
-    const zapiClientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
 
     if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
       return Response.json({
         configurado: false,
-        mensagem: 'Configure os secrets ZAPI_INSTANCE_ID, ZAPI_TOKEN e ZAPI_CLIENT_TOKEN no dashboard (Code → Functions → Settings).'
+        mensagem: 'Configure as credenciais Z-API na seção "Credenciais Z-API" acima ou via secrets no Dashboard (ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN).'
       });
     }
 
     const headers = { 'Client-Token': zapiClientToken };
 
-    // Check instance status
     const statusResp = await fetch(
       `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`,
       { headers }
     );
     const statusData = await statusResp.json().catch(() => ({}));
 
-    // Try device info
     let deviceData = null;
     try {
       const deviceResp = await fetch(

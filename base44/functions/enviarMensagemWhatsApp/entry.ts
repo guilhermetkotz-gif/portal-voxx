@@ -1,6 +1,17 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const ZAPI_BASE = 'https://api.z-api.io';
+
+async function getZapiCredentials(base44) {
+  const configs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1).catch(() => []);
+  const entityConfig = configs?.[0];
+
+  const zapiInstanceId = entityConfig?.instance_id || Deno.env.get('ZAPI_INSTANCE_ID');
+  const zapiToken = entityConfig?.token_instancia || Deno.env.get('ZAPI_TOKEN');
+  const zapiClientToken = entityConfig?.token_global || Deno.env.get('ZAPI_CLIENT_TOKEN');
+
+  return { zapiInstanceId, zapiToken, zapiClientToken };
+}
 
 Deno.serve(async (req) => {
   try {
@@ -15,12 +26,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'resumo_id é obrigatório' }, { status: 400 });
     }
 
-    // Load resumo
     const resumos = await base44.asServiceRole.entities.ResumoDiarioCliente.filter({ id: resumo_id }, '-created_date', 1);
     const resumo = resumos[0];
     if (!resumo) return Response.json({ error: 'Resumo não encontrado' }, { status: 404 });
 
-    // Load cliente
     const clienteList = await base44.asServiceRole.entities.Cliente.filter({ id: resumo.cliente_id }, '-created_date', 1);
     const cliente = clienteList[0];
     if (!cliente?.whatsapp_grupo_id) {
@@ -32,13 +41,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Mensagem vazia' }, { status: 400 });
     }
 
-    const zapiInstanceId = Deno.env.get('ZAPI_INSTANCE_ID');
-    const zapiToken = Deno.env.get('ZAPI_TOKEN');
-    const zapiClientToken = Deno.env.get('ZAPI_CLIENT_TOKEN');
+    const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
     const endpointLovable = Deno.env.get('ENDPOINT_LOVABLE_ENVIO');
 
     if (!zapiInstanceId && !endpointLovable) {
-      return Response.json({ error: 'Nenhuma API configurada. Configure ZAPI_INSTANCE_ID ou ENDPOINT_LOVABLE_ENVIO nos secrets.' }, { status: 503 });
+      return Response.json({ error: 'Nenhuma API configurada. Configure as credenciais Z-API na página WhatsApp Clientes.' }, { status: 503 });
     }
 
     const agora = new Date().toISOString();
@@ -47,7 +54,6 @@ Deno.serve(async (req) => {
     let erroEnvio = null;
 
     if (endpointLovable) {
-      // Route through Lovable
       const resp = await fetch(endpointLovable, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,7 +73,6 @@ Deno.serve(async (req) => {
         resultadoApi = await resp.json().catch(() => ({}));
       }
     } else {
-      // Check Z-API status
       const statusResp = await fetch(
         `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`,
         { headers: { 'Client-Token': zapiClientToken } }
@@ -80,7 +85,6 @@ Deno.serve(async (req) => {
         }, { status: 503 });
       }
 
-      // Send text via Z-API
       const sendResp = await fetch(
         `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`,
         {
@@ -97,7 +101,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Log the send attempt
     await base44.asServiceRole.entities.WhatsappEnvioLog.create({
       cliente_id: cliente.id,
       cliente_nome: cliente.nome,
@@ -114,7 +117,6 @@ Deno.serve(async (req) => {
       enviado_em: agora
     });
 
-    // Update resumo status if sent successfully
     if (statusEnvio === 'enviado') {
       await base44.asServiceRole.entities.ResumoDiarioCliente.update(resumo.id, {
         status_envio: 'enviado'
