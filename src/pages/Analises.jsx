@@ -257,6 +257,18 @@ function RankingRow({ item, position, onVerAnalise }) {
           )}
         </div>
 
+        {/* Conteúdo da última mensagem recebida */}
+        <div className="shrink-0 max-w-[250px] min-w-0">
+          <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. mensagem</p>
+          {item._ultima_msg_cliente_conteudo ? (
+            <span className="text-[10px] text-slate-300 truncate block" title={item._ultima_msg_cliente_conteudo}>
+              {item._ultima_msg_cliente_conteudo}
+            </span>
+          ) : (
+            <span className="text-[10px] text-slate-700 italic">—</span>
+          )}
+        </div>
+
         <div className="flex-1" />
 
         {/* Última análise */}
@@ -444,9 +456,10 @@ export default function Analises({ user }) {
       if (g.cliente_id) gruposPorCliente[g.cliente_id] = g;
     });
 
-    // Separar último log por origem (voxx vs cliente)
+    // Separar último log por origem (voxx vs cliente) e capturar conteúdo
     const ultimoLogVoxxPorCliente = {};
     const ultimoLogClientePorCliente = {};
+    const ultimoLogClienteConteudo = {};
     logsEnvio.forEach(log => {
       if (!log.cliente_id || !log.enviado_em) return;
       // Usar campo remetente_tipo se existir, senão usar origem como fallback
@@ -460,6 +473,7 @@ export default function Analises({ user }) {
         // Mensagem recebida do cliente
         if (!ultimoLogClientePorCliente[log.cliente_id] || log.enviado_em > ultimoLogClientePorCliente[log.cliente_id]) {
           ultimoLogClientePorCliente[log.cliente_id] = log.enviado_em;
+          ultimoLogClienteConteudo[log.cliente_id] = log.mensagem;
         }
       }
     });
@@ -533,6 +547,7 @@ export default function Analises({ user }) {
         ultima_msg_raw: ultimaMsgRaw,
         ultima_msg_voxx: ultimaMsgVoxx,
         ultima_msg_cliente: ultimaMsgCliente,
+        _ultima_msg_cliente_conteudo: ultimoLogClienteConteudo[c.id] || null,
         _grupo: grupo,
         _grupo_nome: c.whatsapp_grupo_nome || grupo?.nome_grupo || null,
         _grupo_id: c.whatsapp_grupo_id || grupo?.grupo_id || null,
@@ -952,6 +967,7 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
             <span className="text-[10px] text-slate-500 font-medium ml-1">Tend.</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">Pressão</span>
             <span className="text-[10px] text-slate-500 font-medium ml-1">S/contato</span>
+            <span className="text-[10px] text-slate-500 font-medium ml-1">Últ. mensagem</span>
           </div>
 
           {isLoading ? (
