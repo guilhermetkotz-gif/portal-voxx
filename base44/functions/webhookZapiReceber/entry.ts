@@ -104,9 +104,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Se não tem cliente vinculado, usar dados do próprio grupo como fallback
     if (!clienteId) {
-      console.log('[webhookZapiReceber] Grupo não vinculado a cliente:', grupoIdRaw, '| candidatos:', candidatos);
-      return Response.json({ ok: true, ignored: 'no_client_linked', grupoIdRaw, candidatos });
+      clienteId = `grupo_${numericBase}`;
+      clienteNome = chatName || grupoIdRaw;
+      grupoNome = chatName || grupoIdRaw;
+      console.log('[webhookZapiReceber] Grupo sem cliente vinculado, usando fallback:', { clienteId, clienteNome });
     }
 
     // Extrair conteúdo da mensagem
