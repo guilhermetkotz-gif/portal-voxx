@@ -112,15 +112,19 @@ Deno.serve(async (req) => {
       console.log('[webhookZapiReceber] Grupo sem cliente vinculado, usando fallback:', { clienteId, clienteNome });
     }
 
-    // Extrair conteúdo da mensagem
+    // Extrair conteúdo da mensagem (suporta múltiplos formatos Z-API)
     let conteudo = '[Atividade]';
-    if (body.text?.message) conteudo = body.text.message;
+    if (typeof body.text === 'string') conteudo = body.text;
+    else if (body.text?.message) conteudo = body.text.message;
+    else if (body.text?.text) conteudo = body.text.text;
+    else if (body.message?.text) conteudo = body.message.text;
     else if (body.image?.caption) conteudo = body.image.caption;
     else if (body.video?.caption) conteudo = body.video.caption;
     else if (body.document?.fileName) conteudo = body.document.fileName;
     else if (body.audio) conteudo = '[Áudio]';
     else if (body.sticker) conteudo = '[Sticker]';
     else if (body.type === 'ReceivedCallback') conteudo = '[Notificação]';
+    else if (body.body) conteudo = body.body;
 
     const tipoEnvio = body.image ? 'imagem' : 'texto';
     const timestamp = body.momment
