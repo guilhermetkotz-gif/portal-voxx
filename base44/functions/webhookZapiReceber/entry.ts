@@ -24,43 +24,67 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, ignored: 'no_content' });
     }
 
-    const grupoId = body.phone || body.chatId;
-    if (!grupoId || !grupoId.includes('-')) {
-      // Não é grupo (grupos têm o formato XXXXXXXXXXX-XXXXXXXXXX@g.us ou número-timestamp)
+    const grupoIdRaw = body.phone || body.chatId || '';
+
+    // Z-API envia grupos como "XXXXXXXX@g.us" ou "XXXXXXXX-TIMESTAMP"
+    // Banco armazena como "XXXXXXXX-group" ou "XXXXXXXX@g.us"
+    // Detectar se é grupo: contém @g.us OU termina em -group OU tem hífen com número longo
+    const isGroup = grupoIdRaw.includes('@g.us') || grupoIdRaw.includes('-group') || /^\d{15,}-\d+$/.test(grupoIdRaw);
+    if (!grupoIdRaw || !isGroup) {
       return Response.json({ ok: true, ignored: 'not_group' });
     }
 
+    // Extrair a parte numérica base (sem @g.us, sem -group, sem timestamp)
+    const numericBase = grupoIdRaw.replace('@g.us', '').replace('-group', '').split('-')[0];
+
+    // Candidatos de ID para tentar o match no banco
+    const candidatos = [
+      grupoIdRaw,
+      `${numericBase}-group`,
+      `${numericBase}@g.us`,
+    ];
+
     console.log('[webhookZapiReceber] Mensagem de grupo recebida:', JSON.stringify({
-      grupoId,
-      fromMe: body.fromMe,
-      type: body.type,
+      grupoIdRaw,
+      numericBase,
+      candidatos,
       senderName: body.senderName || body.pushName,
     }));
 
-    // Buscar o cliente vinculado a esse grupo
-    const grupos = await base44.asServiceRole.entities.WhatsappGrupo.filter({ grupo_id: grupoId });
+    // Buscar o cliente vinculado a esse grupo tentando todos os formatos
     let clienteId = null;
     let clienteNome = null;
     let grupoNome = null;
+    let grupoIdFinal = grupoIdRaw;
 
-    if (grupos.length > 0) {
-      const grupo = grupos[0];
-      clienteId = grupo.cliente_id;
-      clienteNome = grupo.cliente_nome;
-      grupoNome = grupo.nome_grupo;
-    } else {
-      // Tentar buscar pelo campo whatsapp_grupo_id no Cliente
-      const clientes = await base44.asServiceRole.entities.Cliente.filter({ whatsapp_grupo_id: grupoId });
-      if (clientes.length > 0) {
-        clienteId = clientes[0].id;
-        clienteNome = clientes[0].nome;
-        grupoNome = clientes[0].whatsapp_grupo_nome || grupoId;
+    for (const candidato of candidatos) {
+      const grupos = await base44.asServiceRole.entities.WhatsappGrupo.filter({ grupo_id: candidato });
+      if (grupos.length > 0) {
+        clienteId = grupos[0].cliente_id;
+        clienteNome = grupos[0].cliente_nome;
+        grupoNome = grupos[0].nome_grupo;
+        grupoIdFinal = candidato;
+        break;
+      }
+    }
+
+    // Se não achou no WhatsappGrupo, tentar pelo campo whatsapp_grupo_id no Cliente
+    if (!clienteId) {
+      for (const candidato of candidatos) {
+        const clientes = await base44.asServiceRole.entities.Cliente.filter({ whatsapp_grupo_id: candidato });
+        if (clientes.length > 0) {
+          clienteId = clientes[0].id;
+          clienteNome = clientes[0].nome;
+          grupoNome = clientes[0].whatsapp_grupo_nome || candidato;
+          grupoIdFinal = candidato;
+          break;
+        }
       }
     }
 
     if (!clienteId) {
-      console.log('[webhookZapiReceber] Grupo não vinculado a cliente:', grupoId);
-      return Response.json({ ok: true, ignored: 'no_client_linked', grupoId });
+      console.log('[webhookZapiReceber] Grupo não vinculado a cliente:', grupoIdRaw, '| candidatos:', candidatos);
+      return Response.json({ ok: true, ignored: 'no_client_linked', grupoIdRaw, candidatos });
     }
 
     // Extrair conteúdo da mensagem
@@ -82,7 +106,7 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.WhatsappEnvioLog.create({
       cliente_id: clienteId,
       cliente_nome: clienteNome,
-      grupo_id: grupoId,
+      grupo_id: grupoIdFinal,
       grupo_nome: grupoNome,
       tipo_envio: tipoEnvio,
       origem: 'recebida',
