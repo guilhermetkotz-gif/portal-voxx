@@ -30,6 +30,9 @@ const DEFAULT_COLUMN_ORDER = [
   'SALDOS'
 ];
 
+// Coluna catch-all para demandas com setor inválido/nulo
+const SEM_SETOR_KEY = '__SEM_SETOR__';
+
 const COLUMN_DEFINITIONS = {
   ATENDIMENTO: { name: "Atendimento" },
   TRAFEGO_META: { name: "Tráfego Meta Ads" },
@@ -43,6 +46,7 @@ const COLUMN_DEFINITIONS = {
   FINANCEIRO: { name: "Financeiro/Administrativo" },
   AUTOMACAO: { name: "Automação" },
   SALDOS: { name: "Saldos" },
+  [SEM_SETOR_KEY]: { name: "⚠️ Sem Setor / Inválido" },
 };
 
 const Kanban = ({ user, selectedClienteId }) => {
@@ -104,7 +108,8 @@ const Kanban = ({ user, selectedClienteId }) => {
       .map(c => c.column_id);
     // Add default columns not yet in saved order
     const defaultsNotSaved = DEFAULT_COLUMN_ORDER.filter(id => !savedSet.has(id));
-    return [...columnOrder, ...customNotSaved, ...defaultsNotSaved];
+    // SEM_SETOR_KEY always at the end (never in localStorage order)
+    return [...columnOrder, ...customNotSaved, ...defaultsNotSaved, SEM_SETOR_KEY];
   }, [customColumns, columnOrder]);
 
   const { data: demandas, isLoading, error } = useQuery({
@@ -136,6 +141,10 @@ const Kanban = ({ user, selectedClienteId }) => {
       Object.keys(allColumnDefinitions).forEach(key => {
         newColumns[key] = { name: allColumnDefinitions[key].name, items: [] };
       });
+      // Garantir coluna catch-all sempre inicializada
+      if (!newColumns[SEM_SETOR_KEY]) {
+        newColumns[SEM_SETOR_KEY] = { name: '⚠️ Sem Setor / Inválido', items: [] };
+      }
 
       let filteredDemandas = demandas;
 
@@ -198,9 +207,10 @@ const Kanban = ({ user, selectedClienteId }) => {
       });
 
       filteredDemandas.forEach(demanda => {
-        if (newColumns[demanda.setor]) {
-          newColumns[demanda.setor].items.push(demanda);
-        }
+        const targetCol = demanda.setor && newColumns[demanda.setor]
+          ? demanda.setor
+          : SEM_SETOR_KEY;
+        newColumns[targetCol].items.push(demanda);
       });
       
       setColumns(newColumns);
@@ -486,6 +496,8 @@ const Kanban = ({ user, selectedClienteId }) => {
               {allColumnOrder.map((columnId, index) => {
                 const column = columns[columnId];
                 if (!column) return null;
+                // Esconder coluna "Sem Setor" quando vazia
+                if (columnId === SEM_SETOR_KEY && column.items.length === 0) return null;
                 
                 return (
                   <Draggable key={columnId} draggableId={columnId} index={index}>
