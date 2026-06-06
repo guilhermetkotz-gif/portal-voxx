@@ -224,9 +224,9 @@ function RankingRow({ item, position, onVerAnalise }) {
         {/* Última msg (qualquer) */}
         <div className="shrink-0 text-right">
           <p className="text-[9px] text-slate-600 leading-none mb-0.5">Últ. msg</p>
-          {item.ultima_msg_raw ? (
+          {item.ultima_msg_raw?.enviado_em ? (
             <span className="text-[10px] text-slate-400 tabular-nums font-mono">
-              {moment(item.ultima_msg_raw).tz('America/Sao_Paulo').format('DD/MM, HH:mm')}
+              {moment(item.ultima_msg_raw.enviado_em).tz('America/Sao_Paulo').format('DD/MM, HH:mm')}
             </span>
           ) : (
             <span className="text-[10px] text-slate-700 italic">—</span>
@@ -438,24 +438,32 @@ export default function Analises({ user }) {
     const corte = moment().tz('America/Sao_Paulo').subtract(periodoDias, 'days');
 
     // Índices para lookup rápido
-    const ultimoLogPorCliente = {};
-    const ultimoLogGeralPorCliente = {};
+    const ultimoLogPorCliente = {};        // último log do cliente (recebida)
+    const ultimoLogGeralPorCliente = {};   // último log (qualquer - objeto completo)
     const totalMsgsPorCliente = {};
+    const ultimoLogVoxxPorCliente = {};    // último log da VOXX (enviada)
+
     logsEnvio.forEach(log => {
       if (!log.cliente_id || !log.enviado_em) return;
       
-      // Última mensagem (qualquer origem)
-      if (!ultimoLogGeralPorCliente[log.cliente_id] || log.enviado_em > ultimoLogGeralPorCliente[log.cliente_id]) {
-        ultimoLogGeralPorCliente[log.cliente_id] = log.enviado_em;
+      // Última mensagem (qualquer origem) — guarda o OBJETO completo
+      if (!ultimoLogGeralPorCliente[log.cliente_id] || log.enviado_em > ultimoLogGeralPorCliente[log.cliente_id].enviado_em) {
+        ultimoLogGeralPorCliente[log.cliente_id] = log;
       }
       
-      // Última mensagem do cliente (apenas recebidas)
-      if (log.origem === 'recebida') {
+      // Por origem
+      if (log.origem === 'recebida' || log.remetente_tipo === 'cliente') {
+        // Mensagem recebida do cliente
         if (!ultimoLogPorCliente[log.cliente_id] || log.enviado_em > ultimoLogPorCliente[log.cliente_id]) {
           ultimoLogPorCliente[log.cliente_id] = log.enviado_em;
         }
+      } else {
+        // Mensagem enviada pela VOXX
+        if (!ultimoLogVoxxPorCliente[log.cliente_id] || log.enviado_em > ultimoLogVoxxPorCliente[log.cliente_id]) {
+          ultimoLogVoxxPorCliente[log.cliente_id] = log.enviado_em;
+        }
       }
-      
+
       // Total de mensagens no período
       if (moment(log.enviado_em).isAfter(corte)) {
         totalMsgsPorCliente[log.cliente_id] = (totalMsgsPorCliente[log.cliente_id] || 0) + 1;
@@ -487,46 +495,16 @@ export default function Analises({ user }) {
       if (g.cliente_id) gruposPorCliente[g.cliente_id] = g;
     });
 
-    // Separar último log por origem (voxx vs cliente) e capturar conteúdo
-    const ultimoLogVoxxPorCliente = {};
-    const ultimoLogClientePorCliente = {};
-    const ultimoLogClienteConteudo = {};
-    logsEnvio.forEach(log => {
-      if (!log.cliente_id || !log.enviado_em) return;
-      
-      // Atualizar último log geral (independente da origem)
-      if (!ultimoLogGeralPorCliente[log.cliente_id] || log.enviado_em > ultimoLogGeralPorCliente[log.cliente_id]) {
-        ultimoLogGeralPorCliente[log.cliente_id] = log;
-      }
-      
-      // Usar origem='recebida' como indicador principal de mensagem do cliente
-      // (funciona para logs antigos e novos)
-      const isFromCliente = log.origem === 'recebida';
-      
-      if (!isFromCliente) {
-        // Mensagem enviada pela VOXX
-        if (!ultimoLogVoxxPorCliente[log.cliente_id] || log.enviado_em > ultimoLogVoxxPorCliente[log.cliente_id]) {
-          ultimoLogVoxxPorCliente[log.cliente_id] = log.enviado_em;
-        }
-      } else {
-        // Mensagem recebida do cliente
-        if (!ultimoLogClientePorCliente[log.cliente_id] || log.enviado_em > ultimoLogClientePorCliente[log.cliente_id]) {
-          ultimoLogClientePorCliente[log.cliente_id] = log.enviado_em;
-          ultimoLogClienteConteudo[log.cliente_id] = log.mensagem || '';
-        }
-      }
-    });
-
     return clientes.map(c => {
-      const ultimoLog = ultimoLogPorCliente[c.id];
-      const ultimoLogGeral = ultimoLogGeralPorCliente[c.id] || null;
+      const ultimoLog = ultimoLogPorCliente[c.id]; // string de data (recebida)
+      const ultimoLogObjeto = ultimoLogGeralPorCliente[c.id] || null; // objeto completo
       const diasSemContato = ultimoLog
         ? moment().tz('America/Sao_Paulo').diff(moment(ultimoLog).tz('America/Sao_Paulo'), 'days')
         : null;
       const totalMsgsPeriodo = totalMsgsPorCliente[c.id] || 0;
-      const ultimaMsgRaw = ultimoLogGeral || null;
+      const ultimaMsgRaw = ultimoLogObjeto || null;
       const ultimaMsgVoxx = ultimoLogVoxxPorCliente[c.id] || null;
-      const ultimaMsgCliente = ultimoLogClientePorCliente[c.id] || null;
+      const ultimaMsgCliente = ultimoLog || null;
       const grupo = gruposPorCliente[c.id] || null;
 
       const qtdDemandasAguardando = pressaoPorCliente[c.id] || 0;
@@ -587,7 +565,7 @@ export default function Analises({ user }) {
         ultima_msg_raw: ultimaMsgRaw,
         ultima_msg_voxx: ultimaMsgVoxx,
         ultima_msg_cliente: ultimaMsgCliente,
-        _ultima_msg_cliente_conteudo: ultimoLogClienteConteudo[c.id] || null,
+        _ultima_msg_cliente_conteudo: null,
         _grupo: grupo,
         _grupo_nome: c.whatsapp_grupo_nome || grupo?.nome_grupo || null,
         _grupo_id: c.whatsapp_grupo_id || grupo?.grupo_id || null,
