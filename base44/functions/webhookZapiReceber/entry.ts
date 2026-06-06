@@ -1,233 +1,245 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+// Normaliza ID de grupo para múltiplos formatos
+function normalizarGrupoId(id) {
+  if (!id) return { raw: id, hyphen: id, atsign: id, numeric: id };
+  const numeric = id.replace('@g.us', '').replace('-group', '').split('-')[0];
+  return {
+    raw: id,
+    hyphen: `${numeric}-group`,
+    atsign: `${numeric}@g.us`,
+    numeric,
+  };
+}
+
+// Detecta o tipo de mensagem e retorna conteúdo + tipo
+function extrairConteudo(body) {
+  if (body.text?.message) return { mensagem: body.text.message, tipo: 'texto' };
+  if (body.text?.text) return { mensagem: body.text.text, tipo: 'texto' };
+  if (typeof body.text === 'string' && body.text) return { mensagem: body.text, tipo: 'texto' };
+  if (body.message?.text) return { mensagem: body.message.text, tipo: 'texto' };
+  if (body.body && typeof body.body === 'string') return { mensagem: body.body, tipo: 'texto' };
+  if (body.caption) return { mensagem: body.caption, tipo: 'texto' };
+  if (body.audio) return { mensagem: '[Áudio]', tipo: 'audio' };
+  if (body.image?.caption) return { mensagem: body.image.caption, tipo: 'imagem' };
+  if (body.image) return { mensagem: '[Imagem]', tipo: 'imagem' };
+  if (body.video?.caption) return { mensagem: body.video.caption, tipo: 'video' };
+  if (body.video) return { mensagem: '[Vídeo]', tipo: 'video' };
+  if (body.document?.fileName) return { mensagem: `[Documento: ${body.document.fileName}]`, tipo: 'documento' };
+  if (body.document) return { mensagem: '[Documento]', tipo: 'documento' };
+  if (body.sticker) return { mensagem: '[Sticker]', tipo: 'sticker' };
+  if (body.mimetype) return { mensagem: `[Mídia: ${body.mimetype}]`, tipo: 'outro' };
+  return { mensagem: '[Sem conteúdo textual]', tipo: 'sistema' };
+}
+
 Deno.serve(async (req) => {
+  const receivedAt = new Date().toISOString();
+
+  // Ler body bruto primeiro — NUNCA descartar antes de salvar
+  let bodyRaw = '';
+  let body = {};
   try {
-    console.log('[webhookZapiReceber] Requisição recebida:', { method: req.method });
-    
-    if (req.method !== 'POST') {
-      return Response.json({ error: 'Method not allowed' }, { status: 405 });
-    }
+    bodyRaw = await req.text();
+    body = JSON.parse(bodyRaw);
+  } catch (e) {
+    body = {};
+  }
 
-    const body = await req.json().catch((e) => {
-      console.error('[webhookZapiReceber] Erro ao fazer parse JSON:', e.message);
-      return {};
+  // Capturar headers relevantes
+  const headersObj = {};
+  for (const [k, v] of req.headers.entries()) {
+    headersObj[k] = v;
+  }
+
+  const base44 = createClientFromRequest(req);
+
+  // 1. SALVAR RAW IMEDIATAMENTE — antes de qualquer validação
+  let rawId = null;
+  try {
+    const rawEntry = await base44.asServiceRole.entities.WhatsappWebhookRaw.create({
+      raw_payload: bodyRaw.substring(0, 50000), // limitar tamanho
+      headers: JSON.stringify(headersObj).substring(0, 2000),
+      method: req.method,
+      received_at: receivedAt,
+      phone: body.phone || body.chatId || '',
+      is_group: body.isGroup === true || String(body.phone || '').includes('-group') || String(body.phone || '').includes('@g.us'),
+      participant_phone: body.participantPhone || body.participant || '',
+      sender_name: body.senderName || body.pushName || '',
+      chat_name: body.chatName || body.groupName || '',
+      message_id: body.messageId || body.id || '',
+      event_type: body.type || '',
+      processed: false,
+      processing_status: 'pendente',
     });
+    rawId = rawEntry.id;
+    console.log('[webhookZapiReceber] ✅ Raw salvo:', rawId);
+  } catch (rawErr) {
+    console.error('[webhookZapiReceber] ❌ Erro ao salvar raw:', rawErr.message);
+    // Continuar mesmo se falhar ao salvar raw
+  }
 
-    // Log completo do payload para debug
-    console.log('[webhookZapiReceber] Payload completo:', JSON.stringify(body, null, 2));
+  // 2. Validar método
+  if (req.method !== 'POST') {
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
+  }
 
-    if (!body.phone && !body.instanceId && !body.zaapId && !body.chatId) {
-      console.log('[webhookZapiReceber] Payload inválido (sem phone/instanceId/zaapId/chatId):', JSON.stringify(body));
-      return Response.json({ error: 'Invalid payload' }, { status: 400 });
-    }
+  try {
+    // 3. Extrair campos do payload
+    const isGroup = body.isGroup === true || String(body.phone || '').includes('-group') || String(body.phone || '').includes('@g.us') || String(body.chatId || '').includes('@g.us');
+    const grupoIdRaw = body.phone || body.chatId || '';
+    const ids = normalizarGrupoId(grupoIdRaw);
+    const candidatos = [ids.raw, ids.hyphen, ids.atsign, ids.numeric].filter(Boolean);
 
-    const base44 = createClientFromRequest(req);
-
-    // Ignorar apenas notificações de sistema vazias (ex: participante entrou/saiu sem conteúdo)
-    // MAS registrar atividade mesmo sem conteúdo
-    if (body.type === 'ReceivedCallback' && !body.text && !body.image && !body.video && !body.audio && !body.document) {
-      console.log('[webhookZapiReceber] Notificação de sistema sem conteúdo:', JSON.stringify(body));
-      // Não retornar - continuar para registrar a atividade do grupo
-    }
-
-    // Nova estrutura Z-API para grupos:
-    // - isGroup: true indica que é grupo
-    // - phone: ID do grupo (ex: "120363019502650977-group")
-    // - participantPhone: número de quem enviou (ex: "5544999999999")
-    // - senderName: nome do participante
-    // - chatName: nome do grupo
-    const isGroup = body.isGroup === true || body.phone?.includes('-group') || body.phone?.includes('@g.us') || body.chatId?.includes('@g.us');
-    
-    // NÃO ignorar mensagens que não são de grupo - registrar tudo
-    // if (!isGroup) {
-    //   return Response.json({ ok: true, ignored: 'not_group' });
-    // }
-
-    const grupoIdRaw = body.phone || body.chatId || body.to || '';
-    if (!grupoIdRaw) {
-      console.log('[webhookZapiReceber] Mensagem sem ID de grupo/chat:', JSON.stringify(body));
-      // Continuar mesmo sem grupo - pode ser mensagem individual
-    }
-
-    // Extrair a parte numérica base (sem @g.us, sem -group, sem timestamp)
-    const numericBase = grupoIdRaw.replace('@g.us', '').replace('-group', '').split('-')[0];
-
-    // Candidatos de ID para tentar o match no banco
-    const candidatos = [
-      grupoIdRaw,
-      `${numericBase}-group`,
-      `${numericBase}@g.us`,
-    ];
-
-    // Capturar informações do participante (quem enviou a mensagem no grupo)
     const participantPhone = body.participantPhone || body.participant || '';
     const senderName = body.senderName || body.pushName || 'Desconhecido';
     const chatName = body.chatName || body.groupName || '';
+    const isFromMe = body.fromMe === true;
+    const messageId = body.messageId || body.id || '';
 
-    console.log('[webhookZapiReceber] Mensagem de grupo recebida:', JSON.stringify({
-      isGroup: true,
-      grupoIdRaw,
-      numericBase,
-      candidatos,
-      participantPhone,
-      senderName,
-      chatName,
-      text: body.text?.message || body.text,
-      timestamp: body.momment,
-      fromMe: body.fromMe,
-      fullBody: body
-    }, null, 2));
+    const { mensagem, tipo } = extrairConteudo(body);
+    const timestamp = body.momment ? new Date(body.momment * 1000).toISOString() : receivedAt;
 
-    // Buscar o cliente vinculado a esse grupo tentando todos os formatos
+    // 4. Idempotência — verificar se message_id já existe
+    if (messageId) {
+      const existing = await base44.asServiceRole.entities.WhatsappMensagem.filter({ message_id: messageId });
+      if (existing.length > 0) {
+        console.log('[webhookZapiReceber] Mensagem já existe, ignorando duplicata:', messageId);
+        if (rawId) {
+          await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
+            processed: true,
+            processing_status: 'ignorado',
+            processing_error: 'Duplicata: message_id já existe',
+          });
+        }
+        return Response.json({ ok: true, duplicate: true, messageId });
+      }
+    }
+
+    // 5. Buscar cliente vinculado ao grupo
     let clienteId = null;
     let clienteNome = null;
-    let grupoNome = null;
+    let grupoNome = chatName || '';
     let grupoIdFinal = grupoIdRaw;
+    let grupoRecord = null;
 
     for (const candidato of candidatos) {
+      if (!candidato) continue;
       const grupos = await base44.asServiceRole.entities.WhatsappGrupo.filter({ grupo_id: candidato });
       if (grupos.length > 0) {
-        clienteId = grupos[0].cliente_id;
-        clienteNome = grupos[0].cliente_nome;
-        grupoNome = grupos[0].nome_grupo;
+        grupoRecord = grupos[0];
+        clienteId = grupos[0].cliente_id || null;
+        clienteNome = grupos[0].cliente_nome || null;
+        grupoNome = grupos[0].nome_grupo || chatName;
         grupoIdFinal = candidato;
         break;
       }
     }
 
-    // Se não achou no WhatsappGrupo, tentar pelo campo whatsapp_grupo_id no Cliente
-    if (!clienteId) {
+    // Fallback: buscar pelo cliente diretamente
+    if (!grupoRecord) {
       for (const candidato of candidatos) {
+        if (!candidato) continue;
         const clientes = await base44.asServiceRole.entities.Cliente.filter({ whatsapp_grupo_id: candidato });
         if (clientes.length > 0) {
           clienteId = clientes[0].id;
           clienteNome = clientes[0].nome;
-          grupoNome = clientes[0].whatsapp_grupo_nome || candidato;
+          grupoNome = clientes[0].whatsapp_grupo_nome || chatName || candidato;
           grupoIdFinal = candidato;
           break;
         }
       }
     }
 
-    // Se não tem cliente vinculado, usar dados do próprio grupo como fallback
-    if (!clienteId) {
-      clienteId = `grupo_${numericBase}`;
-      clienteNome = chatName || grupoIdRaw;
-      grupoNome = chatName || grupoIdRaw;
-      console.log('[webhookZapiReceber] Grupo sem cliente vinculado, usando fallback:', { clienteId, clienteNome, grupoIdRaw, numericBase });
-    }
-
-    // Extrair conteúdo da mensagem (suporta múltiplos formatos Z-API)
-    let conteudo = '[Atividade]';
-    // Verifica todos os possíveis campos de texto
-    if (body.text && typeof body.text === 'object' && body.text.message) conteudo = body.text.message;
-    else if (body.text && typeof body.text === 'object' && body.text.text) conteudo = body.text.text;
-    else if (body.text && typeof body.text === 'string') conteudo = body.text;
-    else if (body.message && body.message.text) conteudo = body.message.text;
-    else if (body.body && typeof body.body === 'string') conteudo = body.body;
-    else if (body.caption) conteudo = body.caption;
-    else if (body.image?.caption) conteudo = body.image.caption;
-    else if (body.video?.caption) conteudo = body.video.caption;
-    else if (body.document?.fileName) conteudo = body.document.fileName;
-    else if (body.audio) conteudo = '[Áudio]';
-    else if (body.sticker) conteudo = '[Sticker]';
-    else if (body.type === 'ReceivedCallback') conteudo = '[Notificação]';
-    else if (body.type === 'chat') conteudo = '[Mensagem]';
-    else if (body.mimetype) conteudo = `[Mídia: ${body.mimetype}]`;
-
-    const tipoEnvio = body.image ? 'imagem' : 'texto';
-    const timestamp = body.momment
-      ? new Date(body.momment * 1000).toISOString()
-      : new Date().toISOString();
-    
-    // Detectar se é mensagem da VOXX (fromMe=true) ou do cliente/outros
-    const isFromMe = body.fromMe === true;
-    const remetenteTipo = isFromMe ? 'voxx' : 'cliente';
-    
-    // Definir origem corretamente: 'enviada' para fromMe=true, 'recebida' para fromMe=false
-    const origem = isFromMe ? 'enviada' : 'recebida';
-    
-    // Usar nome do grupo do chatName se disponível, senão usar do banco
-    const grupoNomeFinal = chatName || grupoNome || 'Grupo WhatsApp';
-
-    console.log('[webhookZapiReceber] Antes de salvar:', {
-      cliente_id: clienteId,
-      cliente_nome: clienteNome,
-      grupo_id: grupoIdFinal,
-      grupo_nome: grupoNomeFinal,
-      mensagem: conteudo,
-      remetente_nome: senderName,
-      fromMe: isFromMe,
-      origem: origem
-    });
-
-    try {
-      await base44.asServiceRole.entities.WhatsappEnvioLog.create({
-        cliente_id: clienteId,
-        cliente_nome: clienteNome,
-        grupo_id: grupoIdFinal,
-        grupo_nome: grupoNomeFinal,
-        tipo_envio: tipoEnvio,
-        origem: origem,
-        mensagem: conteudo,
-        status_envio: 'enviado',
-        remetente_nome: senderName,
-        remetente_tipo: remetenteTipo,
-        enviado_em: timestamp,
-        enviado_por: isFromMe ? 'voxx_bot' : senderName,
-        // Campos adicionais para rastreabilidade
-        midia_url: body.image?.url || body.video?.url || body.document?.url || null,
-        retorno_zapi: JSON.stringify({
-          participantPhone,
-          chatName,
-          fromMe: isFromMe,
-          type: body.type,
-        }),
-      });
-      console.log('[webhookZapiReceber] ✅ Mensagem salva com sucesso:', {
-        id: clienteId,
-        cliente: clienteNome,
-        grupo: grupoNomeFinal,
-        mensagem: conteudo.substring(0, 100)
-      });
-
-      // Marcar mensagem como lida (apenas para mensagens recebidas de clientes)
-      if (!isFromMe && body.messageId) {
+    // 6. Criar ou atualizar WhatsappGrupo
+    if (isGroup && grupoIdRaw) {
+      const grupoIdParaUsar = ids.hyphen; // padronizar para -group
+      if (!grupoRecord) {
+        // Criar grupo automaticamente
         try {
-          const config = await base44.asServiceRole.entities.ConfiguracaoZapi.list();
-          const instanceConfig = config[0];
-          
-          if (instanceConfig?.instance_id && instanceConfig?.token_instancia) {
-            await fetch(`https://api.z-api.io/instances/${instanceConfig.instance_id}/token/${instanceConfig.token_instancia}/read-message`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Client-Token': instanceConfig.token_global || instanceConfig.token_instancia,
-              },
-              body: JSON.stringify({
-                phone: participantPhone || numericBase,
-                messageId: body.messageId,
-              }),
-            });
-            console.log('[webhookZapiReceber] ✅ Mensagem marcada como lida:', { messageId: body.messageId, phone: participantPhone || numericBase });
-          }
-        } catch (markReadError) {
-          console.error('[webhookZapiReceber] ⚠️ Erro ao marcar como lida:', markReadError.message);
-          // Não falhar o webhook por causa disso
+          await base44.asServiceRole.entities.WhatsappGrupo.create({
+            grupo_id: grupoIdParaUsar,
+            nome_grupo: chatName || grupoIdParaUsar,
+            ultima_mensagem: mensagem,
+            ultima_atividade: receivedAt,
+            cliente_id: clienteId || null,
+            cliente_nome: clienteNome || null,
+            status_vinculo: clienteId ? 'vinculado' : 'nao_vinculado',
+            origem: 'webhook',
+          });
+          console.log('[webhookZapiReceber] ✅ Novo grupo criado:', grupoIdParaUsar);
+        } catch (grupoErr) {
+          console.error('[webhookZapiReceber] ⚠️ Erro ao criar grupo:', grupoErr.message);
+        }
+      } else {
+        // Atualizar última atividade do grupo
+        try {
+          await base44.asServiceRole.entities.WhatsappGrupo.update(grupoRecord.id, {
+            ultima_mensagem: mensagem,
+            ultima_atividade: receivedAt,
+          });
+        } catch (updateErr) {
+          console.error('[webhookZapiReceber] ⚠️ Erro ao atualizar grupo:', updateErr.message);
         }
       }
-    } catch (saveError) {
-      console.error('[webhookZapiReceber] ❌ ERRO ao salvar mensagem:', saveError.message, {
-        cliente_id: clienteId,
-        grupo_id: grupoIdFinal,
-        mensagem: conteudo
-      });
-      throw saveError;
     }
-    return Response.json({ ok: true, saved: true, clienteId, clienteNome });
+
+    // 7. Salvar WhatsappMensagem
+    const remetenteTipo = isFromMe ? 'voxx' : 'cliente';
+    const origem = isFromMe ? 'enviada' : 'recebida';
+
+    await base44.asServiceRole.entities.WhatsappMensagem.create({
+      message_id: messageId || null,
+      cliente_id: clienteId || null,
+      cliente_nome: clienteNome || chatName || null,
+      grupo_id: grupoIdFinal || null,
+      grupo_nome: grupoNome || chatName || null,
+      is_group: isGroup,
+      remetente_telefone: participantPhone || null,
+      remetente_nome: senderName,
+      remetente_tipo: remetenteTipo,
+      origem,
+      mensagem,
+      tipo_mensagem: tipo,
+      timestamp_mensagem: timestamp,
+      received_at: receivedAt,
+      from_me: isFromMe,
+      raw_id: rawId || null,
+    });
+
+    console.log('[webhookZapiReceber] ✅ WhatsappMensagem criada:', {
+      cliente: clienteNome || 'sem vínculo',
+      grupo: grupoNome,
+      mensagem: mensagem.substring(0, 80),
+      remetente: senderName,
+    });
+
+    // 8. Atualizar raw como processado
+    if (rawId) {
+      await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
+        processed: true,
+        processing_status: 'processado',
+        cliente_id: clienteId || null,
+        cliente_nome: clienteNome || null,
+        grupo_id: grupoIdFinal || null,
+        grupo_nome: grupoNome || null,
+      });
+    }
+
+    // NOTA: leitura automática desativada temporariamente para não interferir no fluxo
+
+    return Response.json({ ok: true, saved: true, clienteId, clienteNome, rawId });
 
   } catch (error) {
-    console.error('[webhookZapiReceber] Erro:', error.message);
+    console.error('[webhookZapiReceber] ❌ Erro:', error.message);
+    if (rawId) {
+      try {
+        await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
+          processed: true,
+          processing_status: 'erro',
+          processing_error: error.message,
+        });
+      } catch (_) {}
+    }
     return Response.json({ error: error.message }, { status: 500 });
   }
 });

@@ -1,0 +1,89 @@
+{
+  "name": "WhatsappMensagem",
+  "type": "object",
+  "properties": {
+    "message_id": {
+      "type": "string",
+      "description": "ID \u00fanico da mensagem no WhatsApp"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "grupo_id": {
+      "type": "string"
+    },
+    "grupo_nome": {
+      "type": "string"
+    },
+    "is_group": {
+      "type": "boolean",
+      "default": true
+    },
+    "remetente_telefone": {
+      "type": "string"
+    },
+    "remetente_nome": {
+      "type": "string"
+    },
+    "remetente_tipo": {
+      "type": "string",
+      "enum": [
+        "voxx",
+        "cliente",
+        "desconhecido"
+      ],
+      "default": "desconhecido"
+    },
+    "origem": {
+      "type": "string",
+      "enum": [
+        "recebida",
+        "enviada",
+        "sistema"
+      ],
+      "default": "recebida"
+    },
+    "mensagem": {
+      "type": "string"
+    },
+    "tipo_mensagem": {
+      "type": "string",
+      "enum": [
+        "texto",
+        "audio",
+        "imagem",
+        "video",
+        "documento",
+        "sticker",
+        "sistema",
+        "outro"
+      ],
+      "default": "texto"
+    },
+    "timestamp_mensagem": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp original da mensagem"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quando foi recebido no webhook"
+    },
+    "from_me": {
+      "type": "boolean",
+      "default": false
+    },
+    "raw_id": {
+      "type": "string",
+      "description": "ID do WhatsappWebhookRaw de origem"
+    }
+  },
+  "required": [
+    "mensagem",
+    "received_at"
+  ]
+}

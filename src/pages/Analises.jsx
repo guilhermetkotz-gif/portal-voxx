@@ -374,14 +374,17 @@ export default function Analises({ user }) {
   // --- Alertas sem retorno VOXX ---
   const alertasSemRetorno = useAlertaSemRetornoVoxx([], tocarSom);
 
-  // --- Atualização em tempo real dos logs de WhatsApp ---
+  // --- Atualização em tempo real ---
   useEffect(() => {
-    const unsubscribe = base44.entities.WhatsappEnvioLog.subscribe((event) => {
-      // Força refetch imediato ao receber qualquer mudança
+    const unsubEnvio = base44.entities.WhatsappEnvioLog.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
       queryClient.refetchQueries({ queryKey: ['analisesLogsEnvio'] });
     });
-    return unsubscribe;
+    const unsubMsg = base44.entities.WhatsappMensagem.subscribe(() => {
+      queryClient.invalidateQueries({ queryKey: ['analisesMensagens'] });
+      queryClient.refetchQueries({ queryKey: ['analisesMensagens'] });
+    });
+    return () => { unsubEnvio(); unsubMsg(); };
   }, [queryClient]);
 
   // --- Dados reais ---
@@ -391,14 +394,25 @@ export default function Analises({ user }) {
     staleTime: 60 * 1000
   });
 
-  // Último envio por cliente (último contato via WhatsApp)
-  const { data: logsEnvio = [], isFetching } = useQuery({
+  // Logs de envio (mensagens enviadas pelo sistema via VOXX)
+  const { data: logsEnvio = [], isFetching: isFetchingEnvio } = useQuery({
     queryKey: ['analisesLogsEnvio'],
-    queryFn: () => base44.entities.WhatsappEnvioLog.list('-enviado_em', 2000),
+    queryFn: () => base44.entities.WhatsappEnvioLog.list('-enviado_em', 1000),
+    staleTime: 0,
+    refetchInterval: 15 * 1000,
+    refetchIntervalInBackground: true,
+  });
+
+  // Mensagens reais recebidas/enviadas nos grupos (WhatsappMensagem)
+  const { data: mensagens = [], isFetching: isFetchingMsg } = useQuery({
+    queryKey: ['analisesMensagens'],
+    queryFn: () => base44.entities.WhatsappMensagem.list('-received_at', 2000),
     staleTime: 0,
     refetchInterval: 10 * 1000,
     refetchIntervalInBackground: true,
   });
+
+  const isFetching = isFetchingEnvio || isFetchingMsg;
 
   // Alertas/notificações não lidas por cliente
   const { data: notificacoes = [] } = useQuery({
@@ -439,39 +453,76 @@ export default function Analises({ user }) {
     const corte = moment().tz('America/Sao_Paulo').subtract(periodoDias, 'days');
 
     // Índices para lookup rápido
-    const ultimoLogPorCliente = {};        // último log do cliente (recebida)
-    const ultimoLogGeralPorCliente = {};   // último log (qualquer - objeto completo)
+    const ultimoLogPorCliente = {};        // data da última msg do cliente (recebida)
+    const ultimoLogGeralPorCliente = {};   // objeto completo da última msg (qualquer)
     const totalMsgsPorCliente = {};
-    const ultimoLogVoxxPorCliente = {};    // último log da VOXX (enviada)
+    const ultimoLogVoxxPorCliente = {};    // data da última msg VOXX
 
+    // --- Processar WhatsappMensagem (fonte primária: mensagens reais dos grupos) ---
+    mensagens.forEach(msg => {
+      const cId = msg.cliente_id;
+      if (!cId || cId.startsWith('grupo_')) return; // ignorar sem vínculo
+      const ts = msg.received_at || msg.timestamp_mensagem;
+      if (!ts) return;
+
+      // Objeto unificado para exibição
+      const msgObj = {
+        enviado_em: ts,
+        mensagem: msg.mensagem,
+        remetente_nome: msg.remetente_nome,
+        remetente_tipo: msg.remetente_tipo,
+        origem: msg.origem,
+        grupo_nome: msg.grupo_nome,
+        cliente_nome: msg.cliente_nome,
+        cliente_id: cId,
+      };
+
+      // Última mensagem geral
+      if (!ultimoLogGeralPorCliente[cId] || ts > ultimoLogGeralPorCliente[cId].enviado_em) {
+        ultimoLogGeralPorCliente[cId] = msgObj;
+      }
+
+      if (msg.origem === 'recebida' || msg.remetente_tipo === 'cliente') {
+        if (!ultimoLogPorCliente[cId] || ts > ultimoLogPorCliente[cId]) {
+          ultimoLogPorCliente[cId] = ts;
+        }
+      } else {
+        if (!ultimoLogVoxxPorCliente[cId] || ts > ultimoLogVoxxPorCliente[cId]) {
+          ultimoLogVoxxPorCliente[cId] = ts;
+        }
+      }
+
+      if (moment(ts).isAfter(corte)) {
+        totalMsgsPorCliente[cId] = (totalMsgsPorCliente[cId] || 0) + 1;
+      }
+    });
+
+    // --- Fallback: WhatsappEnvioLog (envios do sistema, se não há WhatsappMensagem) ---
     logsEnvio.forEach(log => {
       if (!log.cliente_id || !log.enviado_em) return;
-      
-      // Última mensagem (qualquer origem) — guarda o OBJETO completo
-      if (!ultimoLogGeralPorCliente[log.cliente_id] || log.enviado_em > ultimoLogGeralPorCliente[log.cliente_id].enviado_em) {
-        ultimoLogGeralPorCliente[log.cliente_id] = log;
-      }
-      
-      // Por origem
+      const cId = log.cliente_id;
+      if (cId.startsWith('grupo_')) return;
+
       const isRecebida = log.origem === 'recebida' || log.remetente_tipo === 'cliente';
-      const isEnviada = log.origem === 'enviada' || log.origem === 'resumo_diario' || log.origem === 'aprovacao_entrega' || log.origem === 'manual';
+      const ts = log.enviado_em;
+
+      // Última mensagem geral (só atualiza se não há dado de WhatsappMensagem mais recente)
+      if (!ultimoLogGeralPorCliente[cId] || ts > ultimoLogGeralPorCliente[cId].enviado_em) {
+        ultimoLogGeralPorCliente[cId] = log;
+      }
 
       if (isRecebida) {
-        // Mensagem recebida do cliente
-        if (!ultimoLogPorCliente[log.cliente_id] || log.enviado_em > ultimoLogPorCliente[log.cliente_id]) {
-          ultimoLogPorCliente[log.cliente_id] = log.enviado_em;
+        if (!ultimoLogPorCliente[cId] || ts > ultimoLogPorCliente[cId]) {
+          ultimoLogPorCliente[cId] = ts;
         }
-      }
-      if (isEnviada || (!isRecebida)) {
-        // Mensagem enviada pela VOXX (inclui qualquer origem que não seja recebida)
-        if (!ultimoLogVoxxPorCliente[log.cliente_id] || log.enviado_em > ultimoLogVoxxPorCliente[log.cliente_id]) {
-          ultimoLogVoxxPorCliente[log.cliente_id] = log.enviado_em;
+      } else {
+        if (!ultimoLogVoxxPorCliente[cId] || ts > ultimoLogVoxxPorCliente[cId]) {
+          ultimoLogVoxxPorCliente[cId] = ts;
         }
       }
 
-      // Total de mensagens no período
-      if (moment(log.enviado_em).isAfter(corte)) {
-        totalMsgsPorCliente[log.cliente_id] = (totalMsgsPorCliente[log.cliente_id] || 0) + 1;
+      if (moment(ts).isAfter(corte)) {
+        totalMsgsPorCliente[cId] = (totalMsgsPorCliente[cId] || 0) + 1;
       }
     });
 
@@ -576,7 +627,7 @@ export default function Analises({ user }) {
         _grupo_id: c.whatsapp_grupo_id || grupo?.grupo_id || null,
       };
     });
-  }, [clientes, logsEnvio, notificacoes, demandasAguardando, resumos, grupos, alertasSemRetorno, periodo]);
+  }, [clientes, logsEnvio, mensagens, notificacoes, demandasAguardando, resumos, grupos, alertasSemRetorno, periodo]);
 
   const handleGerarAnaliseGlobal = useCallback(async () => {
     const candidatos = clientesEnriquecidos.filter(c => c.whatsapp_grupo_id || c._tem_resumo);
@@ -961,7 +1012,7 @@ Escreva resumo executivo em 3-4 parágrafos (situação atual, riscos, ações r
             </p>
             <span className="text-[10px] text-slate-600 flex items-center gap-1">
               <MessageSquare className="w-2.5 h-2.5" />
-              {logsEnvio.length} msgs carregadas
+              {mensagens.length} msgs · {logsEnvio.length} envios
             </span>
             {isFetching && (
               <span className="text-[10px] text-violet-400 flex items-center gap-1">

@@ -1,0 +1,74 @@
+{
+  "name": "WhatsappWebhookRaw",
+  "type": "object",
+  "properties": {
+    "raw_payload": {
+      "type": "string",
+      "description": "JSON bruto do payload recebido"
+    },
+    "headers": {
+      "type": "string",
+      "description": "Headers da requisi\u00e7\u00e3o (JSON)"
+    },
+    "method": {
+      "type": "string"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "is_group": {
+      "type": "boolean"
+    },
+    "participant_phone": {
+      "type": "string"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "chat_name": {
+      "type": "string"
+    },
+    "message_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string"
+    },
+    "processed": {
+      "type": "boolean",
+      "default": false
+    },
+    "processing_status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "processado",
+        "erro",
+        "ignorado"
+      ],
+      "default": "pendente"
+    },
+    "processing_error": {
+      "type": "string"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "grupo_id": {
+      "type": "string"
+    },
+    "grupo_nome": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "received_at"
+  ]
+}
