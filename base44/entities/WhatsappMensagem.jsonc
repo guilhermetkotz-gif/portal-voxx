@@ -6,6 +6,10 @@
       "type": "string",
       "description": "ID \u00fanico da mensagem no WhatsApp"
     },
+    "raw_id": {
+      "type": "string",
+      "description": "ID do WhatsappWebhookRaw de origem"
+    },
     "cliente_id": {
       "type": "string"
     },
@@ -18,14 +22,18 @@
     "grupo_nome": {
       "type": "string"
     },
+    "grupo_id_normalizado": {
+      "type": "string",
+      "description": "ID do grupo no formato padronizado (numeric-group)"
+    },
     "is_group": {
       "type": "boolean",
       "default": true
     },
-    "remetente_telefone": {
+    "remetente_nome": {
       "type": "string"
     },
-    "remetente_nome": {
+    "remetente_telefone": {
       "type": "string"
     },
     "remetente_tipo": {
@@ -42,7 +50,8 @@
       "enum": [
         "recebida",
         "enviada",
-        "sistema"
+        "sistema",
+        "desconhecida"
       ],
       "default": "recebida"
     },
@@ -53,13 +62,14 @@
       "type": "string",
       "enum": [
         "texto",
-        "audio",
         "imagem",
         "video",
+        "audio",
         "documento",
         "sticker",
         "sistema",
-        "outro"
+        "atividade",
+        "sem_conteudo"
       ],
       "default": "texto"
     },
@@ -77,13 +87,17 @@
       "type": "boolean",
       "default": false
     },
-    "raw_id": {
+    "status_processamento": {
       "type": "string",
-      "description": "ID do WhatsappWebhookRaw de origem"
+      "enum": [
+        "ok",
+        "sem_vinculo",
+        "erro"
+      ],
+      "default": "ok"
     }
   },
   "required": [
-    "mensagem",
     "received_at"
   ]
 }

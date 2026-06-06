@@ -38,6 +38,10 @@
     "event_type": {
       "type": "string"
     },
+    "text_message": {
+      "type": "string",
+      "description": "Conte\u00fado textual extra\u00eddo do payload"
+    },
     "processed": {
       "type": "boolean",
       "default": false
@@ -55,16 +59,16 @@
     "processing_error": {
       "type": "string"
     },
-    "cliente_id": {
-      "type": "string"
-    },
-    "cliente_nome": {
-      "type": "string"
-    },
     "grupo_id": {
       "type": "string"
     },
     "grupo_nome": {
+      "type": "string"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
       "type": "string"
     }
   },
