@@ -1,0 +1,148 @@
+{
+  "name": "WhatsappAnaliseGrupo",
+  "type": "object",
+  "properties": {
+    "grupo_id": {
+      "type": "string"
+    },
+    "grupo_nome": {
+      "type": "string"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "periodo_inicio": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "periodo_fim": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "periodo_label": {
+      "type": "string"
+    },
+    "score_geral": {
+      "type": "number"
+    },
+    "score_atendimento": {
+      "type": "number"
+    },
+    "score_relacionamento": {
+      "type": "number"
+    },
+    "score_operacao": {
+      "type": "number"
+    },
+    "score_tempo_fluxo": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "excelente",
+        "saudavel",
+        "atencao",
+        "critico",
+        "emergencial",
+        "sem_dados"
+      ]
+    },
+    "risco_churn": {
+      "type": "string",
+      "enum": [
+        "baixo",
+        "moderado",
+        "alto",
+        "critico"
+      ]
+    },
+    "clima_emocional": {
+      "type": "string",
+      "enum": [
+        "positivo",
+        "neutro",
+        "ansioso",
+        "insatisfeito",
+        "critico",
+        "sem_dados"
+      ]
+    },
+    "tendencia": {
+      "type": "string",
+      "enum": [
+        "melhorando",
+        "estavel",
+        "piorando",
+        "sem_dados"
+      ]
+    },
+    "pressao_cliente": {
+      "type": "string",
+      "enum": [
+        "baixa",
+        "media",
+        "alta",
+        "critica"
+      ]
+    },
+    "resumo_executivo": {
+      "type": "string"
+    },
+    "pontos_positivos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pontos_atencao": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "alertas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "solicitacoes_sem_conclusao": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "principal_risco": {
+      "type": "string"
+    },
+    "prioridade_semana": {
+      "type": "string"
+    },
+    "recomendacoes_voxx": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "base_analisada": {
+      "type": "object"
+    },
+    "mensagens_utilizadas": {
+      "type": "number"
+    },
+    "gerado_por": {
+      "type": "string"
+    },
+    "gerado_por_nome": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "grupo_id",
+    "grupo_nome"
+  ]
+}

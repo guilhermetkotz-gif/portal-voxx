@@ -10,6 +10,7 @@ import AbaMonitoramento from '@/components/radar/AbaMonitoramento';
 import AbaGruposClientes from '@/components/radar/AbaGruposClientes';
 import AbaMensagensRadar from '@/components/radar/AbaMensagensRadar';
 import AbaDiagnostico from '@/components/radar/AbaDiagnostico';
+import AbaAnalises from '@/components/radar/AbaAnalises';
 import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
 
 const TZ = 'America/Sao_Paulo';
@@ -219,6 +220,9 @@ export default function RadarWhatsApp() {
           <TabsTrigger value="diagnostico" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
             Diagnóstico
           </TabsTrigger>
+          <TabsTrigger value="analises" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
+            Análises IA
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="monitoramento">
@@ -239,6 +243,10 @@ export default function RadarWhatsApp() {
             queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
             queryClient.invalidateQueries({ queryKey: ['radarGrupos'] });
           }} />
+        </TabsContent>
+
+        <TabsContent value="analises">
+          <AbaAnalises gruposEnriquecidos={gruposEnriquecidos} clientes={clientes} />
         </TabsContent>
       </Tabs>
     </div>
