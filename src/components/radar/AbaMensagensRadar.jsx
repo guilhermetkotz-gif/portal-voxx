@@ -1,0 +1,190 @@
+import React, { useState, useMemo } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Search, RefreshCw, X, Loader2 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import moment from 'moment';
+import 'moment-timezone';
+import { useQueryClient } from '@tanstack/react-query';
+
+const TZ = 'America/Sao_Paulo';
+
+const ORIGEM_CONFIG = {
+  recebida:    { label: 'Cliente',    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  enviada:     { label: 'VOXX',       color: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
+  sistema:     { label: 'Sistema',    color: 'bg-slate-700 text-slate-400 border-slate-600' },
+  desconhecida:{ label: 'Desconhecido', color: 'bg-slate-700 text-slate-500 border-slate-600' },
+};
+
+const TIPO_COLORS = {
+  texto:     'bg-slate-700 text-slate-300 border-slate-600',
+  imagem:    'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
+  video:     'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  audio:     'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+  documento: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+  sticker:   'bg-pink-500/20 text-pink-400 border-pink-500/30',
+  sistema:   'bg-slate-700 text-slate-500 border-slate-600',
+};
+
+export default function AbaMensagensRadar({ mensagens, clientes, loading }) {
+  const queryClient = useQueryClient();
+  const [busca, setBusca] = useState('');
+  const [filtroOrigem, setFiltroOrigem] = useState('todos');
+  const [filtroTipo, setFiltroTipo] = useState('todos');
+  const [filtroEspecial, setFiltroEspecial] = useState('todos');
+  const [filtroPeriodo, setFiltroPeriodo] = useState('7d');
+
+  const periodoCorte = useMemo(() => {
+    const dias = { '1d': 1, '7d': 7, '30d': 30 };
+    return moment().tz(TZ).subtract(dias[filtroPeriodo] || 7, 'days').toISOString();
+  }, [filtroPeriodo]);
+
+  const filtrados = useMemo(() => {
+    return mensagens.filter(m => {
+      const ts = m.received_at || m.timestamp_mensagem;
+      if (ts < periodoCorte) return false;
+      if (filtroOrigem !== 'todos' && m.origem !== filtroOrigem) return false;
+      if (filtroTipo !== 'todos' && m.tipo_mensagem !== filtroTipo) return false;
+      if (filtroEspecial === 'sem_cliente' && m.cliente_id) return false;
+      if (filtroEspecial === 'erro' && m.status_processamento !== 'erro') return false;
+      if (filtroEspecial === 'voxx' && m.remetente_tipo !== 'voxx' && m.origem !== 'enviada') return false;
+      if (filtroEspecial === 'cliente' && m.remetente_tipo !== 'cliente' && m.origem !== 'recebida') return false;
+      if (busca) {
+        const b = busca.toLowerCase();
+        const match = m.cliente_nome?.toLowerCase().includes(b) ||
+          m.grupo_nome?.toLowerCase().includes(b) ||
+          m.remetente_nome?.toLowerCase().includes(b) ||
+          m.remetente_telefone?.includes(b) ||
+          m.mensagem?.toLowerCase().includes(b);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte]);
+
+  return (
+    <div className="space-y-4">
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-500" />
+          <Input placeholder="Buscar..." value={busca} onChange={e => setBusca(e.target.value)}
+            className="pl-8 w-52 bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 text-sm" />
+          {busca && <button onClick={() => setBusca('')} className="absolute right-2.5 top-2.5 text-slate-500"><X className="w-3.5 h-3.5" /></button>}
+        </div>
+
+        <Select value={filtroOrigem} onValueChange={setFiltroOrigem}>
+          <SelectTrigger className="w-36 bg-slate-800 border-slate-700 text-slate-100 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectItem value="todos">Todas origens</SelectItem>
+            <SelectItem value="recebida">Recebida</SelectItem>
+            <SelectItem value="enviada">Enviada</SelectItem>
+            <SelectItem value="sistema">Sistema</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filtroTipo} onValueChange={setFiltroTipo}>
+          <SelectTrigger className="w-32 bg-slate-800 border-slate-700 text-slate-100 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectItem value="todos">Todos tipos</SelectItem>
+            <SelectItem value="texto">Texto</SelectItem>
+            <SelectItem value="imagem">Imagem</SelectItem>
+            <SelectItem value="audio">Áudio</SelectItem>
+            <SelectItem value="video">Vídeo</SelectItem>
+            <SelectItem value="documento">Documento</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filtroEspecial} onValueChange={setFiltroEspecial}>
+          <SelectTrigger className="w-40 bg-slate-800 border-slate-700 text-slate-100 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="sem_cliente">Sem cliente</SelectItem>
+            <SelectItem value="voxx">Somente VOXX</SelectItem>
+            <SelectItem value="cliente">Somente cliente</SelectItem>
+            <SelectItem value="erro">Com erro</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={filtroPeriodo} onValueChange={setFiltroPeriodo}>
+          <SelectTrigger className="w-32 bg-slate-800 border-slate-700 text-slate-100 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-slate-800 border-slate-700">
+            <SelectItem value="1d">Hoje</SelectItem>
+            <SelectItem value="7d">7 dias</SelectItem>
+            <SelectItem value="30d">30 dias</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <span className="ml-auto text-xs text-slate-500">{filtrados.length} mensagens</span>
+        <Button size="sm" variant="ghost" onClick={() => queryClient.invalidateQueries({ queryKey: ['radarMensagens'] })}
+          className="text-slate-400 hover:text-white gap-1">
+          <RefreshCw className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+
+      {/* Tabela */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+        <ScrollArea className="h-[560px]">
+          <table className="w-full text-xs">
+            <thead className="border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
+              <tr>
+                <th className="text-left px-4 py-3 text-slate-500 font-medium">Data/hora</th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Cliente</th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Grupo</th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Remetente</th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Telefone</th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Origem</th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Tipo</th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Mensagem</th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={9} className="px-4 py-12 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-emerald-400" /></td></tr>
+              ) : filtrados.length === 0 ? (
+                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-500">Nenhuma mensagem encontrada.</td></tr>
+              ) : (
+                filtrados.map(m => {
+                  const ts = m.received_at || m.timestamp_mensagem;
+                  const origemCfg = ORIGEM_CONFIG[m.origem] || ORIGEM_CONFIG.desconhecida;
+                  const tipoCor = TIPO_COLORS[m.tipo_mensagem] || TIPO_COLORS.texto;
+                  return (
+                    <tr key={m.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                      <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">
+                        {moment(ts).tz(TZ).format('DD/MM HH:mm:ss')}
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-200 font-medium">
+                        {m.cliente_nome || <span className="text-amber-500/70 italic text-[11px]">Sem vínculo</span>}
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-400 max-w-[120px] truncate" title={m.grupo_nome}>{m.grupo_nome || '—'}</td>
+                      <td className="px-3 py-2.5 text-slate-300">{m.remetente_nome || '—'}</td>
+                      <td className="px-3 py-2.5 text-slate-500 font-mono">{m.remetente_telefone || '—'}</td>
+                      <td className="px-3 py-2.5">
+                        <Badge className={`text-[10px] border ${origemCfg.color}`}>{origemCfg.label}</Badge>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <Badge className={`text-[10px] border ${tipoCor}`}>{m.tipo_mensagem || 'texto'}</Badge>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-300 max-w-[220px] truncate" title={m.mensagem}>{m.mensagem}</td>
+                      <td className="px-3 py-2.5">
+                        {m.status_processamento === 'erro'
+                          ? <Badge className="text-[10px] border bg-red-500/20 text-red-400 border-red-500/30">Erro</Badge>
+                          : m.status_processamento === 'sem_vinculo'
+                            ? <Badge className="text-[10px] border bg-amber-500/20 text-amber-400 border-amber-500/30">Sem vínculo</Badge>
+                            : <Badge className="text-[10px] border bg-emerald-500/10 text-emerald-500 border-emerald-500/20">OK</Badge>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}

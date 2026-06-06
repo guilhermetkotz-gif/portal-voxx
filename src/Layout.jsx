@@ -56,7 +56,8 @@ const pageTitles = {
         PerformanceOperacional: { title: "Performance Operacional", subtitle: "Produtividade e eficiência por setor" },
         BriefingClientes: { title: "Briefing Clientes", subtitle: "Central de contexto operacional e estratégico das marcas" },
         InteligeniciaOperacional: { title: "Inteligência Operacional", subtitle: "Consumo e carga operacional por cliente" },
-        CentralComunicacao: { title: "Central de Comunicação", subtitle: "Resumos diários automáticos para clientes via WhatsApp" }
+        CentralComunicacao: { title: "Central de Comunicação", subtitle: "Resumos diários automáticos para clientes via WhatsApp" },
+        RadarWhatsApp: { title: "Radar WhatsApp", subtitle: "Monitoramento em tempo real dos grupos de atendimento" }
                 };
 
 export default function Layout({ children, currentPageName }) {

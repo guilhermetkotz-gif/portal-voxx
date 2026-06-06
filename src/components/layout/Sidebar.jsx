@@ -44,7 +44,8 @@ import {
   Network,
   MessageSquare,
   Smartphone,
-  Settings2
+  Settings2,
+  Radio
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -66,6 +67,7 @@ const menuItems = [
   { name: "Briefing Clientes", icon: BookOpen, page: "BriefingClientes", voxxOnly: true },
   { name: "Inteligência Operacional", icon: Network, page: "InteligeniciaOperacional", voxxOnly: true },
   { name: "Central de Comunicação", icon: MessageSquare, page: "CentralComunicacao", voxxOnly: true },
+  { name: "Radar WhatsApp", icon: Radio, page: "RadarWhatsApp", voxxOnly: true },
   { name: "Análises", icon: Activity, page: "Analises", voxxOnly: true },
   { name: "WhatsApp Clientes", icon: Smartphone, page: "ConfiguracaoWhatsApp", voxxOnly: true },
   { name: "Config. Instâncias", icon: Settings2, page: "ConfiguracaoInstancias", voxxOnly: true },
