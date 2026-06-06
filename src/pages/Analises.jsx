@@ -377,9 +377,9 @@ export default function Analises({ user }) {
   // --- Atualização em tempo real dos logs de WhatsApp ---
   useEffect(() => {
     const unsubscribe = base44.entities.WhatsappEnvioLog.subscribe((event) => {
-      if (event.type === 'create' || event.type === 'update' || event.type === 'delete') {
-        queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
-      }
+      // Força refetch imediato ao receber qualquer mudança
+      queryClient.invalidateQueries({ queryKey: ['analisesLogsEnvio'] });
+      queryClient.refetchQueries({ queryKey: ['analisesLogsEnvio'] });
     });
     return unsubscribe;
   }, [queryClient]);
@@ -395,8 +395,9 @@ export default function Analises({ user }) {
   const { data: logsEnvio = [], isFetching } = useQuery({
     queryKey: ['analisesLogsEnvio'],
     queryFn: () => base44.entities.WhatsappEnvioLog.list('-enviado_em', 2000),
-    staleTime: 10 * 1000,
-    refetchInterval: 20 * 1000
+    staleTime: 0,
+    refetchInterval: 10 * 1000,
+    refetchIntervalInBackground: true,
   });
 
   // Alertas/notificações não lidas por cliente
@@ -452,13 +453,17 @@ export default function Analises({ user }) {
       }
       
       // Por origem
-      if (log.origem === 'recebida' || log.remetente_tipo === 'cliente') {
+      const isRecebida = log.origem === 'recebida' || log.remetente_tipo === 'cliente';
+      const isEnviada = log.origem === 'enviada' || log.origem === 'resumo_diario' || log.origem === 'aprovacao_entrega' || log.origem === 'manual';
+
+      if (isRecebida) {
         // Mensagem recebida do cliente
         if (!ultimoLogPorCliente[log.cliente_id] || log.enviado_em > ultimoLogPorCliente[log.cliente_id]) {
           ultimoLogPorCliente[log.cliente_id] = log.enviado_em;
         }
-      } else {
-        // Mensagem enviada pela VOXX
+      }
+      if (isEnviada || (!isRecebida)) {
+        // Mensagem enviada pela VOXX (inclui qualquer origem que não seja recebida)
         if (!ultimoLogVoxxPorCliente[log.cliente_id] || log.enviado_em > ultimoLogVoxxPorCliente[log.cliente_id]) {
           ultimoLogVoxxPorCliente[log.cliente_id] = log.enviado_em;
         }
