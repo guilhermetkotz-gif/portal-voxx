@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+const TIPOS_SEM_CONTEUDO = ['sistema', 'atividade', 'sem_conteudo', 'audio', 'video', 'sticker'];
+
 const PROMPT_SISTEMA = `Você é um auditor de qualidade de comunicação de uma agência de marketing digital chamada VOXX.
 Sua função é avaliar mensagens enviadas pela equipe VOXX para clientes via WhatsApp.
 
@@ -44,98 +46,157 @@ function classificarScore(score) {
   return 'critica';
 }
 
+function temConteudoTextual(msg) {
+  if (!msg.mensagem || msg.mensagem.trim().length === 0) return false;
+  if (TIPOS_SEM_CONTEUDO.includes(msg.tipo_mensagem)) return false;
+  // imagem/vídeo/documento sem legenda
+  const conteudo = msg.mensagem.trim().toLowerCase();
+  if (['[imagem]', '[vídeo]', '[video]', '[documento]', '[áudio]', '[audio]', '[sticker]', '[apagada]'].includes(conteudo)) return false;
+  return true;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-
     const body = await req.json();
-    const { mensagem_id, forcar_reavaliacao = false, modo_lote = false, filtro = {} } = body;
 
-    // ── MODO LOTE ──────────────────────────────────────────────
-    if (modo_lote) {
-      const limite = filtro.limite || 50;
-      let query = { remetente_tipo: 'voxx' };
-      if (filtro.grupo_id)   query.grupo_id   = filtro.grupo_id;
-      if (filtro.cliente_id) query.cliente_id = filtro.cliente_id;
+    // ── MODO LOTE MANUAL (botão da tela) ──────────────────────────
+    if (body.modo_lote) {
+      // Requer autenticação para modo lote manual
+      const user = await base44.auth.me();
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-      // período
-      const agora = new Date();
-      let corte;
-      if (filtro.periodo === '24h') {
-        corte = new Date(agora.getTime() - 24 * 60 * 60 * 1000).toISOString();
-      } else if (filtro.periodo === '7d') {
-        corte = new Date(agora.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      }
+      const limite = Math.min(body.filtro?.limite || 10, 10); // max 10 por vez
+      const query = { remetente_tipo: 'voxx' };
 
-      const mensagens = await base44.asServiceRole.entities.WhatsappMensagem.filter(query, '-received_at', limite);
-
-      // filtrar por período se necessário
-      const mensagensFiltradas = corte
-        ? mensagens.filter(m => m.received_at >= corte)
-        : mensagens;
-
-      // filtrar tipos inválidos
-      const tiposIgnorados = ['sistema', 'atividade', 'sem_conteudo', 'audio', 'video', 'sticker'];
-      const mensagensValidas = mensagensFiltradas.filter(m =>
-        m.mensagem && m.mensagem.trim().length > 0 &&
-        !tiposIgnorados.includes(m.tipo_mensagem)
+      // Buscar mensagens candidatas
+      const mensagens = await base44.asServiceRole.entities.WhatsappMensagem.filter(
+        query, '-received_at', 100
       );
 
-      // verificar quais já foram avaliadas
-      let aavaliar = mensagensValidas;
-      if (!forcar_reavaliacao) {
-        const avaliacoesExistentes = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.filter(
-          {}, '-created_date', 500
-        );
-        const idsAvaliados = new Set(avaliacoesExistentes.map(a => a.mensagem_id));
-        aavaliar = mensagensValidas.filter(m => !idsAvaliados.has(m.id));
-      }
+      // Filtrar apenas com conteúdo textual
+      const validas = mensagens.filter(m => temConteudoTextual(m));
 
-      if (filtro.apenas_nao_avaliadas && !forcar_reavaliacao) {
-        // já filtrou acima
-      }
+      // Verificar quais ainda não têm avaliação concluída
+      const avaliacoes = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.filter(
+        {}, '-created_date', 500
+      );
+      const idsConcluidos = new Set(
+        avaliacoes
+          .filter(a => a.status_avaliacao === 'concluida')
+          .map(a => a.mensagem_id)
+      );
+
+      const pendentes = validas.filter(m => !idsConcluidos.has(m.id)).slice(0, limite);
 
       const resultados = [];
-      for (const msg of aavaliar.slice(0, 20)) { // max 20 por vez
-        const resultado = await avaliarUmaMensagem(base44, msg);
-        resultados.push(resultado);
+      for (const msg of pendentes) {
+        const r = await processarAvaliacao(base44, msg.id, false);
+        resultados.push({ mensagem_id: msg.id, status: r.status_avaliacao });
       }
 
       return Response.json({
-        avaliados: resultados.length,
-        total_candidatos: aavaliar.length,
+        avaliados: resultados.filter(r => r.status === 'concluida').length,
+        total_candidatos: pendentes.length,
         resultados
       });
     }
 
-    // ── MODO INDIVIDUAL ──────────────────────────────────────────
-    if (!mensagem_id) return Response.json({ error: 'mensagem_id obrigatório' }, { status: 400 });
+    // ── MODO INDIVIDUAL (automação ou reavaliação manual) ──────────
+    const { mensagem_id, forcar_reavaliacao = false } = body;
 
-    // Verificar se já existe avaliação
-    if (!forcar_reavaliacao) {
-      const existentes = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.filter(
-        { mensagem_id }, '-created_date', 1
-      );
-      if (existentes.length > 0) {
-        return Response.json({ avaliacao: existentes[0], ja_existia: true });
-      }
+    if (!mensagem_id) {
+      return Response.json({ error: 'mensagem_id obrigatório' }, { status: 400 });
     }
 
-    const msgs = await base44.asServiceRole.entities.WhatsappMensagem.filter({ id: mensagem_id }, '-received_at', 1);
-    if (!msgs.length) return Response.json({ error: 'Mensagem não encontrada' }, { status: 404 });
-
-    const avaliacao = await avaliarUmaMensagem(base44, msgs[0]);
-    return Response.json({ avaliacao, ja_existia: false });
+    const avaliacao = await processarAvaliacao(base44, mensagem_id, forcar_reavaliacao);
+    return Response.json({ avaliacao });
 
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
 
-async function avaliarUmaMensagem(base44, msg) {
-  // buscar contexto: até 5 mensagens anteriores do mesmo grupo
+async function processarAvaliacao(base44, mensagem_id, forcarReavaliacao) {
+  // 1. Verificar se já existe avaliação concluída (idempotência)
+  const existentes = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.filter(
+    { mensagem_id }, '-created_date', 1
+  );
+  const avaliacaoExistente = existentes[0] || null;
+
+  if (avaliacaoExistente) {
+    if (!forcarReavaliacao && avaliacaoExistente.status_avaliacao === 'concluida') {
+      // Já concluída e não forçando reavaliação — retornar existente
+      return avaliacaoExistente;
+    }
+    if (avaliacaoExistente.status_avaliacao === 'avaliando') {
+      // Já está sendo avaliada — evitar concorrência
+      return avaliacaoExistente;
+    }
+  }
+
+  // 2. Buscar a mensagem
+  const msgs = await base44.asServiceRole.entities.WhatsappMensagem.filter(
+    { id: mensagem_id }, '-received_at', 1
+  );
+  if (!msgs.length) {
+    throw new Error('Mensagem não encontrada: ' + mensagem_id);
+  }
+  const msg = msgs[0];
+
+  // 3. Verificar se é remetente VOXX
+  if (msg.remetente_tipo !== 'voxx') {
+    return avaliacaoExistente || null;
+  }
+
+  // 4. Verificar conteúdo
+  const possuiConteudo = temConteudoTextual(msg);
+
+  // 5. Marcar como "avaliando" (ou criar registro pendente)
+  const registroBase = {
+    mensagem_id: msg.id,
+    grupo_id: msg.grupo_id || '',
+    grupo_nome: msg.grupo_nome || '',
+    cliente_id: msg.cliente_id || '',
+    cliente_nome: msg.cliente_nome || '',
+    remetente_nome: msg.remetente_nome || '',
+    remetente_telefone: msg.remetente_telefone || '',
+    mensagem_original: msg.mensagem || '',
+    data_mensagem: msg.received_at || msg.timestamp_mensagem || new Date().toISOString(),
+    resolvido: avaliacaoExistente?.resolvido || false,
+  };
+
+  // 6. Sem conteúdo textual — salvar sem chamar IA
+  if (!possuiConteudo) {
+    const semConteudo = {
+      ...registroBase,
+      status_avaliacao: 'concluida',
+      classificacao: 'nao_avaliada',
+      score_qualidade: null,
+      avaliacao_resumo: 'Sem conteúdo textual suficiente para avaliação.',
+      contexto_limitado: true,
+      pontos_positivos: [],
+      pontos_atencao: [],
+    };
+    if (avaliacaoExistente) {
+      return base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.update(avaliacaoExistente.id, semConteudo);
+    }
+    return base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.create(semConteudo);
+  }
+
+  // 7. Marcar como "avaliando"
+  let avaliacaoAtual;
+  if (avaliacaoExistente) {
+    avaliacaoAtual = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.update(
+      avaliacaoExistente.id, { ...registroBase, status_avaliacao: 'avaliando' }
+    );
+  } else {
+    avaliacaoAtual = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.create(
+      { ...registroBase, status_avaliacao: 'avaliando' }
+    );
+  }
+
+  // 8. Buscar contexto (máx 5 mensagens anteriores)
   let contexto = [];
   let contextoLimitado = false;
   if (msg.grupo_id) {
@@ -152,7 +213,9 @@ async function avaliarUmaMensagem(base44, msg) {
   }
 
   const contextoTexto = contexto.length > 0
-    ? contexto.map(m => `[${m.remetente_tipo?.toUpperCase() || 'DESCONHECIDO'}] ${m.remetente_nome || ''}: ${m.mensagem || '(sem texto)'}`).join('\n')
+    ? contexto.map(m =>
+        `[${m.remetente_tipo?.toUpperCase() || 'DESCONHECIDO'}] ${m.remetente_nome || ''}: ${m.mensagem || '(sem texto)'}`
+      ).join('\n')
     : 'Sem contexto disponível.';
 
   const prompt = `${PROMPT_SISTEMA}
@@ -183,73 +246,67 @@ Responda APENAS com este JSON:
   "contexto_limitado": <true|false>
 }`;
 
-  const resIA = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt,
-    response_json_schema: {
-      type: 'object',
-      properties: {
-        clareza_score: { type: 'number' },
-        tom_score: { type: 'number' },
-        especificidade_score: { type: 'number' },
-        resolucao_score: { type: 'number' },
-        valor_percebido_score: { type: 'number' },
-        risco_ruido_score: { type: 'number' },
-        padrao_voxx_score: { type: 'number' },
-        score_qualidade: { type: 'number' },
-        pontos_positivos: { type: 'array', items: { type: 'string' } },
-        pontos_atencao: { type: 'array', items: { type: 'string' } },
-        risco_detectado: { type: 'string' },
-        sugestao_melhoria: { type: 'string' },
-        versao_sugerida: { type: 'string' },
-        avaliacao_resumo: { type: 'string' },
-        contexto_limitado: { type: 'boolean' }
+  // 9. Chamar IA
+  let resIA;
+  try {
+    resIA = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt,
+      response_json_schema: {
+        type: 'object',
+        properties: {
+          clareza_score:        { type: 'number' },
+          tom_score:            { type: 'number' },
+          especificidade_score: { type: 'number' },
+          resolucao_score:      { type: 'number' },
+          valor_percebido_score:{ type: 'number' },
+          risco_ruido_score:    { type: 'number' },
+          padrao_voxx_score:    { type: 'number' },
+          score_qualidade:      { type: 'number' },
+          pontos_positivos:     { type: 'array', items: { type: 'string' } },
+          pontos_atencao:       { type: 'array', items: { type: 'string' } },
+          risco_detectado:      { type: 'string' },
+          sugestao_melhoria:    { type: 'string' },
+          versao_sugerida:      { type: 'string' },
+          avaliacao_resumo:     { type: 'string' },
+          contexto_limitado:    { type: 'boolean' }
+        }
       }
-    }
-  });
-
-  const score = Math.round(Math.max(0, Math.min(100, resIA.score_qualidade || 0)));
-  const classificacao = classificarScore(score);
-
-  const registro = {
-    mensagem_id: msg.id,
-    grupo_id: msg.grupo_id || '',
-    grupo_nome: msg.grupo_nome || '',
-    cliente_id: msg.cliente_id || '',
-    cliente_nome: msg.cliente_nome || '',
-    remetente_nome: msg.remetente_nome || '',
-    remetente_telefone: msg.remetente_telefone || '',
-    mensagem_original: msg.mensagem || '',
-    data_mensagem: msg.received_at || msg.timestamp_mensagem || new Date().toISOString(),
-    score_qualidade: score,
-    classificacao,
-    clareza_score: resIA.clareza_score || 0,
-    tom_score: resIA.tom_score || 0,
-    especificidade_score: resIA.especificidade_score || 0,
-    resolucao_score: resIA.resolucao_score || 0,
-    valor_percebido_score: resIA.valor_percebido_score || 0,
-    risco_ruido_score: resIA.risco_ruido_score || 0,
-    padrao_voxx_score: resIA.padrao_voxx_score || 0,
-    pontos_positivos: resIA.pontos_positivos || [],
-    pontos_atencao: resIA.pontos_atencao || [],
-    sugestao_melhoria: resIA.sugestao_melhoria || '',
-    versao_sugerida: resIA.versao_sugerida || '',
-    risco_detectado: resIA.risco_detectado || '',
-    avaliacao_resumo: resIA.avaliacao_resumo || '',
-    contexto_limitado: resIA.contexto_limitado || contextoLimitado,
-    resolvido: false
-  };
-
-  // Se já existe (reavaliação), atualizar; senão criar
-  const existentes = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.filter(
-    { mensagem_id: msg.id }, '-created_date', 1
-  );
-  
-  let avaliacao;
-  if (existentes.length > 0) {
-    avaliacao = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.update(existentes[0].id, registro);
-  } else {
-    avaliacao = await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.create(registro);
+    });
+  } catch (err) {
+    // Rate limit ou erro da IA — marcar como erro, não tentar em loop
+    await base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.update(avaliacaoAtual.id, {
+      status_avaliacao: 'erro',
+      erro_avaliacao: err.message || 'Erro ao chamar IA',
+    });
+    return { ...avaliacaoAtual, status_avaliacao: 'erro', erro_avaliacao: err.message };
   }
 
-  return avaliacao;
+  // 10. Salvar resultado concluído
+  const score = Math.round(Math.max(0, Math.min(100, resIA.score_qualidade || 0)));
+
+  const registroConcluido = {
+    ...registroBase,
+    status_avaliacao: 'concluida',
+    score_qualidade: score,
+    classificacao: classificarScore(score),
+    clareza_score:         resIA.clareza_score || 0,
+    tom_score:             resIA.tom_score || 0,
+    especificidade_score:  resIA.especificidade_score || 0,
+    resolucao_score:       resIA.resolucao_score || 0,
+    valor_percebido_score: resIA.valor_percebido_score || 0,
+    risco_ruido_score:     resIA.risco_ruido_score || 0,
+    padrao_voxx_score:     resIA.padrao_voxx_score || 0,
+    pontos_positivos:      resIA.pontos_positivos || [],
+    pontos_atencao:        resIA.pontos_atencao || [],
+    sugestao_melhoria:     resIA.sugestao_melhoria || '',
+    versao_sugerida:       resIA.versao_sugerida || '',
+    risco_detectado:       resIA.risco_detectado || '',
+    avaliacao_resumo:      resIA.avaliacao_resumo || '',
+    contexto_limitado:     resIA.contexto_limitado || contextoLimitado,
+    erro_avaliacao:        '',
+  };
+
+  return base44.asServiceRole.entities.WhatsappAvaliacaoMensagemVoxx.update(
+    avaliacaoAtual.id, registroConcluido
+  );
 }

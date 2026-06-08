@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Star, Search, AlertTriangle, CheckCircle, RotateCcw, Copy, CheckCheck,
-  Play, Loader2, RefreshCw, TrendingUp, TrendingDown, Minus
+  Play, Loader2, RefreshCw, TrendingUp, TrendingDown, Minus, Clock, Zap
 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
@@ -17,11 +17,19 @@ import AvaliacaoDetalheDrawer from './AvaliacaoDetalheDrawer';
 const TZ = 'America/Sao_Paulo';
 
 const CLASSIF_CONFIG = {
-  excelente: { label: 'Excelente', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', bg: 'bg-emerald-950/10' },
-  boa:       { label: 'Boa',       color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',         bg: '' },
-  atencao:   { label: 'Atenção',   color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',   bg: 'bg-yellow-950/10' },
-  fraca:     { label: 'Fraca',     color: 'bg-orange-500/20 text-orange-400 border-orange-500/30',   bg: 'bg-orange-950/10' },
-  critica:   { label: 'Crítica',   color: 'bg-red-500/20 text-red-400 border-red-500/30',            bg: 'bg-red-950/20' },
+  excelente:    { label: 'Excelente',    color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30', bg: 'bg-emerald-950/10' },
+  boa:          { label: 'Boa',          color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',         bg: '' },
+  atencao:      { label: 'Atenção',      color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',   bg: 'bg-yellow-950/10' },
+  fraca:        { label: 'Fraca',        color: 'bg-orange-500/20 text-orange-400 border-orange-500/30',   bg: 'bg-orange-950/10' },
+  critica:      { label: 'Crítica',      color: 'bg-red-500/20 text-red-400 border-red-500/30',            bg: 'bg-red-950/20' },
+  nao_avaliada: { label: 'Sem conteúdo', color: 'bg-slate-500/20 text-slate-400 border-slate-500/30',      bg: '' },
+};
+
+const STATUS_AVALIACAO_CONFIG = {
+  pendente:  { label: 'Pendente',   icon: Clock,   color: 'text-slate-400' },
+  avaliando: { label: 'Avaliando',  icon: Loader2, color: 'text-violet-400', spin: true },
+  concluida: { label: 'Concluída',  icon: null,    color: '' },
+  erro:      { label: 'Erro',       icon: AlertTriangle, color: 'text-red-400' },
 };
 
 function ScoreChip({ score }) {
@@ -37,17 +45,16 @@ export default function AbaQualidadeVoxx({ clientes, gruposEnriquecidos }) {
   const [filtroCliente, setFiltroCliente] = useState('todos');
   const [avaliacaoSelecionada, setAvaliacaoSelecionada] = useState(null);
   const [avaliandoLote, setAvaliandoLote] = useState(false);
-  const [periodoLote, setPeriodoLote] = useState('24h');
 
-  // ── Dados ────────────────────────────────────────────────────
+  // ── Dados — realtime subscription, sem refetchInterval agressivo ─
   const { data: avaliacoes = [], isLoading } = useQuery({
     queryKey: ['avaliacoesMensagens'],
     queryFn: () => base44.entities.WhatsappAvaliacaoMensagemVoxx.list('-data_mensagem', 200),
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000, // fallback visual leve — não dispara IA
   });
 
-  // Subscrição realtime
+  // Subscrição realtime: atualiza a tela imediatamente quando avaliação é criada/concluída
   React.useEffect(() => {
     const unsub = base44.entities.WhatsappAvaliacaoMensagemVoxx.subscribe(() => {
       queryClient.invalidateQueries({ queryKey: ['avaliacoesMensagens'] });
@@ -136,8 +143,8 @@ export default function AbaQualidadeVoxx({ clientes, gruposEnriquecidos }) {
     setAvaliandoLote(true);
     try {
       const res = await base44.functions.invoke('avaliarMensagemVoxx', {
-        modo_lote: true,
-        filtro: { periodo: periodoLote, apenas_nao_avaliadas: true, limite: 50 }
+      modo_lote: true,
+      filtro: { apenas_nao_avaliadas: true, limite: 10 }
       });
       const count = res.data?.avaliados || 0;
       toast.success(`${count} mensagens avaliadas com sucesso!`);
@@ -262,23 +269,12 @@ export default function AbaQualidadeVoxx({ clientes, gruposEnriquecidos }) {
 
         <span className="text-xs text-slate-500 ml-auto">{filtradas.length} registros</span>
 
-        {/* Avaliar lote */}
-        <div className="flex items-center gap-2">
-          <Select value={periodoLote} onValueChange={setPeriodoLote}>
-            <SelectTrigger className="w-28 bg-slate-800 border-slate-700 text-slate-100 text-sm h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
-              <SelectItem value="24h">Últimas 24h</SelectItem>
-              <SelectItem value="7d">Últimos 7d</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button size="sm" onClick={avaliarLote} disabled={avaliandoLote}
-            className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 text-xs h-8">
-            {avaliandoLote ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5" />}
-            Avaliar mensagens
-          </Button>
-        </div>
+        {/* Avaliar lote manual — máx 10 por vez, apenas sem avaliação */}
+        <Button size="sm" onClick={avaliarLote} disabled={avaliandoLote}
+          className="bg-violet-600 hover:bg-violet-700 text-white gap-1.5 text-xs h-8">
+          {avaliandoLote ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
+          Avaliar pendentes (10)
+        </Button>
       </div>
 
       {/* Tabela */}
@@ -328,7 +324,19 @@ export default function AbaQualidadeVoxx({ clientes, gruposEnriquecidos }) {
                       </td>
                       <td className="px-3 py-3"><ScoreChip score={a.score_qualidade ?? 0} /></td>
                       <td className="px-3 py-3">
-                        <Badge className={`text-[10px] border ${classif.color}`}>{classif.label}</Badge>
+                        {(() => {
+                          const st = STATUS_AVALIACAO_CONFIG[a.status_avaliacao];
+                          if (st && a.status_avaliacao !== 'concluida') {
+                            const Icon = st.icon;
+                            return (
+                              <span className={`flex items-center gap-1 text-[11px] ${st.color}`}>
+                                {Icon && <Icon className={`w-3 h-3 ${st.spin ? 'animate-spin' : ''}`} />}
+                                {st.label}
+                              </span>
+                            );
+                          }
+                          return <Badge className={`text-[10px] border ${classif.color}`}>{classif.label}</Badge>;
+                        })()}
                       </td>
                       <td className="px-3 py-3">
                         {a.risco_detectado

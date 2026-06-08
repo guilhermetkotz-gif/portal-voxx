@@ -31,9 +31,24 @@
       "type": "string",
       "format": "date-time"
     },
+    "status_avaliacao": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "avaliando",
+        "concluida",
+        "erro"
+      ],
+      "default": "pendente",
+      "description": "Status do processamento da avalia\u00e7\u00e3o"
+    },
+    "erro_avaliacao": {
+      "type": "string",
+      "description": "Mensagem de erro caso status_avaliacao = erro"
+    },
     "score_qualidade": {
       "type": "number",
-      "description": "Score geral de 0 a 100"
+      "description": "Score geral de 0 a 100 (null se n\u00e3o avaliada por IA)"
     },
     "classificacao": {
       "type": "string",
@@ -42,7 +57,8 @@
         "boa",
         "atencao",
         "fraca",
-        "critica"
+        "critica",
+        "nao_avaliada"
       ],
       "description": "Classifica\u00e7\u00e3o baseada no score"
     },
