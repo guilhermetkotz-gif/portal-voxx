@@ -27,28 +27,28 @@ export default function RadarWhatsApp() {
   const { data: grupos = [], isLoading: loadingGrupos } = useQuery({
     queryKey: ['radarGrupos'],
     queryFn: () => base44.entities.WhatsappGrupo.list('-ultima_atividade', 200),
-    staleTime: 30 * 1000,
-    refetchInterval: 30 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 3 * 60 * 1000,
   });
 
   const { data: mensagens = [], isLoading: loadingMsgs } = useQuery({
     queryKey: ['radarMensagens'],
-    queryFn: () => base44.entities.WhatsappMensagem.list('-received_at', 500),
-    staleTime: 15 * 1000,
-    refetchInterval: 30 * 1000,
+    queryFn: () => base44.entities.WhatsappMensagem.list('-received_at', 300),
+    staleTime: 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
   });
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['radarClientes'],
     queryFn: () => base44.entities.Cliente.list('-nome', 500),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: rawWebhooks = [] } = useQuery({
     queryKey: ['radarRawWebhooks'],
     queryFn: () => base44.entities.WhatsappWebhookRaw.list('-received_at', 50),
-    staleTime: 15 * 1000,
-    refetchInterval: 30 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 2 * 60 * 1000,
   });
 
   // ── Subscrições realtime ─────────────────────────────────────
