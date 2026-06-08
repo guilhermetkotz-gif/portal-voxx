@@ -194,9 +194,23 @@ Deno.serve(async (req) => {
       }
     }
 
-    // PASSO 8 — Criar WhatsappMensagem
-    const remetenteTipo = isFromMe ? 'voxx' : 'cliente';
-    const origem        = isFromMe ? 'enviada' : 'recebida';
+    // PASSO 8 — Classificar remetente usando WhatsappRemetenteVoxx
+    let remetenteTipo = isFromMe ? 'voxx' : 'desconhecido';
+
+    if (!isFromMe && participantPhone) {
+      const telNorm = participantPhone.replace(/\D/g, '');
+      // Buscar remetentes VOXX ativos
+      const remVoxx = await base44.asServiceRole.entities.WhatsappRemetenteVoxx.filter({ ativo: true });
+      const telefonesVoxx = new Set(remVoxx.map(r => r.telefone_normalizado).filter(Boolean));
+
+      const isVoxxByPhone = telefonesVoxx.has(telNorm) ||
+        (telNorm.length === 13 && telefonesVoxx.has(telNorm.slice(0, 4) + telNorm.slice(5))) ||
+        (telNorm.length === 12 && telefonesVoxx.has(telNorm.slice(0, 4) + '9' + telNorm.slice(4)));
+
+      remetenteTipo = isVoxxByPhone ? 'voxx' : 'cliente';
+    }
+
+    const origem = (isFromMe || remetenteTipo === 'voxx') ? 'enviada' : 'recebida';
     const statusProc    = clienteId ? 'ok' : 'sem_vinculo';
 
     await base44.asServiceRole.entities.WhatsappMensagem.create({

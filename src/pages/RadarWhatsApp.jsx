@@ -11,6 +11,7 @@ import AbaGruposClientes from '@/components/radar/AbaGruposClientes';
 import AbaMensagensRadar from '@/components/radar/AbaMensagensRadar';
 import AbaDiagnostico from '@/components/radar/AbaDiagnostico';
 import AbaAnalises from '@/components/radar/AbaAnalises';
+import AbaRemetentesVoxx from '@/components/radar/AbaRemetentesVoxx';
 import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
 
 const TZ = 'America/Sao_Paulo';
@@ -212,7 +213,7 @@ export default function RadarWhatsApp() {
             Monitoramento
           </TabsTrigger>
           <TabsTrigger value="grupos" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
-            Grupos & Clientes
+            {"Grupos & Clientes"}
           </TabsTrigger>
           <TabsTrigger value="mensagens" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
             Mensagens
@@ -222,6 +223,9 @@ export default function RadarWhatsApp() {
           </TabsTrigger>
           <TabsTrigger value="analises" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
             Análises IA
+          </TabsTrigger>
+          <TabsTrigger value="remetentes" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
+            Remetentes VOXX
           </TabsTrigger>
         </TabsList>
 
@@ -247,6 +251,10 @@ export default function RadarWhatsApp() {
 
         <TabsContent value="analises">
           <AbaAnalises gruposEnriquecidos={gruposEnriquecidos} clientes={clientes} />
+        </TabsContent>
+
+        <TabsContent value="remetentes">
+          <AbaRemetentesVoxx mensagens={mensagens} />
         </TabsContent>
       </Tabs>
     </div>
