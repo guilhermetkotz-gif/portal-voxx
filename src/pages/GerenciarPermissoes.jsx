@@ -72,7 +72,13 @@ const PAGINAS_DISPONIVEIS = [
   { nome: 'ReportDiario', descricao: 'Report Diário', categoria: 'Operacional' },
   { nome: 'InteligenicaUnidades', label: 'Performance VOXX | Oral Sin', descricao: 'Performance VOXX | Oral Sin', categoria: 'Análise' },
   { nome: 'DetalheConta', descricao: 'Detalhe de Conta Meta Ads', categoria: 'Análise' },
-  { nome: 'HistoricoOtimizacoesCliente', descricao: 'Histórico de Otimizações', categoria: 'Análise' }
+  { nome: 'HistoricoOtimizacoesCliente', descricao: 'Histórico de Otimizações', categoria: 'Análise' },
+  { nome: 'RadarWhatsApp', descricao: 'Radar WhatsApp — monitoramento em tempo real', categoria: 'WhatsApp' },
+  { nome: 'Analises', descricao: 'Análises de grupos WhatsApp', categoria: 'WhatsApp' },
+  { nome: 'CentralComunicacao', descricao: 'Central de Comunicação com clientes', categoria: 'WhatsApp' },
+  { nome: 'ConfiguracaoWhatsApp', descricao: 'Configuração de envio WhatsApp', categoria: 'WhatsApp' },
+  { nome: 'ConfiguracaoInstancias', descricao: 'Configuração de instâncias Z-API', categoria: 'WhatsApp' },
+  { nome: 'ImportarHistoricoWhatsapp', descricao: 'Importar histórico de conversas', categoria: 'WhatsApp' }
 ];
 
 const CATEGORIAS = [...new Set(PAGINAS_DISPONIVEIS.map(p => p.categoria))];
