@@ -78,10 +78,10 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             {isInactive && <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" />}
-            {demanda.cronometro_ativo && (
+            {(demanda.cronometros_ativos || []).length > 0 && (
               <ActiveTimerIndicator 
-                cronometro_inicio={demanda.cronometro_inicio}
-                cronometro_usuario_nome={demanda.cronometro_usuario_nome}
+                cronometro_inicio={demanda.cronometros_ativos[0].data_inicio}
+                cronometro_usuario_nome={demanda.cronometros_ativos[0].usuario_nome}
               />
             )}
             {urgente && <Badge variant="destructive" className="text-xs px-1.5 py-0">!</Badge>}
@@ -116,10 +116,14 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
       <CardContent className="p-3 pt-0 text-xs text-muted-foreground space-y-2">
         <p className="font-medium text-sm text-slate-800 truncate">{cliente_nome}</p>
         
-        {demanda.cronometro_ativo && (
+        {(demanda.cronometros_ativos || []).length > 0 && (
           <ActiveTimerIndicator 
-            cronometro_inicio={demanda.cronometro_inicio}
-            cronometro_usuario_nome={demanda.cronometro_usuario_nome}
+            cronometro_inicio={demanda.cronometros_ativos[0].data_inicio}
+            cronometro_usuario_nome={
+              demanda.cronometros_ativos.length > 1
+                ? `${demanda.cronometros_ativos[0].usuario_nome} +${demanda.cronometros_ativos.length - 1}`
+                : demanda.cronometros_ativos[0].usuario_nome
+            }
           />
         )}
         
