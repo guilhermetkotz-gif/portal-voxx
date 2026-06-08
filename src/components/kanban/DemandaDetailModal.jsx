@@ -165,14 +165,56 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Limpar o input para permitir reenvio do mesmo arquivo
+    e.target.value = '';
+
+    // Validar tamanho (25MB máx)
+    const MAX_SIZE = 25 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error('Arquivo muito grande. O tamanho máximo é 25MB.');
+      return;
+    }
+
+    // Validar tipo
+    const tiposPermitidos = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'video/mp4', 'video/quicktime',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
+    if (!tiposPermitidos.includes(file.type) && !file.type.startsWith('image/')) {
+      toast.error('Formato não suportado. Use imagem, vídeo, PDF ou documento Office.');
+      return;
+    }
+
     setUploading(true);
     try {
+      console.log('[Upload Comentário] Iniciando upload', {
+        demanda_id: demanda?.id,
+        nome: file.name,
+        tipo: file.type,
+        tamanho: file.size,
+      });
+
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      if (!file_url) throw new Error('URL do arquivo não retornada pelo servidor');
+
       const isImage = file.type.startsWith('image/');
-      setComentarioAnexo({ name: file.name, url: file_url, isImage });
-      toast.success('Arquivo anexado ao comentário!');
+      setComentarioAnexo({ name: file.name, url: file_url, isImage, tipo: file.type, tamanho: file.size });
+      toast.success('Arquivo anexado! Clique em Enviar para salvar o comentário.');
     } catch (error) {
-      toast.error('Erro ao fazer upload');
+      console.error('[Upload Comentário] Falha', {
+        demanda_id: demanda?.id,
+        nome: file.name,
+        tipo: file.type,
+        tamanho: file.size,
+        erro: error?.message,
+      });
+      toast.error('Não foi possível enviar o arquivo. Verifique o tamanho ou formato e tente novamente.');
     } finally {
       setUploading(false);
     }
@@ -201,14 +243,18 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
       if (items[i].type.indexOf('image') !== -1) {
         e.preventDefault();
         const file = items[i].getAsFile();
-        
+        if (!file) break;
+
         setUploading(true);
         try {
+          console.log('[Upload Paste] Enviando imagem colada', { demanda_id: demanda?.id, tipo: file.type });
           const { file_url } = await base44.integrations.Core.UploadFile({ file });
-          setComentarioAnexo({ name: file.name || 'Imagem colada', url: file_url, isImage: true });
+          if (!file_url) throw new Error('URL não retornada');
+          setComentarioAnexo({ name: 'Imagem colada', url: file_url, isImage: true, tipo: file.type });
           toast.success('Imagem colada e anexada!');
         } catch (error) {
-          toast.error('Erro ao anexar imagem');
+          console.error('[Upload Paste] Falha', { erro: error?.message });
+          toast.error('Não foi possível enviar a imagem colada. Tente novamente.');
         } finally {
           setUploading(false);
         }
@@ -1530,25 +1576,35 @@ ${bu.estrutura_criativo || 'Não gerado'}
                       </div>
                     )}
                     
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button
                         onClick={handleEnviarComentario}
-                        disabled={(!comentario.trim() && !comentarioAnexo) || addComentarioMutation.isPending}
+                        disabled={(!comentario.trim() && !comentarioAnexo) || addComentarioMutation.isPending || uploading}
                       >
-                        <Send className="h-4 w-4 mr-2" />
+                        {addComentarioMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
                         Enviar
                       </Button>
-                      <Button variant="outline" disabled={uploading}>
-                        <label className="cursor-pointer flex items-center">
+                      <Button variant="outline" disabled={uploading} asChild>
+                        <label className="cursor-pointer flex items-center gap-2">
                           {uploading ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Enviando arquivo...
+                            </>
                           ) : (
-                            <Paperclip className="h-4 w-4 mr-2" />
+                            <>
+                              <Paperclip className="h-4 w-4" />
+                              Anexar Arquivo
+                            </>
                           )}
-                          Anexar Arquivo
                           <input
                             type="file"
                             className="hidden"
+                            accept="image/*,video/mp4,video/quicktime,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                             onChange={handleComentarioFileUpload}
                             disabled={uploading}
                           />
