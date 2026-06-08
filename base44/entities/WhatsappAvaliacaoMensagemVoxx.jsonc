@@ -1,0 +1,116 @@
+{
+  "name": "WhatsappAvaliacaoMensagemVoxx",
+  "type": "object",
+  "properties": {
+    "mensagem_id": {
+      "type": "string",
+      "description": "ID da WhatsappMensagem avaliada"
+    },
+    "grupo_id": {
+      "type": "string"
+    },
+    "grupo_nome": {
+      "type": "string"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "remetente_nome": {
+      "type": "string"
+    },
+    "remetente_telefone": {
+      "type": "string"
+    },
+    "mensagem_original": {
+      "type": "string"
+    },
+    "data_mensagem": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "score_qualidade": {
+      "type": "number",
+      "description": "Score geral de 0 a 100"
+    },
+    "classificacao": {
+      "type": "string",
+      "enum": [
+        "excelente",
+        "boa",
+        "atencao",
+        "fraca",
+        "critica"
+      ],
+      "description": "Classifica\u00e7\u00e3o baseada no score"
+    },
+    "clareza_score": {
+      "type": "number"
+    },
+    "tom_score": {
+      "type": "number"
+    },
+    "especificidade_score": {
+      "type": "number"
+    },
+    "resolucao_score": {
+      "type": "number"
+    },
+    "valor_percebido_score": {
+      "type": "number"
+    },
+    "risco_ruido_score": {
+      "type": "number"
+    },
+    "padrao_voxx_score": {
+      "type": "number"
+    },
+    "pontos_positivos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pontos_atencao": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sugestao_melhoria": {
+      "type": "string"
+    },
+    "versao_sugerida": {
+      "type": "string",
+      "description": "Vers\u00e3o melhorada da mensagem"
+    },
+    "risco_detectado": {
+      "type": "string"
+    },
+    "avaliacao_resumo": {
+      "type": "string"
+    },
+    "contexto_limitado": {
+      "type": "boolean",
+      "default": false
+    },
+    "resolvido": {
+      "type": "boolean",
+      "default": false
+    },
+    "resolvido_por": {
+      "type": "string"
+    },
+    "resolvido_em": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "mensagem_id",
+    "grupo_id",
+    "mensagem_original"
+  ]
+}
