@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Wifi, WifiOff, Activity, Users, MessageSquare, AlertTriangle, Zap, Radio } from 'lucide-react';
+import { Wifi, WifiOff, Activity, Users, MessageSquare, AlertTriangle, Zap, Radio, Bell, BellOff, Volume2 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import AbaMonitoramento from '@/components/radar/AbaMonitoramento';
@@ -13,6 +13,8 @@ import AbaDiagnostico from '@/components/radar/AbaDiagnostico';
 import AbaAnalises from '@/components/radar/AbaAnalises';
 import AbaRemetentesVoxx from '@/components/radar/AbaRemetentesVoxx';
 import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
+import { useAlertaSomRadar } from '@/hooks/useAlertaSomRadar';
+import { Button } from '@/components/ui/button';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -123,11 +125,12 @@ export default function RadarWhatsApp() {
         }
       }
 
-      // score de ordenação
+      // score de ordenação (1=mais urgente)
       let ordem = 6; // saudável
-      if (g.status_vinculo === 'nao_vinculado') ordem = 4;
-      if (alertaNivel === 'alerta') ordem = 3;
-      if (alertaNivel === 'critico') ordem = 2;
+      if (g.status_vinculo === 'nao_vinculado') ordem = 5;
+      if (alertaNivel === 'alarme')      ordem = 4;
+      if (alertaNivel === 'alerta')      ordem = 3;
+      if (alertaNivel === 'critico')     ordem = 2;
       if (alertaNivel === 'emergencial') ordem = 1;
       if (!ultimaGeral) ordem = 7;
 
@@ -136,6 +139,7 @@ export default function RadarWhatsApp() {
         ultimaGeral,
         ultimaCliente,
         ultimaVoxx,
+        ultimaClienteValida,
         msgsHoje: msgsHoje.length,
         totalMsgs: msgs.length,
         minutosSemResposta,
@@ -150,6 +154,7 @@ export default function RadarWhatsApp() {
   const kpis = useMemo(() => {
     const hoje = moment().tz(TZ).startOf('day');
     const msgsHoje = mensagens.filter(m => moment(m.received_at).tz(TZ).isAfter(hoje));
+    const alarmes  = gruposEnriquecidos.filter(g => g.alertaNivel === 'alarme').length;
     const alertas  = gruposEnriquecidos.filter(g => g.alertaNivel === 'alerta').length;
     const criticos = gruposEnriquecidos.filter(g => g.alertaNivel === 'critico').length;
     const emergs   = gruposEnriquecidos.filter(g => g.alertaNivel === 'emergencial').length;
@@ -161,17 +166,20 @@ export default function RadarWhatsApp() {
       naoVinculados:  grupos.filter(g => g.status_vinculo === 'nao_vinculado').length,
       msgsHoje:       msgsHoje.length,
       totalMsgs:      mensagens.length,
-      alertas, criticos, emergs,
+      alarmes, alertas, criticos, emergs,
       ultimoRaw: ultimoRaw?.received_at,
     };
   }, [grupos, mensagens, gruposEnriquecidos, rawWebhooks]);
+
+  // ── Alarme sonoro ─────────────────────────────────────────────
+  const { somAtivo, toggleSom, audioBloqueado } = useAlertaSomRadar(gruposEnriquecidos);
 
   const loading = loadingGrupos || loadingMsgs;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 -m-4 lg:-m-8 p-4 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
             <Radio className="w-6 h-6 text-emerald-400" />
@@ -181,22 +189,40 @@ export default function RadarWhatsApp() {
             <p className="text-slate-400 text-sm">Monitoramento em tempo real dos grupos de atendimento</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-xs text-slate-400">Ao vivo</span>
+        <div className="flex items-center gap-3">
+          {/* Botão de som */}
+          <Button
+            onClick={toggleSom}
+            variant="outline"
+            size="sm"
+            className={`gap-2 border ${somAtivo ? 'border-amber-500/50 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' : 'border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+          >
+            {somAtivo ? <Volume2 className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+            <span className="text-xs">Som: {somAtivo ? 'Ativo' : 'Inativo'}</span>
+          </Button>
+          {audioBloqueado && (
+            <span className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2 py-1">
+              Navegador bloqueou áudio — clique em "Ativar som"
+            </span>
+          )}
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs text-slate-400">Ao vivo</span>
+          </div>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3 mb-6">
         <KpiCard label="Grupos" value={kpis.totalGrupos} icon={Users} color="blue" />
         <KpiCard label="Vinculados" value={kpis.vinculados} icon={Wifi} color="emerald" />
         <KpiCard label="Não Vinculados" value={kpis.naoVinculados} icon={WifiOff} color="amber" />
         <KpiCard label="Msgs Hoje" value={kpis.msgsHoje} icon={MessageSquare} color="violet" />
         <KpiCard label="Msgs Total" value={kpis.totalMsgs} icon={Activity} color="slate" />
-        <KpiCard label="Alertas" value={kpis.alertas} icon={AlertTriangle} color="yellow" />
-        <KpiCard label="Críticos" value={kpis.criticos} icon={AlertTriangle} color="orange" />
-        <KpiCard label="Emergenciais" value={kpis.emergs} icon={Zap} color="red" />
+        <KpiCard label="+15min" value={kpis.alarmes} icon={Bell} color="amber" pulse={kpis.alarmes > 0} />
+        <KpiCard label="+30min" value={kpis.alertas} icon={AlertTriangle} color="yellow" />
+        <KpiCard label="+1h" value={kpis.criticos} icon={AlertTriangle} color="orange" />
+        <KpiCard label="+2h" value={kpis.emergs} icon={Zap} color="red" />
         <KpiCard
           label="Último Webhook"
           value={kpis.ultimoRaw ? moment(kpis.ultimoRaw).tz(TZ).fromNow() : '—'}
@@ -261,7 +287,7 @@ export default function RadarWhatsApp() {
   );
 }
 
-function KpiCard({ label, value, icon: Icon, color, small }) {
+function KpiCard({ label, value, icon: Icon, color, small, pulse }) {
   const colors = {
     blue:    'text-blue-400 bg-blue-500/10 border-blue-500/20',
     emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
@@ -274,7 +300,7 @@ function KpiCard({ label, value, icon: Icon, color, small }) {
   };
   const cls = colors[color] || colors.slate;
   return (
-    <div className={`rounded-xl border p-3 ${cls}`}>
+    <div className={`rounded-xl border p-3 ${cls} ${pulse ? 'animate-pulse' : ''}`}>
       <div className="flex items-center gap-1.5 mb-1">
         <Icon className="w-3.5 h-3.5 opacity-70" />
         <span className="text-[10px] font-medium uppercase tracking-wider opacity-70">{label}</span>

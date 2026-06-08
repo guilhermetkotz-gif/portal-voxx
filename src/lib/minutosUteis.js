@@ -72,6 +72,7 @@ export function calcularMinutosUteis(de, ate) {
 }
 
 export const LIMITES_ALERTA = {
+  alarme:      15,   // +15min úteis (novo - primeiro nível)
   alerta:      30,   // +30min úteis
   critico:     60,   // +1h útil
   emergencial: 120,  // +2h úteis
@@ -84,5 +85,6 @@ export function nivelAlerta(minutosUteis) {
   if (minutosUteis >= LIMITES_ALERTA.emergencial) return 'emergencial';
   if (minutosUteis >= LIMITES_ALERTA.critico)     return 'critico';
   if (minutosUteis >= LIMITES_ALERTA.alerta)       return 'alerta';
+  if (minutosUteis >= LIMITES_ALERTA.alarme)       return 'alarme';
   return null;
 }

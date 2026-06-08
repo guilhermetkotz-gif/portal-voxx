@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Filter } from 'lucide-react';
+import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import GrupoDetalheDrawer from './GrupoDetalheDrawer';
@@ -11,9 +11,10 @@ import GrupoDetalheDrawer from './GrupoDetalheDrawer';
 const TZ = 'America/Sao_Paulo';
 
 const ALERT_CONFIG = {
-  emergencial: { label: 'Emergencial', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: Zap },
-  critico:     { label: 'Crítico',     color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: AlertTriangle },
-  alerta:      { label: 'Alerta',      color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock },
+  emergencial: { label: 'Emergencial +2h',  color: 'bg-red-500/20 text-red-400 border-red-500/30',       icon: Zap },
+  critico:     { label: 'Crítico +1h',      color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: AlertTriangle },
+  alerta:      { label: 'Alerta +30min',    color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock },
+  alarme:      { label: 'Sem resposta +15min', color: 'bg-amber-500/20 text-amber-400 border-amber-500/30',  icon: Bell },
 };
 
 const VINCULO_CONFIG = {
@@ -57,10 +58,11 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
       }
       if (filtroVinculo !== 'todos' && g.status_vinculo !== filtroVinculo) return false;
       if (filtroAlerta === 'com_alerta' && !g.alertaNivel) return false;
-      if (filtroAlerta === 'sem_resposta' && !g.alertaNivel) return false;
       if (filtroAlerta === 'saudaveis' && g.alertaNivel) return false;
+      if (filtroAlerta === 'alarme'      && g.alertaNivel !== 'alarme')      return false;
+      if (filtroAlerta === 'alerta'      && g.alertaNivel !== 'alerta')      return false;
+      if (filtroAlerta === 'critico'     && g.alertaNivel !== 'critico')     return false;
       if (filtroAlerta === 'emergencial' && g.alertaNivel !== 'emergencial') return false;
-      if (filtroAlerta === 'critico' && g.alertaNivel !== 'critico') return false;
       return true;
     });
   }, [gruposEnriquecidos, busca, filtroVinculo, filtroAlerta, periodoCorte]);
@@ -98,8 +100,10 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
           <SelectContent className="bg-slate-800 border-slate-700">
             <SelectItem value="todos">Todos</SelectItem>
             <SelectItem value="com_alerta">Com alerta</SelectItem>
-            <SelectItem value="emergencial">Emergencial</SelectItem>
-            <SelectItem value="critico">Crítico</SelectItem>
+            <SelectItem value="alarme">+15min sem resposta</SelectItem>
+            <SelectItem value="alerta">+30min</SelectItem>
+            <SelectItem value="critico">Crítico +1h</SelectItem>
+            <SelectItem value="emergencial">Emergencial +2h</SelectItem>
             <SelectItem value="saudaveis">Saudáveis</SelectItem>
           </SelectContent>
         </Select>
@@ -148,7 +152,12 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
                   return (
                     <tr
                       key={g.id}
-                      className={`border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors ${g.alertaNivel === 'emergencial' ? 'bg-red-950/20' : g.alertaNivel === 'critico' ? 'bg-orange-950/20' : ''}`}
+                      className={`border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors ${
+                        g.alertaNivel === 'emergencial' ? 'bg-red-950/20' :
+                        g.alertaNivel === 'critico'     ? 'bg-orange-950/20' :
+                        g.alertaNivel === 'alerta'      ? 'bg-yellow-950/10' :
+                        g.alertaNivel === 'alarme'      ? 'bg-amber-950/10' : ''
+                      }`}
                     >
                       <td className="px-4 py-3">
                         <div className="font-semibold text-white text-sm">{g.cliente_nome || <span className="text-slate-500 italic">Sem cliente</span>}</div>
