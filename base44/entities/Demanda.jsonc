@@ -78,7 +78,7 @@
     "ultima_atividade_kanban": {
       "type": "string",
       "format": "date-time",
-      "description": "Data/hora da \u00faltima movimenta\u00e7\u00e3o relevante no kanban (coment\u00e1rio ou mudan\u00e7a de coluna). Usado para detectar inatividade."
+      "description": "Data/hora da \u00faltima movimenta\u00e7\u00e3o relevante no kanban. Usado para detectar inatividade."
     },
     "anexos": {
       "type": "array",
@@ -95,7 +95,8 @@
     },
     "tempo_trabalho_minutos": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Tempo total acumulado de trabalho em minutos (soma hist\u00f3rica de todas as sess\u00f5es pausadas)"
     },
     "historico_tempo_trabalho": {
       "type": "array",
@@ -118,19 +119,43 @@
         }
       }
     },
+    "cronometros_ativos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "usuario_id": {
+            "type": "string"
+          },
+          "usuario_nome": {
+            "type": "string"
+          },
+          "data_inicio": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "default": [],
+      "description": "Lista de usu\u00e1rios com cron\u00f4metros ativos nesta demanda. M\u00faltiplos usu\u00e1rios podem ter cron\u00f4metros rodando simultaneamente."
+    },
     "cronometro_ativo": {
       "type": "boolean",
-      "default": false
+      "default": false,
+      "description": "Legado \u2014 usar cronometros_ativos"
     },
     "cronometro_inicio": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "Legado"
     },
     "cronometro_usuario_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Legado"
     },
     "cronometro_usuario_nome": {
-      "type": "string"
+      "type": "string",
+      "description": "Legado"
     },
     "tags": {
       "type": "array",

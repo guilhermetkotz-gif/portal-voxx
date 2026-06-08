@@ -46,10 +46,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showPauseConfirm, setShowPauseConfirm] = useState(false);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [liveSessionSeconds, setLiveSessionSeconds] = useState(0);
-  const pendingCloseRef = React.useRef(false);
+
   const timerRef = useRef(null);
   const [comentarioAnexo, setComentarioAnexo] = useState(null);
   const [enviandoN8n, setEnviandoN8n] = useState(false);
@@ -66,29 +63,7 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     tipo_comunicacao: demanda?.tipo_comunicacao || ''
   });
 
-  const handleSaveTime = async (minutes) => {
-    try {
-      const currentTime = currentDemanda?.tempo_trabalho_minutos || 0;
-      const newTotal = currentTime + minutes;
-      const historico = currentDemanda?.historico_tempo_trabalho || [];
-      
-      historico.push({
-        usuario_id: user?.id,
-        usuario_nome: user?.full_name || user?.email,
-        minutos: minutes,
-        data_registro: new Date().toISOString()
-      });
-      
-      await base44.entities.Demanda.update(demanda.id, { 
-        tempo_trabalho_minutos: newTotal,
-        historico_tempo_trabalho: historico
-      });
-      queryClient.invalidateQueries({ queryKey: ['demanda', demanda.id] });
-      toast.success(`${minutes} minutos adicionados ao tempo de trabalho!`);
-    } catch (error) {
-      toast.error('Erro ao salvar tempo de trabalho');
-    }
-  };
+
 
   // Recarrega demanda atual
   const { data: demandaAtual } = useQuery({
@@ -694,11 +669,7 @@ ${statusValidacao}`.trim();
   if (!open) return null;
 
   const handleClose = () => {
-    if (isTimerRunning) {
-      setShowPauseConfirm(true);
-    } else {
-      onClose();
-    }
+    onClose();
   };
 
   return (
@@ -715,15 +686,8 @@ ${statusValidacao}`.trim();
               <h2 className="text-xl font-semibold pr-8">{currentDemanda.titulo}</h2>
               <p className="text-sm text-muted-foreground mt-1">Cliente: {currentDemanda.cliente_nome}</p>
               <div className="mt-2">
-                <TimeTracker
-                  ref={timerRef}
-                  demandaId={demanda.id}
-                  onSaveTime={handleSaveTime}
-                  initialMinutes={0}
-                  onRunningChange={(running) => { setIsTimerRunning(running); if (!running) setLiveSessionSeconds(0); }}
-                  onTick={setLiveSessionSeconds}
-                />
-                <TempoLimiteDemanda demanda={currentDemanda} liveExtraSeconds={liveSessionSeconds} />
+                <TimeTracker ref={timerRef} demandaId={demanda.id} />
+                <TempoLimiteDemanda demanda={currentDemanda} />
               </div>
             </div>
             <div className="flex items-center gap-1 flex-shrink-0">
@@ -1644,40 +1608,6 @@ ${bu.estrutura_criativo || 'Não gerado'}
               </>
             )}
         </div>
-
-        {/* Dialog de Confirmação de Pausar Cronômetro */}
-        {showPauseConfirm && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowPauseConfirm(false)} />
-            <div className="relative bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2 mb-2">
-                <Clock className="h-5 w-5 text-violet-500" />
-                Pausar cronômetro?
-              </h3>
-              <p className="text-sm text-slate-600 mb-6">
-                O cronômetro está em execução. Deseja pausá-lo ao fechar a demanda?
-              </p>
-              <div className="flex justify-end gap-3">
-                <Button variant="outline" onClick={() => { setShowPauseConfirm(false); onClose(); }}>
-                  Não, continuar
-                </Button>
-                <Button
-                  className="bg-violet-600 hover:bg-violet-700 text-white"
-                  onClick={async () => {
-                    setShowPauseConfirm(false);
-                    // Pausar via ref do TimeTracker (para o interval local também)
-                    if (timerRef.current?.pause) {
-                      await timerRef.current.pause();
-                    }
-                    onClose();
-                  }}
-                >
-                  Sim, pausar
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Dialog de Confirmação de Exclusão - inline, sem portal */}
         {showDeleteDialog && (
