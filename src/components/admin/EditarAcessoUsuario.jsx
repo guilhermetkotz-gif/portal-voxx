@@ -220,7 +220,8 @@ export default function EditarAcessoUsuario({ usuario, acessos, onClose, current
     }
   });
 
-  const clientesNaoAtribuidos = clientes.filter(c => !acessos.some(a => a.cliente_id === c.id));
+  const acessosAtivos = acessos.filter(a => a.status === 'ativo');
+  const clientesNaoAtribuidos = clientes.filter(c => !acessosAtivos.some(a => a.cliente_id === c.id));
   
   const clientesDisponiveis = clientesNaoAtribuidos.filter(c => 
     c.nome?.toLowerCase().includes(searchCliente.toLowerCase()) ||
