@@ -33,6 +33,15 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
   const meuCronometro = (demandaAtual?.cronometros_ativos || []).find(c => c.usuario_id === user?.id);
   const isRunning = !!meuCronometro;
 
+  // Auto-start: inicia automaticamente ao abrir o modal (se não houver cronômetro ativo)
+  const autoStartedRef = useRef(false);
+  useEffect(() => {
+    if (demandaAtual && user && !meuCronometro && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      handleStart();
+    }
+  }, [demandaAtual?.id, user?.id]); // eslint-disable-line
+
   // Segundos decorridos desde que eu iniciei
   const mySeconds = meuCronometro?.data_inicio
     ? Math.floor((nowMs - new Date(meuCronometro.data_inicio).getTime()) / 1000)
