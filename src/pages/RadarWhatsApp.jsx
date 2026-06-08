@@ -12,7 +12,6 @@ import AbaMensagensRadar from '@/components/radar/AbaMensagensRadar';
 import AbaDiagnostico from '@/components/radar/AbaDiagnostico';
 import AbaAnalises from '@/components/radar/AbaAnalises';
 import AbaRemetentesVoxx from '@/components/radar/AbaRemetentesVoxx';
-import AbaQualidadeVoxx from '@/components/radar/AbaQualidadeVoxx';
 import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
 import { useAlertaSomRadar } from '@/hooks/useAlertaSomRadar';
 import { Button } from '@/components/ui/button';
@@ -27,28 +26,28 @@ export default function RadarWhatsApp() {
   const { data: grupos = [], isLoading: loadingGrupos } = useQuery({
     queryKey: ['radarGrupos'],
     queryFn: () => base44.entities.WhatsappGrupo.list('-ultima_atividade', 200),
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 3 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
   });
 
   const { data: mensagens = [], isLoading: loadingMsgs } = useQuery({
     queryKey: ['radarMensagens'],
-    queryFn: () => base44.entities.WhatsappMensagem.list('-received_at', 300),
-    staleTime: 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
+    queryFn: () => base44.entities.WhatsappMensagem.list('-received_at', 500),
+    staleTime: 15 * 1000,
+    refetchInterval: 30 * 1000,
   });
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['radarClientes'],
     queryFn: () => base44.entities.Cliente.list('-nome', 500),
-    staleTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: rawWebhooks = [] } = useQuery({
     queryKey: ['radarRawWebhooks'],
     queryFn: () => base44.entities.WhatsappWebhookRaw.list('-received_at', 50),
-    staleTime: 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
+    staleTime: 15 * 1000,
+    refetchInterval: 30 * 1000,
   });
 
   // ── Subscrições realtime ─────────────────────────────────────
@@ -265,9 +264,6 @@ export default function RadarWhatsApp() {
           <TabsTrigger value="remetentes" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
             Remetentes VOXX
           </TabsTrigger>
-          <TabsTrigger value="qualidade" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white text-slate-400">
-            ⭐ Qualidade VOXX
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="monitoramento">
@@ -296,10 +292,6 @@ export default function RadarWhatsApp() {
 
         <TabsContent value="remetentes">
           <AbaRemetentesVoxx mensagens={mensagens} />
-        </TabsContent>
-
-        <TabsContent value="qualidade">
-          <AbaQualidadeVoxx clientes={clientes} gruposEnriquecidos={gruposEnriquecidos} />
         </TabsContent>
       </Tabs>
     </div>
