@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Wifi, WifiOff, Activity, Users, MessageSquare, AlertTriangle, Zap, Radio, Bell, BellOff, Volume2 } from 'lucide-react';
+import { Wifi, WifiOff, Activity, Users, MessageSquare, AlertTriangle, Zap, Radio, Bell, BellOff, Volume2, MoonStar } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import AbaMonitoramento from '@/components/radar/AbaMonitoramento';
@@ -125,6 +125,13 @@ export default function RadarWhatsApp() {
         }
       }
 
+      // inatividade total (sem nenhuma mensagem há +72h)
+      const tsUltimaGeral = ultimaGeral?.received_at || ultimaGeral?.timestamp_mensagem || g.ultima_atividade;
+      const horasSemMensagem = tsUltimaGeral
+        ? moment().tz(TZ).diff(moment(tsUltimaGeral).tz(TZ), 'hours')
+        : Infinity;
+      const inativo72h = horasSemMensagem >= 72;
+
       // score de ordenação (1=mais urgente)
       let ordem = 6; // saudável
       if (g.status_vinculo === 'nao_vinculado') ordem = 5;
@@ -146,6 +153,8 @@ export default function RadarWhatsApp() {
         alertaNivel,
         ordem,
         todasMsgs: msgs,
+        inativo72h,
+        horasSemMensagem: isFinite(horasSemMensagem) ? horasSemMensagem : null,
       };
     }).sort((a, b) => a.ordem - b.ordem || (b.ultimaGeral?.received_at || '') > (a.ultimaGeral?.received_at || '') ? 1 : -1);
   }, [grupos, mensagens]);
@@ -154,10 +163,11 @@ export default function RadarWhatsApp() {
   const kpis = useMemo(() => {
     const hoje = moment().tz(TZ).startOf('day');
     const msgsHoje = mensagens.filter(m => moment(m.received_at).tz(TZ).isAfter(hoje));
-    const alarmes  = gruposEnriquecidos.filter(g => g.alertaNivel === 'alarme').length;
-    const alertas  = gruposEnriquecidos.filter(g => g.alertaNivel === 'alerta').length;
-    const criticos = gruposEnriquecidos.filter(g => g.alertaNivel === 'critico').length;
-    const emergs   = gruposEnriquecidos.filter(g => g.alertaNivel === 'emergencial').length;
+    const alarmes   = gruposEnriquecidos.filter(g => g.alertaNivel === 'alarme').length;
+    const alertas   = gruposEnriquecidos.filter(g => g.alertaNivel === 'alerta').length;
+    const criticos  = gruposEnriquecidos.filter(g => g.alertaNivel === 'critico').length;
+    const emergs    = gruposEnriquecidos.filter(g => g.alertaNivel === 'emergencial').length;
+    const inativos72 = gruposEnriquecidos.filter(g => g.inativo72h && g.status_vinculo === 'vinculado').length;
     const ultimoRaw = rawWebhooks[0];
 
     return {
@@ -166,7 +176,7 @@ export default function RadarWhatsApp() {
       naoVinculados:  grupos.filter(g => g.status_vinculo === 'nao_vinculado').length,
       msgsHoje:       msgsHoje.length,
       totalMsgs:      mensagens.length,
-      alarmes, alertas, criticos, emergs,
+      alarmes, alertas, criticos, emergs, inativos72,
       ultimoRaw: ultimoRaw?.received_at,
     };
   }, [grupos, mensagens, gruposEnriquecidos, rawWebhooks]);
@@ -223,6 +233,7 @@ export default function RadarWhatsApp() {
         <KpiCard label="+30min" value={kpis.alertas} icon={AlertTriangle} color="yellow" />
         <KpiCard label="+1h" value={kpis.criticos} icon={AlertTriangle} color="orange" />
         <KpiCard label="+2h" value={kpis.emergs} icon={Zap} color="red" />
+        <KpiCard label="Inativos 72h+" value={kpis.inativos72} icon={MoonStar} color="purple" pulse={kpis.inativos72 > 0} />
         <KpiCard
           label="Último Webhook"
           value={kpis.ultimoRaw ? moment(kpis.ultimoRaw).tz(TZ).fromNow() : '—'}
@@ -256,7 +267,7 @@ export default function RadarWhatsApp() {
         </TabsList>
 
         <TabsContent value="monitoramento">
-          <AbaMonitoramento gruposEnriquecidos={gruposEnriquecidos} clientes={clientes} loading={loading} />
+          <AbaMonitoramento gruposEnriquecidos={gruposEnriquecidos} clientes={clientes} loading={loading} kpis={kpis} />
         </TabsContent>
 
         <TabsContent value="grupos">
@@ -297,6 +308,7 @@ function KpiCard({ label, value, icon: Icon, color, small, pulse }) {
     orange:  'text-orange-400 bg-orange-500/10 border-orange-500/20',
     red:     'text-red-400 bg-red-500/10 border-red-500/20',
     slate:   'text-slate-400 bg-slate-800 border-slate-700',
+    purple:  'text-purple-400 bg-purple-500/10 border-purple-500/20',
   };
   const cls = colors[color] || colors.slate;
   return (

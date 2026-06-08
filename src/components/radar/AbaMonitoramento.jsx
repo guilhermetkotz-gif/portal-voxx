@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell } from 'lucide-react';
+import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell, MoonStar } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import GrupoDetalheDrawer from './GrupoDetalheDrawer';
@@ -38,7 +38,7 @@ function DataHora({ ts }) {
   return <span className="text-slate-400">{m.format('DD/MM HH:mm')}</span>;
 }
 
-export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading }) {
+export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading, kpis }) {
   const [busca, setBusca] = useState('');
   const [filtroVinculo, setFiltroVinculo] = useState('todos');
   const [filtroAlerta, setFiltroAlerta] = useState('todos');
@@ -63,6 +63,7 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
       if (filtroAlerta === 'alerta'      && g.alertaNivel !== 'alerta')      return false;
       if (filtroAlerta === 'critico'     && g.alertaNivel !== 'critico')     return false;
       if (filtroAlerta === 'emergencial' && g.alertaNivel !== 'emergencial') return false;
+      if (filtroAlerta === 'inativo72h'  && !g.inativo72h)                  return false;
       return true;
     });
   }, [gruposEnriquecidos, busca, filtroVinculo, filtroAlerta, periodoCorte]);
@@ -104,6 +105,7 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
             <SelectItem value="alerta">+30min</SelectItem>
             <SelectItem value="critico">Crítico +1h</SelectItem>
             <SelectItem value="emergencial">Emergencial +2h</SelectItem>
+            <SelectItem value="inativo72h">Inativos 72h+</SelectItem>
             <SelectItem value="saudaveis">Saudáveis</SelectItem>
           </SelectContent>
         </Select>
@@ -156,7 +158,8 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
                         g.alertaNivel === 'emergencial' ? 'bg-red-950/20' :
                         g.alertaNivel === 'critico'     ? 'bg-orange-950/20' :
                         g.alertaNivel === 'alerta'      ? 'bg-yellow-950/10' :
-                        g.alertaNivel === 'alarme'      ? 'bg-amber-950/10' : ''
+                        g.alertaNivel === 'alarme'      ? 'bg-amber-950/10' :
+                        g.inativo72h                    ? 'bg-purple-950/10' : ''
                       }`}
                     >
                       <td className="px-4 py-3">
@@ -176,15 +179,19 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
                       <td className="px-3 py-3">
                         {g.minutosSemResposta > 0
                           ? <span className={alerta ? `font-semibold ${alerta.color.split(' ')[1]}` : 'text-slate-400'}>{tempoFormatado(g.minutosSemResposta)}</span>
-                          : <span className="text-slate-600">—</span>
+                          : g.inativo72h && g.horasSemMensagem
+                            ? <span className="text-purple-400 font-semibold">{Math.floor(g.horasSemMensagem)}h</span>
+                            : <span className="text-slate-600">—</span>
                         }
                       </td>
                       <td className="px-3 py-3">
                         {alerta
                           ? <Badge className={`text-[10px] border gap-1 flex items-center ${alerta.color}`}><AlertIcon className="w-2.5 h-2.5" />{alerta.label}</Badge>
-                          : g.status_vinculo === 'nao_vinculado'
-                            ? <Badge className="text-[10px] border bg-slate-700/40 text-slate-400 border-slate-600"><WifiOff className="w-2.5 h-2.5 inline mr-1" />Sem vínculo</Badge>
-                            : <Badge className="text-[10px] border bg-emerald-500/10 text-emerald-500 border-emerald-500/20"><CheckCircle className="w-2.5 h-2.5 inline mr-1" />OK</Badge>
+                          : g.inativo72h
+                            ? <Badge className="text-[10px] border bg-purple-500/20 text-purple-400 border-purple-500/30 gap-1 flex items-center"><MoonStar className="w-2.5 h-2.5" />Inativo {Math.floor(g.horasSemMensagem / 24)}d</Badge>
+                            : g.status_vinculo === 'nao_vinculado'
+                              ? <Badge className="text-[10px] border bg-slate-700/40 text-slate-400 border-slate-600"><WifiOff className="w-2.5 h-2.5 inline mr-1" />Sem vínculo</Badge>
+                              : <Badge className="text-[10px] border bg-emerald-500/10 text-emerald-500 border-emerald-500/20"><CheckCircle className="w-2.5 h-2.5 inline mr-1" />OK</Badge>
                         }
                       </td>
                       <td className="px-3 py-3">
