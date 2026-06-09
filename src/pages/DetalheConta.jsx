@@ -270,10 +270,10 @@ export default function DetalheConta({ user }) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card>
                     <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium text-slate-500">Conversas Iniciadas</CardTitle>
+                        <CardTitle className="text-sm font-medium text-slate-500">Cadastros + WhatsApp</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <span className="text-2xl font-bold text-slate-900">{account.messaging_conversations}</span>
+                        <span className="text-2xl font-bold text-slate-900">{account.cadastros_whats ?? 0}</span>
                     </CardContent>
                 </Card>
 
