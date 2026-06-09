@@ -274,19 +274,18 @@ export default function MonitoramentoContas({ user }) {
 
     const syncMutation = useMutation({
         mutationFn: async () => {
-            // Run both independently - don't let one failure block the other
-            const results = await Promise.allSettled([
+            // Run both independently - never throw, always show cached data
+            await Promise.allSettled([
                 base44.functions.invoke('syncMetaAdsAccounts', {}),
                 base44.functions.invoke('syncRadarMetaData', {})
             ]);
-            const errors = results.filter(r => r.status === 'rejected').map(r => r.reason?.message);
-            if (errors.length === 2) throw new Error(errors.join('; '));
-            return results;
         },
         onSettled: () => {
-            // Always invalidate queries regardless of success/failure
             queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] });
             queryClient.invalidateQueries({ queryKey: ['radarMetaData'] });
+        },
+        onError: () => {
+            // Silently ignore sync errors - cached data will still display
         }
     });
 
