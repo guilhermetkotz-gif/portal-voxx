@@ -134,7 +134,7 @@ export default function DetalheConta({ user }) {
                 risco: "O público disponível pode esgotar antes do fim do mês, impedindo escalar ou manter o volume atual."
             };
         }
-        if (account.cost_per_messaging >= 30) {
+        if ((account.cpl_meta_ads || account.cost_per_messaging) >= 30) {
             return {
                 titulo: "⚠️ Custo por Conversa Elevado",
                 descricao: "O custo acima de R$ 30 por conversa iniciada sugere baixa qualificação no criativo, oferta pouco atrativa ou público frio demais.",
@@ -227,23 +227,29 @@ export default function DetalheConta({ user }) {
                     </CardContent>
                 </Card>
 
-                <Card className={account.cost_per_messaging >= 30 ? 'border-red-300 bg-red-50' : ''}>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
-                            <MessageCircle className="w-4 h-4" />
-                            Custo/Conversa
-                            {account.cost_per_messaging >= 30 && <AlertTriangle className="w-4 h-4 text-red-600" />}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <span className={cn("text-3xl font-bold", account.cost_per_messaging >= 30 ? 'text-red-600' : 'text-slate-900')}>
-                            R$ {account.cost_per_messaging.toFixed(2)}
-                        </span>
-                        {account.cost_per_messaging >= 30 && (
-                            <p className="text-xs text-red-600 mt-1">Acima do ideal (≥R$30)</p>
-                        )}
-                    </CardContent>
-                </Card>
+                {(() => {
+                    const custoConversa = account.cpl_meta_ads > 0 ? account.cpl_meta_ads : account.cost_per_messaging;
+                    const isAlto = custoConversa >= 30;
+                    return (
+                        <Card className={isAlto ? 'border-red-300 bg-red-50' : ''}>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                                    <MessageCircle className="w-4 h-4" />
+                                    Custo/Conversa
+                                    {isAlto && <AlertTriangle className="w-4 h-4 text-red-600" />}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <span className={cn("text-3xl font-bold", isAlto ? 'text-red-600' : 'text-slate-900')}>
+                                    R$ {custoConversa.toFixed(2)}
+                                </span>
+                                {isAlto && (
+                                    <p className="text-xs text-red-600 mt-1">Acima do ideal (≥R$30)</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    );
+                })()}
 
                 <Card>
                     <CardHeader className="pb-3">
