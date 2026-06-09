@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
         const seteDiasSheetName = config.aba_7dias;
         const colMap = config.mapeamento_colunas;
 
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+        const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
         // Fetch data from both sheets
         const fetchSheetData = async (sheetName) => {

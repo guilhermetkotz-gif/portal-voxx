@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
         console.log('Using config:', { nome: config.nome_configuracao, spreadsheetId, sheetName });
 
         // Get access token for Google Sheets
-        const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+        const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
         const encodedSheet = encodeURIComponent(sheetName);
         const range = `${encodedSheet}!A:X`;
