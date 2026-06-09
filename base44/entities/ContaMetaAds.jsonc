@@ -78,6 +78,10 @@
       "type": "number",
       "description": "Cadastros + WhatsApp"
     },
+    "cpl_meta_ads": {
+      "type": "number",
+      "description": "CPL Meta Ads (Custo/Conversa direto da planilha \u2014 coluna R)"
+    },
     "nota_gpt": {
       "type": "number",
       "description": "Nota GPT (0-100)"

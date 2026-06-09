@@ -1100,16 +1100,11 @@ export default function MonitoramentoContas({ user }) {
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {(() => {
-                                                const custoConv = account.cadastros_whats > 0
-                                                    ? account.amount_spent / account.cadastros_whats
-                                                    : null;
-                                                return custoConv != null ? (
-                                                    <span className={custoConv >= 30 ? 'text-red-600 font-semibold' : ''}>
-                                                        R$ {custoConv.toFixed(2)}
-                                                    </span>
-                                                ) : <span className="text-slate-400">—</span>;
-                                            })()}
+                                            {account.cpl_meta_ads > 0 ? (
+                                                <span className={account.cpl_meta_ads >= 30 ? 'text-red-600 font-semibold' : ''}>
+                                                    R$ {account.cpl_meta_ads.toFixed(2)}
+                                                </span>
+                                            ) : <span className="text-slate-400">—</span>}
                                         </TableCell>
                                         <TableCell className="text-right font-medium">
                                             R$ {account.amount_spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

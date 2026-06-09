@@ -40,7 +40,8 @@ export default function ConfigurarPlanilhaModal({ open, onOpenChange, config = n
       leads_repetidos: 'Leads Repetidos',
       leads: 'leads',
       cadastros_whats: 'CADASTROS + WHATS',
-      nota_gpt: 'Nota GPT'
+      nota_gpt: 'Nota GPT',
+      cpl_meta_ads: 'CPL META ADS'
     },
     ativo: true
   });
@@ -85,7 +86,8 @@ export default function ConfigurarPlanilhaModal({ open, onOpenChange, config = n
             leads_repetidos: 'Leads Repetidos',
             leads: 'leads',
             cadastros_whats: 'CADASTROS + WHATS',
-            nota_gpt: 'Nota GPT'
+            nota_gpt: 'Nota GPT',
+            cpl_meta_ads: 'CPL META ADS'
           },
           ativo: true
         });
@@ -402,6 +404,15 @@ export default function ConfigurarPlanilhaModal({ open, onOpenChange, config = n
                         value={formData.mapeamento_colunas.custo_engajamento}
                         onChange={(e) => updateColuna('custo_engajamento', e.target.value)}
                         className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">CPL META ADS (Custo/Conversa — col. R)</Label>
+                      <Input
+                        value={formData.mapeamento_colunas.cpl_meta_ads || ''}
+                        onChange={(e) => updateColuna('cpl_meta_ads', e.target.value)}
+                        className="text-sm"
+                        placeholder="CPL META ADS"
                       />
                     </div>
                   </div>

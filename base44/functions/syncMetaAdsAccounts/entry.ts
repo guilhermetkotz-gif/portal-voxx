@@ -86,8 +86,9 @@ Deno.serve(async (req) => {
         const leadsIdx = getColIndex('leads');
         const cadastrosWhatsIdx = getColIndex('cadastros_whats');
         const notaGPTIdx = getColIndex('nota_gpt');
+        const cplMetaAdsIdx = getColIndex('cpl_meta_ads');
         
-        console.log('Column indices:', { accountNameIdx, amountSpentIdx, frequencyIdx, notaGPTIdx });
+        console.log('Column indices:', { accountNameIdx, amountSpentIdx, frequencyIdx, notaGPTIdx, cplMetaAdsIdx });
 
         const parseNumber = (val) => {
             if (!val) return 0;
@@ -167,6 +168,8 @@ Deno.serve(async (req) => {
             else if (costPerMessaging >= 55) mainIssue = 'Custo por conversa alto (criativo/oferta/qualificação)';
             else mainIssue = 'Saudável (monitorar)';
 
+            const cplMetaAds = cplMetaAdsIdx >= 0 ? parseNumber(row[cplMetaAdsIdx]) : 0;
+
             accounts.push({
                 account_name: accountName,
                 impressions: parseNumber(row[impressionsIdx]),
@@ -186,6 +189,7 @@ Deno.serve(async (req) => {
                 leads_repetidos_percent: leadsRepetidos,
                 leads: parseNumber(row[leadsIdx]),
                 cadastros_whats: parseNumber(row[cadastrosWhatsIdx]),
+                cpl_meta_ads: cplMetaAds,
                 nota_gpt: notaGPT,
                 classificacao,
                 prioridade,
