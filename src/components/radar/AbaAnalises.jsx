@@ -248,10 +248,10 @@ export default function AbaAnalises({ gruposEnriquecidos, clientes }) {
         ) : (
           filtrados.map((g, idx) => {
             const a = g.analise;
-            const statusCfg = STATUS_CONFIG[a?.status || 'sem_dados'];
-            const churnCfg  = CHURN_CONFIG[a?.risco_churn || 'moderado'];
-            const climaCfg  = CLIMA_CONFIG[a?.clima_emocional || 'sem_dados'];
-            const tendCfg   = TENDENCIA_CONFIG[a?.tendencia || 'sem_dados'];
+            const statusCfg = STATUS_CONFIG[a?.status] || STATUS_CONFIG['sem_dados'];
+            const churnCfg  = CHURN_CONFIG[a?.risco_churn] || CHURN_CONFIG['moderado'];
+            const climaCfg  = CLIMA_CONFIG[a?.clima_emocional] || CLIMA_CONFIG['sem_dados'];
+            const tendCfg   = TENDENCIA_CONFIG[a?.tendencia] || TENDENCIA_CONFIG['sem_dados'];
             const TendIcon  = tendCfg.icon;
             const isGerando = gerandoId === g.grupo_id;
 
