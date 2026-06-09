@@ -86,7 +86,11 @@ Deno.serve(async (req) => {
         const leadsIdx = getColIndex('leads');
         const cadastrosWhatsIdx = getColIndex('cadastros_whats');
         const notaGPTIdx = getColIndex('nota_gpt');
-        const cplMetaAdsIdx = getColIndex('cpl_meta_ads');
+        // Tenta pelo mapeamento configurado, senão busca pelo header direto
+        let cplMetaAdsIdx = getColIndex('cpl_meta_ads');
+        if (cplMetaAdsIdx === -1) {
+            cplMetaAdsIdx = headers.findIndex(h => h && h.trim().toUpperCase() === 'CPL META ADS');
+        }
         
         console.log('Column indices:', { accountNameIdx, amountSpentIdx, frequencyIdx, notaGPTIdx, cplMetaAdsIdx });
 
