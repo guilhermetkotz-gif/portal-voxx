@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -289,19 +289,14 @@ export default function MonitoramentoContas({ user }) {
         }
     });
 
-    // Auto-sync on mount always
+    // Auto-sync on mount only once (not on every re-render)
+    const hasSyncedRef = useRef(false);
     useEffect(() => {
-        if (!isLoading) {
+        if (!isLoading && !hasSyncedRef.current) {
+            hasSyncedRef.current = true;
             syncMutation.mutate();
         }
     }, [isLoading]);
-
-    // Auto-sync when switching to data tabs
-    useEffect(() => {
-        if (activeTab === 'radar') {
-            syncMutation.mutate();
-        }
-    }, [activeTab]);
 
     // Filter and sort accounts
     const filteredAccounts = enrichedAccounts
