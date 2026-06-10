@@ -100,16 +100,27 @@ const Kanban = ({ user, selectedClienteId }) => {
 
   const allColumnOrder = React.useMemo(() => {
     // columnOrder (localStorage) is the source of truth for ordering
-    const savedSet = new Set(columnOrder);
+    const seen = new Set(columnOrder);
     // Add custom columns not yet in saved order
     const customNotSaved = customColumns
-      .filter(c => !savedSet.has(c.column_id))
+      .filter(c => !seen.has(c.column_id))
       .sort((a, b) => a.order - b.order)
       .map(c => c.column_id);
     // Add default columns not yet in saved order
-    const defaultsNotSaved = DEFAULT_COLUMN_ORDER.filter(id => !savedSet.has(id));
-    // SEM_SETOR_KEY always at the end (never in localStorage order)
-    return [...columnOrder, ...customNotSaved, ...defaultsNotSaved, SEM_SETOR_KEY];
+    const defaultsNotSaved = DEFAULT_COLUMN_ORDER.filter(id => !seen.has(id));
+    // Merge all sources, deduplicating (Set preserves insertion order)
+    const allIds = [...columnOrder, ...customNotSaved, ...defaultsNotSaved];
+    const unique = [];
+    const dedupSet = new Set();
+    for (const id of allIds) {
+      if (!dedupSet.has(id)) {
+        dedupSet.add(id);
+        unique.push(id);
+      }
+    }
+    // SEM_SETOR_KEY always at the end
+    unique.push(SEM_SETOR_KEY);
+    return unique;
   }, [customColumns, columnOrder]);
 
   const { data: demandas, isLoading, error } = useQuery({
