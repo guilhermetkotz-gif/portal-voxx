@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { CalendarDays, User, Tag, AlertTriangle } from 'lucide-react';
+import { CalendarDays, User, Tag, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import moment from 'moment-timezone';
 import ActiveTimerIndicator from './ActiveTimerIndicator';
 import TagManagerPopover from './TagManagerPopover';
@@ -18,7 +18,7 @@ function calcBusinessHours(fromDate) {
   const cursor = from.clone();
 
   while (cursor.isBefore(now)) {
-    const dow = cursor.day(); // 0=Dom, 6=Sáb
+    const dow = cursor.day();
     if (dow >= 1 && dow <= 5) {
       const dayStart = cursor.clone().startOf('day').hour(9);
       const dayEnd = cursor.clone().startOf('day').hour(18);
@@ -43,13 +43,36 @@ const aprovacaoCardStyle = {
 const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags, aprovacaoStatus }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by, tags = [] } = demanda;
   const aprovacaoStyle = aprovacaoStatus ? aprovacaoCardStyle[aprovacaoStatus] : null;
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // Verifica inatividade > 48h úteis
-  // Usa ultima_atividade_kanban (comentário ou mudança de coluna) como referência
-  // Fallback para created_date se ainda não houver atividade registrada
   const lastActivity = demanda.ultima_atividade_kanban || demanda.created_date;
   const businessHoursInactive = lastActivity ? calcBusinessHours(lastActivity) : 0;
   const isInactive = businessHoursInactive >= 48;
+
+  // Monta lista de notificações
+  const notificacoes = [];
+  if (isInactive) {
+    notificacoes.push({ tipo: 'alerta', texto: `Sem movimentação há ${Math.round(businessHoursInactive)}h úteis` });
+  }
+  if (urgente) {
+    notificacoes.push({ tipo: 'urgente', texto: 'Demanda marcada como urgente' });
+  }
+  if (aprovacaoStatus === 'pendente') {
+    notificacoes.push({ tipo: 'info', texto: 'Aguardando aprovação do cliente' });
+  }
+  if (aprovacaoStatus === 'solicitacao_alteracao') {
+    notificacoes.push({ tipo: 'alerta', texto: 'Cliente solicitou alterações' });
+  }
+  if (aprovacaoStatus === 'aprovado') {
+    notificacoes.push({ tipo: 'ok', texto: 'Entrega aprovada pelo cliente' });
+  }
+  if (previsao_entrega && moment(previsao_entrega).isBefore(moment())) {
+    notificacoes.push({ tipo: 'alerta', texto: `Prazo vencido: ${moment(previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY')}` });
+  }
+  if (demanda.comunicar_cliente && !demanda.resumo_cliente?.trim()) {
+    notificacoes.push({ tipo: 'alerta', texto: 'Marcada para comunicar cliente, mas sem resumo preenchido' });
+  }
 
   const priorityColors = {
     alta: 'bg-red-500',
@@ -67,118 +90,141 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
     concluida: 'bg-green-500',
   };
 
+  // Tooltip de notificações
+  const TooltipContent = () => {
+    if (!showTooltip || notificacoes.length === 0) return null;
+    return (
+      <div className="absolute z-50 left-0 top-full mt-1 w-72 bg-slate-900 text-white rounded-lg shadow-xl p-3 space-y-1.5 pointer-events-none">
+        <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-2">Notificações</p>
+        {notificacoes.map((n, i) => (
+          <div key={i} className="flex items-start gap-2 text-xs">
+            {n.tipo === 'alerta' && <AlertTriangle className="w-3 h-3 text-orange-400 flex-shrink-0 mt-0.5" />}
+            {n.tipo === 'urgente' && <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />}
+            {n.tipo === 'info' && <Clock className="w-3 h-3 text-yellow-400 flex-shrink-0 mt-0.5" />}
+            {n.tipo === 'ok' && <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0 mt-0.5" />}
+            <span className="text-slate-200">{n.texto}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const cardBorderStyle = aprovacaoStyle || (isInactive ? 'border-orange-400 bg-orange-50' : '');
+
   if (isMinimized) {
     return (
-      <Card 
-        className={cn('mb-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow',
-          aprovacaoStyle || (isInactive && 'border-amber-400 bg-amber-50')
-        )}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick?.(demanda);
-        }}
+      <div
+        className="relative mb-2"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
       >
-        <CardContent className="p-2 flex items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate">{titulo}</p>
-            <p className="text-xs text-slate-500 truncate">{cliente_nome}</p>
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {isInactive && <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" />}
-            {(demanda.cronometros_ativos || []).length > 0 && (
-              <ActiveTimerIndicator 
-                cronometro_inicio={demanda.cronometros_ativos[0].data_inicio}
-                cronometro_usuario_nome={demanda.cronometros_ativos[0].usuario_nome}
-              />
-            )}
-            {urgente && <Badge variant="destructive" className="text-xs px-1.5 py-0">!</Badge>}
-            <div className={cn(priorityColors[prioridade], 'w-2 h-2 rounded-full')} />
-          </div>
-        </CardContent>
-      </Card>
+        <TooltipContent />
+        <Card
+          className={cn('cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow', cardBorderStyle)}
+          onClick={(e) => { e.stopPropagation(); onClick?.(demanda); }}
+        >
+          <CardContent className="p-2 flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold truncate">{titulo}</p>
+              <p className="text-xs text-slate-500 truncate">{cliente_nome}</p>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {notificacoes.length > 0 && <AlertTriangle className="w-3 h-3 text-orange-500 flex-shrink-0" />}
+              {(demanda.cronometros_ativos || []).length > 0 && (
+                <ActiveTimerIndicator
+                  cronometro_inicio={demanda.cronometros_ativos[0].data_inicio}
+                  cronometro_usuario_nome={demanda.cronometros_ativos[0].usuario_nome}
+                />
+              )}
+              {urgente && <Badge variant="destructive" className="text-xs px-1.5 py-0">!</Badge>}
+              <div className={cn(priorityColors[prioridade], 'w-2 h-2 rounded-full')} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Card 
-      className={cn('mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow',
-        aprovacaoStyle || (isInactive && 'border-amber-400 bg-amber-50')
-      )}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick?.(demanda);
-      }}
+    <div
+      className="relative mb-3"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
     >
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 p-3">
-        <CardTitle className="text-sm font-semibold line-clamp-2">{titulo}</CardTitle>
-        <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-          {isInactive && (
-            <span title={`Sem movimentação há ${Math.round(businessHoursInactive)}h úteis`}>
-              <AlertTriangle className="w-4 h-4 text-amber-500" />
-            </span>
-          )}
-          {urgente && <Badge variant="destructive" className="shrink-0">Urgente</Badge>}
-        </div>
-      </CardHeader>
-      <CardContent className="p-3 pt-0 text-xs text-muted-foreground space-y-2">
-        <p className="font-medium text-sm text-slate-800 truncate">{cliente_nome}</p>
-        
-        {(demanda.cronometros_ativos || []).length > 0 && (
-          <ActiveTimerIndicator 
-            cronometro_inicio={demanda.cronometros_ativos[0].data_inicio}
-            cronometro_usuario_nome={
-              demanda.cronometros_ativos.length > 1
-                ? `${demanda.cronometros_ativos[0].usuario_nome} +${demanda.cronometros_ativos.length - 1}`
-                : demanda.cronometros_ativos[0].usuario_nome
-            }
-          />
-        )}
-        
-        <div className="flex items-center gap-2 flex-wrap">
-          {prioridade && (
-            <Badge className={cn(priorityColors[prioridade], 'text-white text-xs')}>
-              {prioridade.charAt(0).toUpperCase() + prioridade.slice(1)}
-            </Badge>
-          )}
-          <Badge className={cn(statusColors[status], 'text-white text-xs')}>
-            {status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.replace(/_/g, ' ').slice(1)}
-          </Badge>
-        </div>
+      <TooltipContent />
+      <Card
+        className={cn('cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow', cardBorderStyle)}
+        onClick={(e) => { e.stopPropagation(); onClick?.(demanda); }}
+      >
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 p-3">
+          <CardTitle className="text-sm font-semibold line-clamp-2">{titulo}</CardTitle>
+          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+            {notificacoes.length > 0 && (
+              <AlertTriangle className="w-4 h-4 text-orange-500" />
+            )}
+            {urgente && <Badge variant="destructive" className="shrink-0">Urgente</Badge>}
+          </div>
+        </CardHeader>
+        <CardContent className="p-3 pt-0 text-xs text-muted-foreground space-y-2">
+          <p className="font-medium text-sm text-slate-800 truncate">{cliente_nome}</p>
 
-        {tags.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Tag className="w-3 h-3 text-slate-400" />
-            {tags.map((tag, idx) => (
-              <Badge key={tag} variant="outline" className="text-xs bg-slate-50">
-                {tag}
+          {(demanda.cronometros_ativos || []).length > 0 && (
+            <ActiveTimerIndicator
+              cronometro_inicio={demanda.cronometros_ativos[0].data_inicio}
+              cronometro_usuario_nome={
+                demanda.cronometros_ativos.length > 1
+                  ? `${demanda.cronometros_ativos[0].usuario_nome} +${demanda.cronometros_ativos.length - 1}`
+                  : demanda.cronometros_ativos[0].usuario_nome
+              }
+            />
+          )}
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {prioridade && (
+              <Badge className={cn(priorityColors[prioridade], 'text-white text-xs')}>
+                {prioridade.charAt(0).toUpperCase() + prioridade.slice(1)}
               </Badge>
-            ))}
+            )}
+            <Badge className={cn(statusColors[status], 'text-white text-xs')}>
+              {status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.replace(/_/g, ' ').slice(1)}
+            </Badge>
           </div>
-        )}
 
-        {previsao_entrega && (
-          <div className="flex items-center gap-1 text-slate-600">
-            <CalendarDays className="h-3 w-3" />
-            <span>Prazo: {moment(previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY')}</span>
-          </div>
-        )}
-        
-        {created_by && (
-          <div className="flex items-center gap-1 text-slate-600">
-            <User className="h-3 w-3" />
-            <span className="truncate">{created_by}</span>
-          </div>
-        )}
+          {tags.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <Tag className="w-3 h-3 text-slate-400" />
+              {tags.map((tag) => (
+                <Badge key={tag} variant="outline" className="text-xs bg-slate-50">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
 
-        {onUpdateTags && (
-          <TagManagerPopover 
-            demanda={demanda}
-            onUpdateTags={onUpdateTags}
-            availableTags={allTags}
-          />
-        )}
-      </CardContent>
-    </Card>
+          {previsao_entrega && (
+            <div className="flex items-center gap-1 text-slate-600">
+              <CalendarDays className="h-3 w-3" />
+              <span>Prazo: {moment(previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY')}</span>
+            </div>
+          )}
+
+          {created_by && (
+            <div className="flex items-center gap-1 text-slate-600">
+              <User className="h-3 w-3" />
+              <span className="truncate">{created_by}</span>
+            </div>
+          )}
+
+          {onUpdateTags && (
+            <TagManagerPopover
+              demanda={demanda}
+              onUpdateTags={onUpdateTags}
+              availableTags={allTags}
+            />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
