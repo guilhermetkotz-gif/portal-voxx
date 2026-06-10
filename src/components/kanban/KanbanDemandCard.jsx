@@ -34,8 +34,15 @@ function calcBusinessHours(fromDate) {
   return totalMinutes / 60;
 }
 
-const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags }) => {
+const aprovacaoCardStyle = {
+  pendente: 'border-yellow-400 bg-yellow-50',
+  aprovado: 'border-green-500 bg-green-50',
+  solicitacao_alteracao: 'border-red-500 bg-red-50',
+};
+
+const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags, aprovacaoStatus }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by, tags = [] } = demanda;
+  const aprovacaoStyle = aprovacaoStatus ? aprovacaoCardStyle[aprovacaoStatus] : null;
 
   // Verifica inatividade > 48h úteis
   // Usa ultima_atividade_kanban (comentário ou mudança de coluna) como referência
@@ -64,7 +71,7 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
     return (
       <Card 
         className={cn('mb-2 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow',
-          isInactive && 'border-amber-400 bg-amber-50'
+          aprovacaoStyle || (isInactive && 'border-amber-400 bg-amber-50')
         )}
         onClick={(e) => {
           e.stopPropagation();
@@ -95,7 +102,7 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
   return (
     <Card 
       className={cn('mb-3 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow',
-        isInactive && 'border-amber-400 bg-amber-50'
+        aprovacaoStyle || (isInactive && 'border-amber-400 bg-amber-50')
       )}
       onClick={(e) => {
         e.stopPropagation();

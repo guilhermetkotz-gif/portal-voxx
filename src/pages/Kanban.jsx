@@ -126,8 +126,35 @@ const Kanban = ({ user, selectedClienteId }) => {
       return base44.entities.Demanda.filter(queryFilters, '-created_date', 500);
     },
     enabled: !!user,
-    refetchInterval: 10000, // Atualiza a cada 10 segundos (reduzido para evitar conflitos com DnD)
+    refetchInterval: 10000,
   });
+
+  // Busca entregas para colorir os cards por status de aprovação WhatsApp
+  const { data: todasEntregas = [] } = useQuery({
+    queryKey: ['entregasKanban'],
+    queryFn: () => base44.entities.EntregaDemanda.list('-updated_date', 1000),
+    enabled: !!user,
+    refetchInterval: 15000,
+  });
+
+  // Mapeia demanda_id → status de aprovação mais crítico
+  const aprovacaoStatusMap = React.useMemo(() => {
+    const map = {};
+    todasEntregas.forEach(e => {
+      if (!e.demanda_id) return;
+      const s = e.status_entrega;
+      const current = map[e.demanda_id];
+      // Prioridade: solicitacao_alteracao > aprovado > em_aprovacao/enviado
+      if (s === 'solicitacao_alteracao') {
+        map[e.demanda_id] = 'solicitacao_alteracao';
+      } else if (s === 'aprovado' && current !== 'solicitacao_alteracao') {
+        map[e.demanda_id] = 'aprovado';
+      } else if ((s === 'em_aprovacao' || s === 'enviado') && !current) {
+        map[e.demanda_id] = 'pendente';
+      }
+    });
+    return map;
+  }, [todasEntregas]);
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['clientesKanban'],
@@ -515,6 +542,7 @@ const Kanban = ({ user, selectedClienteId }) => {
                           isMinimized={minimizedColumns[columnId]}
                           onToggleMinimize={() => toggleMinimize(columnId)}
                           allTags={allTags}
+                          aprovacaoStatusMap={aprovacaoStatusMap}
                         />
                       </div>
                     )}
