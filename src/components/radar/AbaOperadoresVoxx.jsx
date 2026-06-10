@@ -88,9 +88,9 @@ function CardTopo({ icon: Icon, label, value, sub, color }) {
   );
 }
 
-export default function AbaOperadoresVoxx({ mensagens = [] }) {
+export default function AbaOperadoresVoxx() {
   const queryClient = useQueryClient();
-  const [periodo, setPeriodo] = useState('30d');
+  const [periodo, setPeriodo] = useState('7d');
   const [filtroClassificacao, setFiltroClassificacao] = useState('todas');
   const [filtroAtendente, setFiltroAtendente] = useState('');
   const [operadorSelecionado, setOperadorSelecionado] = useState(null);
@@ -108,7 +108,7 @@ export default function AbaOperadoresVoxx({ mensagens = [] }) {
 
   const periodoObj = getPeriodo();
 
-  // Buscar apenas remetentes e avaliações (dados leves)
+  // Buscar remetentes, avaliações e mensagens próprias (com limite maior)
   const { data: remetentes = [], isLoading: loadingRemetentes } = useQuery({
     queryKey: ['remetentesVoxx'],
     queryFn: () => base44.entities.WhatsappRemetenteVoxx.list('-nome', 200),
@@ -121,7 +121,20 @@ export default function AbaOperadoresVoxx({ mensagens = [] }) {
     staleTime: 2 * 60 * 1000,
   });
 
-  const isLoading = loadingRemetentes || loadingAvals;
+  // Buscar mensagens do período — separado de radarMensagens para não depender do limite de 500
+  const { data: mensagensVoxx = [], isLoading: loadingMsgsVoxx } = useQuery({
+    queryKey: ['operadoresMsgsVoxx', periodoObj.inicio],
+    queryFn: () => base44.entities.WhatsappMensagem.filter({ remetente_tipo: 'voxx' }, '-received_at', 3000),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: mensagensCliente = [], isLoading: loadingMsgsCliente } = useQuery({
+    queryKey: ['operadoresMsgsCliente', periodoObj.inicio],
+    queryFn: () => base44.entities.WhatsappMensagem.filter({ remetente_tipo: 'cliente' }, '-received_at', 3000),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isLoading = loadingRemetentes || loadingAvals || loadingMsgsVoxx || loadingMsgsCliente;
 
   // Calcular performance no frontend
   const { operadores, cards, remetentesNaoCadastrados } = useMemo(() => {
@@ -139,14 +152,14 @@ export default function AbaOperadoresVoxx({ mensagens = [] }) {
     }
 
     // Filtrar mensagens do período
-    const msgsVoxx = mensagens.filter(m => {
+    const msgsVoxx = mensagensVoxx.filter(m => {
       const ts = m.timestamp_mensagem || m.received_at;
-      return m.remetente_tipo === 'voxx' && ts >= periodoObj.inicio && ts <= periodoObj.fim;
+      return ts >= periodoObj.inicio && ts <= periodoObj.fim;
     });
 
-    const msgsCliente = mensagens.filter(m => {
+    const msgsCliente = mensagensCliente.filter(m => {
       const ts = m.timestamp_mensagem || m.received_at;
-      return m.remetente_tipo === 'cliente' && ts >= periodoObj.inicio && ts <= periodoObj.fim
+      return ts >= periodoObj.inicio && ts <= periodoObj.fim
         && !['sistema', 'atividade', 'sem_conteudo'].includes(m.tipo_mensagem);
     });
 
@@ -299,7 +312,7 @@ export default function AbaOperadoresVoxx({ mensagens = [] }) {
     );
 
     return { operadores: resultado, cards, remetentesNaoCadastrados: telsNaoCadastrados.size };
-  }, [mensagens, remetentes, avaliacoes, periodoObj.inicio, periodoObj.fim]);
+  }, [mensagensVoxx, mensagensCliente, remetentes, avaliacoes, periodoObj.inicio, periodoObj.fim]);
 
   // Filtros UI
   const operadoresFiltrados = useMemo(() => {

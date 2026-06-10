@@ -299,7 +299,7 @@ export default function RadarWhatsApp() {
         </TabsContent>
 
         <TabsContent value="operadores">
-          <AbaOperadoresVoxx mensagens={mensagens} grupos={grupos} clientes={clientes} />
+          <AbaOperadoresVoxx />
         </TabsContent>
       </Tabs>
     </div>
