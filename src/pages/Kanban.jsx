@@ -7,13 +7,14 @@ import KanbanFilters from '@/components/kanban/KanbanFilters';
 import DemandaDetailModal from '@/components/kanban/DemandaDetailModal';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, Settings } from 'lucide-react';
+import { Plus, Loader2, Settings, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
 import moment from 'moment-timezone';
 import ColumnManagerModal from '@/components/kanban/ColumnManagerModal';
 import NovaDemandaCriacaoModal from '@/components/kanban/NovaDemandaCriacaoModal';
+import PendenciasAprovacaoDrawer from '@/components/kanban/PendenciasAprovacaoDrawer';
 
 const DEFAULT_COLUMN_ORDER = [
   'ATENDIMENTO',
@@ -55,6 +56,7 @@ const Kanban = ({ user, selectedClienteId }) => {
   const [selectedDemanda, setSelectedDemanda] = useState(null);
   const [showColumnManager, setShowColumnManager] = useState(false);
   const [showNovaCriacaoModal, setShowNovaCriacaoModal] = useState(false);
+  const [showPendenciasDrawer, setShowPendenciasDrawer] = useState(false);
   const [viewMode, setViewMode] = useState('ativas'); // 'ativas' ou 'concluidas'
   const [filters, setFilters] = useState({
     cliente_id: 'all',
@@ -512,6 +514,9 @@ const Kanban = ({ user, selectedClienteId }) => {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowPendenciasDrawer(true)}>
+            <Clock className="mr-2 h-4 w-4" /> Pendências de Aprovação
+          </Button>
           <Button variant="outline" onClick={() => setShowColumnManager(true)}>
             <Settings className="mr-2 h-4 w-4" /> Gerenciar Colunas
           </Button>
@@ -583,6 +588,11 @@ const Kanban = ({ user, selectedClienteId }) => {
       <NovaDemandaCriacaoModal
         open={showNovaCriacaoModal}
         onClose={() => setShowNovaCriacaoModal(false)}
+      />
+
+      <PendenciasAprovacaoDrawer
+        open={showPendenciasDrawer}
+        onClose={() => setShowPendenciasDrawer(false)}
       />
     </div>
   );

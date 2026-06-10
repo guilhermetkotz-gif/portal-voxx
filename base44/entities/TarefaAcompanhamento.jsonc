@@ -1,0 +1,64 @@
+{
+  "name": "TarefaAcompanhamento",
+  "type": "object",
+  "properties": {
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "entrega_id": {
+      "type": "string"
+    },
+    "entrega_nome": {
+      "type": "string"
+    },
+    "demanda_id": {
+      "type": "string"
+    },
+    "demanda_titulo": {
+      "type": "string"
+    },
+    "envio_aprovacao_id": {
+      "type": "string",
+      "description": "ID do EnvioAprovacaoWhatsApp original"
+    },
+    "whatsapp_grupo_id": {
+      "type": "string"
+    },
+    "sequencia_lembrete": {
+      "type": "number",
+      "default": 0,
+      "description": "0=primeiro envio, 1=1\u00ba lembrete, 2=2\u00ba lembrete"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "concluida",
+        "intervencao_humana"
+      ],
+      "default": "pendente"
+    },
+    "data_ultimo_lembrete": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_proximo_lembrete": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mensagem_enviada": {
+      "type": "string"
+    },
+    "link_aprovacao": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "cliente_id",
+    "entrega_id",
+    "envio_aprovacao_id"
+  ]
+}
