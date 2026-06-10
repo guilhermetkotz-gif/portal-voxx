@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,12 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
     });
 
     const queryClient = useQueryClient();
+
+    const { data: currentUser } = useQuery({
+        queryKey: ['currentUser'],
+        queryFn: () => base44.auth.me(),
+        staleTime: 5 * 60 * 1000
+    });
 
     const createMutation = useMutation({
         mutationFn: async (data) => {
@@ -38,7 +44,9 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
                 problema: data.problema,
                 objetivo: data.objetivo,
                 acoes_implementadas: data.acoes_implementadas,
-                resumo_acao: resumo
+                resumo_acao: resumo,
+                usuario_nome: currentUser?.full_name || currentUser?.email || 'Desconhecido',
+                usuario_email: currentUser?.email || ''
             };
 
             return base44.entities.MetaAdsOtimizacao.create(otimizacao);

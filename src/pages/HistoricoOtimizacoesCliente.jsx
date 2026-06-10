@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Calendar, Target, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Target, AlertCircle, CheckCircle2, Loader2, User } from 'lucide-react';
 import { format, startOfMonth, subDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -235,9 +235,18 @@ export default function HistoricoOtimizacoesCliente() {
                                             </div>
                                         </div>
 
-                                        <p className="text-xs text-slate-400">
-                                            Registrado em {moment(otimizacao.created_date).format('DD/MM/YYYY [às] HH:mm')}
-                                        </p>
+                                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                                            <span>Registrado em {moment(otimizacao.created_date).format('DD/MM/YYYY [às] HH:mm')}</span>
+                                            {otimizacao.usuario_nome && (
+                                                <>
+                                                    <span>•</span>
+                                                    <span className="flex items-center gap-1">
+                                                        <User className="w-3 h-3" />
+                                                        {otimizacao.usuario_nome}
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
