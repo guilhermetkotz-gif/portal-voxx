@@ -26,7 +26,6 @@ import {
   Copy,
   CheckCircle,
   Zap,
-  MessageCircle,
   ArrowRight,
   Building2,
   Tag,
@@ -834,48 +833,7 @@ ${statusValidacao}`.trim();
                       onChange={(e) => setEditData({ ...editData, previsao_entrega: e.target.value })}
                     />
                   </div>
-                  <div className="border-t pt-4 space-y-3">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Comunicação com Cliente</p>
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={!!editData.comunicar_cliente}
-                          onChange={(e) => setEditData({ ...editData, comunicar_cliente: e.target.checked })}
-                          className="w-4 h-4 rounded"
-                        />
-                        <span className="text-sm text-slate-700">Comunicar entrega ao cliente via WhatsApp</span>
-                      </label>
-                    </div>
-                    {editData.comunicar_cliente && (
-                      <div className="space-y-3">
-                        <div>
-                          <Label className="font-semibold">Resumo para Cliente <span className="text-amber-500">*</span></Label>
-                          <p className="text-xs text-slate-400 mb-1">Texto que será enviado ao cliente. Prioridade máxima na Central de Comunicação.</p>
-                          <Input
-                            value={editData.resumo_cliente}
-                            onChange={(e) => setEditData({ ...editData, resumo_cliente: e.target.value })}
-                            placeholder="Ex: Vídeo finalizado e disponível para aprovação."
-                          />
-                        </div>
-                        <div>
-                          <Label>Tipo de Comunicação</Label>
-                          <select
-                            value={editData.tipo_comunicacao}
-                            onChange={(e) => setEditData({ ...editData, tipo_comunicacao: e.target.value })}
-                            className="w-full h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                          >
-                            <option value="">Selecionar tipo...</option>
-                            <option value="Entrega">Entrega</option>
-                            <option value="Atualização">Atualização</option>
-                            <option value="Aprovação">Aprovação</option>
-                            <option value="Problema Crítico">Problema Crítico</option>
-                            <option value="Não Comunicar">Não Comunicar</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+
                   <div className="flex gap-2">
                     <Button onClick={handleSaveEdit} disabled={updateDemandaMutation.isPending}>
                       {updateDemandaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Salvar'}
@@ -1002,41 +960,7 @@ ${statusValidacao}`.trim();
                   </CardContent>
                 </Card>
 
-                {/* Alerta: comunicar_cliente sem resumo_cliente */}
-                {currentDemanda.comunicar_cliente && !currentDemanda.resumo_cliente?.trim() && (
-                  <div className="flex items-start gap-3 p-3 rounded-lg border bg-amber-50 border-amber-200">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
-                    <p className="text-sm text-amber-800">
-                      Esta demanda está marcada para comunicação, mas não possui <strong>Resumo para Cliente</strong> preenchido. Edite a demanda para adicionar.
-                    </p>
-                  </div>
-                )}
 
-                {/* Comunicação com o Cliente */}
-                {(currentDemanda.comunicar_cliente !== undefined) && (
-                  <div className={`flex items-start gap-3 p-3 rounded-lg border ${
-                    currentDemanda.comunicar_cliente 
-                      ? 'bg-green-50 border-green-200' 
-                      : 'bg-slate-50 border-slate-200'
-                  }`}>
-                    <MessageCircle className={`w-4 h-4 mt-0.5 ${
-                      currentDemanda.comunicar_cliente ? 'text-green-600' : 'text-slate-400'
-                    }`} />
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${
-                        currentDemanda.comunicar_cliente ? 'text-green-800' : 'text-slate-600'
-                      }`}>
-                        {currentDemanda.comunicar_cliente ? 'Será comunicado ao cliente' : 'Demanda interna (não comunicar)'}
-                      </p>
-                      {currentDemanda.comunicar_cliente && currentDemanda.resumo_cliente && (
-                        <p className="text-xs text-green-700 mt-0.5">📝 {currentDemanda.resumo_cliente}</p>
-                      )}
-                      {currentDemanda.comunicar_cliente && currentDemanda.tipo_comunicacao && (
-                        <p className="text-xs text-green-600 mt-0.5">Tipo: {currentDemanda.tipo_comunicacao}</p>
-                      )}
-                    </div>
-                  </div>
-                )}
 
 
                 {/* Anexos */}
