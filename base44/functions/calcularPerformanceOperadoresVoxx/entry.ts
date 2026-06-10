@@ -99,70 +99,105 @@ Deno.serve(async (_req) => {
     // 1. Remetentes VOXX
     const remetentes = await sdk.entities.WhatsappRemetenteVoxx.list('-nome', 200);
     const remetentesAtivos = remetentes.filter(r => r.ativo !== false);
+
     const mapaRemetentes = {};
     for (const r of remetentesAtivos) {
       mapaRemetentes[normalizarTel(r.telefone_normalizado)] = r;
     }
 
-    // 2. Mensagens VOXX no período
-    const todasMsgsVoxx = await sdk.entities.WhatsappMensagem.filter(
-      { remetente_tipo: 'voxx' }, '-received_at', 2000
-    );
+    // Mapa reverso: msg telefone → remetente (para telefones que não batem exato)
+    const msgTelParaRemetente = {};
+
+    // 2. Buscar mensagens recentes e filtrar em JS
+    let todasMsgs = [];
+    for (let skip = 0; skip < 3000; skip += 500) {
+      const lote = await sdk.entities.WhatsappMensagem.list('-received_at', 500, skip);
+      todasMsgs = todasMsgs.concat(lote);
+      if (lote.length < 500) break;
+    }
+
+    // Separar Voxx e Cliente + filtrar por período
+    const todasMsgsVoxx = todasMsgs.filter(m => m.remetente_tipo === 'voxx');
+    const todasMsgsCliente = todasMsgs.filter(m => m.remetente_tipo === 'cliente');
+
+    // Filtrar por período (usar received_at como referência; timestamp_mensagem pode ter datas corrompidas)
+    const isInPeriod = (m) => {
+      const ts = m.received_at || m.timestamp_mensagem;
+      if (!ts) return false;
+      return ts >= periodoInicio && ts <= periodoFim;
+    };
+
     const msgsVoxxFiltradas = todasMsgsVoxx.filter(m => {
-      const ts = m.timestamp_mensagem || m.received_at;
-      if (ts < periodoInicio || ts > periodoFim) return false;
+      if (!isInPeriod(m)) return false;
       if (filtroClienteId && m.cliente_id !== filtroClienteId) return false;
       if (filtroGrupoId && m.grupo_id !== filtroGrupoId) return false;
       return true;
     });
 
-    // 3. Mensagens de cliente no período (para tempo de resposta)
-    const todasMsgsCliente = await sdk.entities.WhatsappMensagem.filter(
-      { remetente_tipo: 'cliente' }, '-received_at', 2000
-    );
     const msgsClienteFiltradas = todasMsgsCliente.filter(m => {
-      const ts = m.timestamp_mensagem || m.received_at;
-      if (ts < periodoInicio || ts > periodoFim) return false;
+      if (!isInPeriod(m)) return false;
       if (filtroClienteId && m.cliente_id !== filtroClienteId) return false;
       if (filtroGrupoId && m.grupo_id !== filtroGrupoId) return false;
       return TIPOS_VALIDOS_CLIENTE.includes(m.tipo_mensagem) && !IGNORAR_TIPOS.includes(m.tipo_mensagem);
     });
 
-    // 4. Avaliações existentes
-    const avaliacoes = await sdk.entities.WhatsappAvaliacaoMensagemVoxx.list('-avaliado_em', 2000);
+    // 3. Avaliações existentes (em lotes)
+    let avaliacoes = [];
+    for (let skip = 0; skip < 2000; skip += 500) {
+      const lote = await sdk.entities.WhatsappAvaliacaoMensagemVoxx.list('-avaliado_em', 500, skip);
+      avaliacoes = avaliacoes.concat(lote);
+      if (lote.length < 500) break;
+    }
     const mapaAvaliacoes = {};
     for (const a of avaliacoes) {
       mapaAvaliacoes[a.whatsapp_mensagem_id] = a;
     }
 
+    // Construir mapa reverso: qualquer telefone de mensagem → telefone normalizado do remetente
+    for (const m of todasMsgsVoxx) {
+      const msgTel = normalizarTel(m.remetente_telefone);
+      if (msgTelParaRemetente[msgTel]) continue; // já mapeado
+      // Tenta match exato primeiro
+      if (mapaRemetentes[msgTel]) {
+        msgTelParaRemetente[msgTel] = msgTel;
+        continue;
+      }
+      // Tenta match por nome
+      for (const [remTel, rem] of Object.entries(mapaRemetentes)) {
+        if (m.remetente_nome && m.remetente_nome.toUpperCase().includes(rem.nome.toUpperCase())) {
+          msgTelParaRemetente[msgTel] = remTel;
+          break;
+        }
+      }
+    }
+
     // ── Calcular primeiras respostas ────────────────────────────
-    // Para cada mensagem de cliente, buscar a primeira resposta VOXX no mesmo grupo
-    const primeirasRespostas = []; // { operador_tel, grupo_id, minutos_uteis, classificacao }
+    const primeirasRespostas = [];
 
     for (const msgCliente of msgsClienteFiltradas) {
-      const tsCliente = msgCliente.timestamp_mensagem || msgCliente.received_at;
+      const tsCliente = msgCliente.received_at || msgCliente.timestamp_mensagem;
       if (!tsCliente || !msgCliente.grupo_id) continue;
 
-      // Mensagens VOXX no mesmo grupo após a msg do cliente
       const respostasVoxx = msgsVoxxFiltradas
         .filter(m => {
-          const ts = m.timestamp_mensagem || m.received_at;
+          const ts = m.received_at || m.timestamp_mensagem;
           return m.grupo_id === msgCliente.grupo_id && ts > tsCliente;
         })
         .sort((a, b) => {
-          const ta = a.timestamp_mensagem || a.received_at;
-          const tb = b.timestamp_mensagem || b.received_at;
+          const ta = a.received_at || a.timestamp_mensagem;
+          const tb = b.received_at || b.timestamp_mensagem;
           return ta < tb ? -1 : ta > tb ? 1 : 0;
         });
 
       if (respostasVoxx.length > 0) {
         const primeiraVoxx = respostasVoxx[0];
-        const tsVoxx = primeiraVoxx.timestamp_mensagem || primeiraVoxx.received_at;
+        const tsVoxx = primeiraVoxx.received_at || primeiraVoxx.timestamp_mensagem;
         const mins = calcularMinutosUteis(tsCliente, tsVoxx);
-        const tel = normalizarTel(primeiraVoxx.remetente_telefone);
+        const msgTel = normalizarTel(primeiraVoxx.remetente_telefone);
+        const opTel = msgTelParaRemetente[msgTel] || msgTel;
 
         primeirasRespostas.push({
-          operador_tel: tel,
+          operador_tel: opTel,
           grupo_id: msgCliente.grupo_id,
           minutos_uteis: mins,
           classificacao: classificarTempoResposta(mins),
@@ -177,8 +212,12 @@ Deno.serve(async (_req) => {
       // Filtrar por remetente se especificado
       if (filtroRemetenteTel && normalizarTel(filtroRemetenteTel) !== tel) continue;
 
-      // Mensagens deste operador
-      const msgsDoOp = msgsVoxxFiltradas.filter(m => normalizarTel(m.remetente_telefone) === tel);
+      // Mensagens deste operador (usar mapa reverso p/ telefones com formato diferente)
+      const msgsDoOp = msgsVoxxFiltradas.filter(m => {
+        const msgTel = normalizarTel(m.remetente_telefone);
+        const opTel = msgTelParaRemetente[msgTel] || msgTel;
+        return opTel === tel;
+      });
 
       // Primeiras respostas deste operador
       const respsDoOp = primeirasRespostas.filter(r => r.operador_tel === tel);
@@ -384,12 +423,13 @@ Deno.serve(async (_req) => {
       total_mensagens_avaliadas: avaliacoes.length,
     };
 
-    // Remetentes não cadastrados
+    // Remetentes não cadastrados (telefones que não mapeiam para nenhum remetente)
     const telsCadastrados = new Set(Object.keys(mapaRemetentes));
     const telsNaoCadastrados = new Set();
     for (const m of msgsVoxxFiltradas) {
       const tel = normalizarTel(m.remetente_telefone);
-      if (tel && !telsCadastrados.has(tel)) {
+      const opTel = msgTelParaRemetente[tel] || tel;
+      if (tel && !telsCadastrados.has(opTel)) {
         telsNaoCadastrados.add(tel);
       }
     }
