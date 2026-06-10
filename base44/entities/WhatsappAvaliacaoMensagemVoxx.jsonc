@@ -1,0 +1,146 @@
+{
+  "name": "WhatsappAvaliacaoMensagemVoxx",
+  "type": "object",
+  "properties": {
+    "whatsapp_mensagem_id": {
+      "type": "string",
+      "description": "ID do registro WhatsappMensagem"
+    },
+    "message_id": {
+      "type": "string",
+      "description": "ID da mensagem no WhatsApp (cache)"
+    },
+    "remetente_telefone": {
+      "type": "string",
+      "description": "Telefone normalizado do remetente VOXX"
+    },
+    "remetente_nome": {
+      "type": "string",
+      "description": "Nome do remetente (cache)"
+    },
+    "grupo_id": {
+      "type": "string"
+    },
+    "grupo_nome": {
+      "type": "string"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "texto_mensagem": {
+      "type": "string",
+      "description": "Conte\u00fado textual da mensagem avaliada"
+    },
+    "timestamp_mensagem": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "score_qualidade": {
+      "type": "number",
+      "description": "Score geral de qualidade (0-100)"
+    },
+    "classificacao": {
+      "type": "string",
+      "enum": [
+        "excelente",
+        "boa",
+        "atencao",
+        "fraca",
+        "critica"
+      ],
+      "description": "Classifica\u00e7\u00e3o da qualidade"
+    },
+    "clareza": {
+      "type": "number",
+      "description": "Nota clareza (0-100)"
+    },
+    "tom_profissional": {
+      "type": "number",
+      "description": "Nota tom profissional (0-100)"
+    },
+    "objetividade": {
+      "type": "number",
+      "description": "Nota objetividade (0-100)"
+    },
+    "proximo_passo": {
+      "type": "number",
+      "description": "Nota pr\u00f3ximo passo (0-100). >=70 = tem pr\u00f3ximo passo claro"
+    },
+    "especificidade": {
+      "type": "number",
+      "description": "Nota especificidade (0-100)"
+    },
+    "valor_percebido": {
+      "type": "number",
+      "description": "Nota valor percebido (0-100)"
+    },
+    "risco_ruido": {
+      "type": "number",
+      "description": "Risco de ru\u00eddo (0-100). Quanto maior, pior"
+    },
+    "tem_proximo_passo": {
+      "type": "boolean",
+      "description": "Tem pr\u00f3ximo passo claro"
+    },
+    "tem_prazo": {
+      "type": "boolean",
+      "description": "Tem prazo definido"
+    },
+    "tem_confirmacao": {
+      "type": "boolean",
+      "description": "Tem confirma\u00e7\u00e3o de a\u00e7\u00e3o"
+    },
+    "tem_encaminhamento": {
+      "type": "boolean",
+      "description": "Tem encaminhamento claro"
+    },
+    "resposta_vaga": {
+      "type": "boolean"
+    },
+    "resposta_defensiva": {
+      "type": "boolean"
+    },
+    "resposta_muito_curta": {
+      "type": "boolean"
+    },
+    "contexto_limitado": {
+      "type": "boolean",
+      "description": "Contexto insuficiente para avalia\u00e7\u00e3o completa"
+    },
+    "sugestao_melhoria": {
+      "type": "string",
+      "description": "Sugest\u00e3o de melhoria"
+    },
+    "pontos_positivos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "pontos_atencao": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contexto_utilizado": {
+      "type": "string",
+      "description": "Resumo do contexto usado na avalia\u00e7\u00e3o"
+    },
+    "avaliado_por": {
+      "type": "string",
+      "description": "sistema ou email do usu\u00e1rio"
+    },
+    "avaliado_em": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "whatsapp_mensagem_id",
+    "remetente_telefone"
+  ]
+}

@@ -12,6 +12,7 @@ import AbaMensagensRadar from '@/components/radar/AbaMensagensRadar';
 import AbaDiagnostico from '@/components/radar/AbaDiagnostico';
 import AbaAnalises from '@/components/radar/AbaAnalises';
 import AbaRemetentesVoxx from '@/components/radar/AbaRemetentesVoxx';
+import AbaOperadoresVoxx from '@/components/radar/AbaOperadoresVoxx';
 import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
 import { useAlertaSomRadar } from '@/hooks/useAlertaSomRadar';
 import { Button } from '@/components/ui/button';
@@ -264,6 +265,9 @@ export default function RadarWhatsApp() {
           <TabsTrigger value="remetentes" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
             Remetentes VOXX
           </TabsTrigger>
+          <TabsTrigger value="operadores" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400">
+            Operadores VOXX
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="monitoramento">
@@ -292,6 +296,10 @@ export default function RadarWhatsApp() {
 
         <TabsContent value="remetentes">
           <AbaRemetentesVoxx mensagens={mensagens} />
+        </TabsContent>
+
+        <TabsContent value="operadores">
+          <AbaOperadoresVoxx mensagens={mensagens} grupos={grupos} clientes={clientes} />
         </TabsContent>
       </Tabs>
     </div>
