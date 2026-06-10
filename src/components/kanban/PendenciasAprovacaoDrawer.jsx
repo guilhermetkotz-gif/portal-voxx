@@ -213,6 +213,20 @@ function LembreteCard({ tarefa, isIntervencao = false }) {
 }
 
 function EnvioCard({ envio, entrega }) {
+  const [enviando, setEnviando] = React.useState(false);
+  const [enviado, setEnviado] = React.useState(false);
+
+  const handleEnviarLembrete = async () => {
+    setEnviando(true);
+    try {
+      await base44.functions.invoke('enviarLembreteManual', { envio_id: envio.id });
+      setEnviado(true);
+      setTimeout(() => setEnviado(false), 3000);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
   const statusEntrega = entrega?.status_entrega || 'em_aprovacao';
   const statusLabel = {
     em_aprovacao: 'Em Aprovação',
@@ -253,17 +267,37 @@ function EnvioCard({ envio, entrega }) {
               </span>
             )}
           </div>
-          {envio.link_aprovacao && (
-            <a
-              href={envio.link_aprovacao}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 mt-2 text-xs text-violet-600 hover:text-violet-700"
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {envio.link_aprovacao && (
+              <a
+                href={envio.link_aprovacao}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-violet-600 hover:text-violet-700"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Abrir link
+              </a>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs gap-1"
+              onClick={handleEnviarLembrete}
+              disabled={enviando || enviado}
             >
-              <ExternalLink className="h-3 w-3" />
-              Abrir link de aprovação
-            </a>
-          )}
+              {enviando ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : enviado ? (
+                <span className="text-green-600">✓ Enviado</span>
+              ) : (
+                <>
+                  <Send className="h-3 w-3" />
+                  Enviar lembrete
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
