@@ -42,17 +42,16 @@ Deno.serve(async (_req) => {
 
     aguardandoAprovacao = aguardandoCliente + demandasComAlertas;
 
-    // Top 2 setores com mais vencidas
-    const topSetoresVencidas = Object.entries(vencidasPorSetor)
+    // Todos os setores com vencidas, ordenados do maior pro menor
+    const todosSetoresVencidas = Object.entries(vencidasPorSetor)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 2)
-      .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+      .map(([setor, qtd]) => ({ setor, qtd }));
 
     return Response.json({
       success: true,
       totalAtivas: ativas.length,
       totalDemandas: demandas.length,
-      vencidasPorSetor: topSetoresVencidas,
+      vencidasPorSetor: todosSetoresVencidas,
       aguardandoAprovacao,
       aguardandoCliente,
       demandasComAlertas,

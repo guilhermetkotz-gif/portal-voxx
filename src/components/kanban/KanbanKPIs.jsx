@@ -1,7 +1,23 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Layers, Clock, AlertTriangle, CalendarX, MessageSquareWarning, Gauge } from 'lucide-react';
+import { Layers, Clock, AlertTriangle, CalendarX, Gauge } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const SETOR_LABELS = {
+  ATENDIMENTO: 'Atendimento',
+  TRAFEGO_META: 'Tráfego Meta',
+  TRAFEGO_GOOGLE: 'Tráfego Google',
+  TRAFEGO_TIKTOK: 'Tráfego TikTok',
+  ALTERACAO_CRIACAO: 'Alt. Criação',
+  CRIACAO: 'Criação',
+  EDICAO: 'Edição',
+  BI_RELATORIO: 'BI/Relatórios',
+  IMPLANTACAO: 'Implantação',
+  FINANCEIRO: 'Financeiro',
+  AUTOMACAO: 'Automação',
+  SALDOS: 'Saldos',
+  sem_setor: 'Sem Setor',
+};
 
 function MiniKPICard({ title, value, subtitle, icon: Icon, variant = 'default' }) {
   const iconStyles = {
@@ -41,12 +57,10 @@ function MiniKPICard({ title, value, subtitle, icon: Icon, variant = 'default' }
 export default function KanbanKPIs({ data }) {
   if (!data) return null;
 
-  const setoresEntries = Object.entries(data.vencidasPorSetor || {});
-  const setor1 = setoresEntries[0];
-  const setor2 = setoresEntries[1];
+  const setores = data.vencidasPorSetor || [];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 mb-4">
+    <div className="flex flex-wrap gap-2 mb-4">
       <MiniKPICard
         title="Ativas"
         value={data.totalAtivas}
@@ -82,20 +96,22 @@ export default function KanbanKPIs({ data }) {
         icon={CalendarX}
         variant="danger"
       />
-      <MiniKPICard
-        title={`Atraso: ${setor1?.[0] ?? '-'}`}
-        value={setor1?.[1] ?? 0}
-        subtitle="Vencidas"
-        icon={MessageSquareWarning}
-        variant="danger"
-      />
-      <MiniKPICard
-        title={`Atraso: ${setor2?.[0] ?? '-'}`}
-        value={setor2?.[1] ?? 0}
-        subtitle="Vencidas"
-        icon={MessageSquareWarning}
-        variant="warning"
-      />
+
+      {/* Separador visual */}
+      {setores.length > 0 && (
+        <div className="w-px bg-slate-200 mx-1 self-stretch hidden sm:block" />
+      )}
+
+      {/* Demandas em atraso por setor */}
+      {setores.map(({ setor, qtd }) => (
+        <MiniKPICard
+          key={setor}
+          title={`Atraso: ${SETOR_LABELS[setor] || setor}`}
+          value={qtd}
+          icon={CalendarX}
+          variant="danger"
+        />
+      ))}
     </div>
   );
 }
