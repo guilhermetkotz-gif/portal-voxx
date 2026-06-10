@@ -7,7 +7,7 @@ import KanbanFilters from '@/components/kanban/KanbanFilters';
 import DemandaDetailModal from '@/components/kanban/DemandaDetailModal';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, Settings, Clock } from 'lucide-react';
+import { Plus, Loader2, Settings, Clock, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { isVoxxAdmin, isVoxxOperacao } from '@/components/utils/auth';
@@ -15,6 +15,7 @@ import moment from 'moment-timezone';
 import ColumnManagerModal from '@/components/kanban/ColumnManagerModal';
 import NovaDemandaCriacaoModal from '@/components/kanban/NovaDemandaCriacaoModal';
 import PendenciasAprovacaoDrawer from '@/components/kanban/PendenciasAprovacaoDrawer';
+import KanbanKPIs from '@/components/kanban/KanbanKPIs';
 
 const DEFAULT_COLUMN_ORDER = [
   'ATENDIMENTO',
@@ -140,6 +141,17 @@ const Kanban = ({ user, selectedClienteId }) => {
     },
     enabled: !!user,
     refetchInterval: 10000,
+  });
+
+  // KPIs do Kanban
+  const { data: kpisData } = useQuery({
+    queryKey: ['kanbanKpis'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('calcularKpisKanban', {});
+      return res.data;
+    },
+    enabled: !!user,
+    refetchInterval: 300000, // 5 min
   });
 
   // Busca entregas para colorir os cards por status de aprovação WhatsApp
@@ -527,6 +539,8 @@ const Kanban = ({ user, selectedClienteId }) => {
       </div>
 
       <KanbanFilters filters={filters} setFilters={setFilters} clientes={clientes} availableTags={allTags} />
+
+      <KanbanKPIs data={kpisData} />
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="all-columns" direction="horizontal" type="COLUMN">
