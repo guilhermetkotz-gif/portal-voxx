@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const ZAPI_BASE = 'https://api.z-api.io';
 
+// --- Credenciais Z-API ---
 async function getZapiCredentials(base44) {
   const configs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1).catch(() => []);
   const entityConfig = configs?.[0];
@@ -12,21 +13,25 @@ async function getZapiCredentials(base44) {
   };
 }
 
-// Blocos de horário útil (America/Sao_Paulo): 08:00-12:00, 13:13-18:00
+// --- Configuração de lembretes ---
+async function getConfiguracao(sdk) {
+  const configs = await sdk.entities.ConfiguracaoLembreteAprovacao.list('-created_date', 1).catch(() => []);
+  const cfg = configs?.[0];
+  if (!cfg) return null;
+  return {
+    ativo: cfg.ativo !== false,
+    intervalos: cfg.intervalos_horas_uteis || [24, 48],
+    mensagens: cfg.mensagens_lembrete || [],
+    setores: cfg.setores_ativos || [],
+    maxAuto: cfg.max_mensagens_automaticas ?? 2,
+  };
+}
+
+// --- Horário útil (America/Sao_Paulo) ---
 const BLOCOS_MINUTOS = [
   { inicio: 8 * 60, fim: 12 * 60 },
   { inicio: 13 * 60 + 13, fim: 18 * 60 },
 ];
-const MINUTOS_UTEIS_DIA = BLOCOS_MINUTOS.reduce((s, b) => s + (b.fim - b.inicio), 0); // 527 min
-
-function minutosUteisNoDia(minutos) {
-  let t = 0;
-  for (const b of BLOCOS_MINUTOS) {
-    const ini = Math.max(minutos, b.inicio);
-    if (ini < b.fim) t += b.fim - ini;
-  }
-  return t;
-}
 
 function calcularMinutosUteis(inicio, fim) {
   const i = new Date(inicio);
@@ -37,9 +42,6 @@ function calcularMinutosUteis(inicio, fim) {
   let total = 0;
 
   while (cursor < f) {
-    const dia = cursor.getUTCDay(); // 0=dom no UTC, mas usamos locale
-    // Em BRT (UTC-3), getDay do local: 0=dom, 6=sab
-    // Precisamos usar o dia local: reconstruir
     const localStr = cursor.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
     const localDate = new Date(localStr);
     const diaSemana = localDate.getDay();
@@ -48,7 +50,6 @@ function calcularMinutosUteis(inicio, fim) {
     if (!ehFimDeSemana) {
       const fimDiaLocal = new Date(localDate);
       fimDiaLocal.setHours(23, 59, 59, 999);
-
       const limiteMs = f < fimDiaLocal ? f.getTime() : fimDiaLocal.getTime();
 
       const minsCursor = localDate.getHours() * 60 + localDate.getMinutes();
@@ -63,23 +64,26 @@ function calcularMinutosUteis(inicio, fim) {
         if (iniBloco < fimBloco) total += fimBloco - iniBloco;
       }
     }
-
     cursor.setDate(cursor.getDate() + 1);
     cursor.setHours(0, 0, 0, 0);
   }
-
   return total;
 }
 
-// Templates de mensagem
-function mensagemLembrete1(clienteNome, entregaNome, linkAprovacao) {
-  return `Olá ${clienteNome}! 👋\n\nPassando para lembrar que enviamos a entrega *"${entregaNome}"* para sua aprovação.\n\n📎 Link para aprovar: ${linkAprovacao}\n\nQualquer dúvida, estamos à disposição!`;
+// --- Templates padrão (fallback se não tiver config) ---
+const DEFAULT_MENSAGENS = [
+  'Olá {{cliente}}! 👋\n\nPassando para lembrar que enviamos a entrega *"{{entrega}}"* para sua aprovação.\n\n📎 Link para aprovar: {{link}}\n\nQualquer dúvida, estamos à disposição!',
+  '*{{cliente}}*, tudo bem?\n\nAinda não recebemos sua aprovação para a entrega *"{{entrega}}"*.\n\nSabemos que a rotina é corrida, mas sua aprovação é importante para darmos continuidade ao projeto.\n\n📎 Aprove aqui: {{link}}\n\nPrecisa de algum ajuste? É só nos avisar!',
+];
+
+function formatarMensagem(template, clienteNome, entregaNome, link) {
+  return template
+    .replace(/\{\{cliente\}\}/g, clienteNome)
+    .replace(/\{\{entrega\}\}/g, entregaNome)
+    .replace(/\{\{link\}\}/g, link);
 }
 
-function mensagemLembrete2(clienteNome, entregaNome, linkAprovacao) {
-  return `*${clienteNome}*, tudo bem?\n\nAinda não recebemos sua aprovação para a entrega *"${entregaNome}"*.\n\nSabemos que a rotina é corrida, mas sua aprovação é importante para darmos continuidade ao projeto.\n\n📎 Aprove aqui: ${linkAprovacao}\n\nPrecisa de algum ajuste? É só nos avisar!`;
-}
-
+// --- Envio WhatsApp ---
 async function enviarWhatsApp(base44, grupoId, mensagem, zapiCreds) {
   const endpointLovable = Deno.env.get('ENDPOINT_LOVABLE_ENVIO');
   const { zapiInstanceId, zapiToken, zapiClientToken } = zapiCreds;
@@ -107,17 +111,27 @@ async function enviarWhatsApp(base44, grupoId, mensagem, zapiCreds) {
     });
     return sendResp.ok;
   }
-
   return false;
 }
 
+// --- MAIN ---
 Deno.serve(async (_req) => {
   try {
     const base44 = createClientFromRequest(_req);
     const sdk = base44.asServiceRole;
     const agora = new Date().toISOString();
 
-    // Buscar todos os envios de aprovação com status enviado
+    const cfg = await getConfiguracao(sdk);
+    if (!cfg || !cfg.ativo) {
+      return Response.json({ success: true, processados: 0, lembretesEnviados: 0, intervencoes: 0, motivo: 'automacao_inativa' });
+    }
+
+    const intervalos = cfg.intervalos.length > 0 ? cfg.intervalos : [24, 48];
+    const maxAuto = cfg.maxAuto ?? 2;
+    const templates = cfg.mensagens.length > 0 ? cfg.mensagens : DEFAULT_MENSAGENS;
+    const setoresFiltro = cfg.setores.length > 0 ? cfg.setores : null;
+
+    // Buscar envios de aprovação com status enviado
     const envios = await sdk.entities.EnvioAprovacaoWhatsApp.filter(
       { status_envio: 'enviado' }, '-enviado_em', 500
     );
@@ -127,7 +141,15 @@ Deno.serve(async (_req) => {
     let intervencoes = 0;
 
     for (const envio of envios) {
-      // Verificar se a entrega vinculada ainda está em aprovação
+      // Filtrar por setor (se configurado)
+      if (setoresFiltro) {
+        const entrega = await sdk.entities.EntregaDemanda.filter({ id: envio.entrega_id }, '-updated_date', 1).catch(() => []);
+        const demanda = await sdk.entities.Demanda.filter({ id: envio.demanda_id }, '-updated_date', 1).catch(() => []);
+        const setor = entrega[0]?.setor || demanda[0]?.setor;
+        if (setor && !setoresFiltro.includes(setor)) continue;
+      }
+
+      // Verificar se a entrega ainda está em aprovação
       const entregas = await sdk.entities.EntregaDemanda.filter({ id: envio.entrega_id }, '-updated_date', 1);
       const entrega = entregas[0];
       if (!entrega || entrega.status_entrega !== 'em_aprovacao') continue;
@@ -138,17 +160,18 @@ Deno.serve(async (_req) => {
       );
       let tarefa = tarefasExistentes[0] || null;
 
-      if (!tarefa) {
-        // Primeira vez: verificar se já passaram 24h úteis desde o envio
-        const minsUteis = calcularMinutosUteis(envio.enviado_em, agora);
-        if (minsUteis < 24 * 60) continue; // Ainda não deu 24h úteis
+      const clienteNome = envio.cliente_nome || 'Cliente';
+      const entregaNome = envio.entrega_nome || 'entrega';
+      const link = envio.link_aprovacao || '';
 
-        // Criar tarefa e enviar 1º lembrete
-        const mensagem = mensagemLembrete1(
-          envio.cliente_nome || 'Cliente',
-          envio.entrega_nome || 'entrega',
-          envio.link_aprovacao || ''
-        );
+      if (!tarefa) {
+        // Primeira vez: verificar se passou o primeiro intervalo
+        const minsUteis = calcularMinutosUteis(envio.enviado_em, agora);
+        const limiteMin = (intervalos[0] || 24) * 60;
+        if (minsUteis < limiteMin) continue;
+
+        const template = templates[0] || DEFAULT_MENSAGENS[0];
+        const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
         const zapiCreds = await getZapiCredentials(base44);
         const enviado = await enviarWhatsApp(base44, envio.whatsapp_grupo_id, mensagem, zapiCreds);
@@ -163,13 +186,12 @@ Deno.serve(async (_req) => {
           envio_aprovacao_id: envio.id,
           whatsapp_grupo_id: envio.whatsapp_grupo_id,
           sequencia_lembrete: 1,
-          status: enviado ? 'pendente' : 'pendente',
+          status: 'pendente',
           data_ultimo_lembrete: agora,
           mensagem_enviada: mensagem,
-          link_aprovacao: envio.link_aprovacao || '',
+          link_aprovacao: link,
         });
 
-        // Registrar log
         await sdk.entities.WhatsappEnvioLog.create({
           cliente_id: envio.cliente_id,
           cliente_nome: envio.cliente_nome,
@@ -188,23 +210,24 @@ Deno.serve(async (_req) => {
         continue;
       }
 
-      // Tarefa já existe
-      if (tarefa.status === 'concluida') continue; // Já resolvida
+      if (tarefa.status === 'concluida') continue;
+
       if (tarefa.status === 'intervencao_humana') {
-        // Criar demanda de intervenção se ainda não foi criada
+        // Criar demanda de intervenção se ainda não existe
+        const demandaTitulo = `Lembrete Pendente: Aprovação "${envio.entrega_nome}" - ${envio.cliente_nome}`;
         const demandasIntervencao = await sdk.entities.Demanda.filter({
           cliente_id: envio.cliente_id,
-          titulo: `Lembrete Pendente: Aprovação "${envio.entrega_nome}" - ${envio.cliente_nome}`
+          titulo: demandaTitulo
         }, '-created_date', 1);
-        
+
         if (demandasIntervencao.length === 0) {
           await sdk.entities.Demanda.create({
             cliente_id: envio.cliente_id,
             cliente_nome: envio.cliente_nome,
             setor: 'ATENDIMENTO',
             setor_responsavel_original: 'ATENDIMENTO',
-            titulo: `Lembrete Pendente: Aprovação "${envio.entrega_nome}" - ${envio.cliente_nome}`,
-            descricao: `⚠️ O cliente não respondeu a 2 lembretes automáticos de aprovação.\n\n📎 Link: ${envio.link_aprovacao}\n📅 Envio original: ${envio.enviado_em}\n💬 Último lembrete: ${tarefa.data_ultimo_lembrete}\n\nAção necessária: Contato humano para verificar a situação.`,
+            titulo: demandaTitulo,
+            descricao: `⚠️ O cliente não respondeu a ${maxAuto} lembretes automáticos de aprovação.\n\n📎 Link: ${link}\n📅 Envio original: ${envio.enviado_em}\n💬 Último lembrete: ${tarefa.data_ultimo_lembrete}\n\nAção necessária: Contato humano para verificar a situação.`,
             status: 'recebida',
             prioridade: 'alta',
             tags: ['aprovacao_pendente', 'intervencao_humana'],
@@ -215,46 +238,55 @@ Deno.serve(async (_req) => {
         continue;
       }
 
-      // Tarefa pendente: verificar se é hora do próximo lembrete
+      // Tarefa pendente: verificar próximo intervalo
       const minsDesdeUltimo = calcularMinutosUteis(tarefa.data_ultimo_lembrete, agora);
+      const seq = tarefa.sequencia_lembrete;
 
-      if (tarefa.sequencia_lembrete === 1 && minsDesdeUltimo >= 24 * 60) {
-        // Enviar 2º lembrete
-        const mensagem = mensagemLembrete2(
-          envio.cliente_nome || 'Cliente',
-          envio.entrega_nome || 'entrega',
-          envio.link_aprovacao || ''
-        );
+      // Verificar se o próximo lembrete automático está dentro do limite maxAuto
+      if (seq < maxAuto) {
+        const idxIntervalo = seq; // intervalos[0] = entre envio e 1º lembrete, intervalos[1] = entre 1º e 2º...
+        const limiteMin = (intervalos[idxIntervalo] || intervalos[intervalos.length - 1] || 24) * 60;
 
-        const zapiCreds = await getZapiCredentials(base44);
-        const enviado = await enviarWhatsApp(base44, envio.whatsapp_grupo_id, mensagem, zapiCreds);
+        if (minsDesdeUltimo >= limiteMin) {
+          const idxTemplate = seq; // templates[0]=1º lembrete, templates[1]=2º...
+          const template = templates[idxTemplate] || DEFAULT_MENSAGENS[Math.min(idxTemplate, DEFAULT_MENSAGENS.length - 1)];
+          const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
-        await sdk.entities.TarefaAcompanhamento.update(tarefa.id, {
-          sequencia_lembrete: 2,
-          data_ultimo_lembrete: agora,
-          mensagem_enviada: mensagem,
-        });
+          const zapiCreds = await getZapiCredentials(base44);
+          const enviado = await enviarWhatsApp(base44, envio.whatsapp_grupo_id, mensagem, zapiCreds);
 
-        await sdk.entities.WhatsappEnvioLog.create({
-          cliente_id: envio.cliente_id,
-          cliente_nome: envio.cliente_nome,
-          grupo_id: envio.whatsapp_grupo_id,
-          tipo_envio: 'texto',
-          origem: 'aprovacao_entrega',
-          origem_id: envio.id,
-          mensagem,
-          status_envio: enviado ? 'enviado' : 'erro',
-          enviado_por: 'sistema',
-          enviado_em: agora,
-        });
+          await sdk.entities.TarefaAcompanhamento.update(tarefa.id, {
+            sequencia_lembrete: seq + 1,
+            data_ultimo_lembrete: agora,
+            mensagem_enviada: mensagem,
+          });
 
-        lembretesEnviados++;
-      } else if (tarefa.sequencia_lembrete === 2 && minsDesdeUltimo >= 24 * 60) {
-        // Já foram 2 lembretes + 24h do último → intervenção humana
-        await sdk.entities.TarefaAcompanhamento.update(tarefa.id, {
-          status: 'intervencao_humana',
-          data_ultimo_lembrete: agora,
-        });
+          await sdk.entities.WhatsappEnvioLog.create({
+            cliente_id: envio.cliente_id,
+            cliente_nome: envio.cliente_nome,
+            grupo_id: envio.whatsapp_grupo_id,
+            tipo_envio: 'texto',
+            origem: 'aprovacao_entrega',
+            origem_id: envio.id,
+            mensagem,
+            status_envio: enviado ? 'enviado' : 'erro',
+            enviado_por: 'sistema',
+            enviado_em: agora,
+          });
+
+          lembretesEnviados++;
+        }
+      } else {
+        // Já atingiu maxAuto: verificar se passou o último intervalo para intervenção
+        const idxUltimo = Math.min(seq, intervalos.length - 1);
+        const limiteMin = (intervalos[idxUltimo] || 24) * 60;
+
+        if (minsDesdeUltimo >= limiteMin) {
+          await sdk.entities.TarefaAcompanhamento.update(tarefa.id, {
+            status: 'intervencao_humana',
+            data_ultimo_lembrete: agora,
+          });
+        }
       }
 
       processados++;

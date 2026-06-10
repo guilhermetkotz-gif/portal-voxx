@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -7,7 +7,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Clock, AlertTriangle, Send, MessageSquare, ExternalLink } from 'lucide-react';
+import { Loader2, Clock, AlertTriangle, Send, MessageSquare, ExternalLink, Settings } from 'lucide-react';
+import ConfigLembretesPanel from '@/components/kanban/ConfigLembretesPanel';
 import moment from 'moment-timezone';
 import { calcularMinutosUteis } from '@/lib/minutosUteis';
 
@@ -24,6 +25,7 @@ const sequenciaLabel = {
 
 export default function PendenciasAprovacaoDrawer({ open, onClose }) {
   const queryClient = useQueryClient();
+  const [showConfig, setShowConfig] = useState(false);
 
   const { data: tarefas = [], isLoading } = useQuery({
     queryKey: ['tarefasAcompanhamento'],
@@ -62,11 +64,23 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
           <SheetTitle className="flex items-center gap-2 text-lg">
             <Clock className="h-5 w-5 text-amber-500" />
             Pendências de Aprovação
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto h-8 w-8"
+              onClick={() => setShowConfig(!showConfig)}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
           </SheetTitle>
           <SheetDescription>
             Acompanhe os lembretes automáticos de aprovação enviados aos clientes
           </SheetDescription>
         </SheetHeader>
+
+        {showConfig && (
+          <ConfigLembretesPanel onClose={() => setShowConfig(false)} />
+        )}
 
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading ? (

@@ -1,0 +1,44 @@
+{
+  "name": "ConfiguracaoLembreteAprovacao",
+  "type": "object",
+  "properties": {
+    "ativo": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se a automa\u00e7\u00e3o de lembretes est\u00e1 ativa"
+    },
+    "intervalos_horas_uteis": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "default": [
+        24,
+        48
+      ],
+      "description": "Horas \u00fateis entre cada lembrete autom\u00e1tico. O \u00faltimo valor define quando entra em interven\u00e7\u00e3o humana."
+    },
+    "mensagens_lembrete": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Templates de mensagem para cada lembrete. Use {{cliente}}, {{entrega}} e {{link}} como placeholders."
+    },
+    "setores_ativos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Setores que recebem lembretes autom\u00e1ticos. Vazio = todos os setores."
+    },
+    "max_mensagens_automaticas": {
+      "type": "number",
+      "default": 2,
+      "description": "Quantidade m\u00e1xima de mensagens autom\u00e1ticas antes de abrir interven\u00e7\u00e3o humana no Kanban"
+    }
+  },
+  "required": []
+}
