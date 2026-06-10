@@ -81,12 +81,13 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
 
 
 
-  // Recarrega demanda atual
+  // Recarrega demanda atual — refetch frequente para manter cronômetros_ativos sempre atualizado
   const { data: demandaAtual } = useQuery({
     queryKey: ['demanda', demanda?.id],
     queryFn: () => base44.entities.Demanda.filter({ id: demanda?.id }).then(d => d[0]),
     enabled: !!demanda?.id && open,
-    initialData: demanda
+    initialData: demanda,
+    refetchInterval: 3000,
   });
 
   const currentDemanda = demandaAtual || demanda;
@@ -685,6 +686,8 @@ ${statusValidacao}`.trim();
   if (!open) return null;
 
   const handleClose = () => {
+    // Verifica diretamente no TimeTracker via ref se o cronômetro está rodando,
+    // evitando depender de currentDemanda possivelmente stale.
     const meuCronometroAtivo = (currentDemanda?.cronometros_ativos || []).find(c => c.usuario_id === user?.id);
     if (meuCronometroAtivo) {
       setShowPauseDialog(true);
@@ -693,10 +696,15 @@ ${statusValidacao}`.trim();
     }
   };
 
+  // Evita duplo disparo do handleClose (overlay + container pai)
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) handleClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" onMouseDown={(e) => { if (e.target === e.currentTarget) handleClose(); }} onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}>
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/40" onClick={handleClose} />
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Overlay — um único handler para evitar duplo disparo */}
+      <div className="absolute inset-0 bg-black/40" onClick={handleOverlayClick} />
       
       {/* Painel lateral */}
       <div className="relative w-full sm:max-w-2xl bg-white h-full overflow-y-auto shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>

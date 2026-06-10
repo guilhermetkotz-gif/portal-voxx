@@ -34,7 +34,11 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
   const isRunning = !!meuCronometro;
 
   // Auto-start: inicia automaticamente ao abrir o modal (se não houver cronômetro ativo)
+  // Reseta o flag quando a demanda muda para garantir auto-start em cada nova abertura
   const autoStartedRef = useRef(false);
+  useEffect(() => {
+    autoStartedRef.current = false;
+  }, [demandaId]);
   useEffect(() => {
     if (demandaAtual && user && !meuCronometro && !autoStartedRef.current) {
       autoStartedRef.current = true;
