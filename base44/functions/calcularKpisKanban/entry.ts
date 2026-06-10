@@ -11,57 +11,48 @@ Deno.serve(async (_req) => {
     hoje.setHours(0, 0, 0, 0);
     const hojeISO = hoje.toISOString();
 
-    // Buscar todas as demandas ativas (não concluídas/finalizadas)
     const demandas = await sdk.entities.Demanda.list('-created_date', 1000);
-
     const ativas = demandas.filter(d => d.status !== 'concluida' && d.status !== 'finalizada');
 
-    // KPIs
-    const ativasPorSetor = {};
     let aguardandoAprovacao = 0;
     let demandasComAlertas = 0;
     let semMovimentacao = 0;
     let vencidas = 0;
     let aguardandoCliente = 0;
+    const vencidasPorSetor = {};
 
     for (const d of ativas) {
-      const setor = d.setor || 'sem_setor';
-      ativasPorSetor[setor] = (ativasPorSetor[setor] || 0) + 1;
-
-      // Aguardando cliente
       if (d.status === 'aguardando_cliente') aguardandoCliente++;
 
-      // Demandas com alertas (tags de intervenção/aprovação pendente)
       const tags = d.tags || [];
       if (tags.includes('aprovacao_pendente') || tags.includes('intervencao_humana')) {
         demandasComAlertas++;
       }
 
-      // Sem movimentação (>48h)
       if (d.ultima_atividade_kanban && d.ultima_atividade_kanban < agora48h) {
         semMovimentacao++;
       }
 
-      // Vencidas (previsão de entrega passou e não foi concluída)
       if (d.previsao_entrega && d.previsao_entrega < hojeISO) {
         vencidas++;
+        const setor = d.setor || 'sem_setor';
+        vencidasPorSetor[setor] = (vencidasPorSetor[setor] || 0) + 1;
       }
     }
 
-    // Aguardando aprovação = aguardando_cliente + tags de aprovação
     aguardandoAprovacao = aguardandoCliente + demandasComAlertas;
 
-    // Top 5 setores por quantidade
-    const topSetores = Object.entries(ativasPorSetor)
+    // Top 2 setores com mais vencidas
+    const topSetoresVencidas = Object.entries(vencidasPorSetor)
       .sort(([, a], [, b]) => b - a)
-      .slice(0, 8)
+      .slice(0, 2)
       .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
 
     return Response.json({
       success: true,
       totalAtivas: ativas.length,
       totalDemandas: demandas.length,
-      ativasPorSetor: topSetores,
+      vencidasPorSetor: topSetoresVencidas,
       aguardandoAprovacao,
       aguardandoCliente,
       demandasComAlertas,
