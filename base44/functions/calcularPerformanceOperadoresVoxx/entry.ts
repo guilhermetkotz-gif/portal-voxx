@@ -108,9 +108,12 @@ Deno.serve(async (_req) => {
     // Mapa reverso: msg telefone → remetente (para telefones que não batem exato)
     const msgTelParaRemetente = {};
 
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
     // 2. Buscar mensagens recentes e filtrar em JS
     let todasMsgs = [];
     for (let skip = 0; skip < 3000; skip += 500) {
+      if (skip > 0) await sleep(300);
       const lote = await sdk.entities.WhatsappMensagem.list('-received_at', 500, skip);
       todasMsgs = todasMsgs.concat(lote);
       if (lote.length < 500) break;
@@ -142,8 +145,10 @@ Deno.serve(async (_req) => {
     });
 
     // 3. Avaliações existentes (em lotes)
+    await sleep(300);
     let avaliacoes = [];
     for (let skip = 0; skip < 2000; skip += 500) {
+      if (skip > 0) await sleep(300);
       const lote = await sdk.entities.WhatsappAvaliacaoMensagemVoxx.list('-avaliado_em', 500, skip);
       avaliacoes = avaliacoes.concat(lote);
       if (lote.length < 500) break;

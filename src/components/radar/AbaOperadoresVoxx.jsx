@@ -52,11 +52,12 @@ export default function AbaOperadoresVoxx() {
     }
   };
 
-  const periodoObj = getPeriodo();
+  // Estabilizar o período para evitar queryKey instável (toISOString() muda a cada render)
+  const periodoObj = useMemo(() => getPeriodo(), [periodo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Usar backend function para calcular tudo (evita rate limit carregando 6000+ msgs no frontend)
-  const { data: resultado = { operadores: [], cards: {}, remetentes_nao_cadastrados: 0 }, isLoading } = useQuery({
-    queryKey: ['perfOperadores', periodoObj.inicio, periodoObj.fim],
+  const { data: resultado = { operadores: [], cards: {}, remetentes_nao_cadastrados: 0 }, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['perfOperadores', periodo],
     queryFn: async () => {
       const res = await base44.functions.invoke('calcularPerformanceOperadoresVoxx', {
         periodoInicio: periodoObj.inicio,
@@ -65,6 +66,7 @@ export default function AbaOperadoresVoxx() {
       return res.data;
     },
     staleTime: 2 * 60 * 1000,
+    retry: 1,
   });
 
   const operadores = resultado.operadores || [];
@@ -194,6 +196,11 @@ export default function AbaOperadoresVoxx() {
             <tbody>
               {isLoading ? (
                 <tr><td colSpan={15} className="px-4 py-10 text-center text-slate-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
+              ) : isError ? (
+                <tr><td colSpan={15} className="px-4 py-10 text-center text-slate-400">
+                  <p className="mb-2">Erro ao carregar: {error?.message || 'Tente novamente'}</p>
+                  <Button size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+                </td></tr>
               ) : operadoresFiltrados.length === 0 ? (
                 <tr><td colSpan={15} className="px-4 py-10 text-center text-slate-500">
                   {resultado.total_msgs_voxx_periodo === 0
