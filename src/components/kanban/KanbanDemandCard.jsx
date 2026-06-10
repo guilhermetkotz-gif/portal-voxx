@@ -73,9 +73,6 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
   if (previsao_entrega && moment(previsao_entrega).isBefore(moment())) {
     notificacoes.push({ tipo: 'alerta', texto: `Prazo vencido: ${moment(previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY')}` });
   }
-  if (demanda.comunicar_cliente && !demanda.resumo_cliente?.trim()) {
-    notificacoes.push({ tipo: 'alerta', texto: 'Marcada para comunicar cliente, mas sem resumo preenchido' });
-  }
 
   const priorityColors = {
     alta: 'bg-red-500',
