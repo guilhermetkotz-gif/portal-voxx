@@ -85,7 +85,7 @@ export default function AbaOperadoresVoxx() {
   const avaliarPendentes = async () => {
     setAvaliando(true);
     try {
-      const res = await base44.functions.invoke('avaliarQualidadeMensagensVoxx', { maxMensagens: 10 });
+      const res = await base44.functions.invoke('avaliarQualidadeMensagensVoxx', { maxMensagens: 50 });
       toast.success(res.data.mensagem || 'Avaliação concluída.');
       queryClient.invalidateQueries({ queryKey: ['perfOperadores'] });
     } catch (e) {

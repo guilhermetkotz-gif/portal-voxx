@@ -238,7 +238,12 @@ Deno.serve(async (_req) => {
 
       // Total de mensagens avaliadas
       const avaliadas = avalsDoOp.length;
-      const pendentes = msgsDoOp.length - avaliadas;
+      // Só conta como pendente msgs com texto (candidatas reais à avaliação)
+      const msgsCandidatas = msgsDoOp.filter(m =>
+        m.mensagem && m.mensagem.trim().length > 5 &&
+        !['sistema', 'atividade', 'sem_conteudo'].includes(m.tipo_mensagem)
+      );
+      const pendentes = Math.max(0, msgsCandidatas.length - avaliadas);
 
       // Scores de qualidade
       const scores = avalsDoOp.map(a => a.score_qualidade).filter(s => s != null);
