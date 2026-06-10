@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,8 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by, tags = [] } = demanda;
   const aprovacaoStyle = aprovacaoStatus ? aprovacaoCardStyle[aprovacaoStatus] : null;
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
+  const cardRef = useRef(null);
 
   // Verifica inatividade > 48h úteis
   const lastActivity = demanda.ultima_atividade_kanban || demanda.created_date;
@@ -90,11 +93,32 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
     concluida: 'bg-green-500',
   };
 
-  // Tooltip de notificações
+  // Recalcula posição ao mostrar tooltip
+  const handleMouseEnter = () => {
+    if (cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      const tooltipWidth = 288; // w-72 = 18rem = 288px
+      const viewportWidth = window.innerWidth;
+      let left = rect.left;
+      // Se não cabe à direita, alinhar pelo lado direito do card
+      if (left + tooltipWidth > viewportWidth - 8) {
+        left = rect.right - tooltipWidth;
+      }
+      // Garantir que não sai pela esquerda
+      if (left < 8) left = 8;
+      setTooltipPos({ top: rect.bottom + 6, left });
+    }
+    setShowTooltip(true);
+  };
+
+  // Tooltip renderizado via portal para escapar do overflow das colunas
   const TooltipContent = () => {
     if (!showTooltip || notificacoes.length === 0) return null;
-    return (
-      <div className="absolute z-50 left-0 top-full mt-1 w-72 bg-slate-900 text-white rounded-lg shadow-xl p-3 space-y-1.5 pointer-events-none">
+    return ReactDOM.createPortal(
+      <div
+        style={{ position: 'fixed', top: tooltipPos.top, left: tooltipPos.left, zIndex: 9999 }}
+        className="w-72 bg-slate-900 text-white rounded-lg shadow-xl p-3 space-y-1.5 pointer-events-none"
+      >
         <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-2">Notificações</p>
         {notificacoes.map((n, i) => (
           <div key={i} className="flex items-start gap-2 text-xs">
@@ -105,7 +129,8 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
             <span className="text-slate-200">{n.texto}</span>
           </div>
         ))}
-      </div>
+      </div>,
+      document.body
     );
   };
 
@@ -114,8 +139,9 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
   if (isMinimized) {
     return (
       <div
+        ref={cardRef}
         className="relative mb-2"
-        onMouseEnter={() => setShowTooltip(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setShowTooltip(false)}
       >
         <TooltipContent />
@@ -147,8 +173,9 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
 
   return (
     <div
+      ref={cardRef}
       className="relative mb-3"
-      onMouseEnter={() => setShowTooltip(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setShowTooltip(false)}
     >
       <TooltipContent />
