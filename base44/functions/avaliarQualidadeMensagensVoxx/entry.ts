@@ -15,19 +15,28 @@ Deno.serve(async (_req) => {
 
     // Buscar remetentes VOXX cadastrados
     const remetentes = await sdk.entities.WhatsappRemetenteVoxx.list('-nome', 200);
-    const telsCadastrados = new Set(
-      remetentes.filter(r => r.ativo !== false).map(r => normalizarTel(r.telefone_normalizado))
-    );
+    const remetentesAtivos = remetentes.filter(r => r.ativo !== false);
+    const telsCadastrados = new Set(remetentesAtivos.map(r => normalizarTel(r.telefone_normalizado)));
 
     // Buscar mensagens VOXX sem avaliação
     const mensagensVoxx = await sdk.entities.WhatsappMensagem.filter(
       { remetente_tipo: 'voxx' }, '-received_at', 500
     );
 
+    // Verificar se um telefone de mensagem pertence a algum remetente cadastrado
+    // (match exato ou por nome, pois o dígito 9 pode diferir)
+    function ehRemetenteCadastrado(tel, nome) {
+      if (telsCadastrados.has(tel)) return true;
+      if (nome) {
+        return remetentesAtivos.some(r => nome.toUpperCase().includes(r.nome.toUpperCase()));
+      }
+      return false;
+    }
+
     // Filtrar apenas com conteúdo e de remetentes cadastrados
     const candidatas = mensagensVoxx.filter(m => {
       const tel = normalizarTel(m.remetente_telefone);
-      return telsCadastrados.has(tel) &&
+      return ehRemetenteCadastrado(tel, m.remetente_nome) &&
         m.mensagem && m.mensagem.trim().length > 5 &&
         m.grupo_id;
     });
