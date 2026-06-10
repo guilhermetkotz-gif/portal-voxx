@@ -141,7 +141,7 @@ async function enviarWhatsApp(base44, grupoId, mensagem, zapiCreds) {
     const resp = await fetch(endpointLovable, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo: 'lembrete_aprovacao', grupo_whatsapp_id: grupoId, mensagem, tipo_midia: 'texto' })
+      body: JSON.stringify({ tipo: 'envio_aprovacao', grupo_whatsapp_id: grupoId, mensagem, tipo_midia: 'texto' })
     });
     return resp.ok;
   }
