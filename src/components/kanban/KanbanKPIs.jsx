@@ -1,56 +1,37 @@
 import React from 'react';
-import { Card } from '@/components/ui/card';
 import { Layers, Clock, AlertTriangle, CalendarX, Gauge } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SETOR_LABELS = {
-  ATENDIMENTO: 'Atendimento',
-  TRAFEGO_META: 'Tráfego Meta',
-  TRAFEGO_GOOGLE: 'Tráfego Google',
-  TRAFEGO_TIKTOK: 'Tráfego TikTok',
-  ALTERACAO_CRIACAO: 'Alt. Criação',
+  ATENDIMENTO: 'Atend.',
+  TRAFEGO_META: 'Meta',
+  TRAFEGO_GOOGLE: 'Google',
+  TRAFEGO_TIKTOK: 'TikTok',
+  ALTERACAO_CRIACAO: 'Alt.Criação',
   CRIACAO: 'Criação',
   EDICAO: 'Edição',
-  BI_RELATORIO: 'BI/Relatórios',
-  IMPLANTACAO: 'Implantação',
+  BI_RELATORIO: 'BI',
+  IMPLANTACAO: 'Implant.',
   FINANCEIRO: 'Financeiro',
   AUTOMACAO: 'Automação',
   SALDOS: 'Saldos',
   sem_setor: 'Sem Setor',
 };
 
-function MiniKPICard({ title, value, subtitle, icon: Icon, variant = 'default' }) {
-  const iconStyles = {
-    default: 'bg-slate-100 text-slate-600',
-    success: 'bg-emerald-100 text-emerald-600',
-    warning: 'bg-amber-100 text-amber-600',
-    danger: 'bg-red-100 text-red-600',
-    primary: 'bg-violet-100 text-violet-600',
-  };
-
-  const bgStyles = {
-    default: 'bg-white border-slate-200',
-    success: 'bg-emerald-50/50 border-emerald-200',
-    warning: 'bg-amber-50/50 border-amber-200',
-    danger: 'bg-red-50/50 border-red-200',
-    primary: 'bg-violet-50/50 border-violet-200',
+function Badge({ icon: Icon, label, value, variant = 'default' }) {
+  const styles = {
+    primary: 'bg-violet-50 text-violet-700',
+    warning: 'bg-amber-50 text-amber-700',
+    danger: 'bg-red-50 text-red-700',
+    default: 'bg-slate-50 text-slate-600',
   };
 
   return (
-    <Card className={cn('p-3 border', bgStyles[variant])}>
-      <div className="flex items-center gap-2.5">
-        {Icon && (
-          <div className={cn('p-1.5 rounded-lg', iconStyles[variant])}>
-            <Icon className="w-4 h-4" />
-          </div>
-        )}
-        <div className="min-w-0">
-          <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide leading-tight">{title}</p>
-          <p className="text-lg font-bold text-slate-900 leading-tight">{value}</p>
-          {subtitle && <p className="text-[10px] text-slate-400 leading-tight truncate">{subtitle}</p>}
-        </div>
-      </div>
-    </Card>
+    <div className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium', styles[variant])}>
+      {Icon && <Icon className="w-3 h-3" />}
+      <span className="tabular-nums">{value}</span>
+      <span className="text-slate-400 font-normal">{label}</span>
+    </div>
   );
 }
 
@@ -60,55 +41,23 @@ export default function KanbanKPIs({ data }) {
   const setores = data.vencidasPorSetor || [];
 
   return (
-    <div className="flex flex-wrap gap-2 mb-4">
-      <MiniKPICard
-        title="Ativas"
-        value={data.totalAtivas}
-        subtitle={`de ${data.totalDemandas} total`}
-        icon={Layers}
-        variant="primary"
-      />
-      <MiniKPICard
-        title="Aguard. Aprov."
-        value={data.aguardandoAprovacao}
-        subtitle={data.aguardandoCliente > 0 ? `${data.aguardandoCliente} ag. cliente` : null}
-        icon={Clock}
-        variant="warning"
-      />
-      <MiniKPICard
-        title="Com Alertas"
-        value={data.demandasComAlertas}
-        subtitle="Intervenção"
-        icon={AlertTriangle}
-        variant="danger"
-      />
-      <MiniKPICard
-        title="Sem Movim."
-        value={data.semMovimentacao}
-        subtitle="+48h inativas"
-        icon={Gauge}
-        variant="warning"
-      />
-      <MiniKPICard
-        title="Vencidas"
-        value={data.vencidas}
-        subtitle="Prazo expirado"
-        icon={CalendarX}
-        variant="danger"
-      />
+    <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+      <Badge icon={Layers} label="ativas" value={data.totalAtivas} variant="primary" />
+      <Badge icon={Clock} label="aguard. aprov." value={data.aguardandoAprovacao} variant="warning" />
+      <Badge icon={AlertTriangle} label="alertas" value={data.demandasComAlertas} variant="danger" />
+      <Badge icon={Gauge} label="+48h paradas" value={data.semMovimentacao} variant="warning" />
+      <Badge icon={CalendarX} label="vencidas" value={data.vencidas} variant="danger" />
 
-      {/* Separador visual */}
       {setores.length > 0 && (
-        <div className="w-px bg-slate-200 mx-1 self-stretch hidden sm:block" />
+        <span className="text-slate-300 mx-1 text-xs">|</span>
       )}
 
-      {/* Demandas em atraso por setor */}
       {setores.map(({ setor, qtd }) => (
-        <MiniKPICard
+        <Badge
           key={setor}
-          title={`Atraso: ${SETOR_LABELS[setor] || setor}`}
-          value={qtd}
           icon={CalendarX}
+          label={`venc. ${SETOR_LABELS[setor] || setor}`}
+          value={qtd}
           variant="danger"
         />
       ))}
