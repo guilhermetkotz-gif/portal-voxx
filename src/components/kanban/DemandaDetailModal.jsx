@@ -45,6 +45,21 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const [comentario, setComentario] = useState('');
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
+
+  const enterEditMode = () => {
+    setEditData({
+      titulo: currentDemanda?.titulo || '',
+      descricao: currentDemanda?.descricao || '',
+      status: currentDemanda?.status || '',
+      prioridade: currentDemanda?.prioridade || '',
+      previsao_entrega: currentDemanda?.previsao_entrega || '',
+      comunicar_cliente: currentDemanda?.comunicar_cliente || false,
+      resumo_entrega_cliente: currentDemanda?.resumo_entrega_cliente || '',
+      resumo_cliente: currentDemanda?.resumo_cliente || '',
+      tipo_comunicacao: currentDemanda?.tipo_comunicacao || ''
+    });
+    setEditMode(true);
+  };
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showPauseDialog, setShowPauseDialog] = useState(false);
 
@@ -700,7 +715,7 @@ ${statusValidacao}`.trim();
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setEditMode(!editMode)}
+                onClick={() => editMode ? setEditMode(false) : enterEditMode()}
               >
                 {editMode ? <X className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
               </Button>
