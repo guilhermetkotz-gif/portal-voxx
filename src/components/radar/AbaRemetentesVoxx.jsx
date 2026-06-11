@@ -56,7 +56,7 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
 
   const { data: usuarios = [] } = useQuery({
     queryKey: ['voxxUsers'],
-    queryFn: () => base44.entities.User.list('full_name', 200),
+    queryFn: () => base44.asServiceRole.entities.User.list('full_name', 200),
     staleTime: 60 * 1000,
   });
 
