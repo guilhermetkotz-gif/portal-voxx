@@ -168,8 +168,17 @@ Deno.serve(async (req) => {
       };
 
       if (!grupoRecord) {
-        // Criar novo grupo
-        try {
+        // Re-check para evitar race condition — outro webhook pode ter criado
+        const checkAgain = await base44.asServiceRole.entities.WhatsappGrupo.filter({ grupo_id: grupoIdFinal });
+        if (checkAgain.length > 0) {
+          const existente = checkAgain[0];
+          await base44.asServiceRole.entities.WhatsappGrupo.update(existente.id, {
+            ultima_mensagem: mensagem,
+            ultima_atividade: receivedAt,
+          });
+          console.log('[webhook] ✅ Grupo já existente (race condition), atualizado:', grupoIdFinal);
+        } else {
+          // Criar novo grupo
           await base44.asServiceRole.entities.WhatsappGrupo.create({
             grupo_id:       grupoIdFinal,
             nome_grupo:     chatName || grupoIdFinal,
@@ -181,16 +190,10 @@ Deno.serve(async (req) => {
             origem:         'webhook',
           });
           console.log('[webhook] ✅ Novo grupo criado:', grupoIdFinal);
-        } catch (ge) {
-          console.error('[webhook] ⚠️ Erro ao criar grupo:', ge.message);
         }
       } else {
         // Atualizar grupo existente
-        try {
-          await base44.asServiceRole.entities.WhatsappGrupo.update(grupoRecord.id, dadosGrupoUpdate);
-        } catch (ge) {
-          console.error('[webhook] ⚠️ Erro ao atualizar grupo:', ge.message);
-        }
+        await base44.asServiceRole.entities.WhatsappGrupo.update(grupoRecord.id, dadosGrupoUpdate);
       }
     }
 

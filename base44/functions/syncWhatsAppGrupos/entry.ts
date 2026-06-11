@@ -77,8 +77,12 @@ Deno.serve(async (req) => {
     let atualizados = 0;
 
     for (const grupo of grupos) {
-      const grupoId = grupo.id || grupo.phone;
-      if (!grupoId) continue;
+      const rawId = grupo.id || grupo.phone;
+      if (!rawId) continue;
+
+      // Normalizar para o formato -group (mesmo formato usado pelo webhook)
+      const numeric = rawId.replace(/@g\.us$/, '').replace(/-group$/, '').split('-')[0];
+      const grupoId = `${numeric}-group`;
 
       const nomeGrupo = grupo.name || grupo.subject || grupo.id || grupoId;
       const ultimaAtividade = grupo.timestamp 
