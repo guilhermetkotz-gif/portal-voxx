@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2 } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
@@ -23,6 +24,7 @@ export default function ChatHubDrawer({ onClose, user }) {
   const [showNovaConversa, setShowNovaConversa] = useState(false);
   const [novoTelefone, setNovoTelefone] = useState('');
   const [novoNome, setNovoNome] = useState('');
+  const [novoClienteId, setNovoClienteId] = useState('');
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -279,16 +281,18 @@ export default function ChatHubDrawer({ onClose, user }) {
     const tel = novoTelefone.replace(/\D/g, '');
     if (!tel || tel.length < 8) { toast.error('Telefone inválido'); return; }
     const chatId = tel.includes('@') ? tel : `${tel}@c.us`;
+    const clienteSelecionado = clientes.find(c => c.id === novoClienteId);
     setSelectedChat({
       id: chatId,
       name: novoNome || tel,
       isGroup: false,
-      clienteId: '',
-      clienteNome: '',
+      clienteId: novoClienteId || '',
+      clienteNome: clienteSelecionado?.nome || '',
     });
     setShowNovaConversa(false);
     setNovoTelefone('');
     setNovoNome('');
+    setNovoClienteId('');
   };
 
   const handleKeyDown = (e) => {
@@ -547,6 +551,23 @@ export default function ChatHubDrawer({ onClose, user }) {
                   />
                 </div>
                 <div>
+                  <label className="text-xs text-slate-400 mb-1 block">Vincular a um cliente (opcional)</label>
+                  <Select value={novoClienteId || undefined} onValueChange={(v) => setNovoClienteId(v === 'none' ? '' : v)}>
+                    <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-100 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                        <SelectValue placeholder="Selecionar cliente..." />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-700 max-h-60">
+                      <SelectItem value="none" className="text-slate-400">Nenhum (contato sem vínculo)</SelectItem>
+                      {clientes.map(c => (
+                        <SelectItem key={c.id} value={c.id} className="text-slate-300">{c.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <label className="text-xs text-slate-400 mb-1 block">Nome do contato (opcional)</label>
                   <Input
                     value={novoNome}
@@ -557,7 +578,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-6">
-                <Button variant="ghost" onClick={() => setShowNovaConversa(false)} className="text-slate-400">Cancelar</Button>
+                <Button variant="ghost" onClick={() => { setShowNovaConversa(false); setNovoClienteId(''); }} className="text-slate-400">Cancelar</Button>
                 <Button onClick={handleNovaConversa} className="bg-emerald-600 hover:bg-emerald-500">
                   <Phone className="w-4 h-4 mr-2" /> Iniciar Chat
                 </Button>
