@@ -448,8 +448,8 @@ export default function ChatHubDrawer({ onClose, user }) {
                           </Badge>
                         )}
                       </div>
-                      <div className="shrink-0 min-w-[48px] flex flex-col items-end gap-1">
-                        <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">{c.lastMessageLabel || ''}</span>
+                      <div className="shrink-0 min-w-[48px] flex flex-col items-end gap-1" style={{ flexShrink: 0, minWidth: 48 }}>
+                        <span style={{ fontSize: 11, color: '#34d399', fontWeight: 500, whiteSpace: 'nowrap' }}>{c.lastMessageLabel || ''}</span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
                             {c.unreadCount > 99 ? '99+' : c.unreadCount}
