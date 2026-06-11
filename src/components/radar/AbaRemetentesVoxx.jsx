@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
 } from '@/components/ui/dialog';
@@ -33,7 +34,7 @@ function KPICard({ icon: Icon, label, value, color }) {
   );
 }
 
-const FORM_VAZIO = { nome: '', telefone: '', ativo: true };
+const FORM_VAZIO = { nome: '', telefone: '', ativo: true, usuario_id: '' };
 
 export default function AbaRemetentesVoxx({ mensagens = [] }) {
   const queryClient = useQueryClient();
@@ -48,6 +49,12 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
     queryKey: ['remVoxx'],
     queryFn: () => base44.entities.WhatsappRemetenteVoxx.list('-created_date', 200),
     staleTime: 30 * 1000,
+  });
+
+  const { data: usuarios = [] } = useQuery({
+    queryKey: ['voxxUsers'],
+    queryFn: () => base44.entities.User.list('full_name', 200),
+    staleTime: 60 * 1000,
   });
 
   // KPIs a partir das mensagens já carregadas no RadarWhatsApp
@@ -67,7 +74,7 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
 
   const abrirEditar = (r) => {
     setEditando(r);
-    setForm({ nome: r.nome, telefone: r.telefone, ativo: r.ativo !== false });
+    setForm({ nome: r.nome, telefone: r.telefone, ativo: r.ativo !== false, usuario_id: r.usuario_id || '' });
     setModalOpen(true);
   };
 
@@ -83,6 +90,7 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
         nome: form.nome.trim(),
         telefone: form.telefone.trim(),
         telefone_normalizado: telNorm,
+        usuario_id: form.usuario_id || null,
         ativo: form.ativo,
       };
       if (editando) {
@@ -184,21 +192,27 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
               <th className="text-left px-4 py-3 text-slate-500 font-medium text-xs">Nome</th>
               <th className="text-left px-4 py-3 text-slate-500 font-medium text-xs">Telefone</th>
               <th className="text-left px-4 py-3 text-slate-500 font-medium text-xs">Normalizado</th>
+              <th className="text-left px-4 py-3 text-slate-500 font-medium text-xs">Usuário</th>
               <th className="text-left px-4 py-3 text-slate-500 font-medium text-xs">Status</th>
               <th className="text-right px-4 py-3 text-slate-500 font-medium text-xs">Ações</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></td></tr>
             ) : remetentes.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-500 text-sm">Nenhum remetente cadastrado ainda.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500 text-sm">Nenhum remetente cadastrado ainda.</td></tr>
             ) : (
               remetentes.map(r => (
                 <tr key={r.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                   <td className="px-4 py-3 text-white font-medium">{r.nome}</td>
                   <td className="px-4 py-3 text-slate-300 font-mono text-xs">{r.telefone}</td>
                   <td className="px-4 py-3 text-slate-400 font-mono text-xs">{r.telefone_normalizado}</td>
+                  <td className="px-4 py-3 text-slate-400 text-xs">
+                    {r.usuario_id
+                      ? (usuarios.find(u => u.id === r.usuario_id)?.full_name || r.usuario_id)
+                      : <span className="text-slate-600">—</span>}
+                  </td>
                   <td className="px-4 py-3">
                     <Badge className={r.ativo !== false
                       ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]'
@@ -258,6 +272,20 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
                   Normalizado: <span className="text-emerald-400 font-mono">{normalizarTelefone(form.telefone)}</span>
                 </p>
               )}
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 mb-1.5 block">Usuário vinculado</label>
+              <Select value={form.usuario_id} onValueChange={v => setForm(f => ({ ...f, usuario_id: v }))}>
+                <SelectTrigger className="bg-slate-800 border-slate-700 text-white text-sm">
+                  <SelectValue placeholder="Selecionar usuário..." />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-700 max-h-48">
+                  <SelectItem value={null}>Nenhum</SelectItem>
+                  {usuarios.filter(u => u.full_name).map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.email})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-between">
               <label className="text-sm text-slate-300">Ativo</label>

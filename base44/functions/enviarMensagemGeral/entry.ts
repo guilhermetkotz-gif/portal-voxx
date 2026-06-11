@@ -29,11 +29,25 @@ Deno.serve(async (req) => {
     const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
     if (!zapiInstanceId) return Response.json({ error: 'Z-API não configurada' }, { status: 503 });
 
+    // Buscar remetente VOXX vinculado ao usuário logado
+    let remetenteVoxx = null;
+    try {
+      const remetentes = await base44.asServiceRole.entities.WhatsappRemetenteVoxx.filter(
+        { usuario_id: user.id, ativo: true },
+        '-created_date',
+        1
+      );
+      remetenteVoxx = remetentes?.[0] || null;
+    } catch (_) { /* ignora falha na busca */ }
+
+    // Nome para assinatura: prioriza remetente VOXX > full_name > fallback
+    const nomeRemetente = remetenteVoxx?.nome || user.full_name?.split(' ')[0] || 'Equipe Voxx';
+    const telefoneRemetente = remetenteVoxx?.telefone_normalizado || null;
+
     // Monta a mensagem com assinatura para texto
     let mensagemFinal = mensagem || '';
     if (tipo === 'texto' && incluirAssinatura && mensagem?.trim()) {
-      const nomeAssinatura = user.full_name?.split(' ')[0] || 'Equipe Voxx';
-      mensagemFinal = `${mensagem.trim()}\n\n— ${nomeAssinatura} | Voxx`;
+      mensagemFinal = `${mensagem.trim()}\n\n— ${nomeRemetente} | Voxx`;
     }
 
     let resultadoApi = null;
@@ -123,7 +137,7 @@ Deno.serve(async (req) => {
       erro: erroEnvio || null,
       enviado_por: user.email,
       enviado_em: agora,
-      remetente_nome: user.full_name || user.email,
+      remetente_nome: nomeRemetente,
     });
 
     // Salvar no WhatsappMensagem para aparecer no chat imediatamente
@@ -136,7 +150,8 @@ Deno.serve(async (req) => {
         grupo_id: chatId,
         grupo_nome: chatName || null,
         is_group: String(chatId).includes('-group') || String(chatId).includes('@g.us'),
-        remetente_nome: user.full_name || user.email,
+        remetente_nome: nomeRemetente,
+        remetente_telefone: telefoneRemetente,
         remetente_tipo: 'voxx',
         origem: 'enviada',
         mensagem: mensagemFinal || '[Mídia]',

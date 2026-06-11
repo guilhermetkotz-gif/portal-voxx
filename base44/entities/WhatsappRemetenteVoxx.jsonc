@@ -14,6 +14,10 @@
       "type": "string",
       "description": "Telefone apenas com d\u00edgitos num\u00e9ricos"
     },
+    "usuario_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio Base44 vinculado a este remetente"
+    },
     "ativo": {
       "type": "boolean",
       "default": true,
