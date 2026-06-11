@@ -447,7 +447,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                   ) : msgsChat.length === 0 ? (
                     <p className="text-center text-slate-500 text-sm py-12">Nenhuma mensagem ainda.</p>
                   ) : (
-                    msgsChat.map((m) => {
+                    [...msgsChat].reverse().map((m) => {
                       const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada' || m.from_me;
                       const ts = m.received_at || m.timestamp_mensagem;
                       const midiaUrl = m.midia_url;

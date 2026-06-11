@@ -202,7 +202,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             ) : mensagens.length === 0 ? (
               <p className="text-center text-slate-500 text-sm py-12">Nenhuma mensagem ainda.</p>
             ) : (
-              mensagens.map((m) => {
+              [...mensagens].reverse().map((m) => {
                 const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada' || m.from_me;
                 const ts = m.received_at || m.timestamp_mensagem;
                 const midiaUrl = m.midia_url;
