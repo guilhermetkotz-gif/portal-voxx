@@ -126,6 +126,29 @@ Deno.serve(async (req) => {
       remetente_nome: user.full_name || user.email,
     });
 
+    // Salvar no WhatsappMensagem para aparecer no chat imediatamente
+    if (statusEnvio === 'enviado') {
+      const tipoMsgMap = { texto: 'texto', imagem: 'imagem', video: 'video', audio: 'audio', documento: 'documento' };
+      await base44.asServiceRole.entities.WhatsappMensagem.create({
+        message_id: resultadoApi?.messageId || resultadoApi?.id || null,
+        cliente_id: clienteId || null,
+        cliente_nome: clienteNome || null,
+        grupo_id: chatId,
+        grupo_nome: chatName || null,
+        is_group: String(chatId).includes('-group') || String(chatId).includes('@g.us'),
+        remetente_nome: user.full_name || user.email,
+        remetente_tipo: 'voxx',
+        origem: 'enviada',
+        mensagem: mensagemFinal || '[Mídia]',
+        tipo_mensagem: tipoMsgMap[tipo] || 'texto',
+        midia_url: midiaUrl || null,
+        midia_nome: fileName || null,
+        received_at: agora,
+        from_me: true,
+        status_processamento: 'ok',
+      }).catch(() => null); // não quebrar se falhar
+    }
+
     return Response.json({
       success: statusEnvio === 'enviado',
       status_envio: statusEnvio,

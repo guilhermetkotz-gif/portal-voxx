@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2 } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
@@ -205,6 +205,57 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               mensagens.map((m) => {
                 const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada' || m.from_me;
                 const ts = m.received_at || m.timestamp_mensagem;
+                const midiaUrl = m.midia_url;
+
+                const renderContent = () => {
+                  // Imagem
+                  if (m.tipo_mensagem === 'imagem' && midiaUrl) {
+                    return (
+                      <div>
+                        <img src={midiaUrl} alt="Imagem" className="rounded-lg max-w-full max-h-80 object-cover cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(midiaUrl, '_blank')} />
+                      </div>
+                    );
+                  }
+                  // Vídeo
+                  if (m.tipo_mensagem === 'video' && midiaUrl) {
+                    return (
+                      <div>
+                        <video src={midiaUrl} controls className="rounded-lg max-w-full max-h-80" preload="metadata">
+                          Seu navegador não suporta vídeo.
+                        </video>
+                      </div>
+                    );
+                  }
+                  // Áudio
+                  if (m.tipo_mensagem === 'audio' && midiaUrl) {
+                    return (
+                      <div>
+                        <audio src={midiaUrl} controls className="w-full min-w-[200px] h-10" preload="metadata">
+                          Seu navegador não suporta áudio.
+                        </audio>
+                      </div>
+                    );
+                  }
+                  // Documento
+                  if (m.tipo_mensagem === 'documento' && midiaUrl) {
+                    const docName = m.midia_nome || 'Documento';
+                    return (
+                      <a href={midiaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2.5 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition-colors group">
+                        <div className="w-9 h-9 rounded-lg bg-slate-600 flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4 text-slate-300" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{docName}</p>
+                          <p className="text-[10px] text-slate-400">Clique para baixar</p>
+                        </div>
+                        <Download className="w-4 h-4 text-slate-400 group-hover:text-white shrink-0" />
+                      </a>
+                    );
+                  }
+                  // Texto (fallback)
+                  return <p className="whitespace-pre-wrap break-words">{m.mensagem || '[Sem conteúdo]'}</p>;
+                };
+
                 return (
                   <div key={m.id} className={`flex ${isVoxx ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
@@ -213,26 +264,15 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         : 'bg-slate-800 text-slate-200 rounded-bl-md border border-slate-700'
                     }`}>
                       {!isVoxx && m.remetente_nome && (
-                        <p className="text-[11px] font-medium text-blue-400 mb-0.5">{m.remetente_nome}</p>
+                        <p className="text-[11px] font-medium text-blue-400 mb-1">{m.remetente_nome}</p>
                       )}
                       {isVoxx && m.remetente_nome && (
-                        <p className="text-[11px] font-medium text-emerald-300 mb-0.5">{m.remetente_nome}</p>
+                        <p className="text-[11px] font-medium text-emerald-300 mb-1">{m.remetente_nome}</p>
                       )}
-                      {m.tipo_mensagem === 'imagem' && m.mensagem ? (
-                        <div>
-                          <img src={m.mensagem} alt="Imagem" className="rounded-lg max-w-full max-h-60 object-cover mb-1" />
-                        </div>
-                      ) : m.tipo_mensagem === 'video' && m.mensagem ? (
-                        <div>
-                          <video src={m.mensagem} controls className="rounded-lg max-w-full max-h-60 mb-1" />
-                        </div>
-                      ) : m.tipo_mensagem === 'audio' ? (
-                        <div className="flex items-center gap-2">
-                          <Mic className="w-4 h-4" />
-                          <span className="text-xs">Áudio</span>
-                        </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap break-words">{m.mensagem}</p>
+                      {renderContent()}
+                      {/* Mostra legenda/caption abaixo da mídia se houver texto */}
+                      {(m.tipo_mensagem === 'imagem' || m.tipo_mensagem === 'video') && m.mensagem && m.mensagem !== '[Imagem]' && m.mensagem !== '[Vídeo]' && (
+                        <p className="mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90">{m.mensagem}</p>
                       )}
                       <p className={`text-[10px] mt-1 ${isVoxx ? 'text-emerald-200' : 'text-slate-500'}`}>
                         {ts ? moment(ts).tz(TZ).format('HH:mm') : ''}
