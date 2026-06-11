@@ -52,10 +52,8 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
     return moment().tz(TZ).subtract(m[filtroPeriodo] || 7, 'days').toISOString();
   }, [filtroPeriodo]);
 
-  const prioridadeAlerta = { emergencial: 0, critico: 1, alerta: 2, alarme: 3 };
-
   const filtrados = useMemo(() => {
-    const resultado = gruposEnriquecidos.filter(g => {
+    return gruposEnriquecidos.filter(g => {
       if (busca) {
         const b = busca.toLowerCase();
         if (!g.nome_grupo?.toLowerCase().includes(b) && !g.cliente_nome?.toLowerCase().includes(b) && !g.grupo_id?.toLowerCase().includes(b)) return false;
@@ -70,17 +68,6 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
       if (filtroAlerta === 'inativo72h'  && !g.inativo72h)                  return false;
       return true;
     });
-
-    // Ordenar: grupos com alerta no topo, depois inativos, depois os demais
-    resultado.sort((a, b) => {
-      const pa = a.alertaNivel ? (prioridadeAlerta[a.alertaNivel] ?? 99) : (a.inativo72h ? 98 : 99);
-      const pb = b.alertaNivel ? (prioridadeAlerta[b.alertaNivel] ?? 99) : (b.inativo72h ? 98 : 99);
-      if (pa !== pb) return pa - pb;
-      // Dentro do mesmo nível, ordenar por tempo sem resposta (maior primeiro)
-      return (b.minutosSemResposta || 0) - (a.minutosSemResposta || 0);
-    });
-
-    return resultado;
   }, [gruposEnriquecidos, busca, filtroVinculo, filtroAlerta, periodoCorte]);
 
   return (
