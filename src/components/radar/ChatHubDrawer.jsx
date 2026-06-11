@@ -427,7 +427,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                   <button
                     key={c.id}
                     onClick={() => setSelectedChat(c)}
-                    className={`w-full text-left px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors ${
+                    className={`w-full text-left px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors overflow-visible ${
                       isSelected ? 'bg-slate-800 border-l-2 border-l-emerald-500' : ''
                     }`}
                   >
@@ -448,8 +448,10 @@ export default function ChatHubDrawer({ onClose, user }) {
                           </Badge>
                         )}
                       </div>
-                      <div className="shrink-0 min-w-[48px] flex flex-col items-end gap-1" style={{ flexShrink: 0, minWidth: 48 }}>
-                        <span style={{ fontSize: 11, color: '#34d399', fontWeight: 500, whiteSpace: 'nowrap' }}>{c.lastMessageLabel || ''}</span>
+                      <div style={{ flexShrink: 0, width: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, overflow: 'visible', zIndex: 1 }}>
+                        <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, whiteSpace: 'nowrap', background: '#1e293b', padding: '2px 4px', borderRadius: 4 }}>
+                          {c.lastMessageAt ? formatarDataConversa(c.lastMessageAt) : '—'}
+                        </span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
                             {c.unreadCount > 99 ? '99+' : c.unreadCount}
