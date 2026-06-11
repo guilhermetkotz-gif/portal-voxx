@@ -397,7 +397,21 @@ export default function ChatHubDrawer({ onClose, user }) {
             ) : (
               conversasFiltradas.map(c => {
                 const isSelected = selectedChat?.id === c.id;
-                const timeLabel = formatarDataRelativa(c.lastTime);
+                const timeLabel = (() => {
+                  if (!c.lastTime) return '—';
+                  try {
+                    const m = moment.utc(c.lastTime).tz(TZ);
+                    if (!m.isValid()) return '—';
+                    const agora = moment().tz(TZ);
+                    const inicioHoje = agora.clone().startOf('day');
+                    const inicioOntem = inicioHoje.clone().subtract(1, 'day');
+                    const inicioSemana = inicioHoje.clone().subtract(6, 'days');
+                    if (m.isSameOrAfter(inicioHoje)) return m.format('HH:mm');
+                    if (m.isSameOrAfter(inicioOntem)) return 'Ontem';
+                    if (m.isSameOrAfter(inicioSemana)) return m.format('dddd');
+                    return m.format('DD/MM');
+                  } catch (_) { return '—'; }
+                })();
 
                 return (
                   <button
@@ -416,7 +430,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium text-white truncate flex-1 min-w-0">{c.name}</p>
-                          <span className="text-[10px] text-slate-400 shrink-0">{timeLabel || '—'}</span>
+                          <span className="text-[10px] text-emerald-400 shrink-0 whitespace-nowrap min-w-[42px] text-right bg-emerald-500/10 rounded px-1.5 py-0.5">{timeLabel || '—'}</span>
                         </div>
                         <p className="text-xs text-slate-400 truncate mt-0.5">
                           {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
