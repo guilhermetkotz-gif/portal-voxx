@@ -111,7 +111,7 @@ export default function ChatHubDrawer({ onClose, user }) {
     const agora = moment().tz(TZ);
     const map = {};
 
-    // Grupos
+    // Grupos (inicializa sem ultima_atividade — só mensagens definem o horário)
     grupos.forEach(g => {
       const id = g.grupo_id;
       if (!id) return;
@@ -123,8 +123,8 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteNome: g.cliente_nome || '',
         statusVinculo: g.status_vinculo,
         lastMessage: '',
-        lastMessageAt: g.ultima_atividade || null,
-        lastMessageLabel: formatarDataConversa(g.ultima_atividade || null),
+        lastMessageAt: null,
+        lastMessageLabel: '',
         unreadCount: 0,
       };
     });
@@ -134,28 +134,26 @@ export default function ChatHubDrawer({ onClose, user }) {
     directMsgs.forEach(m => {
       const id = m.grupo_id;
       if (map[id]) return; // já existe como grupo
-      if (!map[id]) {
-        map[id] = {
-          id,
-          name: m.grupo_nome || m.remetente_nome || id,
-          isGroup: false,
-          clienteId: m.cliente_id || '',
-          clienteNome: m.cliente_nome || '',
-          statusVinculo: 'nao_vinculado',
-          lastMessage: '',
-          lastMessageAt: null,
-          lastMessageLabel: '',
-          unreadCount: 0,
-        };
-      }
+      map[id] = {
+        id,
+        name: m.grupo_nome || m.remetente_nome || id,
+        isGroup: false,
+        clienteId: m.cliente_id || '',
+        clienteNome: m.cliente_nome || '',
+        statusVinculo: 'nao_vinculado',
+        lastMessage: '',
+        lastMessageAt: null,
+        lastMessageLabel: '',
+        unreadCount: 0,
+      };
     });
 
-    // Última mensagem por conversa
+    // Última mensagem por conversa (SOMENTE das mensagens, ignora ultima_atividade do grupo)
     mensagensRecentes.forEach(m => {
       const cid = m.grupo_id;
       if (!cid || !map[cid]) return;
       const ts = m.received_at || m.timestamp_mensagem;
-      if (!map[cid].lastMessageAt || ts > map[cid].lastMessageAt) {
+      if (ts && (!map[cid].lastMessageAt || ts > map[cid].lastMessageAt)) {
         map[cid].lastMessageAt = ts;
         map[cid].lastMessageLabel = formatarDataConversa(ts);
         const preview = m.tipo_mensagem === 'texto' ? (m.mensagem || '') : 
@@ -427,7 +425,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                   <button
                     key={c.id}
                     onClick={() => setSelectedChat(c)}
-                    className={`w-full text-left px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors overflow-visible ${
+                    className={`w-full text-left px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors ${
                       isSelected ? 'bg-slate-800 border-l-2 border-l-emerald-500' : ''
                     }`}
                   >
@@ -438,7 +436,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                         {c.isGroup ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{c.name} <span style={{color:'#ef4444',fontWeight:700}}>[{c.lastMessageLabel || 'SEM_DATA'}]</span></p>
+                        <p className="text-sm font-medium text-white truncate">{c.name}</p>
                         <p className="text-xs text-slate-400 truncate mt-0.5">
                           {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
                         </p>
@@ -448,9 +446,9 @@ export default function ChatHubDrawer({ onClose, user }) {
                           </Badge>
                         )}
                       </div>
-                      <div style={{ flexShrink: 0, width: 50, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, overflow: 'visible', zIndex: 1 }}>
-                        <span style={{ fontSize: 11, color: '#ef4444', fontWeight: 700, whiteSpace: 'nowrap', background: '#1e293b', padding: '2px 4px', borderRadius: 4 }}>
-                          {c.lastMessageAt ? formatarDataConversa(c.lastMessageAt) : '—'}
+                      <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
+                        <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
+                          {c.lastMessageLabel || ''}
                         </span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
