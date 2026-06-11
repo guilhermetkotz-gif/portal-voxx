@@ -11,6 +11,21 @@ import { toast } from 'sonner';
 
 const TZ = 'America/Sao_Paulo';
 
+function formatarDataHora(ts) {
+  if (!ts) return '';
+  const m = moment.utc(ts).tz(TZ);
+  const agora = moment().tz(TZ);
+  const inicioHoje = agora.clone().startOf('day');
+  const inicioOntem = inicioHoje.clone().subtract(1, 'day');
+  const inicioSemana = inicioHoje.clone().subtract(6, 'days');
+  const hora = m.format('HH:mm');
+
+  if (m.isSameOrAfter(inicioHoje)) return hora;
+  if (m.isSameOrAfter(inicioOntem)) return `Ontem ${hora}`;
+  if (m.isSameOrAfter(inicioSemana)) return `${m.format('dddd')} ${hora}`;
+  return `${m.format('DD/MM')} ${hora}`;
+}
+
 export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, isGroup, onClose }) {
   const queryClient = useQueryClient();
   const [mensagem, setMensagem] = useState('');
@@ -276,7 +291,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         <p className="mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90">{m.mensagem}</p>
                       )}
                       <p className={`text-[10px] mt-1 ${isVoxx ? 'text-emerald-200' : 'text-slate-500'}`}>
-                        {ts ? moment(ts).tz(TZ).format('HH:mm') : ''}
+                        {formatarDataHora(ts)}
                       </p>
                     </div>
                   </div>
