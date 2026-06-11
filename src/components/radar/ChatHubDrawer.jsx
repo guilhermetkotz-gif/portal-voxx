@@ -14,16 +14,17 @@ import { toast } from 'sonner';
 const TZ = 'America/Sao_Paulo';
 
 function formatarDataRelativa(ts) {
-  if (!ts) return '';
-  const m = moment(ts).tz(TZ);
+  if (!ts) return null;
+  const m = moment.utc(ts).tz(TZ);
+  if (!m.isValid()) return null;
   const agora = moment().tz(TZ);
   const inicioHoje = agora.clone().startOf('day');
   const inicioOntem = inicioHoje.clone().subtract(1, 'day');
   const inicioSemana = inicioHoje.clone().subtract(6, 'days');
 
-  if (m.isAfter(inicioHoje)) return m.format('HH:mm');
-  if (m.isAfter(inicioOntem)) return 'Ontem';
-  if (m.isAfter(inicioSemana)) return m.format('dddd');
+  if (m.isSameOrAfter(inicioHoje)) return m.format('HH:mm');
+  if (m.isSameOrAfter(inicioOntem)) return 'Ontem';
+  if (m.isSameOrAfter(inicioSemana)) return m.format('dddd');
   return m.format('DD/MM');
 }
 
@@ -400,7 +401,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium text-white truncate">{c.name}</p>
-                          {timeLabel && <span className="text-[10px] text-slate-500 shrink-0">{timeLabel}</span>}
+                          <span className="text-[10px] text-slate-500 shrink-0">{timeLabel || ''}</span>
                         </div>
                         <p className="text-xs text-slate-400 truncate mt-0.5">
                           {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
