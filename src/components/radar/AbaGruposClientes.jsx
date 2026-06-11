@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,23 @@ export default function AbaGruposClientes({ grupos, clientes, onRefresh }) {
   const [modalGrupo, setModalGrupo] = useState(null); // grupo a vincular
   const [buscaCliente, setBuscaCliente] = useState('');
 
-  const filtrados = grupos.filter(g => {
+  // Remove grupos duplicados por grupo_id
+  const gruposUnicos = useMemo(() => {
+    const seen = new Set();
+    return grupos.filter(g => {
+      if (seen.has(g.grupo_id)) return false;
+      seen.add(g.grupo_id);
+      return true;
+    });
+  }, [grupos]);
+
+  const clientesFiltrados = useMemo(() => {
+    return clientes.filter(c =>
+      !buscaCliente || c.nome?.toLowerCase().includes(buscaCliente.toLowerCase())
+    ).slice(0, 20);
+  }, [clientes, buscaCliente]);
+
+  const filtrados = gruposUnicos.filter(g => {
     if (filtroVinculo !== 'todos' && g.status_vinculo !== filtroVinculo) return false;
     if (busca) {
       const b = busca.toLowerCase();
@@ -35,10 +51,6 @@ export default function AbaGruposClientes({ grupos, clientes, onRefresh }) {
     }
     return true;
   });
-
-  const clientesFiltrados = clientes.filter(c =>
-    !buscaCliente || c.nome?.toLowerCase().includes(buscaCliente.toLowerCase())
-  ).slice(0, 20);
 
   const vincularMutation = useMutation({
     mutationFn: async ({ grupo, cliente }) => {
