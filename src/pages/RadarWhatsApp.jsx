@@ -42,8 +42,8 @@ export default function RadarWhatsApp({ user }) {
 
   const { data: clientes = [] } = useQuery({
     queryKey: ['radarClientes'],
-    queryFn: () => base44.entities.Cliente.list('-nome', 500),
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
+    staleTime: 60 * 1000,
   });
 
   const { data: rawWebhooks = [] } = useQuery({
