@@ -106,15 +106,39 @@ export default function ChatHubDrawer({ onClose, user }) {
     refetchInterval: 10 * 1000,
   });
 
+  // ── Mapa de última mensagem por grupo (fonte: WhatsappMensagem) ──
+  const ultimaMensagemPorGrupo = useMemo(() => {
+    const map = new Map();
+    mensagensRecentes.forEach(msg => {
+      const gid = msg.grupo_id;
+      const dataMsg = msg.received_at || msg.timestamp_mensagem;
+      if (!gid || !dataMsg) return;
+      const atual = map.get(gid);
+      if (!atual || dataMsg > atual.lastMessageAt) {
+        map.set(gid, {
+          lastMessageAt: dataMsg,
+          lastMessageText: msg.tipo_mensagem === 'texto' ? (msg.mensagem || '') :
+            msg.tipo_mensagem === 'imagem' ? '📷 Imagem' :
+            msg.tipo_mensagem === 'video' ? '🎬 Vídeo' :
+            msg.tipo_mensagem === 'audio' ? '🎤 Áudio' :
+            msg.tipo_mensagem === 'documento' ? '📎 Documento' : '',
+          lastMessageSenderType: msg.remetente_tipo,
+          lastMessageId: msg.id,
+        });
+      }
+    });
+    return map;
+  }, [mensagensRecentes]);
+
   // ── Construir lista de conversas ──────────────────────────
   const conversas = useMemo(() => {
-    const agora = moment().tz(TZ);
     const map = {};
 
-    // Grupos (ultima_atividade como fallback, mensagens vão sobrescrever)
+    // Grupos
     grupos.forEach(g => {
       const id = g.grupo_id;
       if (!id) return;
+      const ultima = ultimaMensagemPorGrupo.get(id);
       map[id] = {
         id,
         name: g.nome_grupo || g.grupo_id,
@@ -122,8 +146,8 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteId: g.cliente_id || '',
         clienteNome: g.cliente_nome || '',
         statusVinculo: g.status_vinculo,
-        lastMessage: '',
-        lastMessageAt: g.ultima_atividade || null,
+        lastMessage: ultima?.lastMessageText || '',
+        lastMessageAt: ultima?.lastMessageAt || null,
         unreadCount: 0,
       };
     });
@@ -132,7 +156,8 @@ export default function ChatHubDrawer({ onClose, user }) {
     const directMsgs = mensagensRecentes.filter(m => !m.is_group && m.grupo_id);
     directMsgs.forEach(m => {
       const id = m.grupo_id;
-      if (map[id]) return; // já existe como grupo
+      if (map[id]) return;
+      const ultima = ultimaMensagemPorGrupo.get(id);
       map[id] = {
         id,
         name: m.grupo_nome || m.remetente_nome || id,
@@ -140,26 +165,10 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteId: m.cliente_id || '',
         clienteNome: m.cliente_nome || '',
         statusVinculo: 'nao_vinculado',
-        lastMessage: '',
-        lastMessageAt: null,
+        lastMessage: ultima?.lastMessageText || '',
+        lastMessageAt: ultima?.lastMessageAt || null,
         unreadCount: 0,
       };
-    });
-
-    // Última mensagem por conversa (SOMENTE das mensagens, ignora ultima_atividade do grupo)
-    mensagensRecentes.forEach(m => {
-      const cid = m.grupo_id;
-      if (!cid || !map[cid]) return;
-      const ts = m.received_at || m.timestamp_mensagem;
-      if (ts && (!map[cid].lastMessageAt || ts > map[cid].lastMessageAt)) {
-        map[cid].lastMessageAt = ts;
-        const preview = m.tipo_mensagem === 'texto' ? (m.mensagem || '') : 
-                        m.tipo_mensagem === 'imagem' ? '📷 Imagem' :
-                        m.tipo_mensagem === 'video' ? '🎬 Vídeo' :
-                        m.tipo_mensagem === 'audio' ? '🎤 Áudio' :
-                        m.tipo_mensagem === 'documento' ? '📎 Documento' : '';
-        map[cid].lastMessage = preview.substring(0, 60) + (preview.length > 60 ? '...' : '');
-      }
     });
 
     // Calcular não lidas e ordenar
@@ -173,7 +182,7 @@ export default function ChatHubDrawer({ onClose, user }) {
       ).length;
       return { ...c, unreadCount };
     }).sort((a, b) => (b.lastMessageAt || '').localeCompare(a.lastMessageAt || ''));
-  }, [grupos, mensagensRecentes]);
+  }, [grupos, ultimaMensagemPorGrupo, mensagensRecentes]);
 
   // ── Filtrar conversas ─────────────────────────────────────
   const conversasFiltradas = useMemo(() => {
@@ -443,10 +452,12 @@ export default function ChatHubDrawer({ onClose, user }) {
                           </Badge>
                         )}
                       </div>
-                      <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
-                        <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
-                          {c.lastMessageAt ? formatarDataConversa(c.lastMessageAt) : ''}
-                        </span>
+                      <div className="shrink-0 min-w-[52px] flex flex-col items-end gap-1">
+                        {c.lastMessageAt && (
+                          <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
+                            {formatarDataConversa(c.lastMessageAt)}
+                          </span>
+                        )}
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
                             {c.unreadCount > 99 ? '99+' : c.unreadCount}
