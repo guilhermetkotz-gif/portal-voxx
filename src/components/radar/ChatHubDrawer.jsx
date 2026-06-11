@@ -438,24 +438,22 @@ export default function ChatHubDrawer({ onClose, user }) {
                         {c.isGroup ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-white truncate">{c.name}</p>
-                          <span className="text-[12px] text-slate-300 whitespace-nowrap shrink-0 ml-2">{timeLabel}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-2 mt-0.5">
-                          <p className="text-xs text-slate-400 truncate flex-1 min-w-0">
-                            {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
-                          </p>
-                          {c.unreadCount > 0 && (
-                            <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center shrink-0">
-                              {c.unreadCount > 99 ? '99+' : c.unreadCount}
-                            </div>
-                          )}
-                        </div>
+                        <p className="text-sm font-medium text-white truncate">{c.name}</p>
+                        <p className="text-xs text-slate-400 truncate mt-0.5">
+                          {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
+                        </p>
                         {c.clienteNome && (
                           <Badge variant="outline" className="mt-1 text-[10px] py-0 px-1.5 border-slate-700 text-slate-400 w-fit">
                             {c.clienteNome}
                           </Badge>
+                        )}
+                      </div>
+                      <div className="shrink-0 flex flex-col items-end gap-1 self-start pt-0.5">
+                        <span className="text-[12px] text-slate-300 whitespace-nowrap">{timeLabel}</span>
+                        {c.unreadCount > 0 && (
+                          <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                            {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                          </div>
                         )}
                       </div>
                     </div>
