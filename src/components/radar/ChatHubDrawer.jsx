@@ -152,8 +152,8 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteNome: g.cliente_nome || '',
         statusVinculo: g.status_vinculo,
         lastMessage: '',
-        lastMessageAt: g.ultima_atividade || null,
-        _ultimaAtividade: g.ultima_atividade || null,
+        lastMessageAt: null, // será preenchido apenas por mensagens reais
+        _ultimaAtividade: g.ultima_atividade || null, // fallback de ordenação
         unreadCount: 0,
       };
     });
@@ -218,16 +218,10 @@ export default function ChatHubDrawer({ onClose, user }) {
     });
   }, [grupos, mensagensRecentes, ultimaMsgPorChat]);
 
-  // ── Mapa combinado de timestamps (todas as fontes) ─────────
+  // ── Mapa combinado de timestamps: mensagens PRIMEIRO, ultima_atividade SÓ como fallback ──
   const timestampPorChat = useMemo(() => {
     const map = {};
-    // Fonte 1: ultima_atividade dos grupos
-    grupos.forEach(g => {
-      if (g.grupo_id && g.ultima_atividade) {
-        map[g.grupo_id] = g.ultima_atividade;
-      }
-    });
-    // Fonte 2: última mensagem do lote de 500 (sobrescreve fonte 1)
+    // Fonte 1: última mensagem do lote de 500
     mensagensRecentes.forEach(m => {
       const cid = m.grupo_id;
       if (!cid) return;
@@ -236,10 +230,16 @@ export default function ChatHubDrawer({ onClose, user }) {
         map[cid] = ts;
       }
     });
-    // Fonte 3: ultimaMsgPorChat (2000 mensagens, sobrescreve tudo)
+    // Fonte 2: ultimaMsgPorChat (2000 mensagens)
     Object.entries(ultimaMsgPorChat).forEach(([cid, ts]) => {
       if (ts && (!map[cid] || ts > map[cid])) {
         map[cid] = ts;
+      }
+    });
+    // Fonte 3: ultima_atividade dos grupos — só se NENHUMA mensagem foi encontrada
+    grupos.forEach(g => {
+      if (g.grupo_id && g.ultima_atividade && !map[g.grupo_id]) {
+        map[g.grupo_id] = g.ultima_atividade;
       }
     });
     return map;
