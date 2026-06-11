@@ -100,6 +100,26 @@ export default function ChatHubDrawer({ onClose, user }) {
     refetchInterval: 30 * 1000,
   });
 
+  // ── Última mensagem por conversa (cobre TODAS, não só as 500 recentes) ──
+  const { data: ultimaMsgPorChat = {} } = useQuery({
+    queryKey: ['chatHubUltimaMsgPorChat'],
+    queryFn: async () => {
+      const todas = await base44.entities.WhatsappMensagem.list('-received_at', 2000);
+      const mapa = {};
+      todas.forEach(m => {
+        const cid = m.grupo_id;
+        if (!cid) return;
+        const ts = m.received_at || m.timestamp_mensagem;
+        if (ts && (!mapa[cid] || ts > mapa[cid])) {
+          mapa[cid] = ts;
+        }
+      });
+      return mapa;
+    },
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
   const { data: clientes = [] } = useQuery({
     queryKey: ['chatHubClientes'],
     queryFn: () => base44.entities.Cliente.list('-nome', 500),
@@ -174,6 +194,13 @@ export default function ChatHubDrawer({ onClose, user }) {
       }
     });
 
+    // Fallback: ultimaMsgPorChat cobre conversas sem mensagem no lote de 500
+    Object.entries(ultimaMsgPorChat).forEach(([cid, ts]) => {
+      if (map[cid] && !map[cid].lastMessageAt && ts) {
+        map[cid].lastMessageAt = ts;
+      }
+    });
+
     // Calcular não lidas, timestamp formatado e ordenar
     return Object.values(map).map(c => {
       const msgs = mensagensRecentes.filter(m => m.grupo_id === c.id);
@@ -183,12 +210,16 @@ export default function ChatHubDrawer({ onClose, user }) {
         (m.remetente_tipo === 'cliente' || m.origem === 'recebida') &&
         (!ultimaVoxx || (m.received_at || m.timestamp_mensagem) > (ultimaVoxx.received_at || ultimaVoxx.timestamp_mensagem))
       ).length;
-      // Fallback em cadeia: timestamp da mensagem > ultima_atividade do grupo
-      const bestTs = c.lastMessageAt || c._ultimaAtividade || '';
+      // Fallback em cadeia: mensagem > ultima_atividade grupo > ultimaMsgPorChat
+      const bestTs = c.lastMessageAt || c._ultimaAtividade || ultimaMsgPorChat[c.id] || '';
       const tsLabel = bestTs ? formatarDataConversa(bestTs) : '';
       return { ...c, unreadCount, tsLabel };
-    }).sort((a, b) => (b.lastMessageAt || b._ultimaAtividade || '').localeCompare(a.lastMessageAt || a._ultimaAtividade || ''));
-  }, [grupos, mensagensRecentes]);
+    }).sort((a, b) => {
+      const ta = a.lastMessageAt || a._ultimaAtividade || ultimaMsgPorChat[a.id] || '';
+      const tb = b.lastMessageAt || b._ultimaAtividade || ultimaMsgPorChat[b.id] || '';
+      return tb.localeCompare(ta);
+    });
+  }, [grupos, mensagensRecentes, ultimaMsgPorChat]);
 
   // ── Filtrar conversas ─────────────────────────────────────
   const conversasFiltradas = useMemo(() => {
@@ -460,7 +491,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
                         <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
-                          {c.tsLabel || formatarDataConversa(c.lastMessageAt || c._ultimaAtividade) || ''}
+                          {c.tsLabel || formatarDataConversa(c.lastMessageAt || c._ultimaAtividade || ultimaMsgPorChat[c.id]) || ''}
                         </span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
