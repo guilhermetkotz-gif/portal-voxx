@@ -32,8 +32,9 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
 
   // Auto-scroll para baixo
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const viewport = scrollRef.current?.closest('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
     }
   }, [mensagens]);
 
