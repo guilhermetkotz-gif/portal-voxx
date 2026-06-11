@@ -124,7 +124,6 @@ export default function ChatHubDrawer({ onClose, user }) {
         statusVinculo: g.status_vinculo,
         lastMessage: '',
         lastMessageAt: null,
-        lastMessageLabel: '',
         unreadCount: 0,
       };
     });
@@ -143,7 +142,6 @@ export default function ChatHubDrawer({ onClose, user }) {
         statusVinculo: 'nao_vinculado',
         lastMessage: '',
         lastMessageAt: null,
-        lastMessageLabel: '',
         unreadCount: 0,
       };
     });
@@ -155,7 +153,6 @@ export default function ChatHubDrawer({ onClose, user }) {
       const ts = m.received_at || m.timestamp_mensagem;
       if (ts && (!map[cid].lastMessageAt || ts > map[cid].lastMessageAt)) {
         map[cid].lastMessageAt = ts;
-        map[cid].lastMessageLabel = formatarDataConversa(ts);
         const preview = m.tipo_mensagem === 'texto' ? (m.mensagem || '') : 
                         m.tipo_mensagem === 'imagem' ? '📷 Imagem' :
                         m.tipo_mensagem === 'video' ? '🎬 Vídeo' :
@@ -448,7 +445,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
                         <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
-                          {c.lastMessageLabel || ''}
+                          {c.lastMessageAt ? formatarDataConversa(c.lastMessageAt) : ''}
                         </span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
