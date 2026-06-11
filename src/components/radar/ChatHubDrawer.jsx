@@ -106,6 +106,20 @@ export default function ChatHubDrawer({ onClose, user }) {
     refetchInterval: 10 * 1000,
   });
 
+  // ── Último horário por conversa (direto das mensagens) ─────
+  const ultimosHorarios = useMemo(() => {
+    const map = {};
+    mensagensRecentes.forEach(m => {
+      const cid = m.grupo_id;
+      if (!cid) return;
+      const ts = m.received_at || m.timestamp_mensagem;
+      if (ts && (!map[cid] || ts > map[cid])) {
+        map[cid] = ts;
+      }
+    });
+    return map;
+  }, [mensagensRecentes]);
+
   // ── Construir lista de conversas ──────────────────────────
   const conversas = useMemo(() => {
     const agora = moment().tz(TZ);
@@ -445,7 +459,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
                         <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
-                          {c.lastMessageAt ? formatarDataConversa(c.lastMessageAt) : ''}
+                          {ultimosHorarios[c.id] ? formatarDataConversa(ultimosHorarios[c.id]) : ''}
                         </span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
