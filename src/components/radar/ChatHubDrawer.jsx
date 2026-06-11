@@ -109,7 +109,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         ultimaAtividade: g.ultima_atividade,
         lastMessage: '',
         lastTime: g.ultima_atividade || null,
-        unread: false,
+        unreadCount: 0,
       };
     });
 
@@ -129,7 +129,7 @@ export default function ChatHubDrawer({ onClose, user }) {
           ultimaAtividade: null,
           lastMessage: '',
           lastTime: null,
-          unread: false,
+          unreadCount: 0,
         };
       }
     });
@@ -151,8 +151,17 @@ export default function ChatHubDrawer({ onClose, user }) {
       }
     });
 
-    // Ordenar por última atividade
-    return Object.values(map).sort((a, b) => (b.lastTime || '').localeCompare(a.lastTime || ''));
+    // Calcular não lidas e ordenar
+    return Object.values(map).map(c => {
+      const msgs = mensagensRecentes.filter(m => m.grupo_id === c.id);
+      const ultimaVoxx = msgs.filter(m => m.remetente_tipo === 'voxx' || m.origem === 'enviada')
+        .sort((a, b) => (b.received_at || '').localeCompare(a.received_at || ''))[0];
+      const unreadCount = msgs.filter(m =>
+        (m.remetente_tipo === 'cliente' || m.origem === 'recebida') &&
+        (!ultimaVoxx || (m.received_at || m.timestamp_mensagem) > (ultimaVoxx.received_at || ultimaVoxx.timestamp_mensagem))
+      ).length;
+      return { ...c, unreadCount };
+    }).sort((a, b) => (b.lastTime || '').localeCompare(a.lastTime || ''));
   }, [grupos, mensagensRecentes]);
 
   // ── Filtrar conversas ─────────────────────────────────────
@@ -427,19 +436,26 @@ export default function ChatHubDrawer({ onClose, user }) {
                       }`}>
                         {c.isGroup ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{c.name}</p>
-                        <div className="flex items-center justify-between gap-2 mt-0.5">
-                          <p className="text-xs text-slate-400 truncate flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 flex items-start">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{c.name}</p>
+                          <p className="text-xs text-slate-400 truncate mt-0.5">
                             {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
                           </p>
-                          <span className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">{timeLabel || '—'}</span>
+                          {c.clienteNome && (
+                            <Badge variant="outline" className="mt-1 text-[10px] py-0 px-1.5 border-slate-700 text-slate-400 w-fit">
+                              {c.clienteNome}
+                            </Badge>
+                          )}
                         </div>
-                        {c.clienteNome && (
-                          <Badge variant="outline" className="mt-1 text-[10px] py-0 px-1.5 border-slate-700 text-slate-400">
-                            {c.clienteNome}
-                          </Badge>
-                        )}
+                        <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+                          <span className="text-[11px] text-emerald-500 font-medium whitespace-nowrap">{timeLabel || '—'}</span>
+                          {c.unreadCount > 0 && (
+                            <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                              {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </button>
