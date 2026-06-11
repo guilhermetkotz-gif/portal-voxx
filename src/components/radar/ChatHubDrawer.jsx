@@ -13,6 +13,20 @@ import { toast } from 'sonner';
 
 const TZ = 'America/Sao_Paulo';
 
+function formatarDataRelativa(ts) {
+  if (!ts) return '';
+  const m = moment(ts).tz(TZ);
+  const agora = moment().tz(TZ);
+  const inicioHoje = agora.clone().startOf('day');
+  const inicioOntem = inicioHoje.clone().subtract(1, 'day');
+  const inicioSemana = inicioHoje.clone().subtract(6, 'days');
+
+  if (m.isAfter(inicioHoje)) return m.format('HH:mm');
+  if (m.isAfter(inicioOntem)) return 'Ontem';
+  if (m.isAfter(inicioSemana)) return m.format('dddd');
+  return m.format('DD/MM');
+}
+
 export default function ChatHubDrawer({ onClose, user }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -367,11 +381,7 @@ export default function ChatHubDrawer({ onClose, user }) {
             ) : (
               conversasFiltradas.map(c => {
                 const isSelected = selectedChat?.id === c.id;
-                const lastTime = c.lastTime ? moment(c.lastTime).tz(TZ) : null;
-                const timeLabel = lastTime
-                  ? lastTime.isSame(moment().tz(TZ), 'day') ? lastTime.format('HH:mm')
-                  : lastTime.format('DD/MM')
-                  : '';
+                const timeLabel = formatarDataRelativa(c.lastTime);
 
                 return (
                   <button
