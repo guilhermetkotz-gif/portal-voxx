@@ -297,7 +297,7 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-slate-800 border-slate-700">
                   <Command className="bg-transparent">
                     <CommandInput placeholder="Buscar usuário..." className="text-white" />
-                    <CommandList className="max-h-48">
+                    <CommandList className="max-h-60 overflow-y-auto">
                       <CommandEmpty className="text-slate-400 py-3 text-sm text-center">Nenhum usuário encontrado.</CommandEmpty>
                       <CommandGroup>
                         <CommandItem
