@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Wifi, WifiOff, Activity, Users, MessageSquare, AlertTriangle, Zap, Radio, Bell, BellOff, Volume2, MoonStar } from 'lucide-react';
+import { Wifi, WifiOff, Activity, Users, MessageSquare, AlertTriangle, Zap, Radio, Bell, BellOff, Volume2, MoonStar, MessageCircle } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import AbaMonitoramento from '@/components/radar/AbaMonitoramento';
@@ -13,15 +13,17 @@ import AbaDiagnostico from '@/components/radar/AbaDiagnostico';
 import AbaAnalises from '@/components/radar/AbaAnalises';
 import AbaRemetentesVoxx from '@/components/radar/AbaRemetentesVoxx';
 import AbaOperadoresVoxx from '@/components/radar/AbaOperadoresVoxx';
+import ChatHubDrawer from '@/components/radar/ChatHubDrawer';
 import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
 import { useAlertaSomRadar } from '@/hooks/useAlertaSomRadar';
 import { Button } from '@/components/ui/button';
 
 const TZ = 'America/Sao_Paulo';
 
-export default function RadarWhatsApp() {
+export default function RadarWhatsApp({ user }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('monitoramento');
+  const [showChatHub, setShowChatHub] = useState(false);
 
   // ── Dados base ──────────────────────────────────────────────
   const { data: grupos = [], isLoading: loadingGrupos } = useQuery({
@@ -201,6 +203,17 @@ export default function RadarWhatsApp() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {/* Botão Chat Hub */}
+          <Button
+            onClick={() => setShowChatHub(true)}
+            variant="outline"
+            size="sm"
+            className="gap-2 border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-xs">Mensagens</span>
+          </Button>
+
           {/* Botão de som */}
           <Button
             onClick={toggleSom}
@@ -302,6 +315,14 @@ export default function RadarWhatsApp() {
           <AbaOperadoresVoxx />
         </TabsContent>
       </Tabs>
+
+      {/* Chat Hub Drawer */}
+      {showChatHub && (
+        <ChatHubDrawer
+          onClose={() => setShowChatHub(false)}
+          user={user}
+        />
+      )}
     </div>
   );
 }
