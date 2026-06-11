@@ -152,7 +152,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteNome: g.cliente_nome || '',
         statusVinculo: g.status_vinculo,
         lastMessage: '',
-        lastMessageAt: null, // será preenchido apenas por mensagens reais
+        lastMessageAt: g.ultima_atividade || null,
         _ultimaAtividade: g.ultima_atividade || null, // fallback de ordenação
         unreadCount: 0,
       };
