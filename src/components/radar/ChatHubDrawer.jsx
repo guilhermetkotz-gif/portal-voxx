@@ -438,7 +438,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                         {c.isGroup ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{c.name}</p>
+                        <p className="text-sm font-medium text-white truncate">{c.name} <span style={{color:'#ef4444',fontWeight:700}}>[{c.lastMessageLabel || 'SEM_DATA'}]</span></p>
                         <p className="text-xs text-slate-400 truncate mt-0.5">
                           {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
                         </p>
