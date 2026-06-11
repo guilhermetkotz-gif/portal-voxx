@@ -53,7 +53,7 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
   }, [filtroPeriodo]);
 
   const filtrados = useMemo(() => {
-    return gruposEnriquecidos.filter(g => {
+    const lista = gruposEnriquecidos.filter(g => {
       if (busca) {
         const b = busca.toLowerCase();
         if (!g.nome_grupo?.toLowerCase().includes(b) && !g.cliente_nome?.toLowerCase().includes(b) && !g.grupo_id?.toLowerCase().includes(b)) return false;
@@ -67,6 +67,12 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
       if (filtroAlerta === 'emergencial' && g.alertaNivel !== 'emergencial') return false;
       if (filtroAlerta === 'inativo72h'  && !g.inativo72h)                  return false;
       return true;
+    });
+    return lista.sort((a, b) => {
+      const peso = { emergencial: 0, critico: 1, alerta: 2, alarme: 3 };
+      const pA = a.alertaNivel ? (peso[a.alertaNivel] ?? 99) : 99;
+      const pB = b.alertaNivel ? (peso[b.alertaNivel] ?? 99) : 99;
+      return pA - pB;
     });
   }, [gruposEnriquecidos, busca, filtroVinculo, filtroAlerta, periodoCorte]);
 
