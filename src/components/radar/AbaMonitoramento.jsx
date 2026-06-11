@@ -3,10 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell, MoonStar } from 'lucide-react';
+import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell, MoonStar, MessageCircle } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import GrupoDetalheDrawer from './GrupoDetalheDrawer';
+import ChatDrawer from './ChatDrawer';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -44,6 +45,7 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
   const [filtroAlerta, setFiltroAlerta] = useState('todos');
   const [filtroPeriodo, setFiltroPeriodo] = useState('7d');
   const [grupoSelecionado, setGrupoSelecionado] = useState(null);
+  const [chatAberto, setChatAberto] = useState(null);
 
   const periodoCorte = useMemo(() => {
     const m = { '1d': 1, '7d': 7, '30d': 30 };
@@ -195,10 +197,19 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
                         }
                       </td>
                       <td className="px-3 py-3">
-                        <Button size="sm" variant="ghost" onClick={() => setGrupoSelecionado(g)}
-                          className="text-slate-400 hover:text-white hover:bg-slate-700 text-[11px] gap-1 h-7 px-2">
-                          <Eye className="w-3 h-3" /> Detalhes
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => setChatAberto({
+                            chatId: g.grupo_id, chatName: g.nome_grupo, clienteId: g.cliente_id,
+                            clienteNome: g.cliente_nome, isGroup: true
+                          })}
+                            className="text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 text-[11px] gap-1 h-7 px-2">
+                            <MessageCircle className="w-3 h-3" /> Chat
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setGrupoSelecionado(g)}
+                            className="text-slate-400 hover:text-white hover:bg-slate-700 text-[11px] gap-1 h-7 px-2">
+                            <Eye className="w-3 h-3" /> Detalhes
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -215,6 +226,18 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
           grupo={grupoSelecionado}
           clientes={clientes}
           onClose={() => setGrupoSelecionado(null)}
+        />
+      )}
+
+      {/* Drawer de chat */}
+      {chatAberto && (
+        <ChatDrawer
+          chatId={chatAberto.chatId}
+          chatName={chatAberto.chatName}
+          clienteId={chatAberto.clienteId}
+          clienteNome={chatAberto.clienteNome}
+          isGroup={chatAberto.isGroup}
+          onClose={() => setChatAberto(null)}
         />
       )}
     </div>
