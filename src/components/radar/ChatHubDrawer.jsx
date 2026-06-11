@@ -350,7 +350,7 @@ export default function ChatHubDrawer({ onClose, user }) {
           {/* Header */}
           <div className="p-4 border-b border-slate-800 shrink-0">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-white">Mensagens [V2]</h2>
+              <h2 className="text-base font-bold text-white">Mensagens</h2>
               <button onClick={onClose} className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
@@ -415,7 +415,8 @@ export default function ChatHubDrawer({ onClose, user }) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-white truncate">{c.name} <span className="text-emerald-400 text-[10px]">[{typeof c.lastTime}={String(c.lastTime||'').substring(0,15)}]</span></p>
+                          <p className="text-sm font-medium text-white truncate flex-1 min-w-0">{c.name}</p>
+                          <span className="text-[10px] text-slate-400 shrink-0">{timeLabel || '—'}</span>
                         </div>
                         <p className="text-xs text-slate-400 truncate mt-0.5">
                           {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
