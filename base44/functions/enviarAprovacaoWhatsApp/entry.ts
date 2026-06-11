@@ -71,24 +71,8 @@ Deno.serve(async (req) => {
       tipo_midia
     };
 
-    // ROTA 1: Lovable como intermediário
-    if (endpointLovable) {
-      tipoEnvioFinal = 'lovable';
-      const resp = await fetch(endpointLovable, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payloadLovable)
-      });
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => '');
-        statusEnvio = 'erro';
-        erroEnvio = `Lovable HTTP ${resp.status}: ${errText}`;
-      } else {
-        resultadoEnvio = await resp.json().catch(() => ({}));
-      }
-    }
-    // ROTA 2: Z-API direto
-    else if (zapiInstanceId && zapiToken && zapiClientToken) {
+    // ROTA 1: Z-API direto (prioritário — mais confiável)
+    if (zapiInstanceId && zapiToken && zapiClientToken) {
       // Verificar status da instância
       const statusResp = await fetch(
         `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`,
@@ -126,8 +110,24 @@ Deno.serve(async (req) => {
       } else {
         resultadoEnvio = await sendResp.json().catch(() => ({}));
       }
+    }
+    // ROTA 2: Lovable como fallback
+    else if (endpointLovable) {
+      tipoEnvioFinal = 'lovable';
+      const resp = await fetch(endpointLovable, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payloadLovable)
+      });
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => '');
+        statusEnvio = 'erro';
+        erroEnvio = `Lovable HTTP ${resp.status}: ${errText}`;
+      } else {
+        resultadoEnvio = await resp.json().catch(() => ({}));
+      }
     } else {
-      // Sem API configurada: salvar como rascunho apenas (para teste de fluxo)
+      // Sem API configurada: salvar como rascunho apenas
       statusEnvio = 'rascunho';
       erroEnvio = 'Nenhuma API de envio configurada (ZAPI ou Lovable). Configure os secrets.';
     }
