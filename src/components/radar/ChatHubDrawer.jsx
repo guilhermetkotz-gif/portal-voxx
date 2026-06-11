@@ -111,7 +111,7 @@ export default function ChatHubDrawer({ onClose, user }) {
     const agora = moment().tz(TZ);
     const map = {};
 
-    // Grupos (inicializa sem ultima_atividade — só mensagens definem o horário)
+    // Grupos (ultima_atividade como fallback, mensagens vão sobrescrever)
     grupos.forEach(g => {
       const id = g.grupo_id;
       if (!id) return;
@@ -123,7 +123,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteNome: g.cliente_nome || '',
         statusVinculo: g.status_vinculo,
         lastMessage: '',
-        lastMessageAt: null,
+        lastMessageAt: g.ultima_atividade || null,
         unreadCount: 0,
       };
     });
