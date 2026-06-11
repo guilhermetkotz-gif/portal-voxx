@@ -178,13 +178,15 @@ export default function ChatHubDrawer({ onClose, user }) {
       };
     });
 
-    // Última mensagem por conversa (SOMENTE das mensagens, ignora ultima_atividade do grupo)
+    // Preencher lastMessageAt a partir de mensagens (prioridade absoluta sobre ultima_atividade)
+    // Como mensagensRecentes já vem ordenado por -received_at, a primeira é a mais recente
     mensagensRecentes.forEach(m => {
       const cid = m.grupo_id;
       if (!cid || !map[cid]) return;
       const ts = m.received_at || m.timestamp_mensagem;
-      if (ts && (!map[cid].lastMessageAt || ts > map[cid].lastMessageAt)) {
-        map[cid].lastMessageAt = ts;
+      if (ts && !map[cid]._temMensagem) {
+        map[cid]._temMensagem = true;
+        map[cid].lastMessageAt = ts; // sempre usa timestamp da mensagem, ignora ultima_atividade
         const preview = m.tipo_mensagem === 'texto' ? (m.mensagem || '') : 
                         m.tipo_mensagem === 'imagem' ? '📷 Imagem' :
                         m.tipo_mensagem === 'video' ? '🎬 Vídeo' :
@@ -196,7 +198,7 @@ export default function ChatHubDrawer({ onClose, user }) {
 
     // Fallback: ultimaMsgPorChat cobre conversas sem mensagem no lote de 500
     Object.entries(ultimaMsgPorChat).forEach(([cid, ts]) => {
-      if (map[cid] && !map[cid].lastMessageAt && ts) {
+      if (map[cid] && !map[cid]._temMensagem && ts) {
         map[cid].lastMessageAt = ts;
       }
     });
@@ -216,33 +218,6 @@ export default function ChatHubDrawer({ onClose, user }) {
       const tb = b.lastMessageAt || b._ultimaAtividade || ultimaMsgPorChat[b.id] || '';
       return tb.localeCompare(ta);
     });
-  }, [grupos, mensagensRecentes, ultimaMsgPorChat]);
-
-  // ── Mapa combinado de timestamps: mensagens PRIMEIRO, ultima_atividade SÓ como fallback ──
-  const timestampPorChat = useMemo(() => {
-    const map = {};
-    // Fonte 1: última mensagem do lote de 500
-    mensagensRecentes.forEach(m => {
-      const cid = m.grupo_id;
-      if (!cid) return;
-      const ts = m.received_at || m.timestamp_mensagem;
-      if (ts && (!map[cid] || ts > map[cid])) {
-        map[cid] = ts;
-      }
-    });
-    // Fonte 2: ultimaMsgPorChat (2000 mensagens)
-    Object.entries(ultimaMsgPorChat).forEach(([cid, ts]) => {
-      if (ts && (!map[cid] || ts > map[cid])) {
-        map[cid] = ts;
-      }
-    });
-    // Fonte 3: ultima_atividade dos grupos — só se NENHUMA mensagem foi encontrada
-    grupos.forEach(g => {
-      if (g.grupo_id && g.ultima_atividade && !map[g.grupo_id]) {
-        map[g.grupo_id] = g.ultima_atividade;
-      }
-    });
-    return map;
   }, [grupos, mensagensRecentes, ultimaMsgPorChat]);
 
   // ── Filtrar conversas ─────────────────────────────────────
@@ -515,7 +490,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
                         <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
-                          {formatarDataConversa(timestampPorChat[c.id] || c.lastMessageAt || c._ultimaAtividade) || ''}
+                          {formatarDataConversa(c.lastMessageAt || c._ultimaAtividade) || '—'}
                         </span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
