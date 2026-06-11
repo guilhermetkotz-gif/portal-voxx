@@ -303,7 +303,7 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
                         <CommandItem
                           value="__nenhum__"
                           onSelect={() => { setForm(f => ({ ...f, usuario_id: '' })); setUserPopoverOpen(false); }}
-                          className="text-slate-400"
+                          className="text-slate-300 aria-selected:text-white aria-selected:bg-slate-700"
                         >
                           <Check className={`mr-2 h-4 w-4 ${!form.usuario_id ? 'opacity-100' : 'opacity-0'}`} />
                           Nenhum
@@ -313,9 +313,10 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
                             key={u.id}
                             value={`${u.full_name} ${u.email}`}
                             onSelect={() => { setForm(f => ({ ...f, usuario_id: u.id })); setUserPopoverOpen(false); }}
+                            className="text-white aria-selected:bg-slate-700"
                           >
-                            <Check className={`mr-2 h-4 w-4 ${form.usuario_id === u.id ? 'opacity-100' : 'opacity-0'}`} />
-                            {u.full_name}
+                            <Check className={`mr-2 h-4 w-4 text-emerald-400 ${form.usuario_id === u.id ? 'opacity-100' : 'opacity-0'}`} />
+                            <span>{u.full_name}</span>
                             <span className="ml-2 text-xs text-slate-400">{u.email}</span>
                           </CommandItem>
                         ))}
