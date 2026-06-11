@@ -11,7 +11,8 @@ import { Loader2, Clock, ExternalLink, Settings, Send, AlertTriangle, Bell } fro
 import ConfigLembretesPanel from '@/components/kanban/ConfigLembretesPanel';
 import moment from 'moment-timezone';
 
-const STATUS_NAO_APROVADO = ['em_aprovacao', 'enviado', 'solicitacao_alteracao', 'reenviado'];
+// Apenas entregas sem retorno do cliente (aprovação ou solicitação de alteração já respondida sai do drawer)
+const STATUS_NAO_APROVADO = ['em_aprovacao', 'enviado', 'reenviado'];
 
 export default function PendenciasAprovacaoDrawer({ open, onClose }) {
   const [showConfig, setShowConfig] = useState(false);
