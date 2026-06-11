@@ -11,6 +11,20 @@ import { useQueryClient } from '@tanstack/react-query';
 
 const TZ = 'America/Sao_Paulo';
 
+function formatarDataRelativa(ts) {
+  if (!ts) return '—';
+  const m = moment(ts).tz(TZ);
+  const agora = moment().tz(TZ);
+  const inicioHoje = agora.clone().startOf('day');
+  const inicioOntem = inicioHoje.clone().subtract(1, 'day');
+  const inicioSemana = inicioHoje.clone().subtract(6, 'days');
+
+  if (m.isAfter(inicioHoje)) return m.format('HH:mm');
+  if (m.isAfter(inicioOntem)) return 'Ontem';
+  if (m.isAfter(inicioSemana)) return m.format('dddd');
+  return m.format('DD/MM');
+}
+
 const ORIGEM_CONFIG = {
   recebida:    { label: 'Cliente',    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
   enviada:     { label: 'VOXX',       color: 'bg-violet-500/20 text-violet-400 border-violet-500/30' },
@@ -154,7 +168,7 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading }) {
                   return (
                     <tr key={m.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
                       <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">
-                        {moment(ts).tz(TZ).format('DD/MM HH:mm:ss')}
+                        {formatarDataRelativa(ts)}
                       </td>
                       <td className="px-3 py-2.5 text-slate-200 font-medium">
                         {m.cliente_nome || <span className="text-amber-500/70 italic text-[11px]">Sem vínculo</span>}

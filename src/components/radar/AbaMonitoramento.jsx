@@ -34,9 +34,15 @@ function tempoFormatado(minutos) {
 function DataHora({ ts }) {
   if (!ts) return <span className="text-slate-600">—</span>;
   const m = moment(ts).tz(TZ);
-  const hoje = moment().tz(TZ).startOf('day');
-  if (m.isAfter(hoje)) return <span className="text-slate-300">{m.format('HH:mm')}</span>;
-  return <span className="text-slate-400">{m.format('DD/MM HH:mm')}</span>;
+  const agora = moment().tz(TZ);
+  const inicioHoje = agora.clone().startOf('day');
+  const inicioOntem = inicioHoje.clone().subtract(1, 'day');
+  const inicioSemana = inicioHoje.clone().subtract(6, 'days');
+
+  if (m.isAfter(inicioHoje)) return <span className="text-slate-300">{m.format('HH:mm')}</span>;
+  if (m.isAfter(inicioOntem)) return <span className="text-slate-400">Ontem</span>;
+  if (m.isAfter(inicioSemana)) return <span className="text-slate-400">{m.format('dddd')}</span>;
+  return <span className="text-slate-500">{m.format('DD/MM')}</span>;
 }
 
 export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading, kpis }) {
