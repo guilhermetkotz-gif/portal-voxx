@@ -43,6 +43,22 @@ function formatarDataRelativa(ts) {
   return m.format('DD/MM');
 }
 
+function formatarDataConversa(ts) {
+  if (!ts) return '';
+  try {
+    const m = moment.utc(ts).tz(TZ);
+    if (!m.isValid()) return '';
+    const agora = moment().tz(TZ);
+    const inicioHoje = agora.clone().startOf('day');
+    const inicioOntem = inicioHoje.clone().subtract(1, 'day');
+    const inicioSemana = inicioHoje.clone().subtract(6, 'days');
+    if (m.isSameOrAfter(inicioHoje)) return m.format('HH:mm');
+    if (m.isSameOrAfter(inicioOntem)) return 'Ontem';
+    if (m.isSameOrAfter(inicioSemana)) return m.format('dddd');
+    return m.format('DD/MM');
+  } catch (_) { return ''; }
+}
+
 export default function ChatHubDrawer({ onClose, user }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -106,9 +122,9 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteId: g.cliente_id || '',
         clienteNome: g.cliente_nome || '',
         statusVinculo: g.status_vinculo,
-        ultimaAtividade: g.ultima_atividade,
         lastMessage: '',
-        lastTime: g.ultima_atividade || null,
+        lastMessageAt: g.ultima_atividade || null,
+        lastMessageLabel: formatarDataConversa(g.ultima_atividade || null),
         unreadCount: 0,
       };
     });
@@ -126,9 +142,9 @@ export default function ChatHubDrawer({ onClose, user }) {
           clienteId: m.cliente_id || '',
           clienteNome: m.cliente_nome || '',
           statusVinculo: 'nao_vinculado',
-          ultimaAtividade: null,
           lastMessage: '',
-          lastTime: null,
+          lastMessageAt: null,
+          lastMessageLabel: '',
           unreadCount: 0,
         };
       }
@@ -139,15 +155,15 @@ export default function ChatHubDrawer({ onClose, user }) {
       const cid = m.grupo_id;
       if (!cid || !map[cid]) return;
       const ts = m.received_at || m.timestamp_mensagem;
-      if (!map[cid].lastTime || ts > map[cid].lastTime) {
-        map[cid].lastTime = ts;
+      if (!map[cid].lastMessageAt || ts > map[cid].lastMessageAt) {
+        map[cid].lastMessageAt = ts;
+        map[cid].lastMessageLabel = formatarDataConversa(ts);
         const preview = m.tipo_mensagem === 'texto' ? (m.mensagem || '') : 
                         m.tipo_mensagem === 'imagem' ? '📷 Imagem' :
                         m.tipo_mensagem === 'video' ? '🎬 Vídeo' :
                         m.tipo_mensagem === 'audio' ? '🎤 Áudio' :
                         m.tipo_mensagem === 'documento' ? '📎 Documento' : '';
         map[cid].lastMessage = preview.substring(0, 60) + (preview.length > 60 ? '...' : '');
-        map[cid].ultimaAtividade = ts;
       }
     });
 
@@ -161,7 +177,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         (!ultimaVoxx || (m.received_at || m.timestamp_mensagem) > (ultimaVoxx.received_at || ultimaVoxx.timestamp_mensagem))
       ).length;
       return { ...c, unreadCount };
-    }).sort((a, b) => (b.lastTime || '').localeCompare(a.lastTime || ''));
+    }).sort((a, b) => (b.lastMessageAt || '').localeCompare(a.lastMessageAt || ''));
   }, [grupos, mensagensRecentes]);
 
   // ── Filtrar conversas ─────────────────────────────────────
@@ -406,22 +422,6 @@ export default function ChatHubDrawer({ onClose, user }) {
             ) : (
               conversasFiltradas.map(c => {
                 const isSelected = selectedChat?.id === c.id;
-                const timeLabel = (() => {
-                  const ts = c.lastTime || c.ultimaAtividade;
-                  if (!ts) return '—';
-                  try {
-                    const m = moment.utc(ts).tz(TZ);
-                    if (!m.isValid()) return '—';
-                    const agora = moment().tz(TZ);
-                    const inicioHoje = agora.clone().startOf('day');
-                    const inicioOntem = inicioHoje.clone().subtract(1, 'day');
-                    const inicioSemana = inicioHoje.clone().subtract(6, 'days');
-                    if (m.isSameOrAfter(inicioHoje)) return m.format('HH:mm');
-                    if (m.isSameOrAfter(inicioOntem)) return 'Ontem';
-                    if (m.isSameOrAfter(inicioSemana)) return m.format('dddd');
-                    return m.format('DD/MM');
-                  } catch (_) { return '—'; }
-                })();
 
                 return (
                   <button
@@ -431,7 +431,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       isSelected ? 'bg-slate-800 border-l-2 border-l-emerald-500' : ''
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3 w-full">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${
                         c.isGroup ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'
                       }`}>
@@ -448,8 +448,8 @@ export default function ChatHubDrawer({ onClose, user }) {
                           </Badge>
                         )}
                       </div>
-                      <div className="shrink-0 flex flex-col items-end gap-1 self-start pt-0.5">
-                        <span className="text-[12px] text-slate-300 whitespace-nowrap">{timeLabel}</span>
+                      <div className="shrink-0 min-w-[48px] flex flex-col items-end gap-1">
+                        <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">{c.lastMessageLabel || ''}</span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
                             {c.unreadCount > 99 ? '99+' : c.unreadCount}
