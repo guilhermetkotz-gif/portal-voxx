@@ -416,7 +416,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium text-white truncate">{c.name}</p>
-                          <span className="text-[10px] text-slate-500 shrink-0">{timeLabel || ''}</span>
+                          <span className="text-[10px] text-slate-400 shrink-0">{timeLabel || c.lastTime ? (typeof c.lastTime === 'string' ? c.lastTime.slice(11, 16) : '?') : '—'}</span>
                         </div>
                         <p className="text-xs text-slate-400 truncate mt-0.5">
                           {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
