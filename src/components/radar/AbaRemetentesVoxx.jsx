@@ -11,8 +11,10 @@ import {
 } from '@/components/ui/dialog';
 import {
   Plus, Pencil, Trash2, RefreshCw, Loader2,
-  Users, UserCheck, MessageSquare, PhoneCall
+  Users, UserCheck, MessageSquare, PhoneCall, Search, Check, ChevronsUpDown
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from '@/components/ui/command';
 import { toast } from 'sonner';
 
 function normalizarTelefone(tel) {
@@ -44,6 +46,7 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
   const [salvando, setSalvando] = useState(false);
   const [reprocessando, setReprocessando] = useState(false);
   const [resultadoReprocessamento, setResultadoReprocessamento] = useState(null);
+  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
 
   const { data: remetentes = [], isLoading } = useQuery({
     queryKey: ['remVoxx'],
@@ -65,6 +68,11 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
   }, [mensagens]);
 
   const ativos = remetentes.filter(r => r.ativo !== false);
+  const usuarioSelecionado = usuarios.find(u => u.id === form.usuario_id);
+
+  const usuariosFiltrados = useMemo(() => {
+    return usuarios.filter(u => u.full_name);
+  }, [usuarios]);
 
   const abrirNovo = () => {
     setEditando(null);
@@ -275,17 +283,47 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
             </div>
             <div>
               <label className="text-xs text-slate-400 mb-1.5 block">Usuário vinculado</label>
-              <Select value={form.usuario_id} onValueChange={v => setForm(f => ({ ...f, usuario_id: v }))}>
-                <SelectTrigger className="bg-slate-800 border-slate-700 text-white text-sm">
-                  <SelectValue placeholder="Selecionar usuário..." />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700 max-h-48">
-                  <SelectItem value={null}>Nenhum</SelectItem>
-                  {usuarios.filter(u => u.full_name).map(u => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.email})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between bg-slate-800 border-slate-700 text-white hover:bg-slate-700 hover:text-white text-sm font-normal">
+                    {usuarioSelecionado ? (
+                      <span className="truncate">{usuarioSelecionado.full_name} ({usuarioSelecionado.email})</span>
+                    ) : (
+                      <span className="text-slate-500">Selecionar usuário...</span>
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-slate-800 border-slate-700">
+                  <Command className="bg-transparent">
+                    <CommandInput placeholder="Buscar usuário..." className="text-white" />
+                    <CommandList className="max-h-48">
+                      <CommandEmpty className="text-slate-400 py-3 text-sm text-center">Nenhum usuário encontrado.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem
+                          value="__nenhum__"
+                          onSelect={() => { setForm(f => ({ ...f, usuario_id: '' })); setUserPopoverOpen(false); }}
+                          className="text-slate-400"
+                        >
+                          <Check className={`mr-2 h-4 w-4 ${!form.usuario_id ? 'opacity-100' : 'opacity-0'}`} />
+                          Nenhum
+                        </CommandItem>
+                        {usuariosFiltrados.map(u => (
+                          <CommandItem
+                            key={u.id}
+                            value={`${u.full_name} ${u.email}`}
+                            onSelect={() => { setForm(f => ({ ...f, usuario_id: u.id })); setUserPopoverOpen(false); }}
+                          >
+                            <Check className={`mr-2 h-4 w-4 ${form.usuario_id === u.id ? 'opacity-100' : 'opacity-0'}`} />
+                            {u.full_name}
+                            <span className="ml-2 text-xs text-slate-400">{u.email}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="flex items-center justify-between">
               <label className="text-sm text-slate-300">Ativo</label>
