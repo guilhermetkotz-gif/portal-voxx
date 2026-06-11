@@ -407,9 +407,10 @@ export default function ChatHubDrawer({ onClose, user }) {
               conversasFiltradas.map(c => {
                 const isSelected = selectedChat?.id === c.id;
                 const timeLabel = (() => {
-                  if (!c.lastTime) return '—';
+                  const ts = c.lastTime || c.ultimaAtividade;
+                  if (!ts) return '—';
                   try {
-                    const m = moment.utc(c.lastTime).tz(TZ);
+                    const m = moment.utc(ts).tz(TZ);
                     if (!m.isValid()) return '—';
                     const agora = moment().tz(TZ);
                     const inicioHoje = agora.clone().startOf('day');
@@ -439,7 +440,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium text-white truncate">{c.name}</p>
-                          <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap shrink-0">{timeLabel || '—'}</span>
+                          <span className="text-[12px] text-slate-300 whitespace-nowrap shrink-0 ml-2">{timeLabel}</span>
                         </div>
                         <div className="flex items-center justify-between gap-2 mt-0.5">
                           <p className="text-xs text-slate-400 truncate flex-1 min-w-0">
