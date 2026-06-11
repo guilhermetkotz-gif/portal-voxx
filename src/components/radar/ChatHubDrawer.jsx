@@ -428,13 +428,13 @@ export default function ChatHubDrawer({ onClose, user }) {
                         {c.isGroup ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-white truncate flex-1 min-w-0">{c.name}</p>
-                          <span className="text-[10px] text-emerald-400 shrink-0 whitespace-nowrap min-w-[42px] text-right bg-emerald-500/10 rounded px-1.5 py-0.5">{timeLabel || '—'}</span>
+                        <p className="text-sm font-medium text-white truncate">{c.name}</p>
+                        <div className="flex items-center justify-between gap-2 mt-0.5">
+                          <p className="text-xs text-slate-400 truncate flex-1 min-w-0">
+                            {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
+                          </p>
+                          <span className="text-[10px] text-slate-500 shrink-0 whitespace-nowrap">{timeLabel || '—'}</span>
                         </div>
-                        <p className="text-xs text-slate-400 truncate mt-0.5">
-                          {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
-                        </p>
                         {c.clienteNome && (
                           <Badge variant="outline" className="mt-1 text-[10px] py-0 px-1.5 border-slate-700 text-slate-400">
                             {c.clienteNome}
