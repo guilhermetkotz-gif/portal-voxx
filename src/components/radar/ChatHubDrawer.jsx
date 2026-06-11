@@ -350,7 +350,7 @@ export default function ChatHubDrawer({ onClose, user }) {
           {/* Header */}
           <div className="p-4 border-b border-slate-800 shrink-0">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-white">Mensagens</h2>
+              <h2 className="text-base font-bold text-white">Mensagens [V2]</h2>
               <button onClick={onClose} className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
