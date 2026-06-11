@@ -294,7 +294,7 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-slate-800 border-slate-700">
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-slate-800 border-slate-700 max-h-64 overflow-hidden" align="start" side="bottom">
                   <Command className="bg-transparent">
                     <CommandInput placeholder="Buscar usuário..." className="text-white" />
                     <CommandList className="max-h-60 overflow-y-auto">
