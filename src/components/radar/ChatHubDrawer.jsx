@@ -45,9 +45,18 @@ function formatarDataRelativa(ts) {
 
 function formatarDataConversa(ts) {
   if (!ts) return '';
+  // Tenta múltiplos formatos de parse para máxima compatibilidade
+  let m = null;
+  try { m = moment.utc(ts, moment.ISO_8601); } catch (_) {}
+  if (!m || !m.isValid()) {
+    try { m = moment.utc(ts); } catch (_) {}
+  }
+  if (!m || !m.isValid()) {
+    try { m = moment(ts); } catch (_) {}
+  }
+  if (!m || !m.isValid()) return '';
   try {
-    const m = moment.utc(ts).tz(TZ);
-    if (!m.isValid()) return '';
+    m = m.tz(TZ);
     const agora = moment().tz(TZ);
     const inicioHoje = agora.clone().startOf('day');
     const inicioOntem = inicioHoje.clone().subtract(1, 'day');
@@ -124,6 +133,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         statusVinculo: g.status_vinculo,
         lastMessage: '',
         lastMessageAt: g.ultima_atividade || null,
+        _ultimaAtividade: g.ultima_atividade || null,
         unreadCount: 0,
       };
     });
@@ -133,6 +143,7 @@ export default function ChatHubDrawer({ onClose, user }) {
     directMsgs.forEach(m => {
       const id = m.grupo_id;
       if (map[id]) return; // já existe como grupo
+      const ts = m.received_at || m.timestamp_mensagem;
       map[id] = {
         id,
         name: m.grupo_nome || m.remetente_nome || id,
@@ -141,7 +152,8 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteNome: m.cliente_nome || '',
         statusVinculo: 'nao_vinculado',
         lastMessage: '',
-        lastMessageAt: null,
+        lastMessageAt: ts || null,
+        _ultimaAtividade: ts || null,
         unreadCount: 0,
       };
     });
@@ -171,9 +183,11 @@ export default function ChatHubDrawer({ onClose, user }) {
         (m.remetente_tipo === 'cliente' || m.origem === 'recebida') &&
         (!ultimaVoxx || (m.received_at || m.timestamp_mensagem) > (ultimaVoxx.received_at || ultimaVoxx.timestamp_mensagem))
       ).length;
-      const tsLabel = c.lastMessageAt ? formatarDataConversa(c.lastMessageAt) : '';
+      // Fallback em cadeia: timestamp da mensagem > ultima_atividade do grupo
+      const bestTs = c.lastMessageAt || c._ultimaAtividade || '';
+      const tsLabel = bestTs ? formatarDataConversa(bestTs) : '';
       return { ...c, unreadCount, tsLabel };
-    }).sort((a, b) => (b.lastMessageAt || '').localeCompare(a.lastMessageAt || ''));
+    }).sort((a, b) => (b.lastMessageAt || b._ultimaAtividade || '').localeCompare(a.lastMessageAt || a._ultimaAtividade || ''));
   }, [grupos, mensagensRecentes]);
 
   // ── Filtrar conversas ─────────────────────────────────────
@@ -446,7 +460,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
                         <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
-                          {c.tsLabel || ''}
+                          {c.tsLabel || formatarDataConversa(c.lastMessageAt || c._ultimaAtividade) || ''}
                         </span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
