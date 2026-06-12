@@ -47,6 +47,7 @@ function formatarDataConversa(ts) {
   if (!ts) return '';
   // Tenta múltiplos formatos de parse para máxima compatibilidade
   let m = null;
+  // Primeiro tenta como ISO 8601 estrito em UTC
   try { m = moment.utc(ts, moment.ISO_8601); } catch (_) {}
   if (!m || !m.isValid()) {
     try { m = moment.utc(ts); } catch (_) {}
@@ -54,7 +55,14 @@ function formatarDataConversa(ts) {
   if (!m || !m.isValid()) {
     try { m = moment(ts); } catch (_) {}
   }
-  if (!m || !m.isValid()) return '';
+  // Fallback: tenta como timestamp numérico (ms)
+  if (!m || !m.isValid()) {
+    const num = Number(ts);
+    if (!isNaN(num) && num > 0) {
+      try { m = moment(num); } catch (_) {}
+    }
+  }
+  if (!m || !m.isValid()) return String(ts).slice(0, 16); // fallback exibe o timestamp bruto truncado
   try {
     m = m.tz(TZ);
     const agora = moment().tz(TZ);
@@ -65,7 +73,7 @@ function formatarDataConversa(ts) {
     if (m.isSameOrAfter(inicioOntem)) return 'Ontem';
     if (m.isSameOrAfter(inicioSemana)) return m.format('dddd');
     return m.format('DD/MM');
-  } catch (_) { return ''; }
+  } catch (_) { return String(ts).slice(0, 16); }
 }
 
 export default function ChatHubDrawer({ onClose, user }) {
@@ -490,7 +498,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       </div>
                       <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
                         <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
-                          {formatarDataConversa(c.lastMessageAt || c._ultimaAtividade) || '—'}
+                          {formatarDataConversa(c.lastMessageAt || c._ultimaAtividade)}
                         </span>
                         {c.unreadCount > 0 && (
                           <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
