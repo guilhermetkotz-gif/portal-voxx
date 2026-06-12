@@ -73,6 +73,18 @@
       ],
       "default": "texto"
     },
+    "midia_url": {
+      "type": "string",
+      "description": "URL da m\u00eddia (imagem, v\u00eddeo, \u00e1udio, documento)"
+    },
+    "midia_mimetype": {
+      "type": "string",
+      "description": "MIME type da m\u00eddia"
+    },
+    "midia_nome": {
+      "type": "string",
+      "description": "Nome original do arquivo de m\u00eddia"
+    },
     "timestamp_mensagem": {
       "type": "string",
       "format": "date-time",
