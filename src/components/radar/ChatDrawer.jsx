@@ -210,7 +210,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
 
         {/* Mensagens */}
         <ScrollArea className="flex-1 px-4 py-3">
-          <div ref={scrollRef} className="space-y-2 max-h-full">
+          <div ref={scrollRef} className="space-y-2">
             {loadingMsgs ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
