@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2 } from 'lucide-react';
@@ -433,9 +432,8 @@ export default function ChatHubDrawer({ onClose, user }) {
   };
 
   useEffect(() => {
-    const viewport = scrollRef.current?.closest('[data-radix-scroll-area-viewport]');
-    if (viewport) {
-      viewport.scrollTop = viewport.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [msgsChat]);
 
@@ -587,8 +585,7 @@ export default function ChatHubDrawer({ onClose, user }) {
               </div>
 
               {/* Mensagens */}
-              <ScrollArea className="flex-1 px-4 py-3">
-                <div ref={scrollRef} className="space-y-2">
+              <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                   {loadingMsgs ? (
                     <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-slate-500" /></div>
                   ) : msgsChat.length === 0 ? (
@@ -644,8 +641,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       );
                     })
                   )}
-                </div>
-              </ScrollArea>
+              </div>
 
               {/* Input */}
               <div className="px-4 py-3 border-t border-slate-800 bg-slate-900/80 shrink-0">
