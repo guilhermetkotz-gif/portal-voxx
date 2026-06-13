@@ -14,6 +14,15 @@ function normalizarGrupoId(id) {
 }
 
 // ─── Extrai conteúdo textual e tipo da mensagem ──────────────────────────────
+// ─── Extrai URL da mídia do payload ──────────────────────────────
+function extrairMidiaUrl(body) {
+  if (body.image?.imageUrl) return { midia_url: body.image.imageUrl, midia_mimetype: body.image.mimeType || 'image/jpeg' };
+  if (body.audio?.audioUrl) return { midia_url: body.audio.audioUrl, midia_mimetype: body.audio.mimeType || 'audio/ogg' };
+  if (body.video?.videoUrl) return { midia_url: body.video.videoUrl, midia_mimetype: body.video.mimeType || 'video/mp4' };
+  if (body.document?.documentUrl) return { midia_url: body.document.documentUrl, midia_mimetype: body.document.mimeType || null, midia_nome: body.document.fileName || null };
+  return null;
+}
+
 function extrairConteudo(body) {
   // Texto
   if (body.text?.message) return { mensagem: body.text.message, tipo: 'texto' };
@@ -212,6 +221,7 @@ Deno.serve(async (req) => {
 
     const origem = (isFromMe || remetenteTipo === 'voxx') ? 'enviada' : 'recebida';
     const statusProc    = clienteId ? 'ok' : 'sem_vinculo';
+    const midia = extrairMidiaUrl(body);
 
     await base44.asServiceRole.entities.WhatsappMensagem.create({
       message_id:          messageId || null,
@@ -228,6 +238,9 @@ Deno.serve(async (req) => {
       origem,
       mensagem,
       tipo_mensagem:       tipo,
+      midia_url:           midia?.midia_url || null,
+      midia_mimetype:      midia?.midia_mimetype || null,
+      midia_nome:          midia?.midia_nome || null,
       timestamp_mensagem:  timestamp,
       received_at:         receivedAt,
       from_me:             isFromMe,

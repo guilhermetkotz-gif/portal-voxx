@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
 
         atualizadas++;
         // Pausa de 80ms para evitar rate limit
-        await new Promise(r => setTimeout(r, 80));
+        await new Promise(r => setTimeout(r, 200));
       } catch (e) {
         erros++;
       }
