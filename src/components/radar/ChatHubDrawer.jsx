@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2 } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
@@ -597,22 +597,58 @@ export default function ChatHubDrawer({ onClose, user }) {
                       const midiaUrl = m.midia_url;
 
                       const renderContent = () => {
-                        if (m.tipo_mensagem === 'imagem' && midiaUrl) {
-                          return <img src={midiaUrl} alt="Imagem" className="rounded-lg max-w-full max-h-80 object-cover cursor-pointer" onClick={() => window.open(midiaUrl, '_blank')} />;
-                        }
-                        if (m.tipo_mensagem === 'video' && midiaUrl) {
-                          return <video src={midiaUrl} controls className="rounded-lg max-w-full max-h-80" preload="metadata" />;
-                        }
-                        if (m.tipo_mensagem === 'audio' && midiaUrl) {
-                          return <audio src={midiaUrl} controls className="w-full min-w-[200px] h-10" preload="metadata" />;
-                        }
-                        if (m.tipo_mensagem === 'documento' && midiaUrl) {
+                        // Imagem
+                        if (m.tipo_mensagem === 'imagem') {
+                          if (midiaUrl) {
+                            return <img src={midiaUrl} alt="Imagem" className="rounded-lg max-w-full max-h-80 object-cover cursor-pointer" onClick={() => window.open(midiaUrl, '_blank')} />;
+                          }
                           return (
-                            <a href={midiaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2.5 bg-slate-700/50 rounded-lg hover:bg-slate-700">
-                              <FileText className="w-4 h-4 text-slate-300" />
-                              <span className="text-xs truncate">{m.midia_nome || 'Documento'}</span>
-                              <Download className="w-4 h-4 text-slate-400 shrink-0 ml-auto" />
-                            </a>
+                            <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">
+                              <Image className="w-5 h-5 text-slate-400" />
+                              <span className="text-xs text-slate-400">Imagem</span>
+                            </div>
+                          );
+                        }
+                        // Vídeo
+                        if (m.tipo_mensagem === 'video') {
+                          if (midiaUrl) {
+                            return <video src={midiaUrl} controls className="rounded-lg max-w-full max-h-80" preload="metadata" />;
+                          }
+                          return (
+                            <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">
+                              <Video className="w-5 h-5 text-slate-400" />
+                              <span className="text-xs text-slate-400">Vídeo</span>
+                            </div>
+                          );
+                        }
+                        // Áudio
+                        if (m.tipo_mensagem === 'audio') {
+                          if (midiaUrl) {
+                            return <audio src={midiaUrl} controls className="w-full min-w-[200px] h-10" preload="metadata" />;
+                          }
+                          return (
+                            <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">
+                              <FileAudio className="w-5 h-5 text-slate-400" />
+                              <span className="text-xs text-slate-400">Áudio</span>
+                            </div>
+                          );
+                        }
+                        // Documento
+                        if (m.tipo_mensagem === 'documento') {
+                          if (midiaUrl) {
+                            return (
+                              <a href={midiaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2.5 bg-slate-700/50 rounded-lg hover:bg-slate-700">
+                                <FileText className="w-4 h-4 text-slate-300" />
+                                <span className="text-xs truncate">{m.midia_nome || 'Documento'}</span>
+                                <Download className="w-4 h-4 text-slate-400 shrink-0 ml-auto" />
+                              </a>
+                            );
+                          }
+                          return (
+                            <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">
+                              <FileText className="w-5 h-5 text-slate-400" />
+                              <span className="text-xs text-slate-400">Documento</span>
+                            </div>
                           );
                         }
                         return <p className="whitespace-pre-wrap break-words">{m.mensagem || '[Sem conteúdo]'}</p>;
