@@ -498,39 +498,50 @@ export default function ChatHubDrawer({ onClose, user }) {
               conversasFiltradas.map(c => {
                 const isSelected = selectedChat?.id === c.id;
 
+                const horarioLateral =
+                  formatarDataConversa(c.lastMessageAt || c._ultimaAtividade || ultimaMsgPorChat[c.id]?.ts);
+
+                const horarioCompletoLateral =
+                  formatarDataHora(c.lastMessageAt || c._ultimaAtividade || ultimaMsgPorChat[c.id]?.ts);
+
                 return (
                   <button
                     key={c.id}
                     onClick={() => setSelectedChat(c)}
-                    className={`w-full text-left px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors ${
+                    className={`relative w-full text-left px-4 py-3 pr-16 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors ${
                       isSelected ? 'bg-slate-800 border-l-2 border-l-emerald-500' : ''
                     }`}
                   >
-                    <div className="flex items-start gap-3 w-full">
+                    <span
+                      className={`absolute top-3 right-4 z-10 text-[11px] font-medium whitespace-nowrap leading-none ${
+                        c.unreadCount > 0 ? 'text-emerald-400' : 'text-slate-400'
+                      }`}
+                      title={horarioCompletoLateral || ''}
+                    >
+                      {horarioLateral || ''}
+                    </span>
+
+                    {c.unreadCount > 0 && (
+                      <div className="absolute right-4 top-8 z-10 bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
+                        {c.unreadCount > 99 ? '99+' : c.unreadCount}
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3 w-full min-w-0">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-sm font-bold ${
                         c.isGroup ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'
                       }`}>
                         {c.isGroup ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{c.name}</p>
-                        <p className="text-xs text-slate-400 truncate mt-0.5">
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="text-sm font-medium text-white truncate pr-2">{c.name}</p>
+                        <p className="text-xs text-slate-400 truncate mt-0.5 pr-1">
                           {c.lastMessage || (c.isGroup ? 'Grupo' : 'Contato')}
                         </p>
                         {c.clienteNome && (
-                          <Badge variant="outline" className="mt-1 text-[10px] py-0 px-1.5 border-slate-700 text-slate-400 w-fit">
+                          <Badge variant="outline" className="mt-1 text-[10px] py-0 px-1.5 border-slate-700 text-slate-400 max-w-[180px] truncate">
                             {c.clienteNome}
                           </Badge>
-                        )}
-                      </div>
-                      <div className="w-[54px] shrink-0 flex flex-col items-end gap-1">
-                        <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
-                          {formatarDataConversa(c.lastMessageAt || c._ultimaAtividade)}
-                        </span>
-                        {c.unreadCount > 0 && (
-                          <div className="bg-emerald-500 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
-                            {c.unreadCount > 99 ? '99+' : c.unreadCount}
-                          </div>
                         )}
                       </div>
                     </div>
