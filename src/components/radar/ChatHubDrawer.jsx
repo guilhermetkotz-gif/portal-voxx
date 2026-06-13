@@ -499,9 +499,8 @@ export default function ChatHubDrawer({ onClose, user }) {
                 const isSelected = selectedChat?.id === c.id;
 
                 const tsRaw = c.lastMessageAt || c._ultimaAtividade || ultimaMsgPorChat[c.id]?.ts;
-                console.log('[ChatHubDrawer] tsRaw para', c.name, ':', tsRaw, '| lastMessageAt:', c.lastMessageAt, '| _ultimaAtividade:', c._ultimaAtividade, '| ultimaMsgPorChat:', ultimaMsgPorChat[c.id]);
-                const horarioLateral = formatarDataConversa(tsRaw) || '--:--';
-                const horarioCompletoLateral = formatarDataHora(tsRaw) || '--:--';
+                const horarioLateral = formatarDataConversa(tsRaw);
+                const horarioCompletoLateral = formatarDataHora(tsRaw);
 
                 return (
                   <button
