@@ -491,18 +491,17 @@ export default function ChatHubDrawer({ onClose, user }) {
           </div>
 
           {/* Lista */}
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             {conversasFiltradas.length === 0 ? (
               <p className="text-center text-slate-500 text-sm py-12">Nenhuma conversa encontrada.</p>
             ) : (
               conversasFiltradas.map(c => {
                 const isSelected = selectedChat?.id === c.id;
 
-                const horarioLateral =
-                  formatarDataConversa(c.lastMessageAt || c._ultimaAtividade || ultimaMsgPorChat[c.id]?.ts);
-
-                const horarioCompletoLateral =
-                  formatarDataHora(c.lastMessageAt || c._ultimaAtividade || ultimaMsgPorChat[c.id]?.ts);
+                const tsRaw = c.lastMessageAt || c._ultimaAtividade || ultimaMsgPorChat[c.id]?.ts;
+                console.log('[ChatHubDrawer] tsRaw para', c.name, ':', tsRaw, '| lastMessageAt:', c.lastMessageAt, '| _ultimaAtividade:', c._ultimaAtividade, '| ultimaMsgPorChat:', ultimaMsgPorChat[c.id]);
+                const horarioLateral = formatarDataConversa(tsRaw) || '--:--';
+                const horarioCompletoLateral = formatarDataHora(tsRaw) || '--:--';
 
                 return (
                   <button
@@ -554,7 +553,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                 );
               })
             )}
-          </ScrollArea>
+          </div>
         </div>
 
         {/* ── Painel Direito: Chat ── */}
