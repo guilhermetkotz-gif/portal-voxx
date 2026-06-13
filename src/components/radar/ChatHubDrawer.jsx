@@ -47,7 +47,6 @@ function formatarDataConversa(ts) {
   if (!ts) return '';
   // Tenta múltiplos formatos de parse para máxima compatibilidade
   let m = null;
-  // Primeiro tenta como ISO 8601 estrito em UTC
   try { m = moment.utc(ts, moment.ISO_8601); } catch (_) {}
   if (!m || !m.isValid()) {
     try { m = moment.utc(ts); } catch (_) {}
@@ -55,14 +54,13 @@ function formatarDataConversa(ts) {
   if (!m || !m.isValid()) {
     try { m = moment(ts); } catch (_) {}
   }
-  // Fallback: tenta como timestamp numérico (ms)
   if (!m || !m.isValid()) {
     const num = Number(ts);
     if (!isNaN(num) && num > 0) {
       try { m = moment(num); } catch (_) {}
     }
   }
-  if (!m || !m.isValid()) return String(ts).slice(0, 16); // fallback exibe o timestamp bruto truncado
+  if (!m || !m.isValid()) return String(ts).slice(0, 16);
   try {
     m = m.tz(TZ);
     const agora = moment().tz(TZ);
@@ -74,6 +72,27 @@ function formatarDataConversa(ts) {
     if (m.isSameOrAfter(inicioSemana)) return m.format('dddd');
     return m.format('DD/MM');
   } catch (_) { return String(ts).slice(0, 16); }
+}
+
+// ── Helpers seguros para comparação de timestamps ───────────
+function getMensagemTs(msg) {
+  return msg.received_at || msg.timestamp_mensagem || msg.sent_at || msg.created_at || msg.created_date || msg.updated_at;
+}
+
+function getTimestampSeguro(msg) {
+  const ts = getMensagemTs(msg);
+  if (!ts) return null;
+  const m = moment.utc(ts);
+  return m.isValid() ? m.valueOf() : null;
+}
+
+function previewMensagem(m) {
+  if (m.tipo_mensagem === 'texto') {
+    const txt = (m.mensagem || '').substring(0, 60);
+    return txt + (txt.length >= 60 ? '...' : '');
+  }
+  const map = { imagem: '📷 Imagem', video: '🎬 Vídeo', audio: '🎤 Áudio', documento: '📎 Documento' };
+  return map[m.tipo_mensagem] || '';
 }
 
 export default function ChatHubDrawer({ onClose, user }) {
@@ -115,11 +134,12 @@ export default function ChatHubDrawer({ onClose, user }) {
       const todas = await base44.entities.WhatsappMensagem.list('-received_at', 2000);
       const mapa = {};
       todas.forEach(m => {
-        const cid = m.grupo_id;
-        if (!cid) return;
-        const ts = m.received_at || m.timestamp_mensagem;
-        if (ts && (!mapa[cid] || ts > mapa[cid])) {
-          mapa[cid] = ts;
+        if (!m.grupo_id) return;
+        const tsMillis = getTimestampSeguro(m);
+        if (tsMillis === null) return;
+        const existing = mapa[m.grupo_id];
+        if (!existing || tsMillis > existing.tsMillis) {
+          mapa[m.grupo_id] = { ts: getMensagemTs(m), tsMillis, preview: previewMensagem(m) };
         }
       });
       return mapa;
@@ -205,9 +225,10 @@ export default function ChatHubDrawer({ onClose, user }) {
     });
 
     // Fallback: ultimaMsgPorChat cobre conversas sem mensagem no lote de 500
-    Object.entries(ultimaMsgPorChat).forEach(([cid, ts]) => {
-      if (map[cid] && !map[cid]._temMensagem && ts) {
-        map[cid].lastMessageAt = ts;
+    Object.entries(ultimaMsgPorChat).forEach(([cid, data]) => {
+      if (map[cid] && !map[cid]._temMensagem && data.ts) {
+        map[cid].lastMessageAt = data.ts;
+        map[cid].lastMessage = map[cid].lastMessage || data.preview || '';
       }
     });
 
@@ -222,9 +243,12 @@ export default function ChatHubDrawer({ onClose, user }) {
       ).length;
       return { ...c, unreadCount };
     }).sort((a, b) => {
-      const ta = a.lastMessageAt || a._ultimaAtividade || ultimaMsgPorChat[a.id] || '';
-      const tb = b.lastMessageAt || b._ultimaAtividade || ultimaMsgPorChat[b.id] || '';
-      return tb.localeCompare(ta);
+      const tsA = getTimestampSeguro({ received_at: a.lastMessageAt || a._ultimaAtividade });
+      const tsB = getTimestampSeguro({ received_at: b.lastMessageAt || b._ultimaAtividade });
+      if (tsA === null && tsB === null) return 0;
+      if (tsA === null) return 1;
+      if (tsB === null) return -1;
+      return tsB - tsA;
     });
   }, [grupos, mensagensRecentes, ultimaMsgPorChat]);
 
@@ -284,6 +308,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         setMensagem('');
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgsRecentes'] });
+        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
         queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
@@ -319,6 +344,7 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (res.data?.success) {
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgsRecentes'] });
+        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
         queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar arquivo');
@@ -358,6 +384,7 @@ export default function ChatHubDrawer({ onClose, user }) {
           if (res.data?.success) {
             queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
             queryClient.invalidateQueries({ queryKey: ['chatHubMsgsRecentes'] });
+            queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
             queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
           }
         } catch (e) {
@@ -496,7 +523,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                           </Badge>
                         )}
                       </div>
-                      <div className="shrink-0 flex flex-col items-end gap-1 ml-2" style={{ minWidth: 50 }}>
+                      <div className="w-[54px] shrink-0 flex flex-col items-end gap-1">
                         <span className="text-[11px] text-emerald-400 font-medium whitespace-nowrap">
                           {formatarDataConversa(c.lastMessageAt || c._ultimaAtividade)}
                         </span>
