@@ -257,6 +257,11 @@ export default function ChatHubDrawer({ onClose, user }) {
       ).length;
       return { ...c, unreadCount };
     }).sort((a, b) => {
+      // Conversas com tag ativa (AGUARD. RETORNO) sempre no topo
+      const tagA = tagsAtivasMap[a.id] ? 1 : 0;
+      const tagB = tagsAtivasMap[b.id] ? 1 : 0;
+      if (tagB !== tagA) return tagB - tagA;
+
       const tsA = getTimestampSeguro({ received_at: a.lastMessageAt || a._ultimaAtividade });
       const tsB = getTimestampSeguro({ received_at: b.lastMessageAt || b._ultimaAtividade });
       if (tsA === null && tsB === null) return 0;
@@ -264,7 +269,7 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (tsB === null) return -1;
       return tsB - tsA;
     });
-  }, [grupos, mensagensRecentes, ultimaMsgPorChat]);
+  }, [grupos, mensagensRecentes, ultimaMsgPorChat, tagsAtivasMap]);
 
   // ── Filtrar conversas ─────────────────────────────────────
   const conversasFiltradas = useMemo(() => {
