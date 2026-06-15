@@ -29,31 +29,36 @@ Deno.serve(async (req) => {
 
     const headers = { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' };
 
-    // ── GET GROUP INFO ──
+    // ── GET GROUP METADATA ──
     if (acao === 'info') {
       const resp = await fetch(
-        `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/group/${encodeURIComponent(grupoId)}`,
+        `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/group-metadata/${encodeURIComponent(grupoId)}`,
         { method: 'GET', headers }
       );
-      if (!resp.ok) {
-        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: await resp.text().catch(() => '') }, { status: 502 });
-      }
       const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: data }, { status: 502 });
+      }
       return Response.json({
         success: true,
         group: {
-          id: data.id || grupoId,
+          id: data.phone || grupoId,
           subject: data.subject || '',
           description: data.description || '',
           owner: data.owner || null,
+          creation: data.creation || null,
+          invitationLink: data.invitationLink || null,
+          adminOnlyMessage: data.adminOnlyMessage || false,
+          adminOnlySettings: data.adminOnlySettings || false,
+          requireAdminApproval: data.requireAdminApproval || false,
+          isGroupAnnouncement: data.isGroupAnnouncement || false,
           participants: (data.participants || []).map(p => ({
-            phone: p.phone || p.id || '',
-            name: p.name || p.pushName || p.short || '',
-            isAdmin: p.isAdmin || p.isSuperAdmin || false,
+            phone: p.phone || '',
+            name: p.name || p.short || '',
+            isAdmin: p.isAdmin || false,
             isSuperAdmin: p.isSuperAdmin || false,
           })),
           totalParticipants: (data.participants || []).length,
-          creation: data.creation || null,
         },
       });
     }
@@ -66,15 +71,15 @@ Deno.serve(async (req) => {
       const resp = await fetch(
         `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/update-group-description`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers,
-          body: JSON.stringify({ phone: grupoId, description: descricao }),
+          body: JSON.stringify({ groupId: grupoId, groupDescription: descricao }),
         }
       );
-      if (!resp.ok) {
-        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: await resp.text().catch(() => '') }, { status: 502 });
-      }
       const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: data }, { status: 502 });
+      }
       return Response.json({ success: true, result: data });
     }
 
@@ -86,15 +91,15 @@ Deno.serve(async (req) => {
       const resp = await fetch(
         `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/update-group-subject`,
         {
-          method: 'PUT',
+          method: 'POST',
           headers,
-          body: JSON.stringify({ phone: grupoId, subject: assunto }),
+          body: JSON.stringify({ groupId: grupoId, subject: assunto }),
         }
       );
-      if (!resp.ok) {
-        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: await resp.text().catch(() => '') }, { status: 502 });
-      }
       const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: data }, { status: 502 });
+      }
       return Response.json({ success: true, result: data });
     }
 
@@ -108,13 +113,13 @@ Deno.serve(async (req) => {
         {
           method: 'POST',
           headers,
-          body: JSON.stringify({ phone: grupoId, participant: telefone }),
+          body: JSON.stringify({ autoInvite: true, groupId: grupoId, phones: [telefone] }),
         }
       );
-      if (!resp.ok) {
-        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: await resp.text().catch(() => '') }, { status: 502 });
-      }
       const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: data }, { status: 502 });
+      }
       return Response.json({ success: true, result: data });
     }
 
@@ -128,13 +133,13 @@ Deno.serve(async (req) => {
         {
           method: 'POST',
           headers,
-          body: JSON.stringify({ phone: grupoId, participant: telefone }),
+          body: JSON.stringify({ groupId: grupoId, phones: [telefone] }),
         }
       );
-      if (!resp.ok) {
-        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: await resp.text().catch(() => '') }, { status: 502 });
-      }
       const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: data }, { status: 502 });
+      }
       return Response.json({ success: true, result: data });
     }
 
@@ -145,13 +150,13 @@ Deno.serve(async (req) => {
         {
           method: 'POST',
           headers,
-          body: JSON.stringify({ phone: grupoId }),
+          body: JSON.stringify({ groupId: grupoId }),
         }
       );
-      if (!resp.ok) {
-        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: await resp.text().catch(() => '') }, { status: 502 });
-      }
       const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        return Response.json({ error: `Z-API HTTP ${resp.status}`, details: data }, { status: 502 });
+      }
       return Response.json({ success: true, result: data });
     }
 
