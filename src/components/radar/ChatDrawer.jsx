@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import moment from 'moment';
@@ -45,7 +45,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   // Buscar mensagens do chat
   const { data: mensagens = [], isLoading: loadingMsgs } = useQuery({
     queryKey: ['chatMsgs', chatId],
-    queryFn: () => base44.entities.WhatsappMensagem.filter({ grupo_id: chatId }, '-received_at', 100),
+    queryFn: async () => {
+      const msgs = await base44.entities.WhatsappMensagem.filter({ grupo_id: chatId }, '-received_at', 100);
+      return msgs.filter(m => !m.deletado);
+    },
     enabled: !!chatId,
     staleTime: 10 * 1000,
     refetchInterval: 10 * 1000,
@@ -212,6 +215,31 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   };
 
   const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+  // Excluir mensagem
+  const handleDeleteMessage = async (m) => {
+    const modo = await new Promise((resolve) => {
+      const confirmed = window.confirm('Excluir mensagem?\n\nOK = Excluir para todos\nCancelar = Apenas para mim');
+      resolve(confirmed ? 'todos' : 'para_mim');
+    });
+
+    try {
+      const res = await base44.functions.invoke('deletarMensagemWhatsApp', {
+        messageId: m.message_id,
+        chatId,
+        modo,
+      });
+      if (res.data?.success) {
+        queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+        toast.success(modo === 'todos' ? 'Mensagem excluída para todos' : 'Mensagem ocultada');
+      } else {
+        toast.error(res.data?.erro || 'Erro ao excluir mensagem');
+      }
+    } catch (e) {
+      toast.error('Erro ao excluir: ' + (e.message || 'Desconhecido'));
+    }
+  };
 
   // Enviar sticker (arquivo ou URL)
   const handleSendSticker = async (stickerUrl) => {
@@ -420,6 +448,15 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         <p className="mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90">{m.mensagem}</p>
                       )}
                       <div className="flex items-center gap-1 mt-1">
+                        {isVoxx && (
+                          <button
+                            className="p-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-red-500/30 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); handleDeleteMessage(m); }}
+                            title="Excluir mensagem"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <Popover>
                           <PopoverTrigger asChild>
                             <button

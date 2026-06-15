@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
@@ -129,7 +129,10 @@ export default function ChatHubDrawer({ onClose, user }) {
 
   const { data: mensagensRecentes = [] } = useQuery({
     queryKey: ['radarMensagens'],
-    queryFn: () => base44.entities.WhatsappMensagem.list('-received_at', 500),
+    queryFn: async () => {
+      const msgs = await base44.entities.WhatsappMensagem.list('-received_at', 500);
+      return msgs.filter(m => !m.deletado);
+    },
     staleTime: 15 * 1000,
     refetchInterval: 30 * 1000,
   });
@@ -178,7 +181,10 @@ export default function ChatHubDrawer({ onClose, user }) {
   // ── Mensagens do chat selecionado ─────────────────────────
   const { data: msgsChat = [], isLoading: loadingMsgs } = useQuery({
     queryKey: ['chatHubMsgs', selectedChat?.id],
-    queryFn: () => base44.entities.WhatsappMensagem.filter({ grupo_id: selectedChat?.id }, '-received_at', 100),
+    queryFn: async () => {
+      const msgs = await base44.entities.WhatsappMensagem.filter({ grupo_id: selectedChat?.id }, '-received_at', 100);
+      return msgs.filter(m => !m.deletado);
+    },
     enabled: !!selectedChat?.id,
     staleTime: 10 * 1000,
     refetchInterval: 10 * 1000,
@@ -519,6 +525,32 @@ export default function ChatHubDrawer({ onClose, user }) {
   };
 
   const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+  const handleDeleteMessage = async (m) => {
+    if (!selectedChat) return;
+    const modo = await new Promise((resolve) => {
+      const confirmed = window.confirm('Excluir mensagem?\n\nOK = Excluir para todos\nCancelar = Apenas para mim');
+      resolve(confirmed ? 'todos' : 'para_mim');
+    });
+
+    try {
+      const res = await base44.functions.invoke('deletarMensagemWhatsApp', {
+        messageId: m.message_id,
+        chatId: selectedChat.id,
+        modo,
+      });
+      if (res.data?.success) {
+        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
+        toast.success(modo === 'todos' ? 'Mensagem excluída para todos' : 'Mensagem ocultada');
+      } else {
+        toast.error(res.data?.erro || 'Erro ao excluir mensagem');
+      }
+    } catch (e) {
+      toast.error('Erro ao excluir: ' + (e.message || 'Desconhecido'));
+    }
+  };
 
   // Enviar sticker
   const handleSendSticker = async (stickerUrl) => {
@@ -881,6 +913,15 @@ export default function ChatHubDrawer({ onClose, user }) {
                               <p className="mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90">{m.mensagem}</p>
                             )}
                             <div className="flex items-center gap-1 mt-1">
+                              {isVoxx && (
+                                <button
+                                  className="p-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-red-500/30 transition-opacity"
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteMessage(m); }}
+                                  title="Excluir mensagem"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <button

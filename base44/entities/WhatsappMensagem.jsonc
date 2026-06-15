@@ -87,13 +87,11 @@
     },
     "timestamp_mensagem": {
       "type": "string",
-      "format": "date-time",
-      "description": "Timestamp original da mensagem"
+      "format": "date-time"
     },
     "received_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Quando foi recebido no webhook"
+      "format": "date-time"
     },
     "from_me": {
       "type": "boolean",
@@ -110,7 +108,7 @@
     },
     "citacao_id": {
       "type": "string",
-      "description": "ID da mensagem que est\u00e1 sendo citada (resposta a)"
+      "description": "ID da mensagem que est\u00e1 sendo citada"
     },
     "citacao_texto": {
       "type": "string",
@@ -129,12 +127,24 @@
         "audio",
         "documento",
         "sticker"
-      ],
-      "description": "Tipo da mensagem citada"
+      ]
     },
     "citacao_midia_url": {
       "type": "string",
-      "description": "URL da m\u00eddia da mensagem citada (se for imagem/sticker)"
+      "description": "URL da m\u00eddia da mensagem citada"
+    },
+    "deletado": {
+      "type": "boolean",
+      "default": false,
+      "description": "Mensagem foi exclu\u00edda (para todos)"
+    },
+    "deletado_por": {
+      "type": "string",
+      "description": "Email de quem excluiu"
+    },
+    "deletado_em": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [
