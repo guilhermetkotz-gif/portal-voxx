@@ -300,8 +300,12 @@ export default function ChatHubDrawer({ onClose, user }) {
       });
     }
 
+    if (filtroTab === 'aguard_retorno') {
+      result = result.filter(c => tagsAtivasMap[c.id]);
+    }
+
     return result;
-  }, [conversas, search, filtroTab, mensagensRecentes, user]);
+  }, [conversas, search, filtroTab, mensagensRecentes, user, tagsAtivasMap]);
 
   // ── Envio ─────────────────────────────────────────────────
   const handleSend = async () => {
@@ -478,7 +482,7 @@ export default function ChatHubDrawer({ onClose, user }) {
               />
             </div>
             <div className="flex items-center gap-1.5">
-              {['todas', 'naolidas', 'minhas'].map(tab => (
+              {['todas', 'naolidas', 'minhas', 'aguard_retorno'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setFiltroTab(tab)}
@@ -488,7 +492,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                 >
-                  {tab === 'todas' ? 'Todas' : tab === 'naolidas' ? 'Não lidas' : 'Minhas'}
+                  {tab === 'todas' ? 'Todas' : tab === 'naolidas' ? 'Não lidas' : tab === 'minhas' ? 'Minhas' : 'AGUARD. RETORNO'}
                 </button>
               ))}
               <div className="flex-1" />
