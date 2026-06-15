@@ -39,6 +39,54 @@ Deno.serve(async (req) => {
       if (!resp.ok) {
         return Response.json({ error: `Z-API HTTP ${resp.status}`, details: data }, { status: 502 });
       }
+      const rawParticipants = (data.participants || []).map(p => ({
+        phone: p.phone || '',
+        name: p.name || p.short || '',
+        isAdmin: p.isAdmin || false,
+        isSuperAdmin: p.isSuperAdmin || false,
+      }));
+
+      // Cross-reference: look up names from our database for participants without names
+      const phonesSemNome = rawParticipants.filter(p => !p.name).map(p => p.phone);
+      if (phonesSemNome.length > 0) {
+        // 1) Look up names from WhatsappMensagem for this group
+        const msgsWithNames = await base44.asServiceRole.entities.WhatsappMensagem.filter(
+          { grupo_id: grupoId, remetente_telefone: { $in: phonesSemNome }, remetente_nome: { $ne: '' } },
+          '-received_at',
+          200
+        ).catch(() => []);
+
+        const nomePorTelefone = {};
+        for (const m of (msgsWithNames || [])) {
+          const tel = (m.remetente_telefone || '').replace(/\D/g, '');
+          if (tel && m.remetente_nome && !nomePorTelefone[tel]) {
+            nomePorTelefone[tel] = m.remetente_nome;
+          }
+        }
+
+        // 2) Look up names from WhatsappRemetenteVoxx for still-unnamed
+        const stillUnnamed = phonesSemNome.filter(p => !nomePorTelefone[p.replace(/\D/g, '')]);
+        if (stillUnnamed.length > 0) {
+          const remetentes = await base44.asServiceRole.entities.WhatsappRemetenteVoxx.list('-created_date', 500).catch(() => []);
+          for (const r of (remetentes || [])) {
+            const telNorm = (r.telefone_normalizado || r.telefone || '').replace(/\D/g, '');
+            if (telNorm && stillUnnamed.includes(telNorm) && !nomePorTelefone[telNorm]) {
+              nomePorTelefone[telNorm] = r.nome;
+            }
+          }
+        }
+
+        // Apply names to participants
+        for (const p of rawParticipants) {
+          if (!p.name) {
+            const telNorm = p.phone.replace(/\D/g, '');
+            if (nomePorTelefone[telNorm]) {
+              p.name = nomePorTelefone[telNorm];
+            }
+          }
+        }
+      }
+
       return Response.json({
         success: true,
         group: {
@@ -52,13 +100,8 @@ Deno.serve(async (req) => {
           adminOnlySettings: data.adminOnlySettings || false,
           requireAdminApproval: data.requireAdminApproval || false,
           isGroupAnnouncement: data.isGroupAnnouncement || false,
-          participants: (data.participants || []).map(p => ({
-            phone: p.phone || '',
-            name: p.name || p.short || '',
-            isAdmin: p.isAdmin || false,
-            isSuperAdmin: p.isSuperAdmin || false,
-          })),
-          totalParticipants: (data.participants || []).length,
+          participants: rawParticipants,
+          totalParticipants: rawParticipants.length,
         },
       });
     }
