@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, X, Loader2, Zap, AlertTriangle, Clock, Bell, MoonStar, WifiOff } from 'lucide-react';
+import { Search, RefreshCw, X, Loader2, Zap, AlertTriangle, Clock, Bell, MoonStar, WifiOff, Tag } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import moment from 'moment';
 import 'moment-timezone';
@@ -59,7 +59,7 @@ function buildGrupoMap(gruposEnriquecidos) {
   return map;
 }
 
-export default function AbaMensagensRadar({ mensagens, clientes, loading, gruposEnriquecidos }) {
+export default function AbaMensagensRadar({ mensagens, clientes, loading, gruposEnriquecidos, tagGrupoIds }) {
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState('');
   const [filtroOrigem, setFiltroOrigem] = useState('todos');
@@ -95,6 +95,7 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
       if (filtroEspecial === 'erro' && m.status_processamento !== 'erro') return false;
       if (filtroEspecial === 'voxx' && m.remetente_tipo !== 'voxx' && m.origem !== 'enviada') return false;
       if (filtroEspecial === 'cliente' && m.remetente_tipo !== 'cliente' && m.origem !== 'recebida') return false;
+      if (filtroEspecial === 'aguard_retorno' && (!m.grupo_id || !tagGrupoIds?.has(m.grupo_id))) return false;
       if (busca) {
         const b = busca.toLowerCase();
         const match = m.cliente_nome?.toLowerCase().includes(b) ||
@@ -116,7 +117,7 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
       const tb = b.received_at || b.timestamp_mensagem || '';
       return tb.localeCompare(ta);
     });
-  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte, prioridadePorGrupo]);
+  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte, prioridadePorGrupo, tagGrupoIds]);
 
   return (
     <div className="space-y-4">
@@ -158,6 +159,7 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
             <SelectItem value="sem_cliente">Sem cliente</SelectItem>
             <SelectItem value="voxx">Somente VOXX</SelectItem>
             <SelectItem value="cliente">Somente cliente</SelectItem>
+            <SelectItem value="aguard_retorno">AGUARD. RETORNO</SelectItem>
             <SelectItem value="erro">Com erro</SelectItem>
           </SelectContent>
         </Select>
@@ -228,9 +230,11 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
                           ? <Badge className={`text-[10px] border p-1 flex items-center justify-center ${alerta.color}`} title={alerta.label}><AlertIcon className="w-3 h-3" /></Badge>
                           : isInativo72
                             ? <Badge className="text-[10px] border p-1 flex items-center justify-center bg-purple-500/20 text-purple-400 border-purple-500/30" title="Inativo 72h+"><MoonStar className="w-3 h-3" /></Badge>
-                            : grupoInfo?.status_vinculo === 'nao_vinculado'
-                              ? <Badge className="text-[10px] border p-1 flex items-center justify-center bg-slate-700/40 text-slate-400 border-slate-600" title="Sem vínculo"><WifiOff className="w-3 h-3" /></Badge>
-                              : null
+                            : m.grupo_id && tagGrupoIds?.has(m.grupo_id)
+                              ? <Badge className="text-[10px] border p-1 flex items-center justify-center bg-cyan-500/20 text-cyan-400 border-cyan-500/30" title="AGUARD. RETORNO"><Tag className="w-3 h-3" /></Badge>
+                              : grupoInfo?.status_vinculo === 'nao_vinculado'
+                                ? <Badge className="text-[10px] border p-1 flex items-center justify-center bg-slate-700/40 text-slate-400 border-slate-600" title="Sem vínculo"><WifiOff className="w-3 h-3" /></Badge>
+                                : null
                         }
                       </td>
                       <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">

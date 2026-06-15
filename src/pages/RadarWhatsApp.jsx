@@ -53,6 +53,18 @@ export default function RadarWhatsApp({ user }) {
     refetchInterval: 30 * 1000,
   });
 
+  // Tags ativas "AGUARD. RETORNO" → conjunto de grupo_ids
+  const { data: tagsAtivas = [] } = useQuery({
+    queryKey: ['radarTagsAtivas'],
+    queryFn: () => base44.entities.TagConversa.filter({ status: 'ativa' }, '-created_date', 200),
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
+  const tagGrupoIds = useMemo(() => {
+    return new Set(tagsAtivas.map(t => t.grupo_id).filter(Boolean));
+  }, [tagsAtivas]);
+
   // ── Subscrições realtime ─────────────────────────────────────
   React.useEffect(() => {
     const unsub1 = base44.entities.WhatsappMensagem.subscribe(() => {
@@ -292,7 +304,7 @@ export default function RadarWhatsApp({ user }) {
         </TabsContent>
 
         <TabsContent value="mensagens">
-          <AbaMensagensRadar mensagens={mensagens} clientes={clientes} loading={loadingMsgs} gruposEnriquecidos={gruposEnriquecidos} />
+          <AbaMensagensRadar mensagens={mensagens} clientes={clientes} loading={loadingMsgs} gruposEnriquecidos={gruposEnriquecidos} tagGrupoIds={tagGrupoIds} />
         </TabsContent>
 
         <TabsContent value="diagnostico">
