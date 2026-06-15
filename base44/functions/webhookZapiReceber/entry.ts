@@ -117,11 +117,12 @@ Deno.serve(async (req) => {
       ? new Date(body.momment * 1000).toISOString()
       : receivedAt;
 
-    // PASSO 5 — Idempotência: evitar duplicatas por message_id
+    // PASSO 5 — Idempotência: evitar duplicatas
+    // 5a: por message_id (preciso)
     if (messageId) {
       const existing = await base44.asServiceRole.entities.WhatsappMensagem.filter({ message_id: messageId });
       if (existing.length > 0) {
-        console.log('[webhook] Duplicata ignorada:', messageId);
+        console.log('[webhook] Duplicata ignorada (message_id):', messageId);
         if (rawId) {
           await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
             processed: true,
@@ -166,6 +167,34 @@ Deno.serve(async (req) => {
           grupoIdFinal = candidato;
           break;
         }
+      }
+    }
+
+    // PASSO 6b — Idempotência por similaridade para mensagens enviadas
+    // O enviarMensagemGeral já salva a mensagem antes do webhook chegar
+    if (isFromMe && grupoIdFinal) {
+      const recentes = await base44.asServiceRole.entities.WhatsappMensagem.filter({
+        grupo_id: grupoIdFinal,
+        from_me: true,
+        origem: 'enviada',
+      }, '-received_at', 5);
+      
+      const msgNormalizada = (mensagem || '').trim().substring(0, 100);
+      const duplicata = recentes.find(m => {
+        const mNorm = (m.mensagem || '').trim().substring(0, 100);
+        return mNorm === msgNormalizada && m.tipo_mensagem === tipo;
+      });
+      
+      if (duplicata) {
+        console.log('[webhook] Duplicata ignorada (from_me similar):', duplicata.id);
+        if (rawId) {
+          await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
+            processed: true,
+            processing_status: 'ignorado',
+            processing_error: 'Duplicata: mensagem similar já existe (criada pelo enviarMensagemGeral)',
+          });
+        }
+        return Response.json({ ok: true, duplicate: true });
       }
     }
 
