@@ -308,14 +308,26 @@ export default function ChatHubDrawer({ onClose, user }) {
     return result;
   }, [conversas, search, filtroTab, mensagensRecentes, user, tagsAtivasMap]);
 
-  // ── Alertas de tempo de resposta (igual Radar WhatsApp) ─────
+  // ── Alertas de tempo de resposta (mesma lógica do Radar WhatsApp) ─────
   const alertasPorConversa = useMemo(() => {
     const agora = moment().tz(TZ);
     const ignorarTipos = ['sistema', 'atividade', 'sem_conteudo'];
     const map = {};
 
-    conversas.forEach(c => {
-      const msgs = mensagensRecentes.filter(m => m.grupo_id === c.id);
+    // Índice de mensagens por grupo_id
+    const msgsPorGrupo = {};
+    mensagensRecentes.forEach(m => {
+      const gId = m.grupo_id;
+      if (!gId) return;
+      if (!msgsPorGrupo[gId]) msgsPorGrupo[gId] = [];
+      msgsPorGrupo[gId].push(m);
+    });
+
+    // Itera sobre todos os grupos (não sobre conversas — garante cobertura total)
+    grupos.forEach(g => {
+      const gId = g.grupo_id;
+      if (!gId) return;
+      const msgs = msgsPorGrupo[gId] || [];
       
       const ultimaClienteValida = msgs
         .filter(m => (m.remetente_tipo === 'cliente' || m.origem === 'recebida') && !ignorarTipos.includes(m.tipo_mensagem))
@@ -325,25 +337,21 @@ export default function ChatHubDrawer({ onClose, user }) {
         .filter(m => (m.remetente_tipo === 'voxx' || m.origem === 'enviada') && !ignorarTipos.includes(m.tipo_mensagem))
         .sort((a, b) => (b.received_at > a.received_at ? 1 : -1))[0] || null;
       
-      let minutosSemResposta = 0;
-      let alertaNivel = null;
-      
       if (ultimaClienteValida) {
         const tsCliente = ultimaClienteValida.received_at;
         const tsVoxx = ultimaVoxxValida?.received_at;
         if (!tsVoxx || tsCliente > tsVoxx) {
-          minutosSemResposta = calcularMinutosUteis(tsCliente, agora.toISOString());
-          alertaNivel = nivelAlerta(minutosSemResposta);
+          const minutos = calcularMinutosUteis(tsCliente, agora.toISOString());
+          const nivel = nivelAlerta(minutos);
+          if (nivel) {
+            map[gId] = { nivel, minutos };
+          }
         }
       }
-      
-      if (alertaNivel) {
-        map[c.id] = { nivel: alertaNivel, minutos: minutosSemResposta };
-      }
     });
-    
+
     return map;
-  }, [conversas, mensagensRecentes]);
+  }, [grupos, mensagensRecentes]);
 
   // ── Envio ─────────────────────────────────────────────────
   const handleSend = async () => {
