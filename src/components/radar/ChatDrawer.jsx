@@ -4,7 +4,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
@@ -32,6 +34,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const [mensagem, setMensagem] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [gravando, setGravando] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -334,6 +337,30 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             >
               <Paperclip className="w-4 h-4" />
             </Button>
+
+            <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0"
+                  disabled={enviando}
+                >
+                  <Smile className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="start" className="w-auto p-0 border-0 shadow-2xl bg-transparent">
+                <EmojiPicker
+                  theme="dark"
+                  onEmojiClick={(emojiData) => {
+                    setMensagem(prev => prev + emojiData.emoji);
+                    setEmojiOpen(false);
+                  }}
+                  width={320}
+                  height={400}
+                />
+              </PopoverContent>
+            </Popover>
 
             {gravando ? (
               <Button
