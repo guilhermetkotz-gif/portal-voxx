@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap } from 'lucide-react';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
+import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -257,11 +258,6 @@ export default function ChatHubDrawer({ onClose, user }) {
       ).length;
       return { ...c, unreadCount };
     }).sort((a, b) => {
-      // Conversas com tag ativa (AGUARD. RETORNO) sempre no topo
-      const tagA = tagsAtivasMap[a.id] ? 1 : 0;
-      const tagB = tagsAtivasMap[b.id] ? 1 : 0;
-      if (tagB !== tagA) return tagB - tagA;
-
       const tsA = getTimestampSeguro({ received_at: a.lastMessageAt || a._ultimaAtividade });
       const tsB = getTimestampSeguro({ received_at: b.lastMessageAt || b._ultimaAtividade });
       if (tsA === null && tsB === null) return 0;
@@ -269,7 +265,7 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (tsB === null) return -1;
       return tsB - tsA;
     });
-  }, [grupos, mensagensRecentes, ultimaMsgPorChat, tagsAtivasMap]);
+  }, [grupos, mensagensRecentes, ultimaMsgPorChat]);
 
   // ── Filtrar conversas ─────────────────────────────────────
   const conversasFiltradas = useMemo(() => {
@@ -311,6 +307,43 @@ export default function ChatHubDrawer({ onClose, user }) {
 
     return result;
   }, [conversas, search, filtroTab, mensagensRecentes, user, tagsAtivasMap]);
+
+  // ── Alertas de tempo de resposta (igual Radar WhatsApp) ─────
+  const alertasPorConversa = useMemo(() => {
+    const agora = moment().tz(TZ);
+    const ignorarTipos = ['sistema', 'atividade', 'sem_conteudo'];
+    const map = {};
+
+    conversas.forEach(c => {
+      const msgs = mensagensRecentes.filter(m => m.grupo_id === c.id);
+      
+      const ultimaClienteValida = msgs
+        .filter(m => (m.remetente_tipo === 'cliente' || m.origem === 'recebida') && !ignorarTipos.includes(m.tipo_mensagem))
+        .sort((a, b) => (b.received_at > a.received_at ? 1 : -1))[0] || null;
+      
+      const ultimaVoxxValida = msgs
+        .filter(m => (m.remetente_tipo === 'voxx' || m.origem === 'enviada') && !ignorarTipos.includes(m.tipo_mensagem))
+        .sort((a, b) => (b.received_at > a.received_at ? 1 : -1))[0] || null;
+      
+      let minutosSemResposta = 0;
+      let alertaNivel = null;
+      
+      if (ultimaClienteValida) {
+        const tsCliente = ultimaClienteValida.received_at;
+        const tsVoxx = ultimaVoxxValida?.received_at;
+        if (!tsVoxx || tsCliente > tsVoxx) {
+          minutosSemResposta = calcularMinutosUteis(tsCliente, agora.toISOString());
+          alertaNivel = nivelAlerta(minutosSemResposta);
+        }
+      }
+      
+      if (alertaNivel) {
+        map[c.id] = { nivel: alertaNivel, minutos: minutosSemResposta };
+      }
+    });
+    
+    return map;
+  }, [conversas, mensagensRecentes]);
 
   // ── Envio ─────────────────────────────────────────────────
   const handleSend = async () => {
@@ -529,14 +562,32 @@ export default function ChatHubDrawer({ onClose, user }) {
                     key={c.id}
                     onClick={() => setSelectedChat(c)}
                     className={`w-full text-left px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors ${
-                      isSelected ? 'bg-slate-800 border-l-2 border-l-emerald-500' : ''
+                      isSelected ? 'bg-slate-800' : ''
+                    } ${
+                      (() => {
+                        const alerta = alertasPorConversa[c.id];
+                        if (alerta?.nivel === 'emergencial') return 'border-l-2 border-l-red-500';
+                        if (alerta?.nivel === 'critico') return 'border-l-2 border-l-orange-500';
+                        if (alerta?.nivel === 'alerta') return 'border-l-2 border-l-yellow-500';
+                        if (alerta?.nivel === 'alarme') return 'border-l-2 border-l-amber-500';
+                        if (isSelected) return 'border-l-2 border-l-emerald-500';
+                        return '';
+                      })()
                     }`}
                   >
                     {/* Linha 1: Nome + Horário */}
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">
                         {c.name}
-                        {tagsAtivasMap[c.id] && (
+                        {(() => {
+                          const alerta = alertasPorConversa[c.id];
+                          if (alerta?.nivel === 'emergencial') return <Zap className="w-3 h-3 text-red-400 shrink-0" title={`Sem resposta há ${alerta.minutos}min`} />;
+                          if (alerta?.nivel === 'critico') return <AlertTriangle className="w-3 h-3 text-orange-400 shrink-0" title={`Sem resposta há ${alerta.minutos}min`} />;
+                          if (alerta?.nivel === 'alerta') return <AlertTriangle className="w-3 h-3 text-yellow-400 shrink-0" title={`Sem resposta há ${alerta.minutos}min`} />;
+                          if (alerta?.nivel === 'alarme') return <Bell className="w-3 h-3 text-amber-400 shrink-0" title={`Sem resposta há ${alerta.minutos}min`} />;
+                          return null;
+                        })()}
+                        {tagsAtivasMap[c.id] && !alertasPorConversa[c.id] && (
                           <Bell className="w-3 h-3 text-amber-400 shrink-0" title="AGUARD. RETORNO" />
                         )}
                       </p>
