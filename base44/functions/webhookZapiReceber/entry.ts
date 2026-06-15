@@ -252,6 +252,51 @@ Deno.serve(async (req) => {
     const statusProc    = clienteId ? 'ok' : 'sem_vinculo';
     const midia = extrairMidiaUrl(body);
 
+    // Extrai dados da mensagem citada (reply/quoted message)
+    let citacaoId = null;
+    let citacaoTexto = null;
+    let citacaoRemetente = null;
+    let citacaoTipo = null;
+    let citacaoMidiaUrl = null;
+    
+    const quotedMsg = body.quotedMsg || body.quotedMessage || null;
+    if (quotedMsg) {
+      citacaoId = quotedMsg.messageId || quotedMsg.id || null;
+      citacaoRemetente = quotedMsg.senderName || quotedMsg.pushName || null;
+      
+      // Extrai texto citado
+      if (quotedMsg.body) {
+        citacaoTexto = typeof quotedMsg.body === 'string' ? quotedMsg.body : null;
+      } else if (quotedMsg.text?.message) {
+        citacaoTexto = quotedMsg.text.message;
+      } else if (quotedMsg.caption) {
+        citacaoTexto = quotedMsg.caption;
+      }
+      
+      // Detecta tipo da mensagem citada
+      if (quotedMsg.image) {
+        citacaoTipo = 'imagem';
+        citacaoMidiaUrl = quotedMsg.image.imageUrl || null;
+        if (!citacaoTexto && quotedMsg.image.caption) citacaoTexto = quotedMsg.image.caption;
+      } else if (quotedMsg.video) {
+        citacaoTipo = 'video';
+        citacaoMidiaUrl = quotedMsg.video.videoUrl || null;
+        if (!citacaoTexto && quotedMsg.video.caption) citacaoTexto = quotedMsg.video.caption;
+      } else if (quotedMsg.audio) {
+        citacaoTipo = 'audio';
+        citacaoMidiaUrl = quotedMsg.audio.audioUrl || null;
+      } else if (quotedMsg.document) {
+        citacaoTipo = 'documento';
+        citacaoMidiaUrl = quotedMsg.document.documentUrl || null;
+        if (!citacaoTexto && quotedMsg.document.fileName) citacaoTexto = quotedMsg.document.fileName;
+      } else if (quotedMsg.sticker) {
+        citacaoTipo = 'sticker';
+        citacaoMidiaUrl = quotedMsg.sticker.stickerUrl || quotedMsg.sticker || null;
+      } else if (citacaoTexto) {
+        citacaoTipo = 'texto';
+      }
+    }
+
     await base44.asServiceRole.entities.WhatsappMensagem.create({
       message_id:          messageId || null,
       raw_id:              rawId     || null,
@@ -274,6 +319,11 @@ Deno.serve(async (req) => {
       received_at:         receivedAt,
       from_me:             isFromMe,
       status_processamento: statusProc,
+      citacao_id:          citacaoId,
+      citacao_texto:       citacaoTexto,
+      citacao_remetente:   citacaoRemetente,
+      citacao_tipo:        citacaoTipo,
+      citacao_midia_url:   citacaoMidiaUrl,
     });
 
     console.log('[webhook] ✅ WhatsappMensagem criada | cliente:', clienteNome || 'sem vínculo', '| grupo:', grupoNome, '| msg:', mensagem.substring(0, 60));

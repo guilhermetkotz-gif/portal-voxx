@@ -107,6 +107,34 @@
         "erro"
       ],
       "default": "ok"
+    },
+    "citacao_id": {
+      "type": "string",
+      "description": "ID da mensagem que est\u00e1 sendo citada (resposta a)"
+    },
+    "citacao_texto": {
+      "type": "string",
+      "description": "Texto da mensagem citada"
+    },
+    "citacao_remetente": {
+      "type": "string",
+      "description": "Nome do remetente da mensagem citada"
+    },
+    "citacao_tipo": {
+      "type": "string",
+      "enum": [
+        "texto",
+        "imagem",
+        "video",
+        "audio",
+        "documento",
+        "sticker"
+      ],
+      "description": "Tipo da mensagem citada"
+    },
+    "citacao_midia_url": {
+      "type": "string",
+      "description": "URL da m\u00eddia da mensagem citada (se for imagem/sticker)"
     }
   },
   "required": [

@@ -373,6 +373,41 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         ? 'bg-emerald-600 text-white rounded-br-md'
                         : 'bg-slate-800 text-slate-200 rounded-bl-md border border-slate-700'
                     }`}>
+                      {m.citacao_texto && (
+                        <div className={`mb-2 pl-3 py-1.5 rounded border-l-[3px] text-[11px] leading-tight ${
+                          isVoxx
+                            ? 'border-emerald-300/40 bg-emerald-700/40 text-emerald-100'
+                            : 'border-blue-500/40 bg-slate-700/50 text-slate-300'
+                        }`}>
+                          {m.citacao_remetente && (
+                            <p className={`font-semibold mb-0.5 ${isVoxx ? 'text-emerald-200' : 'text-blue-400'}`}>
+                              {m.citacao_remetente}
+                            </p>
+                          )}
+                          {m.citacao_tipo === 'imagem' && m.citacao_midia_url ? (
+                            <div className="flex items-center gap-1.5">
+                              <Image className="w-3 h-3 opacity-70" />
+                              <span className="italic opacity-70">Imagem</span>
+                            </div>
+                          ) : m.citacao_tipo === 'video' ? (
+                            <div className="flex items-center gap-1.5">
+                              <Video className="w-3 h-3 opacity-70" />
+                              <span className="italic opacity-70">Vídeo</span>
+                            </div>
+                          ) : m.citacao_tipo === 'audio' ? (
+                            <span className="italic opacity-70">Mensagem de áudio</span>
+                          ) : m.citacao_tipo === 'documento' ? (
+                            <div className="flex items-center gap-1.5">
+                              <FileText className="w-3 h-3 opacity-70" />
+                              <span className="italic opacity-70 truncate">{m.citacao_texto}</span>
+                            </div>
+                          ) : m.citacao_tipo === 'sticker' ? (
+                            <span className="italic opacity-70">Sticker</span>
+                          ) : (
+                            <p className="opacity-80 line-clamp-2">{m.citacao_texto}</p>
+                          )}
+                        </div>
+                      )}
                       {!isVoxx && m.remetente_nome && (
                         <p className="text-[11px] font-medium text-blue-400 mb-1">{m.remetente_nome}</p>
                       )}
