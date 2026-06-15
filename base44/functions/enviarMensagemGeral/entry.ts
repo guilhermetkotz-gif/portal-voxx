@@ -44,8 +44,14 @@ Deno.serve(async (req) => {
     const nomeRemetente = remetenteVoxx?.nome || user.full_name?.split(' ')[0] || 'Equipe Voxx';
     const telefoneRemetente = remetenteVoxx?.telefone_normalizado || null;
 
-    // Mensagem sem assinatura — o nome aparece no header do chat via remetente_nome
+    // Mensagem limpa (sem assinatura) para armazenar no banco
     let mensagemFinal = mensagem || '';
+
+    // Mensagem com assinatura para envio ao WhatsApp (visível no app do cliente)
+    let mensagemWhatsApp = mensagemFinal;
+    if (incluirAssinatura && mensagemFinal.trim()) {
+      mensagemWhatsApp = mensagemFinal.trim() + `\n\n— ${nomeRemetente} | Voxx`;
+    }
 
     let resultadoApi = null;
     let statusEnvio = 'enviado';
@@ -54,11 +60,12 @@ Deno.serve(async (req) => {
     const headers = { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' };
 
     if (tipo === 'texto') {
-      if (!mensagemFinal?.trim()) return Response.json({ error: 'Mensagem vazia' }, { status: 400 });
+      const textoEnvio = mensagemWhatsApp || mensagemFinal;
+      if (!textoEnvio?.trim()) return Response.json({ error: 'Mensagem vazia' }, { status: 400 });
       const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ phone: chatId, message: mensagemFinal }),
+        body: JSON.stringify({ phone: chatId, message: textoEnvio }),
       });
       if (!resp.ok) {
         statusEnvio = 'erro';
@@ -67,10 +74,11 @@ Deno.serve(async (req) => {
         resultadoApi = await resp.json().catch(() => ({}));
       }
     } else if (tipo === 'imagem' && midiaUrl) {
+      const captionEnvio = mensagemWhatsApp || mensagemFinal || '';
       const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-image`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ phone: chatId, image: midiaUrl, caption: mensagemFinal || '' }),
+        body: JSON.stringify({ phone: chatId, image: midiaUrl, caption: captionEnvio }),
       });
       if (!resp.ok) {
         statusEnvio = 'erro';
@@ -79,10 +87,11 @@ Deno.serve(async (req) => {
         resultadoApi = await resp.json().catch(() => ({}));
       }
     } else if (tipo === 'video' && midiaUrl) {
+      const captionEnvio = mensagemWhatsApp || mensagemFinal || '';
       const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-video`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ phone: chatId, video: midiaUrl, caption: mensagemFinal || '' }),
+        body: JSON.stringify({ phone: chatId, video: midiaUrl, caption: captionEnvio }),
       });
       if (!resp.ok) {
         statusEnvio = 'erro';
