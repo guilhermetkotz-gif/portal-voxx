@@ -44,11 +44,8 @@ Deno.serve(async (req) => {
     const nomeRemetente = remetenteVoxx?.nome || user.full_name?.split(' ')[0] || 'Equipe Voxx';
     const telefoneRemetente = remetenteVoxx?.telefone_normalizado || null;
 
-    // Monta a mensagem com assinatura para texto
+    // Mensagem sem assinatura — o nome aparece no header do chat via remetente_nome
     let mensagemFinal = mensagem || '';
-    if (tipo === 'texto' && incluirAssinatura && mensagem?.trim()) {
-      mensagemFinal = `${mensagem.trim()}\n\n— ${nomeRemetente} | Voxx`;
-    }
 
     let resultadoApi = null;
     let statusEnvio = 'enviado';

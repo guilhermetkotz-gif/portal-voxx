@@ -651,7 +651,8 @@ export default function ChatHubDrawer({ onClose, user }) {
                             </div>
                           );
                         }
-                        return <p className="whitespace-pre-wrap break-words">{m.mensagem || '[Sem conteúdo]'}</p>;
+                        const textoLimpo = (m.mensagem || '').replace(/\n*— [^\n]+ \| Voxx\n*$/, '').trim();
+                        return <p className="whitespace-pre-wrap break-words">{textoLimpo || '[Sem conteúdo]'}</p>;
                       };
 
                       return (
