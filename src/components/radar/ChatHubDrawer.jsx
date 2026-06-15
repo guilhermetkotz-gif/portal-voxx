@@ -114,15 +114,16 @@ export default function ChatHubDrawer({ onClose, user }) {
   const audioChunksRef = useRef([]);
 
   // ── Dados ─────────────────────────────────────────────────
+  // Compartilha cache com RadarWhatsApp para alertas em tempo real
   const { data: grupos = [] } = useQuery({
-    queryKey: ['chatHubGrupos'],
+    queryKey: ['radarGrupos'],
     queryFn: () => base44.entities.WhatsappGrupo.list('-ultima_atividade', 200),
     staleTime: 30 * 1000,
     refetchInterval: 30 * 1000,
   });
 
   const { data: mensagensRecentes = [] } = useQuery({
-    queryKey: ['chatHubMsgsRecentes'],
+    queryKey: ['radarMensagens'],
     queryFn: () => base44.entities.WhatsappMensagem.list('-received_at', 500),
     staleTime: 15 * 1000,
     refetchInterval: 30 * 1000,
@@ -371,9 +372,8 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (res.data?.success) {
         setMensagem('');
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
-        queryClient.invalidateQueries({ queryKey: ['chatHubMsgsRecentes'] });
-        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
         queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
       }
@@ -407,9 +407,8 @@ export default function ChatHubDrawer({ onClose, user }) {
       });
       if (res.data?.success) {
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
-        queryClient.invalidateQueries({ queryKey: ['chatHubMsgsRecentes'] });
-        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
         queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar arquivo');
       }
@@ -447,9 +446,8 @@ export default function ChatHubDrawer({ onClose, user }) {
           });
           if (res.data?.success) {
             queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
-            queryClient.invalidateQueries({ queryKey: ['chatHubMsgsRecentes'] });
-            queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
             queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+            queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
           }
         } catch (e) {
           toast.error('Erro ao enviar áudio');
