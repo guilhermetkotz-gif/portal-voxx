@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell } from 'lucide-react';
+import TagLembreteButton from '@/components/radar/TagLembreteButton';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
@@ -152,6 +153,20 @@ export default function ChatHubDrawer({ onClose, user }) {
     queryFn: () => base44.entities.Cliente.list('-nome', 500),
     staleTime: 5 * 60 * 1000,
   });
+
+  // Tags ativas para indicador na lista
+  const { data: tagsAtivas = [] } = useQuery({
+    queryKey: ['chatHubTagsAtivas'],
+    queryFn: () => base44.entities.TagConversa.filter({ status: 'ativa' }, '-created_date', 200),
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
+  const tagsAtivasMap = useMemo(() => {
+    const map = {};
+    tagsAtivas.forEach(t => { if (t.grupo_id) map[t.grupo_id] = t; });
+    return map;
+  }, [tagsAtivas]);
 
   // ── Mensagens do chat selecionado ─────────────────────────
   const { data: msgsChat = [], isLoading: loadingMsgs } = useQuery({
@@ -510,7 +525,12 @@ export default function ChatHubDrawer({ onClose, user }) {
                   >
                     {/* Linha 1: Nome + Horário */}
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-sm font-medium text-white truncate">{c.name}</p>
+                      <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">
+                        {c.name}
+                        {tagsAtivasMap[c.id] && (
+                          <Bell className="w-3 h-3 text-amber-400 shrink-0" title="AGUARD. RETORNO" />
+                        )}
+                      </p>
                       <span
                         className={`shrink-0 text-[11px] font-medium whitespace-nowrap leading-none ml-auto ${
                           c.unreadCount > 0 ? 'text-emerald-400' : 'text-slate-500'
@@ -581,7 +601,13 @@ export default function ChatHubDrawer({ onClose, user }) {
                       {selectedChat.clienteNome ? ` · ${selectedChat.clienteNome}` : ''}
                     </p>
                   </div>
-                </div>
+                  </div>
+                  <TagLembreteButton
+                  grupoId={selectedChat.id}
+                  grupoNome={selectedChat.name || ''}
+                  clienteId={selectedChat.clienteId || ''}
+                  clienteNome={selectedChat.clienteNome || ''}
+                  />
               </div>
 
               {/* Mensagens */}

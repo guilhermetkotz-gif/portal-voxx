@@ -8,6 +8,7 @@ import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Downl
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
+import TagLembreteButton from '@/components/radar/TagLembreteButton';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -202,9 +203,17 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               <p className="text-[11px] text-slate-400">{isGroup ? 'Grupo' : 'Contato direto'}{clienteNome ? ` · ${clienteNome}` : ''}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <TagLembreteButton
+              grupoId={chatId}
+              grupoNome={chatName || ''}
+              clienteId={clienteId || ''}
+              clienteNome={clienteNome || ''}
+            />
+            <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Mensagens */}

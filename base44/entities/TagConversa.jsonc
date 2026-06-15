@@ -1,0 +1,48 @@
+{
+  "name": "TagConversa",
+  "type": "object",
+  "properties": {
+    "grupo_id": {
+      "type": "string",
+      "description": "ID do grupo/conversa vinculado"
+    },
+    "grupo_nome": {
+      "type": "string",
+      "description": "Nome do grupo (cache)"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "tag_nome": {
+      "type": "string",
+      "default": "AGUARD. RETORNO"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativa",
+        "concluida",
+        "cancelada"
+      ],
+      "default": "ativa"
+    },
+    "data_lembrete": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora para disparar o alerta autom\u00e1tico"
+    },
+    "usuario_criador_nome": {
+      "type": "string"
+    },
+    "usuario_criador_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "grupo_id",
+    "data_lembrete"
+  ]
+}
