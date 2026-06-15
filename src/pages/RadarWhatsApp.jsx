@@ -292,7 +292,7 @@ export default function RadarWhatsApp({ user }) {
         </TabsContent>
 
         <TabsContent value="mensagens">
-          <AbaMensagensRadar mensagens={mensagens} clientes={clientes} loading={loadingMsgs} />
+          <AbaMensagensRadar mensagens={mensagens} clientes={clientes} loading={loadingMsgs} gruposEnriquecidos={gruposEnriquecidos} />
         </TabsContent>
 
         <TabsContent value="diagnostico">

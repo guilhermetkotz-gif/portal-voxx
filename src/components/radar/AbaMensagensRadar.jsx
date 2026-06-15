@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, RefreshCw, X, Loader2 } from 'lucide-react';
+import { Search, RefreshCw, X, Loader2, Zap, AlertTriangle, Clock, Bell, MoonStar, WifiOff } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import moment from 'moment';
 import 'moment-timezone';
@@ -42,7 +42,24 @@ const TIPO_COLORS = {
   sistema:   'bg-slate-700 text-slate-500 border-slate-600',
 };
 
-export default function AbaMensagensRadar({ mensagens, clientes, loading }) {
+const ALERT_CONFIG_MSGS = {
+  emergencial: { label: 'Emergencial', color: 'bg-red-500/20 text-red-400 border-red-500/30',       icon: Zap },
+  critico:     { label: 'Crítico',     color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: AlertTriangle },
+  alerta:      { label: 'Alerta',      color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock },
+  alarme:      { label: '+15min',      color: 'bg-amber-500/20 text-amber-400 border-amber-500/30',    icon: Bell },
+};
+
+// Mapa rápido de grupo_id → dados enriquecidos
+function buildGrupoMap(gruposEnriquecidos) {
+  if (!gruposEnriquecidos || gruposEnriquecidos.length === 0) return {};
+  const map = {};
+  gruposEnriquecidos.forEach(g => {
+    if (g.grupo_id) map[g.grupo_id] = g;
+  });
+  return map;
+}
+
+export default function AbaMensagensRadar({ mensagens, clientes, loading, gruposEnriquecidos }) {
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState('');
   const [filtroOrigem, setFiltroOrigem] = useState('todos');
@@ -55,8 +72,21 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading }) {
     return moment().tz(TZ).subtract(dias[filtroPeriodo] || 7, 'days').toISOString();
   }, [filtroPeriodo]);
 
+  // Mapa de prioridade por grupo_id (ordem do Radar WhatsApp)
+  const prioridadePorGrupo = useMemo(() => {
+    if (!gruposEnriquecidos || gruposEnriquecidos.length === 0) return {};
+    const map = {};
+    gruposEnriquecidos.forEach(g => {
+      if (g.grupo_id) {
+        // ordem invertida: 1=emergencial (mais urgente) → aparece primeiro
+        map[g.grupo_id] = g.ordem ?? 99;
+      }
+    });
+    return map;
+  }, [gruposEnriquecidos]);
+
   const filtrados = useMemo(() => {
-    return mensagens.filter(m => {
+    const resultado = mensagens.filter(m => {
       const ts = m.received_at || m.timestamp_mensagem;
       if (ts < periodoCorte) return false;
       if (filtroOrigem !== 'todos' && m.origem !== filtroOrigem) return false;
@@ -76,7 +106,17 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading }) {
       }
       return true;
     });
-  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte]);
+
+    // Ordenar: prioridade do grupo (alertas primeiro), depois data decrescente
+    return resultado.sort((a, b) => {
+      const pa = prioridadePorGrupo[a.grupo_id] ?? 99;
+      const pb = prioridadePorGrupo[b.grupo_id] ?? 99;
+      if (pa !== pb) return pa - pb;
+      const ta = a.received_at || a.timestamp_mensagem || '';
+      const tb = b.received_at || b.timestamp_mensagem || '';
+      return tb.localeCompare(ta);
+    });
+  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte, prioridadePorGrupo]);
 
   return (
     <div className="space-y-4">
@@ -144,7 +184,8 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading }) {
           <table className="w-full text-xs">
             <thead className="border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
               <tr>
-                <th className="text-left px-4 py-3 text-slate-500 font-medium">Data/hora</th>
+                <th className="text-left px-2 py-3 text-slate-500 font-medium w-8"></th>
+                <th className="text-left px-3 py-3 text-slate-500 font-medium">Data/hora</th>
                 <th className="text-left px-3 py-3 text-slate-500 font-medium">Cliente</th>
                 <th className="text-left px-3 py-3 text-slate-500 font-medium">Grupo</th>
                 <th className="text-left px-3 py-3 text-slate-500 font-medium">Remetente</th>
@@ -157,17 +198,42 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-emerald-400" /></td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center"><Loader2 className="w-5 h-5 animate-spin mx-auto text-emerald-400" /></td></tr>
               ) : filtrados.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-500">Nenhuma mensagem encontrada.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500">Nenhuma mensagem encontrada.</td></tr>
               ) : (
                 filtrados.map(m => {
                   const ts = m.received_at || m.timestamp_mensagem;
                   const origemCfg = ORIGEM_CONFIG[m.origem] || ORIGEM_CONFIG.desconhecida;
                   const tipoCor = TIPO_COLORS[m.tipo_mensagem] || TIPO_COLORS.texto;
+                  const grupoMap = buildGrupoMap(gruposEnriquecidos);
+                  const grupoInfo = m.grupo_id ? grupoMap[m.grupo_id] : null;
+                  const alerta = grupoInfo?.alertaNivel ? ALERT_CONFIG_MSGS[grupoInfo.alertaNivel] : null;
+                  const AlertIcon = alerta?.icon;
+                  const isEmergencial = grupoInfo?.alertaNivel === 'emergencial';
+                  const isCritico     = grupoInfo?.alertaNivel === 'critico';
+                  const isAlerta      = grupoInfo?.alertaNivel === 'alerta';
+                  const isAlarme      = grupoInfo?.alertaNivel === 'alarme';
+                  const isInativo72   = grupoInfo?.inativo72h;
                   return (
-                    <tr key={m.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
-                      <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">
+                    <tr key={m.id} className={`border-b border-slate-800/50 hover:bg-slate-800/20 ${
+                      isEmergencial ? 'bg-red-950/20' :
+                      isCritico     ? 'bg-orange-950/20' :
+                      isAlerta      ? 'bg-yellow-950/10' :
+                      isAlarme      ? 'bg-amber-950/10' :
+                      isInativo72   ? 'bg-purple-950/10' : ''
+                    }`}>
+                      <td className="px-2 py-2.5">
+                        {alerta
+                          ? <Badge className={`text-[10px] border p-1 flex items-center justify-center ${alerta.color}`} title={alerta.label}><AlertIcon className="w-3 h-3" /></Badge>
+                          : isInativo72
+                            ? <Badge className="text-[10px] border p-1 flex items-center justify-center bg-purple-500/20 text-purple-400 border-purple-500/30" title="Inativo 72h+"><MoonStar className="w-3 h-3" /></Badge>
+                            : grupoInfo?.status_vinculo === 'nao_vinculado'
+                              ? <Badge className="text-[10px] border p-1 flex items-center justify-center bg-slate-700/40 text-slate-400 border-slate-600" title="Sem vínculo"><WifiOff className="w-3 h-3" /></Badge>
+                              : null
+                        }
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-400 whitespace-nowrap">
                         {formatarDataRelativa(ts)}
                       </td>
                       <td className="px-3 py-2.5 text-slate-200 font-medium">
