@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import moment from 'moment';
@@ -191,6 +191,26 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     }
   };
 
+  // Reagir a uma mensagem
+  const handleReaction = async (messageId, emoji) => {
+    try {
+      const res = await base44.functions.invoke('enviarReacaoWhatsApp', {
+        chatId,
+        messageId,
+        reaction: emoji,
+      });
+      if (res.data?.success) {
+        toast.success(`Reação ${emoji} enviada`);
+      } else {
+        toast.error(res.data?.erro || 'Erro ao enviar reação');
+      }
+    } catch (e) {
+      toast.error('Erro ao reagir: ' + (e.message || 'Desconhecido'));
+    }
+  };
+
+  const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
@@ -284,7 +304,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                 };
 
                 return (
-                  <div key={m.id} className={`flex ${isVoxx ? 'justify-end' : 'justify-start'}`}>
+                  <div key={m.id} className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
                       isVoxx
                         ? 'bg-emerald-600 text-white rounded-br-md'
@@ -301,9 +321,41 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                       {(m.tipo_mensagem === 'imagem' || m.tipo_mensagem === 'video') && m.mensagem && m.mensagem !== '[Imagem]' && m.mensagem !== '[Vídeo]' && (
                         <p className="mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90">{m.mensagem}</p>
                       )}
-                      <p className={`text-[10px] mt-1 ${isVoxx ? 'text-emerald-200' : 'text-slate-500'}`}>
-                        {formatarDataHora(ts)}
-                      </p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              className={`p-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity ${
+                                isVoxx ? 'hover:bg-emerald-500/30' : 'hover:bg-slate-600'
+                              }`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <SmilePlus className="w-3.5 h-3.5" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            side={isVoxx ? 'left' : 'right'}
+                            align="end"
+                            className="w-auto p-1.5 border border-slate-700 bg-slate-800 shadow-xl"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex gap-0.5">
+                              {REACTIONS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  className="w-8 h-8 flex items-center justify-center rounded-full text-lg hover:bg-slate-700 transition-colors"
+                                  onClick={() => handleReaction(m.message_id || m.id, emoji)}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <p className={`text-[10px] ${isVoxx ? 'text-emerald-200' : 'text-slate-500'}`}>
+                          {formatarDataHora(ts)}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 );
