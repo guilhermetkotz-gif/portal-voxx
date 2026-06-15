@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { X, User, Clock, MessageSquare, Wifi, WifiOff, AlertTriangle, Zap, Link2, Users, Info, FileText, Pencil, Check, Loader2, UserPlus, UserMinus, LogOut } from 'lucide-react';
 import moment from 'moment';
@@ -234,11 +235,11 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
                 <div className="flex justify-center py-4"><Loader2 className="w-4 h-4 animate-spin text-slate-500" /></div>
               ) : editandoDescricao ? (
                 <div className="space-y-2">
-                  <Input
+                  <Textarea
                     value={descricaoEdit}
                     onChange={(e) => setDescricaoEdit(e.target.value)}
                     placeholder="Adicionar descrição do grupo..."
-                    className="bg-slate-800 border-slate-700 text-slate-100 text-sm rounded-xl"
+                    className="bg-slate-800 border-slate-700 text-slate-100 text-sm rounded-xl min-h-[200px] resize-y"
                     autoFocus
                   />
                   <div className="flex gap-2">
