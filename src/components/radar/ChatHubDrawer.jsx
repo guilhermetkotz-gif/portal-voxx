@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
 import moment from 'moment';
 import 'moment-timezone';
@@ -108,10 +110,13 @@ export default function ChatHubDrawer({ onClose, user }) {
   const [novoTelefone, setNovoTelefone] = useState('');
   const [novoNome, setNovoNome] = useState('');
   const [novoClienteId, setNovoClienteId] = useState('');
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [stickerOpen, setStickerOpen] = useState(false);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const stickerInputRef = useRef(null);
 
   // ── Dados ─────────────────────────────────────────────────
   // Compartilha cache com RadarWhatsApp para alertas em tempo real
@@ -494,6 +499,80 @@ export default function ChatHubDrawer({ onClose, user }) {
     }
   };
 
+  // Reagir a uma mensagem
+  const handleReaction = async (messageId, emoji) => {
+    if (!selectedChat) return;
+    try {
+      const res = await base44.functions.invoke('enviarReacaoWhatsApp', {
+        chatId: selectedChat.id,
+        messageId,
+        reaction: emoji,
+      });
+      if (res.data?.success) {
+        toast.success(`Reação ${emoji} enviada`);
+      } else {
+        toast.error(res.data?.erro || 'Erro ao enviar reação');
+      }
+    } catch (e) {
+      toast.error('Erro ao reagir: ' + (e.message || 'Desconhecido'));
+    }
+  };
+
+  const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+  // Enviar sticker
+  const handleSendSticker = async (stickerUrl) => {
+    if (!stickerUrl || enviando || !selectedChat) return;
+    setEnviando(true);
+    try {
+      const res = await base44.functions.invoke('enviarStickerWhatsapp', {
+        chatId: selectedChat.id,
+        stickerUrl,
+      });
+      if (res.data?.success) {
+        setStickerOpen(false);
+        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
+      } else {
+        toast.error(res.data?.erro || 'Erro ao enviar sticker');
+      }
+    } catch (e) {
+      toast.error('Erro ao enviar sticker: ' + (e.message || 'Desconhecido'));
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const handleStickerFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setEnviando(true);
+    try {
+      const uploadRes = await base44.integrations.Core.UploadFile({ file });
+      await handleSendSticker(uploadRes.file_url);
+    } catch (e) {
+      toast.error('Erro ao enviar sticker: ' + (e.message || 'Desconhecido'));
+      setEnviando(false);
+    }
+  };
+
+  const STICKER_PRESETS = [
+    { emoji: '👍', url: 'https://em-content.zobj.net/thumbs/120/apple/325/thumbs-up_1f44d.png' },
+    { emoji: '❤️', url: 'https://em-content.zobj.net/thumbs/120/apple/325/red-heart_2764-fe0f.png' },
+    { emoji: '😂', url: 'https://em-content.zobj.net/thumbs/120/apple/325/face-with-tears-of-joy_1f602.png' },
+    { emoji: '😍', url: 'https://em-content.zobj.net/thumbs/120/apple/325/smiling-face-with-heart-eyes_1f60d.png' },
+    { emoji: '🙏', url: 'https://em-content.zobj.net/thumbs/120/apple/325/folded-hands_1f64f.png' },
+    { emoji: '🔥', url: 'https://em-content.zobj.net/thumbs/120/apple/325/fire_1f525.png' },
+    { emoji: '🎉', url: 'https://em-content.zobj.net/thumbs/120/apple/325/party-popper_1f389.png' },
+    { emoji: '😢', url: 'https://em-content.zobj.net/thumbs/120/apple/325/crying-face_1f622.png' },
+    { emoji: '😡', url: 'https://em-content.zobj.net/thumbs/120/apple/325/pouting-face_1f621.png' },
+    { emoji: '🤔', url: 'https://em-content.zobj.net/thumbs/120/apple/325/thinking-face_1f914.png' },
+    { emoji: '👏', url: 'https://em-content.zobj.net/thumbs/120/apple/325/clapping-hands_1f44f.png' },
+    { emoji: '💪', url: 'https://em-content.zobj.net/thumbs/120/apple/325/flexed-biceps_1f4aa.png' },
+  ];
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -689,6 +768,10 @@ export default function ChatHubDrawer({ onClose, user }) {
                       const midiaUrl = m.midia_url;
 
                       const renderContent = () => {
+                        // Sticker
+                        if (m.tipo_mensagem === 'sticker' && midiaUrl) {
+                          return <img src={midiaUrl} alt="Sticker" className="max-w-[140px] max-h-[140px] object-contain" />;
+                        }
                         // Imagem
                         if (m.tipo_mensagem === 'imagem') {
                           if (midiaUrl) {
@@ -748,7 +831,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       };
 
                       return (
-                        <div key={m.id} className={`flex ${isVoxx ? 'justify-end' : 'justify-start'}`}>
+                        <div key={m.id} className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                             isVoxx ? 'bg-emerald-600 text-white rounded-br-md' : 'bg-slate-800 text-slate-200 rounded-bl-md border border-slate-700'
                           }`}>
@@ -762,9 +845,41 @@ export default function ChatHubDrawer({ onClose, user }) {
                             {(m.tipo_mensagem === 'imagem' || m.tipo_mensagem === 'video') && m.mensagem && m.mensagem !== '[Imagem]' && m.mensagem !== '[Vídeo]' && (
                               <p className="mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90">{m.mensagem}</p>
                             )}
-                            <p className={`text-[10px] mt-1 ${isVoxx ? 'text-emerald-200' : 'text-slate-500'}`}>
-                              {formatarDataHora(ts)}
-                            </p>
+                            <div className="flex items-center gap-1 mt-1">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className={`p-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity ${
+                                      isVoxx ? 'hover:bg-emerald-500/30' : 'hover:bg-slate-600'
+                                    }`}
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <SmilePlus className="w-3.5 h-3.5" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  side={isVoxx ? 'left' : 'right'}
+                                  align="end"
+                                  className="w-auto p-1.5 border border-slate-700 bg-slate-800 shadow-xl"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <div className="flex gap-0.5">
+                                    {REACTIONS.map((emoji) => (
+                                      <button
+                                        key={emoji}
+                                        className="w-8 h-8 flex items-center justify-center rounded-full text-lg hover:bg-slate-700 transition-colors"
+                                        onClick={() => handleReaction(m.message_id || m.id, emoji)}
+                                      >
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                              <p className={`text-[10px] ${isVoxx ? 'text-emerald-200' : 'text-slate-500'}`}>
+                                {formatarDataHora(ts)}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       );
@@ -782,9 +897,60 @@ export default function ChatHubDrawer({ onClose, user }) {
                 )}
                 <div className="flex items-end gap-2">
                   <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" />
+                  
+                  {/* Sticker */}
+                  <Popover open={stickerOpen} onOpenChange={setStickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0" disabled={enviando}>
+                        <Sticker className="w-4 h-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" align="start" className="w-72 p-3 border border-slate-700 bg-slate-800 shadow-xl">
+                      <p className="text-[11px] text-slate-400 mb-2">Enviar sticker</p>
+                      <div className="grid grid-cols-6 gap-1.5 mb-3">
+                        {STICKER_PRESETS.map((s) => (
+                          <button
+                            key={s.emoji}
+                            className="w-9 h-9 flex items-center justify-center rounded-lg text-xl hover:bg-slate-700 transition-colors cursor-pointer"
+                            onClick={() => handleSendSticker(s.url)}
+                            disabled={enviando}
+                            title={s.emoji}
+                          >
+                            <img src={s.url} alt={s.emoji} className="w-7 h-7 object-contain" />
+                          </button>
+                        ))}
+                      </div>
+                      <input type="file" ref={stickerInputRef} onChange={handleStickerFile} className="hidden" accept="image/webp,image/png" />
+                      <Button variant="outline" size="sm" className="w-full text-xs border-slate-600 text-slate-300 hover:bg-slate-700" onClick={() => stickerInputRef.current?.click()} disabled={enviando}>
+                        <Paperclip className="w-3 h-3 mr-1.5" />
+                        Enviar sticker do dispositivo
+                      </Button>
+                    </PopoverContent>
+                  </Popover>
+
                   <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0" onClick={() => fileInputRef.current?.click()} disabled={enviando}>
                     <Paperclip className="w-4 h-4" />
                   </Button>
+                  {/* Emoji Picker */}
+                  <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0" disabled={enviando}>
+                        <Smile className="w-4 h-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" align="start" className="w-auto p-0 border-0 shadow-2xl bg-transparent">
+                      <EmojiPicker
+                        theme="dark"
+                        onEmojiClick={(emojiData) => {
+                          setMensagem(prev => prev + emojiData.emoji);
+                          setEmojiOpen(false);
+                        }}
+                        width={320}
+                        height={400}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
                   {gravando ? (
                     <Button variant="ghost" size="icon" className="h-9 w-9 text-red-400 hover:text-red-300 shrink-0" onClick={stopRecording}>
                       <MicOff className="w-4 h-4" />
