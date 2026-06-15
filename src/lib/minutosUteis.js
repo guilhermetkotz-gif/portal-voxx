@@ -81,6 +81,32 @@ export const LIMITES_ALERTA = {
 /**
  * Dado quantos minutos úteis sem retorno, retorna o nível do alerta ou null.
  */
+/**
+ * Calcula horas corridas entre duas datas, excluindo sábados e domingos inteiros.
+ * Cada dia útil (seg-sex) conta 24h. Fins de semana contam 0h.
+ */
+export function calcularHorasUteisSemFimDeSemana(de, ate) {
+  const inicio = moment(de).tz(TZ);
+  const fim = moment(ate).tz(TZ);
+
+  if (!inicio.isValid() || !fim.isValid() || fim.isSameOrBefore(inicio)) return 0;
+
+  let cursor = inicio.clone();
+  let totalHoras = 0;
+
+  while (cursor.isBefore(fim)) {
+    const diaDaSemana = cursor.isoWeekday(); // 1=seg, 7=dom
+    if (diaDaSemana <= 5) { // seg a sex
+      const fimDoDia = cursor.clone().endOf('day');
+      const limite = fim.isBefore(fimDoDia) ? fim : fimDoDia;
+      totalHoras += limite.diff(cursor, 'hours', true);
+    }
+    cursor = cursor.clone().add(1, 'day').startOf('day');
+  }
+
+  return totalHoras;
+}
+
 export function nivelAlerta(minutosUteis) {
   if (minutosUteis >= LIMITES_ALERTA.emergencial) return 'emergencial';
   if (minutosUteis >= LIMITES_ALERTA.critico)     return 'critico';

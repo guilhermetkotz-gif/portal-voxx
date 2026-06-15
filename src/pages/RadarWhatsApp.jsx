@@ -14,7 +14,7 @@ import AbaAnalises from '@/components/radar/AbaAnalises';
 import AbaRemetentesVoxx from '@/components/radar/AbaRemetentesVoxx';
 import AbaOperadoresVoxx from '@/components/radar/AbaOperadoresVoxx';
 import ChatHubDrawer from '@/components/radar/ChatHubDrawer';
-import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
+import { calcularMinutosUteis, nivelAlerta, calcularHorasUteisSemFimDeSemana } from '@/lib/minutosUteis';
 import { useAlertaSomRadar } from '@/hooks/useAlertaSomRadar';
 import { Button } from '@/components/ui/button';
 
@@ -128,10 +128,10 @@ export default function RadarWhatsApp({ user }) {
         }
       }
 
-      // inatividade total (sem nenhuma mensagem há +72h)
+      // inatividade total (sem nenhuma mensagem há +72h úteis — exclui sáb/dom)
       const tsUltimaGeral = ultimaGeral?.received_at || ultimaGeral?.timestamp_mensagem || g.ultima_atividade;
       const horasSemMensagem = tsUltimaGeral
-        ? moment().tz(TZ).diff(moment(tsUltimaGeral).tz(TZ), 'hours')
+        ? calcularHorasUteisSemFimDeSemana(tsUltimaGeral, new Date().toISOString())
         : Infinity;
       const inativo72h = horasSemMensagem >= 72;
 
