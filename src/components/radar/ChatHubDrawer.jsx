@@ -492,7 +492,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                 >
-                  {tab === 'todas' ? 'Todas' : tab === 'naolidas' ? 'Não lidas' : tab === 'minhas' ? 'Minhas' : 'AGUARD. RETORNO'}
+                  {tab === 'todas' ? 'Todas' : tab === 'naolidas' ? 'Não lidas' : tab === 'minhas' ? 'Minhas' : <><Bell className="w-3.5 h-3.5" /> AGUARD.</>}
                 </button>
               ))}
               <div className="flex-1" />
