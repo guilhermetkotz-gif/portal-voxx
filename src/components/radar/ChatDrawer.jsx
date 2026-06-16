@@ -4,13 +4,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2 } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
+import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -31,6 +32,8 @@ function formatarDataHora(ts) {
 
 export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, isGroup, onClose }) {
   const queryClient = useQueryClient();
+  const { isLight, toggle: toggleTheme } = useChatTheme();
+  const t = chatTheme(isLight);
   const [mensagem, setMensagem] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [gravando, setGravando] = useState(false);
@@ -270,16 +273,25 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   // Excluir mensagem
   const handleDeleteMessage = async (m) => {
     const modo = await new Promise((resolve) => {
+      const isLightTheme = localStorage.getItem('voxx_chat_theme') === 'light';
+      const bg = isLightTheme ? '#ffffff' : '#1e293b';
+      const border = isLightTheme ? '#e9edef' : '#334155';
+      const textPrimary = isLightTheme ? '#111b21' : '#f1f5f9';
+      const textSecondary = isLightTheme ? '#667781' : '#94a3b8';
+      const textTertiary = isLightTheme ? '#8696a0' : '#64748b';
+      const btnGhostBorder = isLightTheme ? '#e9edef' : '#475569';
+      const btnGhostText = isLightTheme ? '#667781' : '#94a3b8';
+      const shadow = isLightTheme ? '0 20px 60px rgba(0,0,0,0.15)' : '0 20px 60px rgba(0,0,0,0.5)';
       const div = document.createElement('div');
       div.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7)';
       div.innerHTML = `
-        <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:24px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
-          <p style="color:#f1f5f9;font-size:15px;font-weight:600;margin:0 0 8px">Excluir mensagem?</p>
-          <p style="color:#94a3b8;font-size:13px;margin:0 0 20px">Escolha como deseja excluir:</p>
+        <div style="background:${bg};border:1px solid ${border};border-radius:16px;padding:24px;max-width:360px;width:90%;box-shadow:${shadow}">
+          <p style="color:${textPrimary};font-size:15px;font-weight:600;margin:0 0 8px">Excluir mensagem?</p>
+          <p style="color:${textSecondary};font-size:13px;margin:0 0 20px">Escolha como deseja excluir:</p>
           <div style="display:flex;flex-direction:column;gap:8px">
             <button id="del-todos" style="width:100%;padding:12px;border-radius:10px;border:none;background:#dc2626;color:white;font-size:13px;font-weight:600;cursor:pointer">🗑️ Excluir para todos</button>
-            <button id="del-mim" style="width:100%;padding:10px;border-radius:10px;border:1px solid #475569;background:transparent;color:#94a3b8;font-size:12px;cursor:pointer">🙈 Ocultar só para mim</button>
-            <button id="del-cancel" style="width:100%;padding:10px;border-radius:10px;border:none;background:transparent;color:#64748b;font-size:12px;cursor:pointer;margin-top:4px">Cancelar</button>
+            <button id="del-mim" style="width:100%;padding:10px;border-radius:10px;border:1px solid ${btnGhostBorder};background:transparent;color:${btnGhostText};font-size:12px;cursor:pointer">🙈 Ocultar só para mim</button>
+            <button id="del-cancel" style="width:100%;padding:10px;border-radius:10px;border:none;background:transparent;color:${textTertiary};font-size:12px;cursor:pointer;margin-top:4px">Cancelar</button>
           </div>
         </div>`;
       document.body.appendChild(div);
@@ -364,16 +376,16 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-slate-900 border-l border-slate-800 flex flex-col shadow-2xl">
+      <div className={`relative w-full max-w-lg ${t.bgPanel} ${t.border} border-l flex flex-col shadow-2xl`}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 shrink-0">
+        <div className={`flex items-center justify-between px-5 py-4 border-b ${t.border} shrink-0`}>
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${isGroup ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'}`}>
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${isGroup ? `${t.iconGreenBg} ${t.iconGreen}` : `${t.iconBlueBg} ${t.iconBlue}`}`}>
               {(chatName || chatId).charAt(0).toUpperCase()}
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">{chatName || chatId}</h2>
-              <p className="text-[11px] text-slate-400">{isGroup ? 'Grupo' : 'Contato direto'}{clienteNome ? ` · ${clienteNome}` : ''}</p>
+              <h2 className={`text-sm font-bold ${t.textName}`}>{chatName || chatId}</h2>
+              <p className={`text-[11px] ${t.textSecondary}`}>{isGroup ? 'Grupo' : 'Contato direto'}{clienteNome ? ` · ${clienteNome}` : ''}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -383,7 +395,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               clienteId={clienteId || ''}
               clienteNome={clienteNome || ''}
             />
-            <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">
+            <button onClick={toggleTheme} className={`p-1.5 ${t.textSecondary} ${t.textPrimary} ${t.bgHoverBtn} rounded-lg`} title={isLight ? 'Modo escuro' : 'Modo claro'}>
+              {isLight ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+            </button>
+            <button onClick={onClose} className={`p-1.5 ${t.textSecondary} ${t.textPrimary} ${t.bgCloseBtnHover} rounded-lg`}>
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -394,10 +409,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
           <div className="space-y-2">
             {loadingMsgs ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
+                <Loader2 className={`w-5 h-5 animate-spin ${t.textTertiary}`} />
               </div>
             ) : mensagens.length === 0 ? (
-              <p className="text-center text-slate-500 text-sm py-12">Nenhuma mensagem ainda.</p>
+              <p className={`text-center ${t.textTertiary} text-sm py-12`}>Nenhuma mensagem ainda.</p>
             ) : (
               [...mensagens].reverse().map((m) => {
                 const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada' || m.from_me;
@@ -482,17 +497,17 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                   <div key={m.id} className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
                       isVoxx
-                        ? 'bg-emerald-600 text-white rounded-br-md'
-                        : 'bg-slate-800 text-slate-200 rounded-bl-md border border-slate-700'
+                        ? `${t.bgBubbleOut} ${t.textBubbleOut} rounded-br-md`
+                        : `${t.bgBubbleIn} ${t.textBubbleIn} rounded-bl-md border ${t.borderLight}`
                     }`}>
                       {m.citacao_texto && (
                         <div className={`mb-2 pl-3 py-1.5 rounded border-l-[3px] text-[11px] leading-tight ${
                           isVoxx
-                            ? 'border-emerald-300/40 bg-emerald-700/40 text-emerald-100'
-                            : 'border-blue-500/40 bg-slate-700/50 text-slate-300'
+                            ? `${t.borderQuoteOut} ${t.bgQuoteOut} ${t.textQuoteOut}`
+                            : `${t.borderQuoteIn} ${t.bgQuoteIn} ${t.textQuoteIn}`
                         }`}>
                           {m.citacao_remetente && (
-                            <p className={`font-semibold mb-0.5 ${isVoxx ? 'text-emerald-200' : 'text-blue-400'}`}>
+                            <p className={`font-semibold mb-0.5 ${isVoxx ? t.textQuoteNameOut : t.textQuoteNameIn}`}>
                               {m.citacao_remetente}
                             </p>
                           )}
@@ -521,10 +536,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         </div>
                       )}
                       {!isVoxx && m.remetente_nome && (
-                        <p className="text-[11px] font-medium text-blue-400 mb-1">{m.remetente_nome}</p>
+                        <p className={`text-[11px] font-medium ${t.textNameIn} mb-1`}>{m.remetente_nome}</p>
                       )}
                       {isVoxx && m.remetente_nome && (
-                        <p className="text-[11px] font-medium text-emerald-300 mb-1">{m.remetente_nome}</p>
+                        <p className={`text-[11px] font-medium ${t.textNameOut} mb-1`}>{m.remetente_nome}</p>
                       )}
                       {renderContent()}
                       {/* Mostra legenda/caption abaixo da mídia se houver texto */}
@@ -545,7 +560,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                             return Object.values(grupos).map((g, i) => (
                               <span
                                 key={i}
-                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-slate-700/60 text-[11px] leading-none"
+                                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${t.bgReaction} text-[11px] leading-none`}
                                 title={g.remetentes.join(', ')}
                               >
                                 <span className="text-xs">{g.emoji}</span>
@@ -569,7 +584,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                           <PopoverTrigger asChild>
                             <button
                               className={`p-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity ${
-                                isVoxx ? 'hover:bg-emerald-500/30' : 'hover:bg-slate-600'
+                                isVoxx ? 'hover:bg-emerald-500/30' : t.popoverHover
                               }`}
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -579,14 +594,14 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                           <PopoverContent
                             side={isVoxx ? 'left' : 'right'}
                             align="end"
-                            className="w-auto p-1.5 border border-slate-700 bg-slate-800 shadow-xl"
+                            className={`w-auto p-1.5 border ${t.popoverBorder} ${t.popoverBg} shadow-xl`}
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="flex gap-0.5">
                               {REACTIONS.map((emoji) => (
                                 <button
                                   key={emoji}
-                                  className="w-8 h-8 flex items-center justify-center rounded-full text-lg hover:bg-slate-700 transition-colors"
+                                  className={`w-8 h-8 flex items-center justify-center rounded-full text-lg ${t.popoverHover} transition-colors`}
                                   onClick={() => handleReaction(m.message_id || m.id, emoji)}
                                 >
                                   {emoji}
@@ -595,7 +610,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                             </div>
                           </PopoverContent>
                         </Popover>
-                        <p className={`text-[10px] ${isVoxx ? 'text-emerald-200' : 'text-slate-500'}`}>
+                        <p className={`text-[10px] ${isVoxx ? t.textTimestamp : t.textTimestampIn}`}>
                           {formatarDataHora(ts)}
                         </p>
                       </div>
@@ -608,19 +623,19 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         </div>
 
         {/* Input */}
-        <div className="px-4 py-3 border-t border-slate-800 bg-slate-900/80 shrink-0">
+        <div className={`px-4 py-3 border-t ${t.border} ${t.bgPanelAlpha} shrink-0`}>
           {gravando && (
-            <div className="flex items-center justify-center gap-2 py-2 mb-2 bg-red-500/10 rounded-lg border border-red-500/20">
+            <div className={`flex items-center justify-center gap-2 py-2 mb-2 ${t.bgRecording} rounded-lg border ${t.borderRecording}`}>
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-red-400 text-xs font-medium">Gravando áudio...</span>
+              <span className="text-red-500 text-xs font-medium">Gravando áudio...</span>
             </div>
           )}
           {imagemColada && (
             <div className="mb-2 relative inline-block">
-              <img src={imagemColada.previewUrl} alt="Preview" className="max-h-32 rounded-lg border border-slate-700" />
+              <img src={imagemColada.previewUrl} alt="Preview" className={`max-h-32 rounded-lg border ${t.borderLight}`} />
               <button
                 onClick={() => { URL.revokeObjectURL(imagemColada.previewUrl); setImagemColada(null); }}
-                className="absolute -top-2 -right-2 w-5 h-5 bg-slate-700 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs"
+                className={`absolute -top-2 -right-2 w-5 h-5 ${t.bgCard} hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs`}
               >
                 <X className="w-3 h-3" />
               </button>
@@ -637,7 +652,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0"
+              className={`h-9 w-9 ${t.textSecondary} ${t.textPrimary} ${t.bgHoverBtn} shrink-0`}
               onClick={() => fileInputRef.current?.click()}
               disabled={enviando}
             >
@@ -646,51 +661,49 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
 
             {/* Sticker */}
             <Popover open={stickerOpen} onOpenChange={setStickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0"
+            <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-9 w-9 ${t.textSecondary} ${t.textPrimary} ${t.bgHoverBtn} shrink-0`}
+              disabled={enviando}
+            >
+              <Sticker className="w-4 h-4" />
+            </Button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" className={`w-72 p-3 border ${t.popoverBorder} ${t.popoverBg} shadow-xl`}>
+            <p className={`text-[11px] ${t.textSecondary} mb-2`}>Enviar sticker</p>
+            <div className="grid grid-cols-6 gap-1.5 mb-3">
+              {STICKER_PRESETS.map((s) => (
+                <button
+                  key={s.emoji}
+                  className={`w-9 h-9 flex items-center justify-center rounded-lg text-xl ${t.popoverHover} transition-colors cursor-pointer`}
+                  onClick={() => handleSendSticker(s.url)}
                   disabled={enviando}
+                  title={s.emoji}
                 >
-                  <Sticker className="w-4 h-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent side="top" align="start" className="w-72 p-3 border border-slate-700 bg-slate-800 shadow-xl">
-                <p className="text-[11px] text-slate-400 mb-2">Enviar sticker</p>
-                {/* Grid de stickers pré-definidos */}
-                <div className="grid grid-cols-6 gap-1.5 mb-3">
-                  {STICKER_PRESETS.map((s) => (
-                    <button
-                      key={s.emoji}
-                      className="w-9 h-9 flex items-center justify-center rounded-lg text-xl hover:bg-slate-700 transition-colors cursor-pointer"
-                      onClick={() => handleSendSticker(s.url)}
-                      disabled={enviando}
-                      title={s.emoji}
-                    >
-                      <img src={s.url} alt={s.emoji} className="w-7 h-7 object-contain" />
-                    </button>
-                  ))}
-                </div>
-                {/* Upload de arquivo */}
-                <input
-                  type="file"
-                  ref={stickerInputRef}
-                  onChange={handleStickerFile}
-                  className="hidden"
-                  accept="image/webp,image/png"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs border-slate-600 text-slate-300 hover:bg-slate-700"
-                  onClick={() => stickerInputRef.current?.click()}
-                  disabled={enviando}
-                >
-                  <Paperclip className="w-3 h-3 mr-1.5" />
-                  Enviar sticker do dispositivo
-                </Button>
-              </PopoverContent>
+                  <img src={s.url} alt={s.emoji} className="w-7 h-7 object-contain" />
+                </button>
+              ))}
+            </div>
+            <input
+              type="file"
+              ref={stickerInputRef}
+              onChange={handleStickerFile}
+              className="hidden"
+              accept="image/webp,image/png"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className={`w-full text-xs ${t.borderLight} ${t.textSecondary} ${t.bgHoverGhost}`}
+              onClick={() => stickerInputRef.current?.click()}
+              disabled={enviando}
+            >
+              <Paperclip className="w-3 h-3 mr-1.5" />
+              Enviar sticker do dispositivo
+            </Button>
+            </PopoverContent>
             </Popover>
 
             <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
@@ -698,7 +711,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0"
+                  className={`h-9 w-9 ${t.textSecondary} ${t.textPrimary} ${t.bgHoverBtn} shrink-0`}
                   disabled={enviando}
                 >
                   <Smile className="w-4 h-4" />
@@ -706,7 +719,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               </PopoverTrigger>
               <PopoverContent side="top" align="start" className="w-auto p-0 border-0 shadow-2xl bg-transparent">
                 <EmojiPicker
-                  theme="dark"
+                  theme={t.emojiPickerTheme}
                   onEmojiClick={(emojiData) => {
                     setMensagem(prev => prev + emojiData.emoji);
                     setEmojiOpen(false);
@@ -730,7 +743,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0"
+                className={`h-9 w-9 ${t.textSecondary} ${t.textPrimary} ${t.bgHoverBtn} shrink-0`}
                 onClick={startRecording}
                 disabled={enviando}
               >
@@ -745,7 +758,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
                 placeholder="Digite sua mensagem..."
-                className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 pr-10 rounded-xl text-sm min-h-[36px]"
+                className={`${t.bgInput} ${t.inputBorder} ${t.textInput} ${t.textPlaceholder} pr-10 rounded-xl text-sm min-h-[36px]`}
                 disabled={enviando}
               />
             </div>

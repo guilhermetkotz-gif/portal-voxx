@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2 } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
+import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
@@ -100,6 +101,8 @@ function previewMensagem(m) {
 
 export default function ChatHubDrawer({ onClose, user }) {
   const queryClient = useQueryClient();
+  const { isLight, toggle: toggleTheme } = useChatTheme();
+  const t = chatTheme(isLight);
   const [search, setSearch] = useState('');
   const [filtroTab, setFiltroTab] = useState('todas'); // todas | naolidas | minhas
   const [selectedChat, setSelectedChat] = useState(null);
@@ -683,26 +686,31 @@ export default function ChatHubDrawer({ onClose, user }) {
   // ── Render ────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative w-full h-full bg-slate-950 flex shadow-2xl">
+      <div className={`absolute inset-0 ${t.bgModalOverlay}`} onClick={onClose} />
+      <div className={`relative w-full h-full ${t.bg} flex shadow-2xl`}>
 
         {/* ── Painel Esquerdo: Lista de Conversas ── */}
-        <div className="w-80 lg:w-96 shrink-0 border-r border-slate-800 flex flex-col bg-slate-900/80">
+        <div className={`w-80 lg:w-96 shrink-0 border-r ${t.border} flex flex-col ${t.bgPanelAlpha}`}>
           {/* Header */}
-          <div className="p-4 border-b border-slate-800 shrink-0">
+          <div className={`p-4 border-b ${t.border} shrink-0`}>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-white">Mensagens</h2>
-              <button onClick={onClose} className="p-1 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
+              <h2 className={`text-base font-bold ${t.textName}`}>Mensagens</h2>
+              <div className="flex items-center gap-1">
+                <button onClick={toggleTheme} className={`p-1 ${t.textSecondary} ${t.textPrimary} ${t.bgHoverBtn} rounded-lg`} title={isLight ? 'Modo escuro' : 'Modo claro'}>
+                  {isLight ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                </button>
+                <button onClick={onClose} className={`p-1 ${t.textSecondary} ${t.textPrimary} ${t.bgCloseBtnHover} rounded-lg`}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
             <div className="relative mb-3">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${t.textTertiary}`} />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar conversa..."
-                className="bg-slate-800 border-slate-700 text-slate-100 pl-9 placeholder:text-slate-500 rounded-xl text-sm h-9"
+                className={`${t.bgInput} ${t.inputBorder} ${t.textInput} pl-9 ${t.textPlaceholder} rounded-xl text-sm h-9`}
               />
             </div>
             <div className="flex items-center gap-1.5">
@@ -712,8 +720,8 @@ export default function ChatHubDrawer({ onClose, user }) {
                   onClick={() => setFiltroTab(tab)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     filtroTab === tab
-                      ? 'bg-emerald-600 text-white'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      ? t.tabActive
+                      : t.tabInactive
                   }`}
                 >
                   {tab === 'todas' ? 'Todas' : tab === 'naolidas' ? 'Não lidas' : tab === 'minhas' ? 'Minhas' : <Bell className="w-3.5 h-3.5" />}
@@ -723,7 +731,7 @@ export default function ChatHubDrawer({ onClose, user }) {
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800"
+                className={`h-8 w-8 ${t.textSecondary} ${t.textPrimary} ${t.bgHoverGhost}`}
                 onClick={() => setShowNovaConversa(true)}
               >
                 <Plus className="w-4 h-4" />
@@ -747,8 +755,8 @@ export default function ChatHubDrawer({ onClose, user }) {
                   <button
                     key={c.id}
                     onClick={() => setSelectedChat(c)}
-                    className={`w-full text-left px-4 py-3 border-b border-slate-800/50 hover:bg-slate-800/50 transition-colors ${
-                      isSelected ? 'bg-slate-800' : ''
+                    className={`w-full text-left px-4 py-3 border-b ${t.borderSubtle} ${t.bgCardHover} transition-colors ${
+                      isSelected ? t.bgCardSelected : ''
                     } ${
                       (() => {
                         const alerta = alertasPorConversa[c.id];
@@ -763,7 +771,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                   >
                     {/* Linha 1: Nome + Horário */}
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className="text-sm font-medium text-white truncate flex items-center gap-1.5">
+                      <p className={`text-sm font-medium ${t.textName} truncate flex items-center gap-1.5`}>
                         {c.name}
                         {(() => {
                           const alerta = alertasPorConversa[c.id];
@@ -779,7 +787,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       </p>
                       <span
                         className={`shrink-0 text-[11px] font-medium whitespace-nowrap leading-none ml-auto ${
-                          c.unreadCount > 0 ? 'text-emerald-400' : 'text-slate-500'
+                          c.unreadCount > 0 ? t.iconGreen : t.textTertiary
                         }`}
                         title={horarioCompletoLateral || ''}
                       >
