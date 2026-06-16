@@ -36,6 +36,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const [gravando, setGravando] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
+  const [imagemColada, setImagemColada] = useState(null); // { file, previewUrl }
   const stickerInputRef = useRef(null);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -64,7 +65,41 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   // Enviar texto
   const handleSend = async () => {
     const texto = mensagem.trim();
-    if (!texto || enviando) return;
+    if (enviando) return;
+
+    // Se tem imagem colada, envia a imagem (com texto opcional como legenda)
+    if (imagemColada) {
+      setEnviando(true);
+      try {
+        const uploadRes = await base44.integrations.Core.UploadFile({ file: imagemColada.file });
+        const res = await base44.functions.invoke('enviarMensagemGeral', {
+          chatId,
+          tipo: 'imagem',
+          mensagem: texto || '',
+          midiaUrl: uploadRes.file_url,
+          fileName: imagemColada.file.name || 'imagem.png',
+          incluirAssinatura: false,
+          clienteId: clienteId || '',
+          clienteNome: clienteNome || '',
+          chatName: chatName || '',
+        });
+        if (res.data?.success) {
+          setMensagem('');
+          setImagemColada(null);
+          queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+          queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+        } else {
+          toast.error(res.data?.erro || 'Erro ao enviar imagem');
+        }
+      } catch (e) {
+        toast.error('Erro ao enviar imagem: ' + (e.message || 'Desconhecido'));
+      } finally {
+        setEnviando(false);
+      }
+      return;
+    }
+
+    if (!texto) return;
     setEnviando(true);
     try {
       const res = await base44.functions.invoke('enviarMensagemGeral', {
@@ -196,8 +231,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     }
   };
 
-  // Colar imagem do clipboard
-  const handlePaste = async (e) => {
+  // Colar imagem do clipboard — armazena preview, envia só ao clicar enviar
+  const handlePaste = (e) => {
     const items = e.clipboardData?.items;
     if (!items) return;
     for (const item of items) {
@@ -205,30 +240,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         e.preventDefault();
         const file = item.getAsFile();
         if (!file) continue;
-        setEnviando(true);
-        try {
-          const uploadRes = await base44.integrations.Core.UploadFile({ file });
-          const res = await base44.functions.invoke('enviarMensagemGeral', {
-            chatId,
-            tipo: 'imagem',
-            midiaUrl: uploadRes.file_url,
-            fileName: file.name || 'imagem.png',
-            incluirAssinatura: false,
-            clienteId: clienteId || '',
-            clienteNome: clienteNome || '',
-            chatName: chatName || '',
-          });
-          if (res.data?.success) {
-            queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
-            queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-          } else {
-            toast.error(res.data?.erro || 'Erro ao enviar imagem');
-          }
-        } catch (err) {
-          toast.error('Erro ao enviar imagem colada');
-        } finally {
-          setEnviando(false);
-        }
+        const previewUrl = URL.createObjectURL(file);
+        setImagemColada({ file, previewUrl });
         break;
       }
     }
@@ -586,6 +599,17 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               <span className="text-red-400 text-xs font-medium">Gravando áudio...</span>
             </div>
           )}
+          {imagemColada && (
+            <div className="mb-2 relative inline-block">
+              <img src={imagemColada.previewUrl} alt="Preview" className="max-h-32 rounded-lg border border-slate-700" />
+              <button
+                onClick={() => { URL.revokeObjectURL(imagemColada.previewUrl); setImagemColada(null); }}
+                className="absolute -top-2 -right-2 w-5 h-5 bg-slate-700 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
           <div className="flex items-end gap-2">
             <input
               type="file"
@@ -714,7 +738,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               size="icon"
               className="h-9 w-9 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shrink-0"
               onClick={handleSend}
-              disabled={!mensagem.trim() || enviando}
+              disabled={(!mensagem.trim() && !imagemColada) || enviando}
             >
               {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </Button>
