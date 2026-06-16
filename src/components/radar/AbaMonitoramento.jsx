@@ -3,11 +3,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell, MoonStar, MessageCircle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell, MoonStar, MessageCircle, Send } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import GrupoDetalheDrawer from './GrupoDetalheDrawer';
 import ChatDrawer from './ChatDrawer';
+import ModalEnvioMassa from './ModalEnvioMassa';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -52,6 +54,24 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
   const [filtroPeriodo, setFiltroPeriodo] = useState('7d');
   const [grupoSelecionado, setGrupoSelecionado] = useState(null);
   const [chatAberto, setChatAberto] = useState(null);
+  const [gruposSelecionados, setGruposSelecionados] = useState(new Set());
+  const [modalEnvioMassa, setModalEnvioMassa] = useState(false);
+
+  const toggleGrupoSelecionado = (id) => {
+    setGruposSelecionados(prev => {
+      const novo = new Set(prev);
+      if (novo.has(id)) novo.delete(id); else novo.add(id);
+      return novo;
+    });
+  };
+
+  const toggleTodos = () => {
+    if (gruposSelecionados.size === filtrados.length) {
+      setGruposSelecionados(new Set());
+    } else {
+      setGruposSelecionados(new Set(filtrados.map(g => g.id)));
+    }
+  };
 
   const periodoCorte = useMemo(() => {
     const m = { '1d': 1, '7d': 7, '30d': 30 };
@@ -144,6 +164,13 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
           <table className="w-full text-xs">
             <thead className="border-b border-slate-800">
               <tr>
+                <th className="px-3 py-3 w-10">
+                  <Checkbox
+                    checked={filtrados.length > 0 && gruposSelecionados.size === filtrados.length}
+                    onCheckedChange={toggleTodos}
+                    className="border-slate-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 text-slate-500 font-medium">Cliente / Grupo</th>
                 <th className="text-left px-3 py-3 text-slate-500 font-medium">Vínculo</th>
                 <th className="text-left px-3 py-3 text-slate-500 font-medium">Msgs hoje</th>
@@ -157,9 +184,9 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-500">Carregando...</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500">Carregando...</td></tr>
               ) : filtrados.length === 0 ? (
-                <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-500">Nenhum grupo encontrado.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500">Nenhum grupo encontrado.</td></tr>
               ) : (
                 filtrados.map(g => {
                   const alerta = g.alertaNivel ? ALERT_CONFIG[g.alertaNivel] : null;
@@ -176,6 +203,13 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
                         g.inativo72h                    ? 'bg-purple-950/10' : ''
                       }`}
                     >
+                      <td className="px-3 py-3">
+                        <Checkbox
+                          checked={gruposSelecionados.has(g.id)}
+                          onCheckedChange={() => toggleGrupoSelecionado(g.id)}
+                          className="border-slate-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-white text-sm">{g.cliente_nome || <span className="text-slate-500 italic">Sem cliente</span>}</div>
                         <div className="text-slate-500 text-[11px] mt-0.5">{g.nome_grupo}</div>
@@ -231,6 +265,43 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
           </table>
         </div>
       </div>
+
+      {/* Barra de ação — envio em massa */}
+      {gruposSelecionados.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4">
+          <span className="text-sm text-slate-300">
+            <span className="font-semibold text-white">{gruposSelecionados.size}</span> grupo(s) selecionado(s)
+          </span>
+          <Button
+            size="sm"
+            onClick={() => setModalEnvioMassa(true)}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white gap-2"
+          >
+            <Send className="w-3.5 h-3.5" />
+            Enviar em Massa
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setGruposSelecionados(new Set())}
+            className="text-slate-400 hover:text-white"
+          >
+            Limpar
+          </Button>
+        </div>
+      )}
+
+      {/* Modal de envio em massa */}
+      {modalEnvioMassa && (
+        <ModalEnvioMassa
+          gruposSelecionados={gruposSelecionados}
+          gruposEnriquecidos={gruposEnriquecidos}
+          onClose={() => {
+            setModalEnvioMassa(false);
+            setGruposSelecionados(new Set());
+          }}
+        />
+      )}
 
       {/* Drawer de detalhe */}
       {grupoSelecionado && (
