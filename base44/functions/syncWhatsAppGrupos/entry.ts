@@ -66,19 +66,35 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, synced: 0, message: 'Nenhum grupo encontrado' });
     }
 
-    // 3. Load existing groups from DB
+    // 3. Load existing groups from DB (normalizando IDs para evitar duplicatas)
     const existentes = await base44.asServiceRole.entities.WhatsappGrupo.list('-created_date', 500);
     const existentesMap = {};
+    const existentesPorIdNormalizado = {};
     for (const g of existentes) {
       existentesMap[g.grupo_id] = g;
+      // Também indexa por ID normalizado para fallback
+      if (g.grupo_id) {
+        const normalizado = normalizarGrupoId(g.grupo_id);
+        if (normalizado && normalizado !== g.grupo_id) {
+          existentesPorIdNormalizado[normalizado] = g;
+        }
+      }
     }
 
     let criados = 0;
     let atualizados = 0;
 
+    // Normaliza ID do grupo (mantém consistência com webhookZapiReceber)
+    function normalizarGrupoId(id) {
+      if (!id) return id;
+      const numeric = id.replace(/@g\.us$/, '').replace(/-group$/, '').split('-')[0];
+      return `${numeric}-group`;
+    }
+
     for (const grupo of grupos) {
-      const grupoId = grupo.id || grupo.phone;
-      if (!grupoId) continue;
+      const grupoIdRaw = grupo.id || grupo.phone;
+      if (!grupoIdRaw) continue;
+      const grupoId = normalizarGrupoId(grupoIdRaw);
 
       const nomeGrupo = grupo.name || grupo.subject || grupo.id || grupoId;
       const ultimaAtividade = grupo.timestamp 
@@ -86,9 +102,10 @@ Deno.serve(async (req) => {
         : new Date().toISOString();
       const ultimaMensagem = grupo.lastMessage?.text || grupo.lastMessageText || '';
 
-      if (existentesMap[grupoId]) {
+      const grupoExistente = existentesMap[grupoId] || existentesMap[grupoIdRaw] || existentesPorIdNormalizado[grupoId];
+      if (grupoExistente) {
         // Update existing
-        await base44.asServiceRole.entities.WhatsappGrupo.update(existentesMap[grupoId].id, {
+        await base44.asServiceRole.entities.WhatsappGrupo.update(grupoExistente.id, {
           nome_grupo: nomeGrupo,
           ultima_atividade: ultimaAtividade,
           ultima_mensagem: ultimaMensagem
