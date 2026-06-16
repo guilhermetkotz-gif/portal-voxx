@@ -582,9 +582,25 @@ export default function ChatHubDrawer({ onClose, user }) {
   const handleDeleteMessage = async (m) => {
     if (!selectedChat) return;
     const modo = await new Promise((resolve) => {
-      const confirmed = window.confirm('Excluir mensagem?\n\nOK = Excluir para todos\nCancelar = Apenas para mim');
-      resolve(confirmed ? 'todos' : 'para_mim');
+      const div = document.createElement('div');
+      div.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.7)';
+      div.innerHTML = `
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:16px;padding:24px;max-width:360px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5)">
+          <p style="color:#f1f5f9;font-size:15px;font-weight:600;margin:0 0 8px">Excluir mensagem?</p>
+          <p style="color:#94a3b8;font-size:13px;margin:0 0 20px">Escolha como deseja excluir:</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button id="del-todos" style="width:100%;padding:12px;border-radius:10px;border:none;background:#dc2626;color:white;font-size:13px;font-weight:600;cursor:pointer">🗑️ Excluir para todos</button>
+            <button id="del-mim" style="width:100%;padding:10px;border-radius:10px;border:1px solid #475569;background:transparent;color:#94a3b8;font-size:12px;cursor:pointer">🙈 Ocultar só para mim</button>
+            <button id="del-cancel" style="width:100%;padding:10px;border-radius:10px;border:none;background:transparent;color:#64748b;font-size:12px;cursor:pointer;margin-top:4px">Cancelar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(div);
+      div.querySelector('#del-todos').onclick = () => { div.remove(); resolve('todos'); };
+      div.querySelector('#del-mim').onclick = () => { div.remove(); resolve('para_mim'); };
+      div.querySelector('#del-cancel').onclick = () => { div.remove(); resolve('cancelar'); };
+      div.onclick = (e) => { if (e.target === div) { div.remove(); resolve('cancelar'); } };
     });
+    if (modo === 'cancelar') return;
 
     try {
       const res = await base44.functions.invoke('deletarMensagemWhatsApp', {

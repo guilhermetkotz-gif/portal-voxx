@@ -41,22 +41,25 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Z-API não configurada' }, { status: 503 });
       }
 
-      const resp = await fetch(
-        `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/delete-message`,
-        {
-          method: 'POST',
-          headers: {
-            'Client-Token': zapiClientToken,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ phone: chatId, messageId }),
-        }
-      );
+      // Usar o novo endpoint da Z-API: DELETE /messages?messageId=...&phone=...&owner=...
+      const owner = msgRecord.from_me === true ? 'true' : 'false';
+      const url = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/messages?messageId=${encodeURIComponent(messageId)}&phone=${encodeURIComponent(chatId)}&owner=${owner}`;
+      
+      const resp = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Client-Token': zapiClientToken,
+        },
+      });
 
+      const respBody = await resp.text().catch(() => '');
+      
       if (!resp.ok) {
-        const erro = await resp.text().catch(() => '');
-        return Response.json({ error: `Z-API HTTP ${resp.status}: ${erro}` }, { status: 502 });
+        console.error('[deletarMensagem] Z-API erro HTTP', resp.status, respBody);
+        return Response.json({ error: `Z-API HTTP ${resp.status}: ${respBody}` }, { status: 502 });
       }
+
+      console.log('[deletarMensagem] Z-API delete OK:', messageId, 'phone:', chatId, 'owner:', owner);
     }
 
     // Marcar como deletado no banco
