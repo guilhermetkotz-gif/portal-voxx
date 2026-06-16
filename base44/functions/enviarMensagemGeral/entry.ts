@@ -53,6 +53,32 @@ Deno.serve(async (req) => {
       mensagemWhatsApp = mensagemFinal.trim() + `\n\n— ${nomeRemetente} | Voxx`;
     }
 
+    const agora = new Date().toISOString();
+    const tipoMsgMap = { texto: 'texto', imagem: 'imagem', video: 'video', audio: 'audio', documento: 'documento' };
+
+    // ═══ Salvar mensagem IMEDIATAMENTE (antes do Z-API) ═══
+    // Assim o frontend mostra a mensagem na hora, sem esperar o delay do Z-API
+    const msgRecord = await base44.asServiceRole.entities.WhatsappMensagem.create({
+      message_id: null, // será atualizado após Z-API
+      cliente_id: clienteId || null,
+      cliente_nome: clienteNome || null,
+      grupo_id: chatId,
+      grupo_nome: chatName || null,
+      is_group: String(chatId).includes('-group') || String(chatId).includes('@g.us'),
+      remetente_nome: nomeRemetente,
+      remetente_telefone: telefoneRemetente,
+      remetente_tipo: 'voxx',
+      origem: 'enviada',
+      mensagem: mensagemFinal || '[Mídia]',
+      tipo_mensagem: tipoMsgMap[tipo] || 'texto',
+      midia_url: midiaUrl || null,
+      midia_nome: fileName || null,
+      received_at: agora,
+      from_me: true,
+      status_processamento: 'ok',
+    }).catch(() => null);
+
+    // ═══ Enviar via Z-API ═══
     let resultadoApi = null;
     let statusEnvio = 'enviado';
     let erroEnvio = null;
@@ -127,8 +153,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: `Tipo "${tipo}" não suportado ou midiaUrl ausente` }, { status: 400 });
     }
 
-    const agora = new Date().toISOString();
-
+    // ═══ Registrar log e atualizar mensagem com ID do Z-API ═══
     await base44.asServiceRole.entities.WhatsappEnvioLog.create({
       cliente_id: clienteId || '',
       cliente_nome: clienteNome || '',
@@ -146,28 +171,14 @@ Deno.serve(async (req) => {
       remetente_nome: nomeRemetente,
     });
 
-    // Salvar no WhatsappMensagem para aparecer no chat imediatamente
-    if (statusEnvio === 'enviado') {
-      const tipoMsgMap = { texto: 'texto', imagem: 'imagem', video: 'video', audio: 'audio', documento: 'documento' };
-      await base44.asServiceRole.entities.WhatsappMensagem.create({
-        message_id: resultadoApi?.messageId || resultadoApi?.id || null,
-        cliente_id: clienteId || null,
-        cliente_nome: clienteNome || null,
-        grupo_id: chatId,
-        grupo_nome: chatName || null,
-        is_group: String(chatId).includes('-group') || String(chatId).includes('@g.us'),
-        remetente_nome: nomeRemetente,
-        remetente_telefone: telefoneRemetente,
-        remetente_tipo: 'voxx',
-        origem: 'enviada',
-        mensagem: mensagemFinal || '[Mídia]',
-        tipo_mensagem: tipoMsgMap[tipo] || 'texto',
-        midia_url: midiaUrl || null,
-        midia_nome: fileName || null,
-        received_at: agora,
-        from_me: true,
-        status_processamento: 'ok',
-      }).catch(() => null); // não quebrar se falhar
+    // Atualizar mensagem com o messageId real do Z-API
+    if (msgRecord?.id && resultadoApi) {
+      const zapiId = resultadoApi?.messageId || resultadoApi?.id || null;
+      if (zapiId) {
+        await base44.asServiceRole.entities.WhatsappMensagem.update(msgRecord.id, {
+          message_id: zapiId,
+        }).catch(() => null);
+      }
     }
 
     return Response.json({

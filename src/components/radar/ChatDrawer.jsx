@@ -73,22 +73,26 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     // Se tem imagem colada, envia a imagem (com texto opcional como legenda)
     if (imagemColada) {
       setEnviando(true);
+      // Limpa preview imediatamente
+      const imgFile = imagemColada.file;
+      const imgPreview = imagemColada.previewUrl;
+      setMensagem('');
+      setImagemColada(null);
       try {
-        const uploadRes = await base44.integrations.Core.UploadFile({ file: imagemColada.file });
+        const uploadRes = await base44.integrations.Core.UploadFile({ file: imgFile });
+        // Invalida antes da resposta — backend salva msg antes de chamar Z-API
         const res = await base44.functions.invoke('enviarMensagemGeral', {
           chatId,
           tipo: 'imagem',
           mensagem: texto || '',
           midiaUrl: uploadRes.file_url,
-          fileName: imagemColada.file.name || 'imagem.png',
+          fileName: imgFile.name || 'imagem.png',
           incluirAssinatura: false,
           clienteId: clienteId || '',
           clienteNome: clienteNome || '',
           chatName: chatName || '',
         });
         if (res.data?.success) {
-          setMensagem('');
-          setImagemColada(null);
           queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
           queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
         } else {
@@ -104,6 +108,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
 
     if (!texto) return;
     setEnviando(true);
+    // Limpa input e invalida queries IMEDIATAMENTE — backend salva a msg antes de chamar Z-API
+    setMensagem('');
+    queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+    queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
     try {
       const res = await base44.functions.invoke('enviarMensagemGeral', {
         chatId,
@@ -114,12 +122,9 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         clienteNome: clienteNome || '',
         chatName: chatName || '',
       });
-      if (res.data?.success) {
-        setMensagem('');
-        queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
-        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-      } else {
+      if (!res.data?.success) {
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
+        queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
       }
     } catch (e) {
       toast.error('Erro ao enviar: ' + (e.message || 'Desconhecido'));
@@ -143,6 +148,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       if (file.type.startsWith('image/')) tipo = 'imagem';
       else if (file.type.startsWith('video/')) tipo = 'video';
 
+      // Invalida antes da resposta — backend salva msg antes de chamar Z-API
+      queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+      queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+
       const res = await base44.functions.invoke('enviarMensagemGeral', {
         chatId,
         mensagem: '',
@@ -155,11 +164,9 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         chatName: chatName || '',
       });
 
-      if (res.data?.success) {
-        queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
-        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-      } else {
+      if (!res.data?.success) {
         toast.error(res.data?.erro || 'Erro ao enviar arquivo');
+        queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
       }
     } catch (e) {
       toast.error('Erro ao enviar arquivo: ' + (e.message || 'Desconhecido'));
@@ -190,6 +197,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         setEnviando(true);
         try {
           const uploadRes = await base44.integrations.Core.UploadFile({ file: blob });
+          // Invalida antes da resposta — backend salva msg antes de chamar Z-API
+          queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+          queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+
           const res = await base44.functions.invoke('enviarMensagemGeral', {
             chatId,
             tipo: 'audio',
@@ -201,11 +212,9 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             chatName: chatName || '',
           });
 
-          if (res.data?.success) {
-            queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
-            queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-          } else {
+          if (!res.data?.success) {
             toast.error(res.data?.erro || 'Erro ao enviar áudio');
+            queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
           }
         } catch (e) {
           toast.error('Erro ao enviar áudio: ' + (e.message || 'Desconhecido'));

@@ -378,22 +378,25 @@ export default function ChatHubDrawer({ onClose, user }) {
     // Se tem imagem colada, envia a imagem (com texto opcional como legenda)
     if (imagemColada) {
       setEnviando(true);
+      // Limpa preview imediatamente
+      const imgFile = imagemColada.file;
+      const imgPreview = imagemColada.previewUrl;
+      setMensagem('');
+      setImagemColada(null);
       try {
-        const uploadRes = await base44.integrations.Core.UploadFile({ file: imagemColada.file });
+        const uploadRes = await base44.integrations.Core.UploadFile({ file: imgFile });
         const res = await base44.functions.invoke('enviarMensagemGeral', {
           chatId: selectedChat.id,
           tipo: 'imagem',
           mensagem: texto || '',
           midiaUrl: uploadRes.file_url,
-          fileName: imagemColada.file.name || 'imagem.png',
+          fileName: imgFile.name || 'imagem.png',
           incluirAssinatura: false,
           clienteId: selectedChat.clienteId || '',
           clienteNome: selectedChat.clienteNome || '',
           chatName: selectedChat.name || '',
         });
         if (res.data?.success) {
-          setMensagem('');
-          setImagemColada(null);
           queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
           queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
           queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
@@ -410,6 +413,11 @@ export default function ChatHubDrawer({ onClose, user }) {
 
     if (!texto) return;
     setEnviando(true);
+    // Limpa input e invalida queries IMEDIATAMENTE — backend salva a msg antes de chamar Z-API
+    setMensagem('');
+    queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+    queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+    queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
     try {
       const res = await base44.functions.invoke('enviarMensagemGeral', {
         chatId: selectedChat.id,
@@ -420,13 +428,9 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteNome: selectedChat.clienteNome || '',
         chatName: selectedChat.name || '',
       });
-      if (res.data?.success) {
-        setMensagem('');
-        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
-        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
-      } else {
+      if (!res.data?.success) {
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
+        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
       }
     } catch (e) {
       toast.error('Erro ao enviar: ' + (e.message || 'Desconhecido'));
@@ -446,6 +450,11 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (file.type.startsWith('image/')) tipo = 'imagem';
       else if (file.type.startsWith('video/')) tipo = 'video';
 
+      // Invalida antes da resposta — backend salva msg antes de chamar Z-API
+      queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+      queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+      queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
+
       const res = await base44.functions.invoke('enviarMensagemGeral', {
         chatId: selectedChat.id,
         tipo,
@@ -456,12 +465,9 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteNome: selectedChat.clienteNome || '',
         chatName: selectedChat.name || '',
       });
-      if (res.data?.success) {
-        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
-        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
-      } else {
+      if (!res.data?.success) {
         toast.error(res.data?.erro || 'Erro ao enviar arquivo');
+        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
       }
     } catch (e) {
       toast.error('Erro ao enviar arquivo');
@@ -485,6 +491,11 @@ export default function ChatHubDrawer({ onClose, user }) {
         setEnviando(true);
         try {
           const uploadRes = await base44.integrations.Core.UploadFile({ file: blob });
+          // Invalida antes da resposta — backend salva msg antes de chamar Z-API
+          queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+          queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+          queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
+
           const res = await base44.functions.invoke('enviarMensagemGeral', {
             chatId: selectedChat.id,
             tipo: 'audio',
@@ -495,10 +506,9 @@ export default function ChatHubDrawer({ onClose, user }) {
             clienteNome: selectedChat.clienteNome || '',
             chatName: selectedChat.name || '',
           });
-          if (res.data?.success) {
+          if (!res.data?.success) {
+            toast.error(res.data?.erro || 'Erro ao enviar áudio');
             queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
-            queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-            queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
           }
         } catch (e) {
           toast.error('Erro ao enviar áudio');
