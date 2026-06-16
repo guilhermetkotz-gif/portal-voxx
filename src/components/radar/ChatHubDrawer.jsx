@@ -828,29 +828,29 @@ export default function ChatHubDrawer({ onClose, user }) {
         </div>
 
         {/* ── Painel Direito: Chat ── */}
-        <div className="flex-1 flex flex-col bg-slate-950">
+        <div className={`flex-1 flex flex-col ${t.bg}`}>
           {!selectedChat ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                  <MessageCircle className="w-8 h-8 text-slate-600" />
+                <div className={`w-16 h-16 rounded-full ${t.bgIconCircle} flex items-center justify-center mx-auto mb-4`}>
+                  <MessageCircle className={`w-8 h-8 ${t.textTertiary}`} />
                 </div>
-                <p className="text-slate-500 text-sm">Selecione uma conversa para começar</p>
+                <p className={`${t.textTertiary} text-sm`}>Selecione uma conversa para começar</p>
               </div>
             </div>
           ) : (
             <>
               {/* Header do Chat */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-slate-800 shrink-0">
+              <div className={`flex items-center justify-between px-5 py-3 border-b ${t.border} shrink-0`}>
                 <div className="flex items-center gap-3">
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
-                    selectedChat.isGroup ? 'bg-emerald-500/20 text-emerald-400' : 'bg-blue-500/20 text-blue-400'
+                    selectedChat.isGroup ? `${t.iconGreenBg} ${t.iconGreen}` : `${t.iconBlueBg} ${t.iconBlue}`
                   }`}>
                     {selectedChat.isGroup ? <Users className="w-4 h-4" /> : <User className="w-4 h-4" />}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">{selectedChat.name}</h3>
-                    <p className="text-[11px] text-slate-400">
+                    <h3 className={`text-sm font-bold ${t.textName}`}>{selectedChat.name}</h3>
+                    <p className={`text-[11px] ${t.textSecondary}`}>
                       {selectedChat.isGroup ? 'Grupo' : 'Contato direto'}
                       {selectedChat.clienteNome ? ` · ${selectedChat.clienteNome}` : ''}
                     </p>
@@ -867,9 +867,9 @@ export default function ChatHubDrawer({ onClose, user }) {
               {/* Mensagens */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
                   {loadingMsgs ? (
-                    <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-slate-500" /></div>
+                    <div className="flex justify-center py-12"><Loader2 className={`w-5 h-5 animate-spin ${t.textTertiary}`} /></div>
                   ) : msgsChat.length === 0 ? (
-                    <p className="text-center text-slate-500 text-sm py-12">Nenhuma mensagem ainda.</p>
+                    <p className={`text-center ${t.textTertiary} text-sm py-12`}>Nenhuma mensagem ainda.</p>
                   ) : (
                     [...msgsChat].reverse().map((m) => {
                       const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada' || m.from_me;
@@ -956,16 +956,18 @@ export default function ChatHubDrawer({ onClose, user }) {
                       return (
                         <div key={m.id} className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                            isVoxx ? 'bg-emerald-600 text-white rounded-br-md' : 'bg-slate-800 text-slate-200 rounded-bl-md border border-slate-700'
+                            isVoxx
+                              ? `${t.bgBubbleOut} ${t.textBubbleOut} rounded-br-md`
+                              : `${t.bgBubbleIn} ${t.textBubbleIn} rounded-bl-md border ${t.borderLight}`
                           }`}>
                             {m.citacao_texto && (
                               <div className={`mb-2 pl-3 py-1.5 rounded border-l-[3px] text-[11px] leading-tight ${
                                 isVoxx
-                                  ? 'border-emerald-300/40 bg-emerald-700/40 text-emerald-100'
-                                  : 'border-blue-500/40 bg-slate-700/50 text-slate-300'
+                                  ? `${t.borderQuoteOut} ${t.bgQuoteOut} ${t.textQuoteOut}`
+                                  : `${t.borderQuoteIn} ${t.bgQuoteIn} ${t.textQuoteIn}`
                               }`}>
                                 {m.citacao_remetente && (
-                                  <p className={`font-semibold mb-0.5 ${isVoxx ? 'text-emerald-200' : 'text-blue-400'}`}>
+                                  <p className={`font-semibold mb-0.5 ${isVoxx ? t.textQuoteNameOut : t.textQuoteNameIn}`}>
                                     {m.citacao_remetente}
                                   </p>
                                 )}
@@ -994,10 +996,10 @@ export default function ChatHubDrawer({ onClose, user }) {
                               </div>
                             )}
                             {!isVoxx && m.remetente_nome && (
-                              <p className="text-[11px] font-medium text-blue-400 mb-1">{m.remetente_nome}</p>
+                              <p className={`text-[11px] font-medium ${t.textNameIn} mb-1`}>{m.remetente_nome}</p>
                             )}
                             {isVoxx && m.remetente_nome && (
-                              <p className="text-[11px] font-medium text-emerald-300 mb-1">{m.remetente_nome}</p>
+                              <p className={`text-[11px] font-medium ${t.textNameOut} mb-1`}>{m.remetente_nome}</p>
                             )}
                             {renderContent()}
                             {(m.tipo_mensagem === 'imagem' || m.tipo_mensagem === 'video') && m.mensagem && m.mensagem !== '[Imagem]' && m.mensagem !== '[Vídeo]' && (
@@ -1016,7 +1018,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                                   return Object.values(grupos).map((g, i) => (
                                     <span
                                       key={i}
-                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-slate-700/60 text-[11px] leading-none"
+                                      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${t.bgReaction} text-[11px] leading-none`}
                                       title={g.remetentes.join(', ')}
                                     >
                                       <span className="text-xs">{g.emoji}</span>
@@ -1040,7 +1042,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                                 <PopoverTrigger asChild>
                                   <button
                                     className={`p-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity ${
-                                      isVoxx ? 'hover:bg-emerald-500/30' : 'hover:bg-slate-600'
+                                      isVoxx ? 'hover:bg-emerald-500/30' : t.popoverHover
                                     }`}
                                     onClick={(e) => e.stopPropagation()}
                                   >
@@ -1050,14 +1052,14 @@ export default function ChatHubDrawer({ onClose, user }) {
                                 <PopoverContent
                                   side={isVoxx ? 'left' : 'right'}
                                   align="end"
-                                  className="w-auto p-1.5 border border-slate-700 bg-slate-800 shadow-xl"
+                                  className={`w-auto p-1.5 border ${t.popoverBorder} ${t.popoverBg} shadow-xl`}
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <div className="flex gap-0.5">
                                     {REACTIONS.map((emoji) => (
                                       <button
                                         key={emoji}
-                                        className="w-8 h-8 flex items-center justify-center rounded-full text-lg hover:bg-slate-700 transition-colors"
+                                        className={`w-8 h-8 flex items-center justify-center rounded-full text-lg ${t.popoverHover} transition-colors`}
                                         onClick={() => handleReaction(m.message_id || m.id, emoji)}
                                       >
                                         {emoji}
@@ -1066,7 +1068,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                                   </div>
                                 </PopoverContent>
                               </Popover>
-                              <p className={`text-[10px] ${isVoxx ? 'text-emerald-200' : 'text-slate-500'}`}>
+                              <p className={`text-[10px] ${isVoxx ? t.textTimestamp : t.textTimestampIn}`}>
                                 {formatarDataHora(ts)}
                               </p>
                             </div>
@@ -1077,96 +1079,123 @@ export default function ChatHubDrawer({ onClose, user }) {
                   )}
               </div>
 
-              {/* Input */}
-              <div className="px-4 py-3 border-t border-slate-800 bg-slate-900/80 shrink-0">
+              {/* Input WhatsApp-style */}
+              <div className={`px-3 py-2 ${t.bgBarraInput} shrink-0`}>
                 {gravando && (
-                  <div className="flex items-center justify-center gap-2 py-2 mb-2 bg-red-500/10 rounded-lg border border-red-500/20">
+                  <div className={`flex items-center justify-center gap-2 py-2 mb-2 ${t.bgRecording} rounded-lg border ${t.borderRecording}`}>
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-red-400 text-xs font-medium">Gravando áudio...</span>
+                    <span className="text-red-500 text-xs font-medium">Gravando áudio...</span>
                   </div>
                 )}
                 {imagemColada && (
                   <div className="mb-2 relative inline-block">
-                    <img src={imagemColada.previewUrl} alt="Preview" className="max-h-32 rounded-lg border border-slate-700" />
+                    <img src={imagemColada.previewUrl} alt="Preview" className={`max-h-32 rounded-lg border ${t.borderLight}`} />
                     <button
                       onClick={() => { URL.revokeObjectURL(imagemColada.previewUrl); setImagemColada(null); }}
-                      className="absolute -top-2 -right-2 w-5 h-5 bg-slate-700 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs"
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow"
                     >
                       <X className="w-3 h-3" />
                     </button>
                   </div>
                 )}
-                <div className="flex items-end gap-2">
-                  <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" />
-                  
-                  {/* Sticker */}
-                  <Popover open={stickerOpen} onOpenChange={setStickerOpen}>
+                <div className="flex items-center gap-2">
+                  {/* Anexo + menu */}
+                  <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0" disabled={enviando}>
-                        <Sticker className="w-4 h-4" />
-                      </Button>
+                      <button
+                        className={`w-10 h-10 flex items-center justify-center rounded-full ${t.inputIconColor} hover:bg-black/5 transition-colors shrink-0`}
+                        disabled={enviando}
+                      >
+                        <Paperclip className="w-5 h-5" />
+                      </button>
                     </PopoverTrigger>
-                    <PopoverContent side="top" align="start" className="w-72 p-3 border border-slate-700 bg-slate-800 shadow-xl">
-                      <p className="text-[11px] text-slate-400 mb-2">Enviar sticker</p>
-                      <div className="grid grid-cols-6 gap-1.5 mb-3">
-                        {STICKER_PRESETS.map((s) => (
-                          <button
-                            key={s.emoji}
-                            className="w-9 h-9 flex items-center justify-center rounded-lg text-xl hover:bg-slate-700 transition-colors cursor-pointer"
-                            onClick={() => handleSendSticker(s.url)}
-                            disabled={enviando}
-                            title={s.emoji}
-                          >
-                            <img src={s.url} alt={s.emoji} className="w-7 h-7 object-contain" />
-                          </button>
-                        ))}
+                    <PopoverContent side="top" align="start" className={`w-56 p-2 border ${t.popoverBorder} ${t.popoverBg} shadow-xl rounded-xl`}>
+                      <div className="space-y-0.5">
+                        <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${t.textName} hover:bg-black/5 transition-colors`} onClick={() => { fileInputRef.current?.click(); }}>
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Image className="w-4 h-4 text-blue-500" /></div>
+                          Fotos e vídeos
+                        </button>
+                        <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${t.textName} hover:bg-black/5 transition-colors`} onClick={() => { fileInputRef.current?.click(); }}>
+                          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center"><FileText className="w-4 h-4 text-orange-500" /></div>
+                          Documento
+                        </button>
+                        <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${t.textName} hover:bg-black/5 transition-colors`} onClick={startRecording} disabled={enviando || gravando}>
+                          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Mic className="w-4 h-4 text-red-500" /></div>
+                          Áudio
+                        </button>
+                        <Popover open={stickerOpen} onOpenChange={setStickerOpen}>
+                          <PopoverTrigger asChild>
+                            <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${t.textName} hover:bg-black/5 transition-colors`}>
+                              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center"><Sticker className="w-4 h-4 text-purple-500" /></div>
+                              Figurinha
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent side="right" align="start" className={`w-72 p-3 border ${t.popoverBorder} ${t.popoverBg} shadow-xl`}>
+                            <p className={`text-[11px] ${t.textSecondary} mb-2`}>Enviar sticker</p>
+                            <div className="grid grid-cols-6 gap-1.5 mb-3">
+                              {STICKER_PRESETS.map((s) => (
+                                <button key={s.emoji} className={`w-9 h-9 flex items-center justify-center rounded-lg text-xl ${t.popoverHover} transition-colors`} onClick={() => handleSendSticker(s.url)} disabled={enviando}>
+                                  <img src={s.url} alt={s.emoji} className="w-7 h-7 object-contain" />
+                                </button>
+                              ))}
+                            </div>
+                            <input type="file" ref={stickerInputRef} onChange={handleStickerFile} className="hidden" accept="image/webp,image/png" />
+                            <Button variant="outline" size="sm" className={`w-full text-xs ${t.borderLight} ${t.textSecondary} ${t.bgHoverGhost}`} onClick={() => stickerInputRef.current?.click()} disabled={enviando}>
+                              <Paperclip className="w-3 h-3 mr-1.5" /> Sticker do dispositivo
+                            </Button>
+                          </PopoverContent>
+                        </Popover>
                       </div>
-                      <input type="file" ref={stickerInputRef} onChange={handleStickerFile} className="hidden" accept="image/webp,image/png" />
-                      <Button variant="outline" size="sm" className="w-full text-xs border-slate-600 text-slate-300 hover:bg-slate-700" onClick={() => stickerInputRef.current?.click()} disabled={enviando}>
-                        <Paperclip className="w-3 h-3 mr-1.5" />
-                        Enviar sticker do dispositivo
-                      </Button>
                     </PopoverContent>
                   </Popover>
 
-                  <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0" onClick={() => fileInputRef.current?.click()} disabled={enviando}>
-                    <Paperclip className="w-4 h-4" />
-                  </Button>
-                  {/* Emoji Picker */}
-                  <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0" disabled={enviando}>
-                        <Smile className="w-4 h-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent side="top" align="start" className="w-auto p-0 border-0 shadow-2xl bg-transparent">
-                      <EmojiPicker
-                        theme="dark"
-                        onEmojiClick={(emojiData) => {
-                          setMensagem(prev => prev + emojiData.emoji);
-                          setEmojiOpen(false);
-                        }}
-                        width={320}
-                        height={400}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" />
 
-                  {gravando ? (
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-red-400 hover:text-red-300 shrink-0" onClick={stopRecording}>
-                      <MicOff className="w-4 h-4" />
-                    </Button>
-                  ) : (
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-white hover:bg-slate-700 shrink-0" onClick={startRecording} disabled={enviando}>
-                      <Mic className="w-4 h-4" />
-                    </Button>
-                  )}
-                  <div className="flex-1 relative">
-                    <Input value={mensagem} onChange={(e) => setMensagem(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} placeholder="Digite sua mensagem..." className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 pr-10 rounded-xl text-sm min-h-[36px]" disabled={enviando} />
+                  {/* Campo de texto com emoji dentro */}
+                  <div className={`flex-1 flex items-center rounded-full ${t.bgCampoInput} border ${t.inputFieldBorder} shadow-sm`}>
+                    <Input
+                      value={mensagem}
+                      onChange={(e) => setMensagem(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onPaste={handlePaste}
+                      placeholder="Mensagem"
+                      className={`flex-1 border-0 bg-transparent ${t.textInput} ${t.textPlaceholder} text-sm h-10 px-4 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full`}
+                      disabled={enviando}
+                    />
+                    <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
+                      <PopoverTrigger asChild>
+                        <button className={`w-10 h-10 flex items-center justify-center rounded-full ${t.inputIconColor} hover:bg-black/5 transition-colors shrink-0`} disabled={enviando}>
+                          <Smile className="w-5 h-5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="top" align="end" className="w-auto p-0 border-0 shadow-2xl bg-transparent">
+                        <EmojiPicker
+                          theme={t.emojiPickerTheme}
+                          onEmojiClick={(emojiData) => {
+                            setMensagem(prev => prev + emojiData.emoji);
+                            setEmojiOpen(false);
+                          }}
+                          width={320}
+                          height={400}
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                  <Button size="icon" className="h-9 w-9 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shrink-0" onClick={handleSend} disabled={(!mensagem.trim() && !imagemColada) || enviando}>
-                    {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </Button>
+
+                  {/* Microfone ou Enviar */}
+                  {gravando ? (
+                    <button className="w-10 h-10 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50 shrink-0" onClick={stopRecording}>
+                      <MicOff className="w-5 h-5" />
+                    </button>
+                  ) : (mensagem.trim() || imagemColada) ? (
+                    <button className={`w-10 h-10 flex items-center justify-center rounded-full text-white ${t.sendBtnBg} shrink-0 transition-colors`} onClick={handleSend} disabled={enviando}>
+                      {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    </button>
+                  ) : (
+                    <button className={`w-10 h-10 flex items-center justify-center rounded-full ${t.inputIconColor} hover:bg-black/5 transition-colors shrink-0`} onClick={startRecording} disabled={enviando}>
+                      <Mic className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
               </div>
             </>

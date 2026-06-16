@@ -85,6 +85,12 @@ const DARK = {
   alertAlarme: 'border-l-amber-500',
   tabActive: 'bg-emerald-600 text-white',
   tabInactive: 'text-slate-400 hover:text-white hover:bg-slate-800',
+  // Input bar WhatsApp-style
+  bgBarraInput: 'bg-slate-900/95',
+  bgCampoInput: 'bg-slate-800',
+  inputFieldBorder: 'border-slate-700',
+  inputIconColor: 'text-slate-400',
+  sendBtnBg: 'bg-emerald-600 hover:bg-emerald-500',
 };
 
 const LIGHT = {
@@ -148,6 +154,12 @@ const LIGHT = {
   alertAlarme: 'border-l-amber-500',
   tabActive: 'bg-[#00a884] text-white',
   tabInactive: 'text-[#667781] hover:text-[#111b21] hover:bg-[#f0f2f5]',
+  // Input bar WhatsApp-style
+  bgBarraInput: 'bg-[#f0f2f5]',
+  bgCampoInput: 'bg-white',
+  inputFieldBorder: 'border-transparent',
+  inputIconColor: 'text-[#54656f]',
+  sendBtnBg: 'bg-[#00a884] hover:bg-[#06cf9c]',
 };
 
 export function chatTheme(isLight) {
