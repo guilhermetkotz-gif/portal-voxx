@@ -131,7 +131,7 @@ export default function ChatHubDrawer({ onClose, user }) {
     queryKey: ['radarMensagens'],
     queryFn: async () => {
       const msgs = await base44.entities.WhatsappMensagem.list('-received_at', 500);
-      return msgs.filter(m => !m.deletado);
+      return msgs.filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo');
     },
     staleTime: 15 * 1000,
     refetchInterval: 30 * 1000,
@@ -145,6 +145,7 @@ export default function ChatHubDrawer({ onClose, user }) {
       const mapa = {};
       todas.forEach(m => {
         if (!m.grupo_id) return;
+        if (m.tipo_mensagem === 'sem_conteudo') return;
         const tsMillis = getTimestampSeguro(m);
         if (tsMillis === null) return;
         const existing = mapa[m.grupo_id];
@@ -183,7 +184,7 @@ export default function ChatHubDrawer({ onClose, user }) {
     queryKey: ['chatHubMsgs', selectedChat?.id],
     queryFn: async () => {
       const msgs = await base44.entities.WhatsappMensagem.filter({ grupo_id: selectedChat?.id }, '-received_at', 100);
-      return msgs.filter(m => !m.deletado);
+      return msgs.filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo');
     },
     enabled: !!selectedChat?.id,
     staleTime: 10 * 1000,

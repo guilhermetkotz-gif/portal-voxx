@@ -47,7 +47,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     queryKey: ['chatMsgs', chatId],
     queryFn: async () => {
       const msgs = await base44.entities.WhatsappMensagem.filter({ grupo_id: chatId }, '-received_at', 100);
-      return msgs.filter(m => !m.deletado);
+      return msgs.filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo');
     },
     enabled: !!chatId,
     staleTime: 10 * 1000,
@@ -399,6 +399,13 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         <Download className="w-4 h-4 text-slate-400 group-hover:text-white shrink-0" />
                       </a>
                     );
+                  }
+                  // Reação (tipo legado — se tiver texto do emoji)
+                  if (m.tipo_mensagem === 'reacao') {
+                    if (m.mensagem && m.mensagem !== '[Sem conteúdo]') {
+                      return <span className="text-lg">{m.mensagem}</span>;
+                    }
+                    return <span className="text-xs italic opacity-40">Reação</span>;
                   }
                   // Texto (fallback)
                   return <p className="whitespace-pre-wrap break-words">{m.mensagem || '[Sem conteúdo]'}</p>;

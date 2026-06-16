@@ -29,11 +29,38 @@ function extrairMidiaUrl(body) {
 }
 
 function extrairConteudo(body) {
-  // Reação (reaction)
-  if (body.type === 'ReactionMessage' || body.type === 'MessageReaction' || body.type === 'reaction') {
-    const emoji = body.reaction?.text || body.reaction || '';
-    const targetMsgId = body.reactionMessage?.key?.id || body.msgId || body.reactedMessageId || '';
-    return { mensagem: emoji, tipo: 'reacao', dadosReacao: { emoji, targetMsgId } };
+  // Reação (reaction) — múltiplos formatos Z-API
+  // Z-API moderno: type="ReceivedCallback" com body.reaction = { value: "👍", referencedMessage: { messageId: "..." } }
+  // Z-API legado: type="ReactionMessage" com body.reaction.text ou body.reactionMessage
+  const reactionTypes = ['ReactionMessage', 'MessageReaction', 'reaction', 'messageReaction', 'reaction_message'];
+  const hasReactionObj = body.reaction && typeof body.reaction === 'object' && !Array.isArray(body.reaction);
+  
+  if (reactionTypes.includes(body.type) || hasReactionObj || body.reactionMessage || body.messageReaction) {
+    // Tentar extrair emoji de várias fontes
+    let emoji = '';
+    if (typeof body.reaction === 'string') emoji = body.reaction;
+    else if (body.reaction?.value) emoji = body.reaction.value;  // formato moderno Z-API
+    else if (body.reaction?.text) emoji = body.reaction.text;
+    else if (body.reaction?.emoji) emoji = body.reaction.emoji;
+    else if (body.reactionMessage?.text) emoji = body.reactionMessage.text;
+    else if (body.reactionMessage?.emoji) emoji = body.reactionMessage.emoji;
+    else if (body.messageReaction?.text) emoji = body.messageReaction.text;
+    else if (body.message?.reaction) emoji = body.message.reaction;
+    
+    // Tentar extrair targetMsgId de várias fontes
+    let targetMsgId = '';
+    if (body.reaction?.referencedMessage?.messageId) targetMsgId = body.reaction.referencedMessage.messageId; // formato moderno Z-API
+    else if (body.reactionMessage?.key?.id) targetMsgId = body.reactionMessage.key.id;
+    else if (body.msgId) targetMsgId = body.msgId;
+    else if (body.reactedMessageId) targetMsgId = body.reactedMessageId;
+    else if (body.messageId) targetMsgId = body.messageId;
+    else if (body.reactionMessage?.id) targetMsgId = body.reactionMessage.id;
+    else if (body.message?.id) targetMsgId = body.message.id;
+    else if (body.reactedMessage?.id) targetMsgId = body.reactedMessage.id;
+    
+    if (emoji || targetMsgId) {
+      return { mensagem: emoji, tipo: 'reacao', dadosReacao: { emoji, targetMsgId } };
+    }
   }
   // Texto
   if (body.text?.message) return { mensagem: body.text.message, tipo: 'texto' };
@@ -167,6 +194,19 @@ Deno.serve(async (req) => {
         }
         return Response.json({ ok: true, tipo: 'reacao_ignorada' });
       }
+    }
+
+    // PASSO 4c — Se for reação mas sem dados completos, ignorar (não criar mensagem)
+    if (tipo === 'reacao') {
+      console.log('[webhook] ⚠️ Reação com dados incompletos ignorada:', JSON.stringify(dadosReacao));
+      if (rawId) {
+        await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
+          processed: true,
+          processing_status: 'ignorado',
+          processing_error: 'Reação com dados incompletos (emoji ou targetMsgId ausente)',
+        });
+      }
+      return Response.json({ ok: true, tipo: 'reacao_ignorada_incompleta' });
     }
 
     // PASSO 5 — Idempotência: evitar duplicatas
