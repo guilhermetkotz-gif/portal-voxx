@@ -91,6 +91,9 @@ const DARK = {
   inputFieldBorder: 'border-slate-700',
   inputIconColor: 'text-slate-400',
   sendBtnBg: 'bg-emerald-600 hover:bg-emerald-500',
+  // Papel de parede da área de mensagens (tema escuro — sem wallpaper)
+  bgMensagens: 'bg-slate-950',
+  bgMensagensStyle: {},
 };
 
 const LIGHT = {
@@ -160,6 +163,15 @@ const LIGHT = {
   inputFieldBorder: 'border-transparent',
   inputIconColor: 'text-[#54656f]',
   sendBtnBg: 'bg-[#00a884] hover:bg-[#06cf9c]',
+  // Papel de parede da área de mensagens (tema claro)
+  bgMensagens: 'bg-[#efeae2]',
+  bgMensagensStyle: {
+    backgroundImage: 'url(https://media.base44.com/images/public/695d14d862b9c933054dfba4/abf2c7755_ChatGPTImage16dejunde202618_01_47.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'fixed',
+  },
 };
 
 export function chatTheme(isLight) {

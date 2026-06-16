@@ -414,7 +414,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         </div>
 
         {/* Mensagens */}
-        <div className="flex-1 overflow-y-auto px-4 py-3" ref={scrollRef}>
+        <div className={`flex-1 overflow-y-auto px-4 py-3 ${t.bgMensagens}`} style={t.bgMensagensStyle} ref={scrollRef}>
           <div className="space-y-2">
             {loadingMsgs ? (
               <div className="flex justify-center py-12">

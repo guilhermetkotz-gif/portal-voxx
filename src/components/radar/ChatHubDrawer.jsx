@@ -875,7 +875,7 @@ export default function ChatHubDrawer({ onClose, user }) {
               </div>
 
               {/* Mensagens */}
-              <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+              <div ref={scrollRef} className={`flex-1 overflow-y-auto px-4 py-3 space-y-2 ${t.bgMensagens}`} style={t.bgMensagensStyle}>
                   {loadingMsgs ? (
                     <div className="flex justify-center py-12"><Loader2 className={`w-5 h-5 animate-spin ${t.textTertiary}`} /></div>
                   ) : msgsChat.length === 0 ? (
