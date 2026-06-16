@@ -457,6 +457,30 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                       {(m.tipo_mensagem === 'imagem' || m.tipo_mensagem === 'video') && m.mensagem && m.mensagem !== '[Imagem]' && m.mensagem !== '[Vídeo]' && (
                         <p className="mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90">{m.mensagem}</p>
                       )}
+                      {/* Reações */}
+                      {m.reacoes && m.reacoes.length > 0 && (
+                        <div className={`flex flex-wrap gap-0.5 mt-1.5 ${isVoxx ? 'justify-end' : ''}`}>
+                          {/* Agrupar reações por emoji */}
+                          {(() => {
+                            const grupos = {};
+                            m.reacoes.forEach(r => {
+                              if (!grupos[r.emoji]) grupos[r.emoji] = { emoji: r.emoji, count: 0, remetentes: [] };
+                              grupos[r.emoji].count++;
+                              if (r.remetente) grupos[r.emoji].remetentes.push(r.remetente);
+                            });
+                            return Object.values(grupos).map((g, i) => (
+                              <span
+                                key={i}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-slate-700/60 text-[11px] leading-none"
+                                title={g.remetentes.join(', ')}
+                              >
+                                <span className="text-xs">{g.emoji}</span>
+                                {g.count > 1 && <span className="text-[10px] text-slate-400">{g.count}</span>}
+                              </span>
+                            ));
+                          })()}
+                        </div>
+                      )}
                       <div className="flex items-center gap-1 mt-1">
                         {isVoxx && (
                           <button

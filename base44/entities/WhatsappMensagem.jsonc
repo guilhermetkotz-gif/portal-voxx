@@ -67,6 +67,7 @@
         "audio",
         "documento",
         "sticker",
+        "reacao",
         "sistema",
         "atividade",
         "sem_conteudo"
@@ -145,6 +146,29 @@
     "deletado_em": {
       "type": "string",
       "format": "date-time"
+    },
+    "reacoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "emoji": {
+            "type": "string"
+          },
+          "remetente": {
+            "type": "string"
+          },
+          "remetente_telefone": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "default": [],
+      "description": "Rea\u00e7\u00f5es (emojis) recebidas nesta mensagem"
     }
   },
   "required": [

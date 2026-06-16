@@ -29,6 +29,12 @@ function extrairMidiaUrl(body) {
 }
 
 function extrairConteudo(body) {
+  // Reação (reaction)
+  if (body.type === 'ReactionMessage' || body.type === 'MessageReaction' || body.type === 'reaction') {
+    const emoji = body.reaction?.text || body.reaction || '';
+    const targetMsgId = body.reactionMessage?.key?.id || body.msgId || body.reactedMessageId || '';
+    return { mensagem: emoji, tipo: 'reacao', dadosReacao: { emoji, targetMsgId } };
+  }
   // Texto
   if (body.text?.message) return { mensagem: body.text.message, tipo: 'texto' };
   if (body.text?.text)    return { mensagem: body.text.text, tipo: 'texto' };
@@ -117,10 +123,51 @@ Deno.serve(async (req) => {
     const ids = normalizarGrupoId(phoneRaw);
     const candidatos = [ids.raw, ids.hyphen, ids.atsign, ids.numeric].filter(Boolean);
     const isFromMe = body.fromMe === true;
-    const { mensagem, tipo } = extrairConteudo(body);
+    const { mensagem, tipo, dadosReacao } = extrairConteudo(body);
     const timestamp = body.momment
       ? new Date(body.momment * 1000).toISOString()
       : receivedAt;
+
+    // PASSO 4b — Tratar reações: atualizar mensagem original, não criar nova
+    if (tipo === 'reacao' && dadosReacao?.targetMsgId && dadosReacao?.emoji) {
+      const targetMsgs = await base44.asServiceRole.entities.WhatsappMensagem.filter({ message_id: dadosReacao.targetMsgId });
+      if (targetMsgs.length > 0) {
+        const target = targetMsgs[0];
+        const reacoesAtuais = target.reacoes || [];
+        // Remover reação anterior do mesmo remetente (toggle behavior)
+        const reacoesFiltradas = reacoesAtuais.filter(r => r.remetente_telefone !== participantPhone);
+        // Se a reação não for de remoção, adicionar
+        if (dadosReacao.emoji && dadosReacao.emoji !== '') {
+          reacoesFiltradas.push({
+            emoji: dadosReacao.emoji,
+            remetente: senderName,
+            remetente_telefone: participantPhone || null,
+            data: receivedAt,
+          });
+        }
+        await base44.asServiceRole.entities.WhatsappMensagem.update(target.id, { reacoes: reacoesFiltradas });
+        console.log('[webhook] ✅ Reação processada:', dadosReacao.emoji, '→ msg:', dadosReacao.targetMsgId);
+
+        // Marcar raw como processado
+        if (rawId) {
+          await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
+            processed: true,
+            processing_status: 'processado',
+          });
+        }
+        return Response.json({ ok: true, tipo: 'reacao', targetMsgId: dadosReacao.targetMsgId });
+      } else {
+        console.log('[webhook] ⚠️ Reação para mensagem não encontrada:', dadosReacao.targetMsgId);
+        if (rawId) {
+          await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
+            processed: true,
+            processing_status: 'ignorado',
+            processing_error: 'Mensagem alvo da reação não encontrada',
+          });
+        }
+        return Response.json({ ok: true, tipo: 'reacao_ignorada' });
+      }
+    }
 
     // PASSO 5 — Idempotência: evitar duplicatas
     // 5a: por message_id (preciso)
