@@ -20,6 +20,11 @@ function extrairMidiaUrl(body) {
   if (body.audio?.audioUrl) return { midia_url: body.audio.audioUrl, midia_mimetype: body.audio.mimeType || 'audio/ogg' };
   if (body.video?.videoUrl) return { midia_url: body.video.videoUrl, midia_mimetype: body.video.mimeType || 'video/mp4' };
   if (body.document?.documentUrl) return { midia_url: body.document.documentUrl, midia_mimetype: body.document.mimeType || null, midia_nome: body.document.fileName || null };
+  // Sticker / figurinha
+  if (body.sticker) {
+    const stickerUrl = typeof body.sticker === 'string' ? body.sticker : (body.sticker.stickerUrl || body.sticker.url || null);
+    if (stickerUrl) return { midia_url: stickerUrl, midia_mimetype: body.sticker.mimeType || 'image/webp' };
+  }
   return null;
 }
 

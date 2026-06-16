@@ -338,13 +338,23 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                 const midiaUrl = m.midia_url;
 
                 const renderContent = () => {
-                  // Sticker
-                  if (m.tipo_mensagem === 'sticker' && midiaUrl) {
-                    return (
-                      <div>
-                        <img src={midiaUrl} alt="Sticker" className="max-w-[140px] max-h-[140px] object-contain" />
-                      </div>
-                    );
+                  // Sticker / Figurinha
+                  if (m.tipo_mensagem === 'sticker') {
+                    if (midiaUrl) {
+                      return (
+                        <div className="relative group/sticker inline-block">
+                          <img src={midiaUrl} alt="Sticker" className="max-w-[140px] max-h-[140px] object-contain" />
+                          <button
+                            className="absolute top-1 right-1 p-1 rounded-full bg-black/50 opacity-0 group-hover/sticker:opacity-100 hover:bg-black/70 transition-opacity"
+                            onClick={() => { window.open(midiaUrl, '_blank'); }}
+                            title="Salvar figurinha"
+                          >
+                            <Download className="w-3 h-3 text-white" />
+                          </button>
+                        </div>
+                      );
+                    }
+                    return <span className="text-xs italic opacity-60">[Sticker]</span>;
                   }
                   // Imagem
                   if (m.tipo_mensagem === 'imagem' && midiaUrl) {
