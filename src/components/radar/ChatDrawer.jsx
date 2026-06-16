@@ -196,6 +196,44 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     }
   };
 
+  // Colar imagem do clipboard
+  const handlePaste = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+        setEnviando(true);
+        try {
+          const uploadRes = await base44.integrations.Core.UploadFile({ file });
+          const res = await base44.functions.invoke('enviarMensagemGeral', {
+            chatId,
+            tipo: 'imagem',
+            midiaUrl: uploadRes.file_url,
+            fileName: file.name || 'imagem.png',
+            incluirAssinatura: false,
+            clienteId: clienteId || '',
+            clienteNome: clienteNome || '',
+            chatName: chatName || '',
+          });
+          if (res.data?.success) {
+            queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+            queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+          } else {
+            toast.error(res.data?.erro || 'Erro ao enviar imagem');
+          }
+        } catch (err) {
+          toast.error('Erro ao enviar imagem colada');
+        } finally {
+          setEnviando(false);
+        }
+        break;
+      }
+    }
+  };
+
   // Reagir a uma mensagem
   const handleReaction = async (messageId, emoji) => {
     try {
@@ -665,6 +703,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                 value={mensagem}
                 onChange={(e) => setMensagem(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onPaste={handlePaste}
                 placeholder="Digite sua mensagem..."
                 className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 pr-10 rounded-xl text-sm min-h-[36px]"
                 disabled={enviando}

@@ -506,6 +506,45 @@ export default function ChatHubDrawer({ onClose, user }) {
     }
   };
 
+  // Colar imagem do clipboard
+  const handlePaste = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+        setEnviando(true);
+        try {
+          const uploadRes = await base44.integrations.Core.UploadFile({ file });
+          const res = await base44.functions.invoke('enviarMensagemGeral', {
+            chatId: selectedChat.id,
+            tipo: 'imagem',
+            midiaUrl: uploadRes.file_url,
+            fileName: file.name || 'imagem.png',
+            incluirAssinatura: false,
+            clienteId: selectedChat.clienteId || '',
+            clienteNome: selectedChat.clienteNome || '',
+            chatName: selectedChat.name || '',
+          });
+          if (res.data?.success) {
+            queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+            queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+            queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
+          } else {
+            toast.error(res.data?.erro || 'Erro ao enviar imagem');
+          }
+        } catch (err) {
+          toast.error('Erro ao enviar imagem colada');
+        } finally {
+          setEnviando(false);
+        }
+        break;
+      }
+    }
+  };
+
   // Reagir a uma mensagem
   const handleReaction = async (messageId, emoji) => {
     if (!selectedChat) return;
@@ -1075,7 +1114,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                     </Button>
                   )}
                   <div className="flex-1 relative">
-                    <Input value={mensagem} onChange={(e) => setMensagem(e.target.value)} onKeyDown={handleKeyDown} placeholder="Digite sua mensagem..." className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 pr-10 rounded-xl text-sm min-h-[36px]" disabled={enviando} />
+                    <Input value={mensagem} onChange={(e) => setMensagem(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} placeholder="Digite sua mensagem..." className="bg-slate-800 border-slate-700 text-slate-100 placeholder:text-slate-500 pr-10 rounded-xl text-sm min-h-[36px]" disabled={enviando} />
                   </div>
                   <Button size="icon" className="h-9 w-9 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shrink-0" onClick={handleSend} disabled={!mensagem.trim() || enviando}>
                     {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
