@@ -1038,16 +1038,19 @@ export default function ChatHubDrawer({ onClose, user }) {
                                 })()}
                               </div>
                             )}
-                            <div className="flex items-center gap-1 mt-1">
-                              {isVoxx && (
-                                <button
-                                  className="p-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-red-500/30 transition-opacity"
-                                  onClick={(e) => { e.stopPropagation(); handleDeleteMessage(m); }}
-                                  title="Excluir mensagem"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
+                            {/* Timestamp + checks no canto inferior direito (estilo WhatsApp) */}
+                            <div className="flex items-center gap-1 mt-1 relative">
+                              <div className="flex-1">
+                                {isVoxx && (
+                                  <button
+                                    className="p-0.5 rounded-full opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-red-500/30 transition-opacity"
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteMessage(m); }}
+                                    title="Excluir mensagem"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <button
@@ -1078,20 +1081,20 @@ export default function ChatHubDrawer({ onClose, user }) {
                                   </div>
                                 </PopoverContent>
                               </Popover>
-                              {isVoxx && (
-                                <span className="flex items-center gap-0.5">
-                                  {m.status_entrega === 'lido' ? (
+                              <span className="flex items-center gap-0.5 ml-auto">
+                                <span className={`text-[10px] ${isVoxx ? t.textTimestamp : t.textTimestampIn}`}>
+                                  {formatarDataHora(ts)}
+                                </span>
+                                {isVoxx && (
+                                  m.status_entrega === 'lido' ? (
                                     <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
                                   ) : m.status_entrega === 'entregue' ? (
                                     <CheckCheck className="w-3.5 h-3.5 opacity-50" />
                                   ) : (
                                     <Check className="w-3.5 h-3.5 opacity-40" />
-                                  )}
-                                </span>
-                              )}
-                              <p className={`text-[10px] ${isVoxx ? t.textTimestamp : t.textTimestampIn}`}>
-                                {formatarDataHora(ts)}
-                              </p>
+                                  )
+                                )}
+                              </span>
                             </div>
                           </div>
                         </div>
