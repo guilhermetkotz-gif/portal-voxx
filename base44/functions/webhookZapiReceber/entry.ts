@@ -371,7 +371,7 @@ Deno.serve(async (req) => {
     let citacaoTipo = null;
     let citacaoMidiaUrl = null;
     
-    const quotedMsg = body.quotedMsg || body.quotedMessage || null;
+    const quotedMsg = body.quotedMsg || body.quotedMessage || body.message?.quotedMsg || body.message?.quotedMessage || null;
     if (quotedMsg) {
       citacaoId = quotedMsg.messageId || quotedMsg.id || null;
       citacaoRemetente = quotedMsg.senderName || quotedMsg.pushName || null;
