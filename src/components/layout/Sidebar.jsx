@@ -51,6 +51,7 @@ import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
   { name: "Home", icon: LayoutDashboard, page: "Home" },
+  { name: "Radar WhatsApp", icon: Radio, page: "RadarWhatsApp", voxxOnly: true, greenHighlight: true },
   { name: "Chat", icon: MessageCircle, page: "Chat" },
   { name: "Performance", icon: BarChart3, page: "Performance" },
   { name: "Saldos & Investimentos", icon: Wallet, page: "Saldos" },
@@ -67,7 +68,6 @@ const menuItems = [
   { name: "Briefing Clientes", icon: BookOpen, page: "BriefingClientes", voxxOnly: true },
   { name: "Inteligência Operacional", icon: Network, page: "InteligeniciaOperacional", voxxOnly: true },
   { name: "Central de Comunicação", icon: MessageSquare, page: "CentralComunicacao", voxxOnly: true },
-  { name: "Radar WhatsApp", icon: Radio, page: "RadarWhatsApp", voxxOnly: true },
   { name: "Análises", icon: Activity, page: "Analises", voxxOnly: true },
   { name: "WhatsApp Clientes", icon: Smartphone, page: "ConfiguracaoWhatsApp", voxxOnly: true },
   { name: "Config. Instâncias", icon: Settings2, page: "ConfiguracaoInstancias", voxxOnly: true },
@@ -200,10 +200,12 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
                 isActive 
-                  ? "bg-violet-600 text-white" 
-                  : item.highlight 
-                    ? "bg-violet-600/20 text-violet-300 hover:bg-violet-600/30"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  ? item.greenHighlight ? "bg-emerald-600 text-white" : "bg-violet-600 text-white"
+                  : item.greenHighlight
+                    ? "bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30"
+                    : item.highlight 
+                      ? "bg-violet-600/20 text-violet-300 hover:bg-violet-600/30"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
               )}
             >
               <Icon className={cn(
