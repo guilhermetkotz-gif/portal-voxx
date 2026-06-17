@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       cliente_nome: clienteNome || null,
       grupo_id: chatId,
       grupo_nome: chatName || null,
-      is_group: String(chatId).includes('-group') || String(chatId).includes('@g.us'),
+      is_group: (String(chatId).includes('-group') || String(chatId).includes('@g.us')) && !String(chatId).includes('@lid') && !String(chatId).includes('@c.us'),
       remetente_nome: nomeRemetente,
       remetente_telefone: telefoneRemetente,
       remetente_tipo: 'voxx',
