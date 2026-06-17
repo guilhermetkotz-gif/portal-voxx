@@ -261,15 +261,21 @@ export default function MonitoramentoContas({ user }) {
         return new Map(radarMetaData.map(r => [r.account_name, r]));
     }, [radarMetaData]);
 
-    // Enriquecer accounts com frequência 7d (cost_per_messaging usa dados da página 1)
+    // Enriquecer accounts com frequência 7d e remover duplicatas por account_name
     const enrichedAccounts = React.useMemo(() => {
-        return accounts.map(acc => {
-            const radarData = radarMetaDataMap.get(acc.account_name);
-            return {
-                ...acc,
-                frequency: radarData?.frequencia_7d || acc.frequency || 0
-            };
-        });
+        const seen = new Set();
+        const deduplicated = [];
+        for (const acc of accounts) {
+            if (!seen.has(acc.account_name)) {
+                seen.add(acc.account_name);
+                const radarData = radarMetaDataMap.get(acc.account_name);
+                deduplicated.push({
+                    ...acc,
+                    frequency: radarData?.frequencia_7d || acc.frequency || 0
+                });
+            }
+        }
+        return deduplicated;
     }, [accounts, radarMetaDataMap]);
 
     const syncMutation = useMutation({

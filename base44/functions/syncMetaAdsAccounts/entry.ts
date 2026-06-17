@@ -203,18 +203,43 @@ Deno.serve(async (req) => {
 
         console.log(`Processed ${accounts.length} accounts`);
 
-        // Delete all existing and insert new
+        // Upsert: update existing accounts by account_name, create new ones
         const existingAccounts = await base44.asServiceRole.entities.ContaMetaAds.list('-created_date', 1000);
-        await Promise.all(existingAccounts.map(acc => base44.asServiceRole.entities.ContaMetaAds.delete(acc.id)));
+        const existingMap = new Map(existingAccounts.map(a => [a.account_name.toLowerCase().trim(), a]));
 
-        if (accounts.length > 0) {
-            await base44.asServiceRole.entities.ContaMetaAds.bulkCreate(accounts);
+        let updated = 0;
+        let created = 0;
+
+        for (const acc of accounts) {
+            const key = acc.account_name.toLowerCase().trim();
+            const existing = existingMap.get(key);
+            if (existing) {
+                await base44.asServiceRole.entities.ContaMetaAds.update(existing.id, acc);
+                updated++;
+            } else {
+                await base44.asServiceRole.entities.ContaMetaAds.create(acc);
+                created++;
+            }
+        }
+
+        // Remove accounts that no longer exist in the sheet
+        const newNames = new Set(accounts.map(a => a.account_name.toLowerCase().trim()));
+        const toDelete = Array.from(existingMap.entries())
+            .filter(([name, _]) => !newNames.has(name))
+            .map(([_, acc]) => acc);
+
+        if (toDelete.length > 0) {
+            console.log(`Removing ${toDelete.length} accounts no longer in sheet`);
+            await Promise.all(toDelete.map(acc => base44.asServiceRole.entities.ContaMetaAds.delete(acc.id)));
         }
 
         return Response.json({ 
             success: true, 
             accountsProcessed: accounts.length,
-            message: `Successfully synced ${accounts.length} Meta Ads accounts`
+            updated,
+            created,
+            deleted: toDelete.length,
+            message: `Synced ${accounts.length} Meta Ads accounts (${updated} updated, ${created} created, ${toDelete.length} removed)`
         });
 
     } catch (error) {
