@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
     };
 
     // ROTA 1: Z-API direto (prioritário — mais confiável)
+    let zapiOnline = false;
     if (zapiInstanceId && zapiToken && zapiClientToken) {
       // Verificar status da instância
       const statusResp = await fetch(
@@ -79,40 +80,38 @@ Deno.serve(async (req) => {
         { headers: { 'Client-Token': zapiClientToken } }
       );
       const statusData = await statusResp.json().catch(() => ({}));
-      if (!statusData.connected || !statusData.smartphoneConnected) {
-        return Response.json({
-          error: 'Instância Z-API desconectada. Verifique o WhatsApp vinculado.',
-          zapi_status: statusData
-        }, { status: 503 });
-      }
+      if (statusData.connected && statusData.smartphoneConnected) {
+        zapiOnline = true;
 
-      // Decidir endpoint: imagem ou texto
-      let zapiEndpoint, zapiBody;
-      if (midia_url && tipo_midia === 'imagem') {
-        tipoEnvioFinal = 'imagem';
-        zapiEndpoint = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-image`;
-        zapiBody = { phone: grupoId, image: midia_url, caption: mensagem, viewOnce: false };
-      } else {
-        tipoEnvioFinal = 'texto';
-        zapiEndpoint = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
-        zapiBody = { phone: grupoId, message: mensagem };
-      }
+        // Decidir endpoint: imagem ou texto
+        let zapiEndpoint, zapiBody;
+        if (midia_url && tipo_midia === 'imagem') {
+          tipoEnvioFinal = 'imagem';
+          zapiEndpoint = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-image`;
+          zapiBody = { phone: grupoId, image: midia_url, caption: mensagem, viewOnce: false };
+        } else {
+          tipoEnvioFinal = 'texto';
+          zapiEndpoint = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
+          zapiBody = { phone: grupoId, message: mensagem };
+        }
 
-      const sendResp = await fetch(zapiEndpoint, {
-        method: 'POST',
-        headers: { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify(zapiBody)
-      });
-      if (!sendResp.ok) {
-        const errText = await sendResp.text().catch(() => '');
-        statusEnvio = 'erro';
-        erroEnvio = `Z-API HTTP ${sendResp.status}: ${errText}`;
-      } else {
-        resultadoEnvio = await sendResp.json().catch(() => ({}));
+        const sendResp = await fetch(zapiEndpoint, {
+          method: 'POST',
+          headers: { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify(zapiBody)
+        });
+        if (!sendResp.ok) {
+          const errText = await sendResp.text().catch(() => '');
+          statusEnvio = 'erro';
+          erroEnvio = `Z-API HTTP ${sendResp.status}: ${errText}`;
+        } else {
+          resultadoEnvio = await sendResp.json().catch(() => ({}));
+        }
       }
     }
-    // ROTA 2: Lovable como fallback
-    else if (endpointLovable) {
+
+    // ROTA 2: Lovable como fallback (quando Z-API offline ou não configurada)
+    if (!zapiOnline && endpointLovable) {
       tipoEnvioFinal = 'lovable';
       const resp = await fetch(endpointLovable, {
         method: 'POST',
@@ -158,6 +157,7 @@ Deno.serve(async (req) => {
     if (entrega.demanda_id && statusEnvio === 'enviado') {
       await base44.asServiceRole.entities.TimelineEvent.create({
         demanda_id: entrega.demanda_id,
+        cliente_id: cliente.id,
         tipo: 'comentario',
         descricao: `📲 Material enviado para aprovação via WhatsApp.\nEntrega: ${entrega.nome_entrega}\nLink: ${entrega.link_publico_aprovacao}\nEnviado por: ${user.full_name || user.email}`,
         autor: user.full_name || user.email,

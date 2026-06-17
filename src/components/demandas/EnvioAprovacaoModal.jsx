@@ -69,6 +69,10 @@ export default function EnvioAprovacaoModal({ entrega, demanda, user, onClose })
       } else {
         toast.error('Erro ao enviar: ' + (data.erro || 'Desconhecido'));
       }
+    },
+    onError: (error) => {
+      const msg = error?.response?.data?.error || error?.message || 'Erro desconhecido';
+      toast.error('Falha ao enviar: ' + msg);
     }
   });
 
