@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
@@ -132,6 +134,8 @@ export default function ChatHubDrawer({ onClose, user }) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
   const [imagemColada, setImagemColada] = useState(null); // { file, previewUrl }
+  const [respondendoA, setRespondendoA] = useState(null); // mensagem sendo respondida
+  const [forwardMsg, setForwardMsg] = useState(null); // mensagem a encaminhar
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -429,8 +433,16 @@ export default function ChatHubDrawer({ onClose, user }) {
 
     if (!texto) return;
     setEnviando(true);
-    // Limpa input e invalida queries IMEDIATAMENTE — backend salva a msg antes de chamar Z-API
+    // Limpa input, reply e invalida queries IMEDIATAMENTE
     setMensagem('');
+    const citacao = respondendoA ? {
+      citacaoId: respondendoA.message_id || respondendoA.id,
+      citacaoTexto: respondendoA.mensagem || '',
+      citacaoRemetente: respondendoA.remetente_nome || '',
+      citacaoTipo: respondendoA.tipo_mensagem || 'texto',
+      citacaoMidiaUrl: respondendoA.midia_url || '',
+    } : null;
+    setRespondendoA(null);
     queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
     queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
     queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
@@ -443,6 +455,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         clienteId: selectedChat.clienteId || '',
         clienteNome: selectedChat.clienteNome || '',
         chatName: selectedChat.name || '',
+        ...(citacao && { citacao }),
       });
       if (!res.data?.success) {
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
@@ -608,6 +621,27 @@ export default function ChatHubDrawer({ onClose, user }) {
   };
 
   const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
+  const handleCopyMessage = (msg) => {
+    navigator.clipboard.writeText(msg.mensagem || '');
+    toast.success('Mensagem copiada');
+  };
+
+  const handleFavoriteMessage = (msg) => {
+    const favoritas = JSON.parse(localStorage.getItem('chat_favoritas') || '{}');
+    const key = msg.id;
+    if (favoritas[key]) { delete favoritas[key]; toast.success('Removido dos favoritos'); }
+    else { favoritas[key] = true; toast.success('Adicionado aos favoritos'); }
+    localStorage.setItem('chat_favoritas', JSON.stringify(favoritas));
+  };
+
+  const handlePinMessage = (msg) => {
+    const fixadas = JSON.parse(localStorage.getItem('chat_fixadas') || '{}');
+    const key = msg.id;
+    if (fixadas[key]) { delete fixadas[key]; toast.success('Mensagem desafixada'); }
+    else { fixadas[key] = { texto: msg.mensagem?.substring(0, 80) || 'Mídia', ts: msg.received_at }; toast.success('Mensagem fixada'); }
+    localStorage.setItem('chat_fixadas', JSON.stringify(fixadas));
+  };
 
   const handleDeleteMessage = async (m) => {
     if (!selectedChat) return;
@@ -981,7 +1015,9 @@ export default function ChatHubDrawer({ onClose, user }) {
                       };
 
                       return (
-                        <div key={m.id} className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'}`}>
+                        <DropdownMenu key={m.id}>
+                          <DropdownMenuTrigger asChild>
+                        <div className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'} cursor-pointer`}>
                           <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
                             isVoxx
                               ? `${t.bgBubbleOut} ${t.textBubbleOut} rounded-br-md`
@@ -1115,6 +1151,56 @@ export default function ChatHubDrawer({ onClose, user }) {
                             </div>
                           </div>
                         </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            side={isVoxx ? 'left' : 'right'}
+                            align={isVoxx ? 'end' : 'start'}
+                            className={`w-48 p-1.5 border ${t.popoverBorder} ${t.popoverBg} shadow-xl rounded-xl`}
+                          >
+                            <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => setRespondendoA(m)}>
+                              <Reply className="w-4 h-4" /> Responder
+                            </DropdownMenuItem>
+                            <div className="relative group/reagir">
+                              <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer peer" onClick={(e) => e.preventDefault()}>
+                                <SmilePlus className="w-4 h-4" /> Reagir
+                              </DropdownMenuItem>
+                              <div className={`absolute ${isVoxx ? '-left-2' : '-right-2'} top-0 -translate-x-full opacity-0 group-hover/reagir:opacity-100 transition-opacity z-50`}>
+                                <div className={`flex gap-0.5 p-1.5 rounded-xl border ${t.popoverBorder} ${t.popoverBg} shadow-xl`}>
+                                  {REACTIONS.map((emoji) => (
+                                    <button
+                                      key={emoji}
+                                      className={`w-8 h-8 flex items-center justify-center rounded-full text-lg ${t.popoverHover} transition-colors`}
+                                      onClick={() => handleReaction(m.message_id || m.id, emoji)}
+                                    >
+                                      {emoji}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => handleFavoriteMessage(m)}>
+                              <Star className="w-4 h-4" /> Favoritar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => handlePinMessage(m)}>
+                              <Pin className="w-4 h-4" /> Fixar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => setForwardMsg(m)}>
+                              <Forward className="w-4 h-4" /> Encaminhar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => handleCopyMessage(m)}>
+                              <Copy className="w-4 h-4" /> Copiar
+                            </DropdownMenuItem>
+                            {isVoxx && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer text-red-500" onClick={() => handleDeleteMessage(m)}>
+                                  <Trash2 className="w-4 h-4" /> Excluir
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       );
                     })
                   )}
@@ -1122,6 +1208,27 @@ export default function ChatHubDrawer({ onClose, user }) {
 
               {/* Input WhatsApp-style */}
               <div className={`px-3 py-2 ${t.bgBarraInput} shrink-0`}>
+                {/* Barra de resposta (reply) */}
+                {respondendoA && (
+                  <div className={`flex items-center gap-3 px-3 py-2 mb-2 ${t.bgQuoteIn} rounded-lg border ${t.borderLight}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[11px] font-semibold ${t.textNameIn} mb-0.5`}>
+                        Respondendo a {respondendoA.remetente_nome || 'mensagem'}
+                      </p>
+                      <p className={`text-[11px] ${t.textSecondary} truncate`}>
+                        {respondendoA.tipo_mensagem === 'imagem' ? '📷 Imagem' :
+                         respondendoA.tipo_mensagem === 'video' ? '🎬 Vídeo' :
+                         respondendoA.tipo_mensagem === 'audio' ? '🎵 Áudio' :
+                         respondendoA.tipo_mensagem === 'documento' ? '📄 Documento' :
+                         respondendoA.tipo_mensagem === 'sticker' ? '🌟 Sticker' :
+                         respondendoA.mensagem?.substring(0, 80) || 'Mensagem'}
+                      </p>
+                    </div>
+                    <button onClick={() => setRespondendoA(null)} className={`p-1 rounded-full ${t.popoverHover}`}>
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
                 {gravando && (
                   <div className={`flex items-center justify-center gap-2 py-2 mb-2 ${t.bgRecording} rounded-lg border ${t.borderRecording}`}>
                     <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -1242,6 +1349,15 @@ export default function ChatHubDrawer({ onClose, user }) {
             </>
           )}
         </div>
+
+        {/* ── Modal: Encaminhamento ── */}
+        {forwardMsg && (
+          <ForwardMessageModal
+            open={!!forwardMsg}
+            onOpenChange={(isOpen) => { if (!isOpen) setForwardMsg(null); }}
+            mensagem={forwardMsg}
+          />
+        )}
 
         {/* ── Modal: Nova Conversa ── */}
         {showNovaConversa && (
