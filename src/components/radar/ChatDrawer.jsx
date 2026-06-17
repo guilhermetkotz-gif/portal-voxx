@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, CornerDownLeft, RefreshCw } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, CornerDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -757,7 +757,9 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                             {formatarDataHora(ts)}
                           </span>
                           {isVoxx && (
-                            m.status_entrega === 'lido' ? (
+                            m.status_entrega === 'erro' ? (
+                              <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+                            ) : m.status_entrega === 'lido' ? (
                               <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
                             ) : m.status_entrega === 'entregue' ? (
                               <CheckCheck className="w-3.5 h-3.5 opacity-50" />

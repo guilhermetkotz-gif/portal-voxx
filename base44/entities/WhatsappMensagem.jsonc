@@ -104,10 +104,11 @@
         "pendente",
         "enviado",
         "entregue",
-        "lido"
+        "lido",
+        "erro"
       ],
       "default": "pendente",
-      "description": "Status de entrega da mensagem: pendente (n\u00e3o enviada), enviado (\u2713), entregue (\u2713\u2713), lido (\u2713\u2713 azul)"
+      "description": "Status de entrega da mensagem: pendente (n\u00e3o enviada), enviado (\u2713), entregue (\u2713\u2713), lido (\u2713\u2713 azul), erro (falha no envio)"
     },
     "status_processamento": {
       "type": "string",

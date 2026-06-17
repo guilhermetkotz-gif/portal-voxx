@@ -1139,7 +1139,9 @@ export default function ChatHubDrawer({ onClose, user }) {
                                   {formatarDataHora(ts)}
                                 </span>
                                 {isVoxx && (
-                                  m.status_entrega === 'lido' ? (
+                                  m.status_entrega === 'erro' ? (
+                                    <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                                  ) : m.status_entrega === 'lido' ? (
                                     <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
                                   ) : m.status_entrega === 'entregue' ? (
                                     <CheckCheck className="w-3.5 h-3.5 opacity-50" />

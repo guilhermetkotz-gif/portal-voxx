@@ -2,6 +2,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const ZAPI_BASE = 'https://api.z-api.io';
 
+function isZapiError(resultado) {
+  if (!resultado) return null;
+  if (resultado.error) return `Z-API: ${resultado.error}${resultado.message ? ' - ' + resultado.message : ''}`;
+  return null;
+}
+
 async function getZapiCredentials(base44) {
   const configs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1).catch(() => []);
   const entityConfig = configs?.[0];
@@ -56,10 +62,10 @@ Deno.serve(async (req) => {
     const agora = new Date().toISOString();
     const tipoMsgMap = { texto: 'texto', imagem: 'imagem', video: 'video', audio: 'audio', documento: 'documento' };
 
-    // ═══ Salvar mensagem IMEDIATAMENTE (antes do Z-API) ═══
-    // Assim o frontend mostra a mensagem na hora, sem esperar o delay do Z-API
+    // Salvar mensagem IMEDIATAMENTE (antes do Z-API) com status 'pendente'
+    // Status será atualizado para 'enviado' ou 'erro' após resposta real do Z-API
     const msgRecord = await base44.asServiceRole.entities.WhatsappMensagem.create({
-      message_id: null, // será atualizado após Z-API
+      message_id: null,
       cliente_id: clienteId || null,
       cliente_nome: clienteNome || null,
       grupo_id: chatId,
@@ -75,11 +81,11 @@ Deno.serve(async (req) => {
       midia_nome: fileName || null,
       received_at: agora,
       from_me: true,
-      status_entrega: 'enviado',
+      status_entrega: 'pendente',
       status_processamento: 'ok',
     }).catch(() => null);
 
-    // ═══ Enviar via Z-API ═══
+    // Enviar via Z-API
     let resultadoApi = null;
     let statusEnvio = 'enviado';
     let erroEnvio = null;
@@ -94,11 +100,11 @@ Deno.serve(async (req) => {
         headers,
         body: JSON.stringify({ phone: chatId, message: textoEnvio }),
       });
-      if (!resp.ok) {
+      resultadoApi = await resp.json().catch(() => null);
+      const apiError = isZapiError(resultadoApi);
+      if (!resp.ok || apiError) {
         statusEnvio = 'erro';
-        erroEnvio = `Z-API HTTP ${resp.status}: ${await resp.text().catch(() => '')}`;
-      } else {
-        resultadoApi = await resp.json().catch(() => ({}));
+        erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else if (tipo === 'imagem' && midiaUrl) {
       const captionEnvio = mensagemWhatsApp || mensagemFinal || '';
@@ -107,11 +113,11 @@ Deno.serve(async (req) => {
         headers,
         body: JSON.stringify({ phone: chatId, image: midiaUrl, caption: captionEnvio }),
       });
-      if (!resp.ok) {
+      resultadoApi = await resp.json().catch(() => null);
+      const apiError = isZapiError(resultadoApi);
+      if (!resp.ok || apiError) {
         statusEnvio = 'erro';
-        erroEnvio = `Z-API HTTP ${resp.status}: ${await resp.text().catch(() => '')}`;
-      } else {
-        resultadoApi = await resp.json().catch(() => ({}));
+        erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else if (tipo === 'video' && midiaUrl) {
       const captionEnvio = mensagemWhatsApp || mensagemFinal || '';
@@ -120,11 +126,11 @@ Deno.serve(async (req) => {
         headers,
         body: JSON.stringify({ phone: chatId, video: midiaUrl, caption: captionEnvio }),
       });
-      if (!resp.ok) {
+      resultadoApi = await resp.json().catch(() => null);
+      const apiError = isZapiError(resultadoApi);
+      if (!resp.ok || apiError) {
         statusEnvio = 'erro';
-        erroEnvio = `Z-API HTTP ${resp.status}: ${await resp.text().catch(() => '')}`;
-      } else {
-        resultadoApi = await resp.json().catch(() => ({}));
+        erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else if (tipo === 'audio' && midiaUrl) {
       const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-ptt`, {
@@ -132,11 +138,11 @@ Deno.serve(async (req) => {
         headers,
         body: JSON.stringify({ phone: chatId, ptt: midiaUrl }),
       });
-      if (!resp.ok) {
+      resultadoApi = await resp.json().catch(() => null);
+      const apiError = isZapiError(resultadoApi);
+      if (!resp.ok || apiError) {
         statusEnvio = 'erro';
-        erroEnvio = `Z-API HTTP ${resp.status}: ${await resp.text().catch(() => '')}`;
-      } else {
-        resultadoApi = await resp.json().catch(() => ({}));
+        erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else if (tipo === 'documento' && midiaUrl) {
       const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-document`, {
@@ -144,17 +150,17 @@ Deno.serve(async (req) => {
         headers,
         body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileName || 'documento' }),
       });
-      if (!resp.ok) {
+      resultadoApi = await resp.json().catch(() => null);
+      const apiError = isZapiError(resultadoApi);
+      if (!resp.ok || apiError) {
         statusEnvio = 'erro';
-        erroEnvio = `Z-API HTTP ${resp.status}: ${await resp.text().catch(() => '')}`;
-      } else {
-        resultadoApi = await resp.json().catch(() => ({}));
+        erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else {
       return Response.json({ error: `Tipo "${tipo}" não suportado ou midiaUrl ausente` }, { status: 400 });
     }
 
-    // ═══ Registrar log e atualizar mensagem com ID do Z-API ═══
+    // Registrar log
     await base44.asServiceRole.entities.WhatsappEnvioLog.create({
       cliente_id: clienteId || '',
       cliente_nome: clienteNome || '',
@@ -172,14 +178,13 @@ Deno.serve(async (req) => {
       remetente_nome: nomeRemetente,
     });
 
-    // Atualizar mensagem com o messageId real do Z-API
-    if (msgRecord?.id && resultadoApi) {
+    // Atualizar mensagem com status real e messageId do Z-API
+    if (msgRecord?.id) {
       const zapiId = resultadoApi?.messageId || resultadoApi?.id || null;
-      if (zapiId) {
-        await base44.asServiceRole.entities.WhatsappMensagem.update(msgRecord.id, {
-          message_id: zapiId,
-        }).catch(() => null);
-      }
+      await base44.asServiceRole.entities.WhatsappMensagem.update(msgRecord.id, {
+        status_entrega: statusEnvio,
+        ...(zapiId ? { message_id: zapiId } : {}),
+      }).catch(() => null);
     }
 
     return Response.json({
