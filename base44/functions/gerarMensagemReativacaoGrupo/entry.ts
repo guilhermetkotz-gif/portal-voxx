@@ -8,6 +8,7 @@ Deno.serve(async (req) => {
 
         const body = await req.json();
         const {
+            cliente_id,
             cliente_nome,
             grupo_nome,
             tempo_sem_comunicacao,
@@ -40,14 +41,88 @@ Deno.serve(async (req) => {
             });
         }
 
+        // === ENRIQUECER DADOS META ADS ===
+        // Buscar otimizações por cliente_id E também por account_name (muitos registros não têm cliente_id)
+        let otimizacoesEnriquecidas = [...(otimizacoes_meta_ads || [])];
+        let contaMetaAdsData = null;
+
+        if (cliente_id && cliente_nome) {
+            try {
+                // 1. Buscar otimizações por cliente_id (caso o frontend já não tenha pego todas)
+                const porClienteId = await base44.asServiceRole.entities.MetaAdsOtimizacao.filter(
+                    { cliente_id }, '-created_date', 10
+                );
+
+                // 2. Buscar otimizações por account_name que contenha o nome do cliente
+                // Pega todas as otimizações recentes e filtra por nome (não tem like/search no filter)
+                const todasOtimizacoes = await base44.asServiceRole.entities.MetaAdsOtimizacao.list('-created_date', 50);
+                const nomeLower = cliente_nome.toLowerCase();
+                const porNome = todasOtimizacoes.filter(o => {
+                    const contaNome = (o.account_name || '').toLowerCase();
+                    const clienteNomeRecord = (o.cliente_nome || '').toLowerCase();
+                    return contaNome.includes(nomeLower) || clienteNomeRecord.includes(nomeLower);
+                });
+
+                // Merge sem duplicar
+                const idsJaAdicionados = new Set(otimizacoesEnriquecidas.map(o => o.conta_meta_ads_id).filter(Boolean));
+                for (const o of porClienteId) {
+                    if (o.conta_meta_ads_id && !idsJaAdicionados.has(o.conta_meta_ads_id)) {
+                        idsJaAdicionados.add(o.conta_meta_ads_id);
+                        otimizacoesEnriquecidas.push(o);
+                    }
+                }
+                for (const o of porNome) {
+                    if (o.conta_meta_ads_id && !idsJaAdicionados.has(o.conta_meta_ads_id)) {
+                        idsJaAdicionados.add(o.conta_meta_ads_id);
+                        otimizacoesEnriquecidas.push(o);
+                    }
+                }
+
+                // 3. Buscar ContaMetaAds pelo nome
+                const todasContas = await base44.asServiceRole.entities.ContaMetaAds.list(null, 100);
+                const contaMatch = todasContas.find(c => {
+                    const accName = (c.account_name || '').toLowerCase();
+                    return accName.includes(nomeLower) || nomeLower.includes(accName);
+                });
+                if (contaMatch) {
+                    contaMetaAdsData = contaMatch;
+                }
+            } catch (_) {
+                // Silencioso: se falhar enriquecimento, usa só o que o frontend mandou
+            }
+        }
+
         // Monta contexto de otimizações Meta Ads
         let contextoOtimizacoes = '';
-        if (otimizacoes_meta_ads && otimizacoes_meta_ads.length > 0) {
+        const temOtimizacoes = otimizacoesEnriquecidas.length > 0;
+
+        if (temOtimizacoes) {
             contextoOtimizacoes = 'Ações recentes de Meta Ads:\n';
-            otimizacoes_meta_ads.forEach(o => {
-                contextoOtimizacoes += `- ${o.problema ? 'Problema: ' + o.problema + '. ' : ''}${o.objetivo ? 'Objetivo: ' + o.objetivo + '. ' : ''}${o.acoes_implementadas ? 'Ações: ' + o.acoes_implementadas : ''}\n`;
+            otimizacoesEnriquecidas.slice(0, 10).forEach(o => {
+                const partes = [];
+                if (o.problema) partes.push('Problema: ' + o.problema);
+                if (o.objetivo) partes.push('Objetivo: ' + o.objetivo);
+                if (o.acoes_implementadas) partes.push('Ações: ' + o.acoes_implementadas);
+                contextoOtimizacoes += `- ${partes.join('. ')}\n`;
             });
         }
+
+        // Adiciona dados da ContaMetaAds se disponível
+        if (contaMetaAdsData) {
+            if (!contextoOtimizacoes) {
+                contextoOtimizacoes = 'Dados da conta Meta Ads:\n';
+            } else {
+                contextoOtimizacoes += '\nMétricas atuais da conta:\n';
+            }
+            if (contaMetaAdsData.leads != null) contextoOtimizacoes += `- Leads: ${contaMetaAdsData.leads}\n`;
+            if (contaMetaAdsData.cpl_meta_ads != null) contextoOtimizacoes += `- Custo por lead: R$ ${contaMetaAdsData.cpl_meta_ads}\n`;
+            if (contaMetaAdsData.amount_spent != null) contextoOtimizacoes += `- Investimento: R$ ${contaMetaAdsData.amount_spent}\n`;
+            if (contaMetaAdsData.nota_gpt != null) contextoOtimizacoes += `- Score da conta: ${contaMetaAdsData.nota_gpt}/100\n`;
+            if (contaMetaAdsData.classificacao) contextoOtimizacoes += `- Classificação: ${contaMetaAdsData.classificacao}\n`;
+            if (contaMetaAdsData.main_issue) contextoOtimizacoes += `- Principal atenção: ${contaMetaAdsData.main_issue}\n`;
+        }
+
+        const temDadosMetaAds = temOtimizacoes || !!contaMetaAdsData;
 
         // Monta contexto do Kanban
         let contextoKanban = '';
@@ -70,7 +145,7 @@ ${contextoMensagens || '(Sem mensagens recentes disponíveis)'}
 
 ${contextoDemandas || '(Sem demandas recentes)'}
 
-${contextoOtimizacoes || '(Sem ações de Meta Ads recentes)'}
+${contextoOtimizacoes || '(Sem dados de Meta Ads disponíveis)'}
 
 ${contextoKanban || '(Sem movimentações de Kanban recentes)'}
 
@@ -104,7 +179,7 @@ IMPORTANTE: Se há dados reais de otimizações, demandas ou movimentações, us
             resumo_contexto_usado: {
                 tem_mensagens: !!(mensagens_recentes && mensagens_recentes.length > 0),
                 tem_demandas: !!(demandas_recentes && demandas_recentes.length > 0),
-                tem_otimizacoes: !!(otimizacoes_meta_ads && otimizacoes_meta_ads.length > 0),
+                tem_otimizacoes: temDadosMetaAds,
                 tem_kanban: !!(dados_kanban && dados_kanban.length > 0),
             }
         });

@@ -98,6 +98,7 @@ export default function ModalReativacaoGrupo({ grupo, onClose, onSent }) {
     setErroGeracao(null);
     try {
       const res = await base44.functions.invoke('gerarMensagemReativacaoGrupo', {
+        cliente_id: clienteId || '',
         cliente_nome: clienteNome,
         grupo_nome: grupoNome,
         tempo_sem_comunicacao: horasSemMsg ? `${Math.floor(horasSemMsg)}h úteis` : 'vários dias',
