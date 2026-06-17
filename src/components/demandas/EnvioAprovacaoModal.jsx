@@ -64,8 +64,6 @@ export default function EnvioAprovacaoModal({ entrega, demanda, user, onClose })
       queryClient.invalidateQueries({ queryKey: ['ultimoEnvioAprovacao', entrega?.id] });
       if (data.status_envio === 'enviado') {
         toast.success('Mensagem enviada com sucesso!');
-      } else if (data.status_envio === 'rascunho') {
-        toast.warning('API não configurada. Envio salvo como rascunho.');
       } else {
         toast.error('Erro ao enviar: ' + (data.erro || 'Desconhecido'));
       }

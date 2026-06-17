@@ -84,37 +84,23 @@ function formatarMensagem(template, clienteNome, entregaNome, link) {
 }
 
 // --- Envio WhatsApp ---
-async function enviarWhatsApp(base44, grupoId, mensagem, zapiCreds) {
-  const endpointLovable = Deno.env.get('ENDPOINT_LOVABLE_ENVIO');
+async function enviarWhatsApp(grupoId, mensagem, zapiCreds) {
   const { zapiInstanceId, zapiToken, zapiClientToken } = zapiCreds;
 
-  // ROTA 1: Z-API direto (prioridade)
-  if (zapiInstanceId && zapiToken && zapiClientToken) {
-    const statusResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`, {
-      headers: { 'Client-Token': zapiClientToken }
-    });
-    const statusData = await statusResp.json().catch(() => ({}));
-    if (statusData.connected) {
-      const sendResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`, {
-        method: 'POST',
-        headers: { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: grupoId, message: mensagem })
-      });
-      return sendResp.ok;
-    }
-  }
+  if (!zapiInstanceId || !zapiToken || !zapiClientToken) return false;
 
-  // ROTA 2: Lovable como fallback
-  if (endpointLovable) {
-    const resp = await fetch(endpointLovable, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo: 'envio_aprovacao', grupo_whatsapp_id: grupoId, mensagem, tipo_midia: 'texto' })
-    });
-    return resp.ok;
-  }
+  const statusResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`, {
+    headers: { 'Client-Token': zapiClientToken }
+  });
+  const statusData = await statusResp.json().catch(() => ({}));
+  if (!statusData.connected) return false;
 
-  return false;
+  const sendResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`, {
+    method: 'POST',
+    headers: { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone: grupoId, message: mensagem })
+  });
+  return sendResp.ok;
 }
 
 // --- MAIN ---
@@ -177,7 +163,7 @@ Deno.serve(async (_req) => {
         const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
         const zapiCreds = await getZapiCredentials(base44);
-        const enviado = await enviarWhatsApp(base44, envio.whatsapp_grupo_id, mensagem, zapiCreds);
+        const enviado = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, zapiCreds);
 
         tarefa = await sdk.entities.TarefaAcompanhamento.create({
           cliente_id: envio.cliente_id,
@@ -256,7 +242,7 @@ Deno.serve(async (_req) => {
           const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
           const zapiCreds = await getZapiCredentials(base44);
-          const enviado = await enviarWhatsApp(base44, envio.whatsapp_grupo_id, mensagem, zapiCreds);
+          const enviado = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, zapiCreds);
 
           await sdk.entities.TarefaAcompanhamento.update(tarefa.id, {
             sequencia_lembrete: seq + 1,

@@ -5,12 +5,11 @@ const ZAPI_BASE = 'https://api.z-api.io';
 async function getZapiCredentials(base44) {
   const configs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1).catch(() => []);
   const entityConfig = configs?.[0];
-
-  const zapiInstanceId = entityConfig?.instance_id || Deno.env.get('ZAPI_INSTANCE_ID');
-  const zapiToken = entityConfig?.token_instancia || Deno.env.get('ZAPI_TOKEN');
-  const zapiClientToken = entityConfig?.token_global || Deno.env.get('ZAPI_CLIENT_TOKEN');
-
-  return { zapiInstanceId, zapiToken, zapiClientToken };
+  return {
+    zapiInstanceId: entityConfig?.instance_id || Deno.env.get('ZAPI_INSTANCE_ID'),
+    zapiToken: entityConfig?.token_instancia || Deno.env.get('ZAPI_TOKEN'),
+    zapiClientToken: entityConfig?.token_global || Deno.env.get('ZAPI_CLIENT_TOKEN'),
+  };
 }
 
 Deno.serve(async (req) => {
@@ -51,84 +50,55 @@ Deno.serve(async (req) => {
       : [];
     const demanda = demandaResults[0] || null;
 
-    let resultadoEnvio = null;
-    let statusEnvio = 'enviado';
-    let erroEnvio = null;
-    let tipoEnvioFinal = tipo_midia;
-
-    const endpointLovable = Deno.env.get('ENDPOINT_LOVABLE_ENVIO');
     const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
 
-    const payloadLovable = {
-      tipo: 'envio_aprovacao',
-      cliente_id: cliente.id,
-      demanda_id: entrega.demanda_id || null,
-      entrega_id: entrega.id,
-      grupo_whatsapp_id: grupoId,
-      mensagem,
-      link_aprovacao: entrega.link_publico_aprovacao,
-      midia_url: midia_url || null,
-      tipo_midia
-    };
-
-    // ROTA 1: Z-API direto (prioritário — mais confiável)
-    let zapiOnline = false;
-    if (zapiInstanceId && zapiToken && zapiClientToken) {
-      // Verificar status da instância
-      const statusResp = await fetch(
-        `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`,
-        { headers: { 'Client-Token': zapiClientToken } }
-      );
-      const statusData = await statusResp.json().catch(() => ({}));
-      if (statusData.connected && statusData.smartphoneConnected) {
-        zapiOnline = true;
-
-        // Decidir endpoint: imagem ou texto
-        let zapiEndpoint, zapiBody;
-        if (midia_url && tipo_midia === 'imagem') {
-          tipoEnvioFinal = 'imagem';
-          zapiEndpoint = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-image`;
-          zapiBody = { phone: grupoId, image: midia_url, caption: mensagem, viewOnce: false };
-        } else {
-          tipoEnvioFinal = 'texto';
-          zapiEndpoint = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
-          zapiBody = { phone: grupoId, message: mensagem };
-        }
-
-        const sendResp = await fetch(zapiEndpoint, {
-          method: 'POST',
-          headers: { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify(zapiBody)
-        });
-        if (!sendResp.ok) {
-          const errText = await sendResp.text().catch(() => '');
-          statusEnvio = 'erro';
-          erroEnvio = `Z-API HTTP ${sendResp.status}: ${errText}`;
-        } else {
-          resultadoEnvio = await sendResp.json().catch(() => ({}));
-        }
-      }
+    if (!zapiInstanceId || !zapiToken || !zapiClientToken) {
+      return Response.json({ error: 'Z-API não configurada. Configure os secrets ZAPI_INSTANCE_ID, ZAPI_TOKEN e ZAPI_CLIENT_TOKEN.' }, { status: 503 });
     }
 
-    // ROTA 2: Lovable como fallback (quando Z-API offline ou não configurada)
-    if (!zapiOnline && endpointLovable) {
-      tipoEnvioFinal = 'lovable';
-      const resp = await fetch(endpointLovable, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payloadLovable)
-      });
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => '');
-        statusEnvio = 'erro';
-        erroEnvio = `Lovable HTTP ${resp.status}: ${errText}`;
-      } else {
-        resultadoEnvio = await resp.json().catch(() => ({}));
-      }
+    // Verificar status da instância Z-API
+    const statusResp = await fetch(
+      `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`,
+      { headers: { 'Client-Token': zapiClientToken } }
+    );
+    const statusData = await statusResp.json().catch(() => ({}));
+
+    if (!statusData.connected || !statusData.smartphoneConnected) {
+      return Response.json({
+        error: 'Instância Z-API desconectada. Abra o WhatsApp vinculado e escaneie o QR code novamente.',
+        zapi_status: statusData
+      }, { status: 503 });
+    }
+
+    // Enviar via Z-API
+    let tipoEnvioFinal = tipo_midia;
+    let statusEnvio = 'enviado';
+    let erroEnvio = null;
+    let resultadoEnvio = null;
+
+    let zapiEndpoint, zapiBody;
+    if (midia_url && tipo_midia === 'imagem') {
+      tipoEnvioFinal = 'imagem';
+      zapiEndpoint = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-image`;
+      zapiBody = { phone: grupoId, image: midia_url, caption: mensagem, viewOnce: false };
     } else {
-      // Sem API configurada: salvar como rascunho apenas
-      statusEnvio = 'rascunho';
-      erroEnvio = 'Nenhuma API de envio configurada (ZAPI ou Lovable). Configure os secrets.';
+      tipoEnvioFinal = 'texto';
+      zapiEndpoint = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`;
+      zapiBody = { phone: grupoId, message: mensagem };
+    }
+
+    const sendResp = await fetch(zapiEndpoint, {
+      method: 'POST',
+      headers: { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(zapiBody)
+    });
+
+    if (!sendResp.ok) {
+      const errText = await sendResp.text().catch(() => '');
+      statusEnvio = 'erro';
+      erroEnvio = `Z-API HTTP ${sendResp.status}: ${errText}`;
+    } else {
+      resultadoEnvio = await sendResp.json().catch(() => ({}));
     }
 
     // Registrar envio
@@ -149,7 +119,7 @@ Deno.serve(async (req) => {
       enviado_por: user.email,
       enviado_por_nome: user.full_name || user.email,
       enviado_em: agora,
-      payload_enviado: payloadLovable,
+      payload_enviado: { tipo: 'envio_aprovacao', ...zapiBody },
       link_aprovacao: entrega.link_publico_aprovacao
     });
 
@@ -171,7 +141,7 @@ Deno.serve(async (req) => {
     }
 
     return Response.json({
-      success: statusEnvio === 'enviado' || statusEnvio === 'rascunho',
+      success: statusEnvio === 'enviado',
       status_envio: statusEnvio,
       registro_id: registro.id,
       erro: erroEnvio || null,
