@@ -61,22 +61,23 @@ Deno.serve(async (req) => {
             }
         );
 
-        const zapiData = await zapiResponse.json();
+        const zapiData = await zapiResponse.json().catch(() => null);
 
-        if (!zapiResponse.ok) {
+        // Z-API pode retornar HTTP 200 com erro no body
+        const apiError = zapiData?.error ? `Z-API: ${zapiData.error}${zapiData.message ? ' - ' + zapiData.message : ''}` : null;
+        if (!zapiResponse.ok || apiError) {
             console.error('Z-API error:', zapiData);
-            return Response.json({ error: 'Erro ao enviar via Z-API', details: zapiData }, { status: 500 });
+            return Response.json({ error: apiError || 'Erro ao enviar via Z-API', details: zapiData }, { status: 500 });
         }
 
-        // Atualizar otimização com dados do envio
-        await base44.asServiceRole.entities.MetaAdsOtimizacao.update(otimizacao_id, {
-            mensagem_cliente_enviada: mensagem,
-            enviado_whatsapp: true,
-            enviado_em: new Date().toISOString(),
-            enviado_por: user.email,
-            whatsapp_grupo_id: whatsappGrupoId,
-            whatsapp_message_id: zapiData?.messageId || zapiData?.zaapId || ''
-        });
+        const messageId = zapiData?.messageId || zapiData?.zaapId || '';
+
+        // Atualizar otimização (apenas campos existentes no schema)
+        try {
+            await base44.asServiceRole.entities.MetaAdsOtimizacao.update(otimizacao_id, {
+                comunicacao_enviada_fila: true
+            });
+        } catch (_) { /* non-critical */ }
 
         // Criar log de envio
         await base44.asServiceRole.entities.WhatsappEnvioLog.create({
@@ -90,12 +91,33 @@ Deno.serve(async (req) => {
             status_envio: 'enviado',
             retorno_zapi: JSON.stringify(zapiData),
             enviado_por: user.email,
+            enviado_por_nome: user.full_name || '',
             enviado_em: new Date().toISOString()
         });
 
+        // Salvar na tabela de mensagens para rastreabilidade
+        try {
+            await base44.asServiceRole.entities.WhatsappMensagem.create({
+                message_id: messageId || null,
+                cliente_id: cliente_id || otimizacao.cliente_id || null,
+                cliente_nome: otimizacao.cliente_nome || otimizacao.account_name || null,
+                grupo_id: whatsappGrupoId,
+                is_group: true,
+                remetente_nome: user.full_name || user.email,
+                remetente_tipo: 'voxx',
+                origem: 'enviada',
+                mensagem: mensagem,
+                tipo_mensagem: 'texto',
+                received_at: new Date().toISOString(),
+                from_me: true,
+                status_entrega: 'enviado',
+                status_processamento: 'ok',
+            });
+        } catch (_) { /* non-critical */ }
+
         return Response.json({
             success: true,
-            message_id: zapiData?.messageId || zapiData?.zaapId || '',
+            message_id: messageId,
             grupo_id: whatsappGrupoId
         });
     } catch (error) {
