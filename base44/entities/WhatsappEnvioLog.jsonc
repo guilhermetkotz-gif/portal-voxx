@@ -29,7 +29,8 @@
         "resumo_diario",
         "aprovacao_entrega",
         "manual",
-        "recebida"
+        "recebida",
+        "reativacao_grupo"
       ],
       "default": "resumo_diario"
     },

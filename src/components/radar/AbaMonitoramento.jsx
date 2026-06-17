@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell, MoonStar, MessageCircle, Send } from 'lucide-react';
+import { Search, Eye, AlertTriangle, Zap, Clock, CheckCircle, WifiOff, Bell, MoonStar, MessageCircle, Send, RefreshCw } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import GrupoDetalheDrawer from './GrupoDetalheDrawer';
 import ChatDrawer from './ChatDrawer';
 import ModalEnvioMassa from './ModalEnvioMassa';
+import ModalReativacaoGrupo from './ModalReativacaoGrupo';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -56,6 +57,7 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
   const [chatAberto, setChatAberto] = useState(null);
   const [gruposSelecionados, setGruposSelecionados] = useState(new Set());
   const [modalEnvioMassa, setModalEnvioMassa] = useState(false);
+  const [reativarGrupo, setReativarGrupo] = useState(null);
 
   const toggleGrupoSelecionado = (id) => {
     setGruposSelecionados(prev => {
@@ -255,6 +257,12 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
                             className="text-slate-400 hover:text-white hover:bg-slate-700 text-[11px] gap-1 h-7 px-2">
                             <Eye className="w-3 h-3" /> Detalhes
                           </Button>
+                          {g.inativo72h && g.status_vinculo === 'vinculado' && (
+                            <Button size="sm" variant="ghost" onClick={() => setReativarGrupo(g)}
+                              className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 text-[11px] gap-1 h-7 px-2">
+                              <RefreshCw className="w-3 h-3" /> Reativar
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -321,6 +329,15 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
           clienteNome={chatAberto.clienteNome}
           isGroup={chatAberto.isGroup}
           onClose={() => setChatAberto(null)}
+        />
+      )}
+
+      {/* Modal de reativação */}
+      {reativarGrupo && (
+        <ModalReativacaoGrupo
+          grupo={reativarGrupo}
+          onClose={() => setReativarGrupo(null)}
+          onSent={() => setReativarGrupo(null)}
         />
       )}
     </div>

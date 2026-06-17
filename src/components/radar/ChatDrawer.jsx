@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, CornerDownLeft } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, CornerDownLeft, RefreshCw } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -13,7 +13,9 @@ import 'moment-timezone';
 import { toast } from 'sonner';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
 import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
+import ModalReativacaoGrupo from '@/components/radar/ModalReativacaoGrupo';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
+import { calcularHorasUteisSemFimDeSemana } from '@/lib/minutosUteis';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -60,6 +62,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const [imagemColada, setImagemColada] = useState(null); // { file, previewUrl }
   const [respondendoA, setRespondendoA] = useState(null); // mensagem sendo respondida
   const [forwardMsg, setForwardMsg] = useState(null); // mensagem a encaminhar
+  const [showReativacaoModal, setShowReativacaoModal] = useState(false);
   const stickerInputRef = useRef(null);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -77,6 +80,17 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     staleTime: 10 * 1000,
     refetchInterval: 10 * 1000,
   });
+
+  // Verificar inatividade 72h+ do grupo
+  const inativo72h = (() => {
+    if (!isGroup || mensagens.length === 0) return false;
+    const msgsValidas = mensagens.filter(m => m.tipo_mensagem !== 'sem_conteudo' && m.tipo_mensagem !== 'sistema' && m.tipo_mensagem !== 'atividade');
+    if (msgsValidas.length === 0) return false;
+    const ultima = msgsValidas.sort((a, b) => (b.received_at > a.received_at ? 1 : -1))[0];
+    if (!ultima?.received_at) return false;
+    const horas = calcularHorasUteisSemFimDeSemana(ultima.received_at, new Date().toISOString());
+    return horas >= 72;
+  })();
 
   // Auto-scroll para baixo
   useEffect(() => {
@@ -470,6 +484,24 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
 
         {/* Mensagens */}
         <div className={`flex-1 overflow-y-auto px-4 py-3 ${t.bgMensagens}`} style={t.bgMensagensStyle} ref={scrollRef}>
+          {/* Sugestão de reativação para grupos inativos 72h+ */}
+          {inativo72h && (
+            <div className="mb-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-purple-400 text-lg">💤</span>
+                <span className="text-xs font-medium text-purple-300">
+                  Este grupo está sem comunicação há mais de 72h úteis
+                </span>
+              </div>
+              <button
+                onClick={() => setShowReativacaoModal(true)}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Gerar mensagem de reativação
+              </button>
+            </div>
+          )}
           <div className="space-y-2">
             {loadingMsgs ? (
               <div className="flex justify-center py-12">
@@ -991,6 +1023,24 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
           open={!!forwardMsg}
           onOpenChange={(isOpen) => { if (!isOpen) setForwardMsg(null); }}
           mensagem={forwardMsg}
+        />
+      )}
+
+      {/* Modal de reativação */}
+      {showReativacaoModal && (
+        <ModalReativacaoGrupo
+          grupo={{
+            grupo_id: chatId,
+            nome_grupo: chatName || '',
+            cliente_id: clienteId,
+            cliente_nome: clienteNome || '',
+            horasSemMensagem: 72,
+            ultimaGeral: mensagens.length > 0 ? mensagens[0] : null,
+            inativo72h: true,
+            status_vinculo: 'vinculado',
+          }}
+          onClose={() => setShowReativacaoModal(false)}
+          onSent={() => setShowReativacaoModal(false)}
         />
       )}
     </div>

@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, User, Clock, MessageSquare, Wifi, WifiOff, AlertTriangle, Zap, Link2, Users, Info, FileText, Pencil, Check, Loader2, UserPlus, UserMinus, LogOut } from 'lucide-react';
+import { X, User, Clock, MessageSquare, Wifi, WifiOff, AlertTriangle, Zap, Link2, Users, Info, FileText, Pencil, Check, Loader2, UserPlus, UserMinus, LogOut, MoonStar, RefreshCw } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
+import ModalReativacaoGrupo from './ModalReativacaoGrupo';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -34,6 +35,7 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
   const [novoTelefone, setNovoTelefone] = useState('');
   const [adicionandoMembro, setAdicionandoMembro] = useState(false);
   const [acaoMembroId, setAcaoMembroId] = useState(null);
+  const [showReativacao, setShowReativacao] = useState(false);
 
   // ── Dados do grupo via Z-API ──
   const { data: grupoZapi, isLoading: loadingGrupoZapi, refetch: refetchGrupoZapi } = useQuery({
@@ -364,6 +366,27 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
               </div>
             </div>
 
+            {/* Reativação de grupo inativo 72h+ */}
+            {grupo.inativo72h && grupo.status_vinculo === 'vinculado' && (
+              <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <MoonStar className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm font-semibold text-purple-300">Grupo inativo há {Math.floor(grupo.horasSemMensagem / 24)}d</span>
+                </div>
+                <p className="text-xs text-purple-400/70 mb-3">
+                  Este grupo está sem comunicação há mais de 72h úteis. Gere uma mensagem de reativação personalizada com base no contexto do cliente.
+                </p>
+                <Button
+                  size="sm"
+                  className="bg-purple-600 hover:bg-purple-500 text-white gap-2 text-xs w-full"
+                  onClick={() => setShowReativacao(true)}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Gerar mensagem de reativação
+                </Button>
+              </div>
+            )}
+
             {/* Tempo sem resposta */}
             {grupo.minutosSemResposta > 0 && (
               <div className={`rounded-xl border p-4 ${alertaCfg || 'bg-slate-800 border-slate-700'}`}>
@@ -404,6 +427,15 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal de reativação */}
+      {showReativacao && (
+        <ModalReativacaoGrupo
+          grupo={grupo}
+          onClose={() => setShowReativacao(false)}
+          onSent={() => setShowReativacao(false)}
+        />
+      )}
     </div>
   );
 }
