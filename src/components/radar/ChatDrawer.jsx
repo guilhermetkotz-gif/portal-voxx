@@ -12,6 +12,7 @@ import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
+import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 
 const TZ = 'America/Sao_Paulo';
@@ -58,6 +59,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const [stickerOpen, setStickerOpen] = useState(false);
   const [imagemColada, setImagemColada] = useState(null); // { file, previewUrl }
   const [respondendoA, setRespondendoA] = useState(null); // mensagem sendo respondida
+  const [forwardMsg, setForwardMsg] = useState(null); // mensagem a encaminhar
   const stickerInputRef = useRef(null);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -569,8 +571,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                   localStorage.setItem('chat_fixadas', JSON.stringify(fixadas));
                 };
 
-                const handleForwardMessage = () => {
-                  toast('Encaminhar mensagem — em breve', { description: 'Selecione um grupo ou contato para encaminhar.' });
+                const handleForwardMessage = (msg) => {
+                  setForwardMsg(msg);
                 };
 
                 return (
@@ -745,7 +747,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                     <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => handlePinMessage(m)}>
                       <Pin className="w-4 h-4" /> Fixar
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={handleForwardMessage}>
+                    <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => handleForwardMessage(m)}>
                       <Forward className="w-4 h-4" /> Encaminhar
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -959,6 +961,15 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
           </div>
         </div>
       </div>
+
+      {/* Modal de encaminhamento */}
+      {forwardMsg && (
+        <ForwardMessageModal
+          open={!!forwardMsg}
+          onOpenChange={(isOpen) => { if (!isOpen) setForwardMsg(null); }}
+          mensagem={forwardMsg}
+        />
+      )}
     </div>
   );
 }
