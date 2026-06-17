@@ -1156,23 +1156,19 @@ export default function ChatHubDrawer({ onClose, user }) {
                             <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => setRespondendoA(m)}>
                               <Reply className="w-4 h-4" /> Responder
                             </DropdownMenuItem>
-                            <div className="relative group/reagir">
-                              <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer peer" onClick={(e) => e.preventDefault()}>
-                                <SmilePlus className="w-4 h-4" /> Reagir
-                              </DropdownMenuItem>
-                              <div className={`absolute ${isVoxx ? '-left-2' : '-right-2'} top-0 -translate-x-full opacity-0 group-hover/reagir:opacity-100 transition-opacity z-50`}>
-                                <div className={`flex gap-0.5 p-1.5 rounded-xl border ${t.popoverBorder} ${t.popoverBg} shadow-xl`}>
-                                  {REACTIONS.map((emoji) => (
-                                    <button
-                                      key={emoji}
-                                      className={`w-8 h-8 flex items-center justify-center rounded-full text-lg ${t.popoverHover} transition-colors`}
-                                      onClick={() => handleReaction(m.message_id || m.id, emoji)}
-                                    >
-                                      {emoji}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
+                            <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-default" onSelect={(e) => e.preventDefault()}>
+                              <SmilePlus className="w-4 h-4" /> Reagir
+                            </DropdownMenuItem>
+                            <div className="flex gap-0.5 px-3 pb-2">
+                              {REACTIONS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  className={`w-8 h-8 flex items-center justify-center rounded-full text-lg ${t.popoverHover} transition-colors`}
+                                  onClick={() => handleReaction(m.message_id || m.id, emoji)}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
                             </div>
                             <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => handleFavoriteMessage(m)}>
                               <Star className="w-4 h-4" /> Favoritar
