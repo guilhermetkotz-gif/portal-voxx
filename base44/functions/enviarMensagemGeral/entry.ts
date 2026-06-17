@@ -133,10 +133,10 @@ Deno.serve(async (req) => {
         erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else if (tipo === 'audio' && midiaUrl) {
-      const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-ptt`, {
+      const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-audio`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ phone: chatId, ptt: midiaUrl }),
+        body: JSON.stringify({ phone: chatId, audio: midiaUrl }),
       });
       resultadoApi = await resp.json().catch(() => null);
       const apiError = isZapiError(resultadoApi);
