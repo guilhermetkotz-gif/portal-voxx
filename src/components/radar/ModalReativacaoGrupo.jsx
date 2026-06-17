@@ -32,33 +32,35 @@ export default function ModalReativacaoGrupo({ grupo, onClose, onSent }) {
   const ultimaMsg = grupo?.ultimaGeral?.received_at || grupo?.ultima_atividade;
 
   // Buscar dados para o contexto
-  const { data: mensagensCtx = [] } = useQuery({
+  const { data: mensagensCtx = [], isLoading: loadingMsgs } = useQuery({
     queryKey: ['reativacaoMsgs', grupoId],
     queryFn: () => base44.entities.WhatsappMensagem.filter({ grupo_id: grupoId }, '-received_at', 20),
     enabled: !!grupoId,
     staleTime: 30 * 1000,
   });
 
-  const { data: demandasCtx = [] } = useQuery({
+  const { data: demandasCtx = [], isLoading: loadingDemandas } = useQuery({
     queryKey: ['reativacaoDemandas', clienteId],
     queryFn: () => base44.entities.Demanda.filter({ cliente_id: clienteId }, '-updated_date', 10),
     enabled: !!clienteId,
     staleTime: 60 * 1000,
   });
 
-  const { data: otimizacoesCtx = [] } = useQuery({
+  const { data: otimizacoesCtx = [], isLoading: loadingOtim } = useQuery({
     queryKey: ['reativacaoOtimizacoes', clienteId],
     queryFn: () => base44.entities.MetaAdsOtimizacao.filter({ cliente_id: clienteId }, '-created_date', 10),
     enabled: !!clienteId,
     staleTime: 60 * 1000,
   });
 
-  const { data: kanbanCtx = [] } = useQuery({
+  const { data: kanbanCtx = [], isLoading: loadingKanban } = useQuery({
     queryKey: ['reativacaoKanban', clienteId],
     queryFn: () => base44.entities.DemandaHistoricoSetor.filter({ cliente_id: clienteId }, '-created_date', 10),
     enabled: !!clienteId,
     staleTime: 60 * 1000,
   });
+
+  const queriesCarregadas = !loadingMsgs && !loadingDemandas && !loadingOtim && !loadingKanban;
 
   // Verificar se já houve reativação recente (últimos 3 dias úteis)
   const { data: logsRecentes = [] } = useQuery({
@@ -85,11 +87,11 @@ export default function ModalReativacaoGrupo({ grupo, onClose, onSent }) {
     return diasUteis < 3;
   })();
 
-  // Gerar mensagem quando os dados estiverem disponíveis
+  // Gerar mensagem somente quando todas as queries tiverem carregado
   useEffect(() => {
-    if (!clienteNome) return;
+    if (!clienteNome || !queriesCarregadas) return;
     gerarMensagem();
-  }, [clienteNome]);
+  }, [clienteNome, queriesCarregadas]);
 
   const gerarMensagem = async () => {
     setGerando(true);
