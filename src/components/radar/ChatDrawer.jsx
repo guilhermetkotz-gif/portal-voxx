@@ -194,9 +194,11 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (blob.size < 100) return; // muito curto
 
+        const audioFile = new File([blob], 'audio.webm', { type: 'audio/webm' });
+
         setEnviando(true);
         try {
-          const uploadRes = await base44.integrations.Core.UploadFile({ file: blob });
+          const uploadRes = await base44.integrations.Core.UploadFile({ file: audioFile });
           // Invalida antes da resposta — backend salva msg antes de chamar Z-API
           queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
           queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });

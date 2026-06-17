@@ -488,9 +488,10 @@ export default function ChatHubDrawer({ onClose, user }) {
         setGravando(false);
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         if (blob.size < 100 || !selectedChat) return;
+        const audioFile = new File([blob], 'audio.webm', { type: 'audio/webm' });
         setEnviando(true);
         try {
-          const uploadRes = await base44.integrations.Core.UploadFile({ file: blob });
+          const uploadRes = await base44.integrations.Core.UploadFile({ file: audioFile });
           // Invalida antes da resposta — backend salva msg antes de chamar Z-API
           queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
           queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
