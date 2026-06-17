@@ -145,7 +145,8 @@ Deno.serve(async (req) => {
         erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else if (tipo === 'documento' && midiaUrl) {
-      const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-document`, {
+      const ext = (fileName || midiaUrl || '').split('.').pop()?.toLowerCase() || 'pdf';
+      const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-document/${ext}`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileName || 'documento' }),
