@@ -134,6 +134,7 @@ export default function ChatHubDrawer({ onClose, user }) {
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
   const [imagemColada, setImagemColada] = useState(null); // { file, previewUrl }
+  const [arquivoSelecionado, setArquivoSelecionado] = useState(null); // { file, previewUrl, tipo }
   const [respondendoA, setRespondendoA] = useState(null); // mensagem sendo respondida
   const [forwardMsg, setForwardMsg] = useState(null); // mensagem a encaminhar
   const scrollRef = useRef(null);
@@ -395,22 +396,25 @@ export default function ChatHubDrawer({ onClose, user }) {
     const texto = mensagem.trim();
     if (enviando || !selectedChat) return;
 
-    // Se tem imagem colada, envia a imagem (com texto opcional como legenda)
-    if (imagemColada) {
+    const midiaParaEnviar = imagemColada || arquivoSelecionado;
+
+    // Se tem imagem colada ou arquivo selecionado, envia a mídia (com texto opcional como legenda)
+    if (midiaParaEnviar) {
       setEnviando(true);
-      // Limpa preview imediatamente
-      const imgFile = imagemColada.file;
-      const imgPreview = imagemColada.previewUrl;
+      const file = midiaParaEnviar.file;
+      const previewUrl = midiaParaEnviar.previewUrl;
+      const tipoMidia = midiaParaEnviar.tipo || 'imagem';
       setMensagem('');
       setImagemColada(null);
+      setArquivoSelecionado(null);
       try {
-        const uploadRes = await base44.integrations.Core.UploadFile({ file: imgFile });
+        const uploadRes = await base44.integrations.Core.UploadFile({ file });
         const res = await base44.functions.invoke('enviarMensagemGeral', {
           chatId: selectedChat.id,
-          tipo: 'imagem',
+          tipo: tipoMidia,
           mensagem: texto || '',
           midiaUrl: uploadRes.file_url,
-          fileName: imgFile.name || 'imagem.png',
+          fileName: file.name || (tipoMidia === 'imagem' ? 'imagem.png' : tipoMidia === 'video' ? 'video.mp4' : 'documento'),
           incluirAssinatura: false,
           clienteId: selectedChat.clienteId || '',
           clienteNome: selectedChat.clienteNome || '',
@@ -421,12 +425,13 @@ export default function ChatHubDrawer({ onClose, user }) {
           queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
           queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
         } else {
-          toast.error(res.data?.erro || 'Erro ao enviar imagem');
+          toast.error(res.data?.erro || 'Erro ao enviar arquivo');
         }
       } catch (e) {
-        toast.error('Erro ao enviar imagem: ' + (e.message || 'Desconhecido'));
+        toast.error('Erro ao enviar arquivo: ' + (e.message || 'Desconhecido'));
       } finally {
         setEnviando(false);
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
       }
       return;
     }
@@ -468,41 +473,30 @@ export default function ChatHubDrawer({ onClose, user }) {
     }
   };
 
-  const handleFileSelect = async (e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file || !selectedChat) return;
     e.target.value = '';
-    setEnviando(true);
-    try {
-      const uploadRes = await base44.integrations.Core.UploadFile({ file });
-      let tipo = 'documento';
-      if (file.type.startsWith('image/')) tipo = 'imagem';
-      else if (file.type.startsWith('video/')) tipo = 'video';
 
-      // Invalida antes da resposta — backend salva msg antes de chamar Z-API
-      queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
-      queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-      queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
-
-      const res = await base44.functions.invoke('enviarMensagemGeral', {
-        chatId: selectedChat.id,
-        tipo,
-        midiaUrl: uploadRes.file_url,
-        fileName: file.name,
-        incluirAssinatura: false,
-        clienteId: selectedChat.clienteId || '',
-        clienteNome: selectedChat.clienteNome || '',
-        chatName: selectedChat.name || '',
-      });
-      if (!res.data?.success) {
-        toast.error(res.data?.erro || 'Erro ao enviar arquivo');
-        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
-      }
-    } catch (e) {
-      toast.error('Erro ao enviar arquivo');
-    } finally {
-      setEnviando(false);
+    let tipo = 'documento';
+    let previewUrl = null;
+    if (file.type.startsWith('image/')) {
+      tipo = 'imagem';
+      previewUrl = URL.createObjectURL(file);
+    } else if (file.type.startsWith('video/')) {
+      tipo = 'video';
+      previewUrl = URL.createObjectURL(file);
     }
+
+    if (imagemColada) {
+      URL.revokeObjectURL(imagemColada.previewUrl);
+      setImagemColada(null);
+    }
+    if (arquivoSelecionado?.previewUrl) {
+      URL.revokeObjectURL(arquivoSelecionado.previewUrl);
+    }
+
+    setArquivoSelecionado({ file, previewUrl, tipo });
   };
 
   const startRecording = async () => {
@@ -1248,6 +1242,29 @@ export default function ChatHubDrawer({ onClose, user }) {
                     </button>
                   </div>
                 )}
+                {arquivoSelecionado && (
+                  <div className="mb-2 relative inline-block">
+                    {arquivoSelecionado.tipo === 'imagem' && arquivoSelecionado.previewUrl ? (
+                      <img src={arquivoSelecionado.previewUrl} alt="Preview" className={`max-h-32 rounded-lg border ${t.borderLight}`} />
+                    ) : arquivoSelecionado.tipo === 'video' && arquivoSelecionado.previewUrl ? (
+                      <video src={arquivoSelecionado.previewUrl} className={`max-h-32 rounded-lg border ${t.borderLight}`} controls />
+                    ) : (
+                      <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${t.borderLight} ${t.bg}`}>
+                        <FileText className="w-5 h-5 text-slate-400" />
+                        <span className={`text-xs ${t.textSecondary} truncate max-w-[200px]`}>{arquivoSelecionado.file.name}</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (arquivoSelecionado.previewUrl) URL.revokeObjectURL(arquivoSelecionado.previewUrl);
+                        setArquivoSelecionado(null);
+                      }}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   {/* Anexo + menu */}
                   <Popover>
@@ -1337,7 +1354,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                     <button className="w-10 h-10 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50 shrink-0" onClick={stopRecording}>
                       <MicOff className="w-5 h-5" />
                     </button>
-                  ) : (mensagem.trim() || imagemColada) ? (
+                  ) : (mensagem.trim() || imagemColada || arquivoSelecionado) ? (
                     <button className={`w-10 h-10 flex items-center justify-center rounded-full text-white ${t.sendBtnBg} shrink-0 transition-colors`} onClick={handleSend} disabled={enviando}>
                       {enviando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
