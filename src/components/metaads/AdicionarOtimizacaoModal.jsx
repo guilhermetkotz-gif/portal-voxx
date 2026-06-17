@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Calendar, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import EnviarOtimizacaoWhatsAppModal from '@/components/metaads/EnviarOtimizacaoWhatsAppModal';
 
 export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) {
     const [formData, setFormData] = useState({
@@ -16,6 +17,9 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
         objetivo: '',
         acoes_implementadas: ''
     });
+    const [createdOtimizacao, setCreatedOtimizacao] = useState(null);
+    const [clienteEnvio, setClienteEnvio] = useState(null);
+    const [showEnvioModal, setShowEnvioModal] = useState(false);
 
     const queryClient = useQueryClient();
 
@@ -25,9 +29,25 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
         staleTime: 5 * 60 * 1000
     });
 
+    // Buscar clientes para vincular automaticamente
+    const { data: clientes = [] } = useQuery({
+        queryKey: ['clientesMetaAdsModal'],
+        queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
+        staleTime: 5 * 60 * 1000
+    });
+
+    const encontrarCliente = async (accountName) => {
+        if (!accountName || !clientes.length) return null;
+        const cliente = clientes.find(c =>
+            c.nome === accountName ||
+            c.meta_ads_account_name === accountName ||
+            (Array.isArray(c.contas_anuncio) && c.contas_anuncio.some(ca => ca.plataforma === 'Meta' && ca.conta_nome === accountName))
+        );
+        return cliente || null;
+    };
+
     const createMutation = useMutation({
         mutationFn: async (data) => {
-            // Gerar resumo automático (primeiras 150 caracteres ou primeira frase)
             let resumo = data.acoes_implementadas;
             if (resumo.length > 150) {
                 resumo = resumo.substring(0, 150);
@@ -37,9 +57,13 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
                 }
             }
 
+            const cliente = await encontrarCliente(conta?.account_name);
+
             const otimizacao = {
                 conta_meta_ads_id: conta.id,
                 account_name: conta.account_name,
+                cliente_id: cliente?.id || '',
+                cliente_nome: cliente?.nome || '',
                 data_acao: data.data_acao,
                 problema: data.problema,
                 objetivo: data.objetivo,
@@ -51,7 +75,7 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
 
             return base44.entities.MetaAdsOtimizacao.create(otimizacao);
         },
-        onSuccess: () => {
+        onSuccess: async (result) => {
             queryClient.invalidateQueries({ queryKey: ['metaAdsOtimizacoes'] });
             toast.success('Otimização registrada com sucesso');
             setFormData({
@@ -60,7 +84,24 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
                 objetivo: '',
                 acoes_implementadas: ''
             });
-            onOpenChange(false);
+
+            // Buscar o registro criado e o cliente vinculado
+            const otimizacaoId = result?.id;
+            if (otimizacaoId) {
+                const [otimizacao, cliente] = await Promise.all([
+                    base44.entities.MetaAdsOtimizacao.get(otimizacaoId),
+                    encontrarCliente(conta?.account_name)
+                ]);
+                if (otimizacao && cliente) {
+                    setCreatedOtimizacao(otimizacao);
+                    setClienteEnvio(cliente);
+                    setShowEnvioModal(true);
+                } else {
+                    onOpenChange(false);
+                }
+            } else {
+                onOpenChange(false);
+            }
         },
         onError: (error) => {
             toast.error('Erro ao registrar otimização: ' + error.message);
@@ -168,6 +209,23 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
                         </Button>
                     </div>
                 </form>
+
+                {/* Modal de envio WhatsApp (após criar otimização) */}
+                {createdOtimizacao && (
+                    <EnviarOtimizacaoWhatsAppModal
+                        open={showEnvioModal}
+                        onOpenChange={(isOpen) => {
+                            setShowEnvioModal(isOpen);
+                            if (!isOpen) {
+                                setCreatedOtimizacao(null);
+                                setClienteEnvio(null);
+                                onOpenChange(false);
+                            }
+                        }}
+                        otimizacao={createdOtimizacao}
+                        cliente={clienteEnvio}
+                    />
+                )}
             </DialogContent>
         </Dialog>
     );
