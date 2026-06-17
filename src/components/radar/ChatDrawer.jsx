@@ -115,6 +115,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         if (res.data?.success) {
           queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
           queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+          concluirTagsAtivas();
         } else {
           toast.error(res.data?.erro || 'Erro ao enviar imagem');
         }
@@ -155,6 +156,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       if (!res.data?.success) {
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
         queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+      } else {
+        concluirTagsAtivas();
       }
     } catch (e) {
       toast.error('Erro ao enviar: ' + (e.message || 'Desconhecido'));
@@ -197,6 +200,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       if (!res.data?.success) {
         toast.error(res.data?.erro || 'Erro ao enviar arquivo');
         queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+      } else {
+        concluirTagsAtivas();
       }
     } catch (e) {
       toast.error('Erro ao enviar arquivo: ' + (e.message || 'Desconhecido'));
@@ -247,6 +252,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
           if (!res.data?.success) {
             toast.error(res.data?.erro || 'Erro ao enviar áudio');
             queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+          } else {
+            concluirTagsAtivas();
           }
         } catch (e) {
           toast.error('Erro ao enviar áudio: ' + (e.message || 'Desconhecido'));
@@ -292,6 +299,20 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   };
 
   // Reagir a uma mensagem
+  // Conclui tags "AGUARD. RETORNO" ativas da conversa atual
+  const concluirTagsAtivas = async () => {
+    if (!chatId) return;
+    try {
+      const tags = await base44.entities.TagConversa.filter({ grupo_id: chatId, status: 'ativa' });
+      for (const tag of tags) {
+        await base44.entities.TagConversa.update(tag.id, { status: 'concluida' });
+      }
+      if (tags.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['chatHubTagsAtivas'] });
+      }
+    } catch (_) { /* silencioso */ }
+  };
+
   const handleReaction = async (messageId, emoji) => {
     try {
       const res = await base44.functions.invoke('enviarReacaoWhatsApp', {
@@ -301,6 +322,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       });
       if (res.data?.success) {
         toast.success(`Reação ${emoji} enviada`);
+        concluirTagsAtivas();
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar reação');
       }
@@ -374,6 +396,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         setStickerOpen(false);
         queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
         queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+        concluirTagsAtivas();
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar sticker');
       }
