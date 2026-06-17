@@ -75,6 +75,7 @@ Deno.serve(async (req) => {
       midia_nome: fileName || null,
       received_at: agora,
       from_me: true,
+      status_entrega: 'enviado',
       status_processamento: 'ok',
     }).catch(() => null);
 

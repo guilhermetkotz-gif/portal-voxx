@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import moment from 'moment';
@@ -619,6 +619,17 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                             </div>
                           </PopoverContent>
                         </Popover>
+                        {isVoxx && (
+                          <span className="flex items-center gap-0.5">
+                            {m.status_entrega === 'lido' ? (
+                              <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
+                            ) : m.status_entrega === 'entregue' ? (
+                              <CheckCheck className="w-3.5 h-3.5 opacity-50" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5 opacity-40" />
+                            )}
+                          </span>
+                        )}
                         <p className={`text-[10px] ${isVoxx ? t.textTimestamp : t.textTimestampIn}`}>
                           {formatarDataHora(ts)}
                         </p>

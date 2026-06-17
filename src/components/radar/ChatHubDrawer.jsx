@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
@@ -1078,6 +1078,17 @@ export default function ChatHubDrawer({ onClose, user }) {
                                   </div>
                                 </PopoverContent>
                               </Popover>
+                              {isVoxx && (
+                                <span className="flex items-center gap-0.5">
+                                  {m.status_entrega === 'lido' ? (
+                                    <CheckCheck className="w-3.5 h-3.5 text-blue-400" />
+                                  ) : m.status_entrega === 'entregue' ? (
+                                    <CheckCheck className="w-3.5 h-3.5 opacity-50" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5 opacity-40" />
+                                  )}
+                                </span>
+                              )}
                               <p className={`text-[10px] ${isVoxx ? t.textTimestamp : t.textTimestampIn}`}>
                                 {formatarDataHora(ts)}
                               </p>
