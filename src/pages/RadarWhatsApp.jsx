@@ -46,6 +46,13 @@ export default function RadarWhatsApp({ user }) {
     staleTime: 60 * 1000,
   });
 
+  const { data: zapiStatus } = useQuery({
+    queryKey: ['zapiStatus'],
+    queryFn: () => base44.functions.invoke('zapiStatus').then(r => r.data),
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
   const { data: rawWebhooks = [] } = useQuery({
     queryKey: ['radarRawWebhooks'],
     queryFn: () => base44.entities.WhatsappWebhookRaw.list('-received_at', 50),
@@ -247,6 +254,33 @@ export default function RadarWhatsApp({ user }) {
           </div>
         </div>
       </div>
+
+      {/* Alerta Z-API desconectada */}
+      {zapiStatus && !zapiStatus.connected && (
+        <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 p-4 flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-red-500/20 rounded-lg">
+              <WifiOff className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-red-400 text-sm">Z-API Desconectada</p>
+              <p className="text-xs text-red-300/80">
+                {zapiStatus.error || 'A instância WhatsApp não está conectada. As mensagens automáticas e envios manuais não funcionarão até a reconexão.'}
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="ml-auto border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['zapiStatus'] });
+            }}
+          >
+            Verificar agora
+          </Button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3 mb-6">
