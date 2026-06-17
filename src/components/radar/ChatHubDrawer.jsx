@@ -17,6 +17,22 @@ import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
 
 const TZ = 'America/Sao_Paulo';
 
+function renderizarTextoComLinks(texto, className) {
+  if (!texto) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const partes = texto.split(urlRegex);
+  return (
+    <p className={className}>
+      {partes.map((parte, i) => {
+        if (urlRegex.test(parte)) {
+          return <a key={i} href={parte} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:decoration-solid break-all">{parte}</a>;
+        }
+        return <span key={i}>{parte}</span>;
+      })}
+    </p>
+  );
+}
+
 function formatarDataHora(ts) {
   if (!ts) return '';
   const m = moment.utc(ts).tz(TZ);
@@ -961,7 +977,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                           );
                         }
                         const textoLimpo = (m.mensagem || '').replace(/\n*— [^\n]+ \| Voxx\n*$/, '').trim();
-                        return <p className="whitespace-pre-wrap break-words">{textoLimpo || '[Sem conteúdo]'}</p>;
+                        return renderizarTextoComLinks(textoLimpo || '[Sem conteúdo]', 'whitespace-pre-wrap break-words');
                       };
 
                       return (
@@ -1014,7 +1030,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                             )}
                             {renderContent()}
                             {(m.tipo_mensagem === 'imagem' || m.tipo_mensagem === 'video') && m.mensagem && m.mensagem !== '[Imagem]' && m.mensagem !== '[Vídeo]' && (
-                              <p className="mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90">{m.mensagem}</p>
+                              renderizarTextoComLinks(m.mensagem, 'mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90')
                             )}
                             {/* Reações */}
                             {m.reacoes && m.reacoes.length > 0 && (
