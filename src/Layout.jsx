@@ -13,6 +13,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ChatWidget from '@/components/chat/ChatWidget';
 import ReuniaoLembrete from '@/components/agenda/ReuniaoLembrete';
+import RetornoClienteToast from '@/components/notificacoes/RetornoClienteToast';
 import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
@@ -168,6 +169,14 @@ export default function Layout({ children, currentPageName }) {
     },
     enabled: !!user?.email && !!selectedClienteId,
     staleTime: 60 * 1000
+  });
+
+  // Notificações de aprovação/retorno do cliente (para o sino)
+  const { data: notificacoesAprovacao = [] } = useQuery({
+    queryKey: ['notificacoesAprovacao', 'header'],
+    queryFn: () => base44.entities.NotificacaoAprovacao.filter({ lida: false }, '-created_date', 20),
+    enabled: !!user && (isVoxxUserEarly),
+    staleTime: 30 * 1000,
   });
 
   const { data: pendingDemandas = [] } = useQuery({
@@ -348,6 +357,7 @@ export default function Layout({ children, currentPageName }) {
           clientes={clientes}
           onChangeCliente={handleChangeCliente}
           notificacoes={notificacoes}
+          notificacoesAprovacao={notificacoesAprovacao}
           onMobileMenuClick={() => setMobileMenuOpen(true)}
         />
         <div className="p-4 lg:p-8">
@@ -369,6 +379,9 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Toaster for notifications */}
       <Toaster />
+
+      {/* Toast grande de retorno de cliente */}
+      {user && isVoxxUserEarly && <RetornoClienteToast />}
     </div>
   );
 }

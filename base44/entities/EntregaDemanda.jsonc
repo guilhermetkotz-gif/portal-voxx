@@ -86,6 +86,11 @@
       "type": "string",
       "description": "Mensagem vis\u00edvel ao cliente na p\u00e1gina p\u00fablica"
     },
+    "retorno_cliente_tratado": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se o retorno do cliente (aprova\u00e7\u00e3o/altera\u00e7\u00e3o) j\u00e1 foi tratado pela equipe. false = pendente de a\u00e7\u00e3o."
+    },
     "data_envio": {
       "type": "string",
       "format": "date-time"

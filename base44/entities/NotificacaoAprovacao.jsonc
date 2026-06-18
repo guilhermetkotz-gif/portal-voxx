@@ -1,0 +1,65 @@
+{
+  "name": "NotificacaoAprovacao",
+  "type": "object",
+  "properties": {
+    "tipo_notificacao": {
+      "type": "string",
+      "enum": [
+        "entrega_aprovada_cliente",
+        "alteracao_solicitada_cliente"
+      ],
+      "description": "Tipo de retorno do cliente"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "demanda_id": {
+      "type": "string"
+    },
+    "demanda_titulo": {
+      "type": "string"
+    },
+    "entrega_id": {
+      "type": "string"
+    },
+    "entrega_nome": {
+      "type": "string"
+    },
+    "status_aprovacao": {
+      "type": "string",
+      "enum": [
+        "aprovado",
+        "solicitacao_alteracao"
+      ],
+      "description": "Status da resposta do cliente"
+    },
+    "comentario_cliente": {
+      "type": "string",
+      "description": "Observa\u00e7\u00e3o/coment\u00e1rio enviado pelo cliente"
+    },
+    "lida": {
+      "type": "boolean",
+      "default": false
+    },
+    "visualizada_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_resposta_cliente": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que o cliente respondeu"
+    },
+    "resposta_aprovacao_id": {
+      "type": "string",
+      "description": "ID do registro RespostaAprovacaoEntrega (chave de deduplica\u00e7\u00e3o)"
+    }
+  },
+  "required": [
+    "tipo_notificacao",
+    "entrega_id"
+  ]
+}

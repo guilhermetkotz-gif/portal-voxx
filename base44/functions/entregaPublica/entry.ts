@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 Deno.serve(async (req) => {
   try {
@@ -10,8 +10,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Token obrigatório' }, { status: 400 });
     }
 
-    // Buscar entrega pelo token (sem auth — usa serviceRole)
-    const entregas = await base44.asServiceRole.entities.EntregaDemanda.filter({ token_publico: token });
+    const sdk = base44.asServiceRole;
+
+    // Buscar entrega pelo token
+    const entregas = await sdk.entities.EntregaDemanda.filter({ token_publico: token });
     if (!entregas || entregas.length === 0) {
       return Response.json({ error: 'link_invalido' }, { status: 404 });
     }
@@ -63,8 +65,8 @@ Deno.serve(async (req) => {
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'desconhecido';
     const userAgent = req.headers.get('user-agent') || '';
 
-    // Salvar na entidade RespostaAprovacaoEntrega
-    await base44.asServiceRole.entities.RespostaAprovacaoEntrega.create({
+    // Salvar resposta
+    const resposta = await sdk.entities.RespostaAprovacaoEntrega.create({
       entrega_id: entrega.id,
       demanda_id: entrega.demanda_id,
       cliente_id: entrega.cliente_id,
@@ -78,7 +80,7 @@ Deno.serve(async (req) => {
       user_agent: userAgent
     });
 
-    // Atualizar historico_aprovacoes na entrega
+    // Atualizar historico_aprovacoes
     const historico = entrega.historico_aprovacoes || [];
     historico.push({
       acao: action,
@@ -89,7 +91,10 @@ Deno.serve(async (req) => {
       versao: entrega.numero_versao_atual || 1
     });
 
-    const updates = { historico_aprovacoes: historico };
+    const updates = {
+      historico_aprovacoes: historico,
+      retorno_cliente_tratado: false
+    };
 
     if (action === 'aprovar') {
       updates.status_entrega = 'aprovado';
@@ -100,14 +105,14 @@ Deno.serve(async (req) => {
       updates.observacao_cliente = observacao || '';
     }
 
-    await base44.asServiceRole.entities.EntregaDemanda.update(entrega.id, updates);
+    await sdk.entities.EntregaDemanda.update(entrega.id, updates);
 
-    // Criar evento na timeline da demanda
+    // Criar evento na timeline
     const descEvento = action === 'aprovar'
       ? `✅ ${nome_responsavel.trim()} aprovou a entrega: ${entrega.nome_entrega}`
       : `✏️ ${nome_responsavel.trim()} solicitou alteração em: ${entrega.nome_entrega}${observacao ? ` — "${observacao}"` : ''}`;
 
-    await base44.asServiceRole.entities.TimelineEvent.create({
+    await sdk.entities.TimelineEvent.create({
       demanda_id: entrega.demanda_id,
       cliente_id: entrega.cliente_id,
       tipo: action === 'aprovar' ? 'aprovacao' : 'solicitacao_alteracao',
@@ -115,6 +120,31 @@ Deno.serve(async (req) => {
       autor: nome_responsavel.trim(),
       autor_tipo: 'cliente'
     });
+
+    // ── CRIAR NOTIFICAÇÃO (com dedup por resposta_aprovacao_id) ──
+    const tipoNotif = action === 'aprovar' ? 'entrega_aprovada_cliente' : 'alteracao_solicitada_cliente';
+
+    // Verificar se já existe notificação para esta resposta (evitar duplicidade)
+    const existentes = await sdk.entities.NotificacaoAprovacao.filter({
+      resposta_aprovacao_id: resposta.id
+    });
+
+    if (!existentes || existentes.length === 0) {
+      await sdk.entities.NotificacaoAprovacao.create({
+        tipo_notificacao: tipoNotif,
+        cliente_id: entrega.cliente_id,
+        cliente_nome: entrega.cliente_nome,
+        demanda_id: entrega.demanda_id || null,
+        demanda_titulo: entrega.demanda_titulo || null,
+        entrega_id: entrega.id,
+        entrega_nome: entrega.nome_entrega,
+        status_aprovacao: action === 'aprovar' ? 'aprovado' : 'solicitacao_alteracao',
+        comentario_cliente: observacao || null,
+        lida: false,
+        data_resposta_cliente: agora,
+        resposta_aprovacao_id: resposta.id
+      });
+    }
 
     return Response.json({ success: true, action, status: updates.status_entrega });
 

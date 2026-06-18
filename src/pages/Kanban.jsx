@@ -16,6 +16,7 @@ import ColumnManagerModal from '@/components/kanban/ColumnManagerModal';
 import NovaDemandaCriacaoModal from '@/components/kanban/NovaDemandaCriacaoModal';
 import PendenciasAprovacaoDrawer from '@/components/kanban/PendenciasAprovacaoDrawer';
 import KanbanKPIs from '@/components/kanban/KanbanKPIs';
+import KanbanRetornoBanner from '@/components/kanban/KanbanRetornoBanner';
 
 const DEFAULT_COLUMN_ORDER = [
   'ATENDIMENTO',
@@ -541,6 +542,12 @@ const Kanban = ({ user, selectedClienteId }) => {
       <KanbanFilters filters={filters} setFilters={setFilters} clientes={clientes} availableTags={allTags} />
 
       <KanbanKPIs data={kpisData} />
+
+      <KanbanRetornoBanner
+        onVerAlteracoes={() => setShowPendenciasDrawer(true)}
+        onVerAprovacoes={() => setShowPendenciasDrawer(true)}
+        onAbrirPendencias={() => setShowPendenciasDrawer(true)}
+      />
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="all-columns" direction="horizontal" type="COLUMN">

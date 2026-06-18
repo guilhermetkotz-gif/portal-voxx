@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, Search, Menu } from "lucide-react";
+import { Bell, Search, Menu, AlertTriangle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import ClienteContext from './ClienteContext';
 import RealtimeIndicator from './RealtimeIndicator';
+import moment from 'moment-timezone';
+import { createPageUrl } from '@/utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function Header({ 
   title, 
@@ -21,11 +24,28 @@ export default function Header({
   cliente,
   clientes = [],
   onChangeCliente,
-  notificacoes = [], 
+  notificacoes = [],
+  notificacoesAprovacao = [],
   onMobileMenuClick,
   onNotificationClick 
 }) {
+  const navigate = useNavigate();
   const unreadCount = notificacoes.filter(n => !n.lida).length;
+  const alteracoesCount = notificacoesAprovacao.filter(n => n.tipo_notificacao === 'alteracao_solicitada_cliente').length;
+  const aprovacoesCount = notificacoesAprovacao.filter(n => n.tipo_notificacao === 'entrega_aprovada_cliente').length;
+  const totalAprovacaoCount = notificacoesAprovacao.length;
+
+  // Mescla notificações tradicionais + aprovação para exibição no dropdown
+  const todasNotificacoes = [
+    // Prioridade: alterações primeiro
+    ...notificacoesAprovacao
+      .filter(n => n.tipo_notificacao === 'alteracao_solicitada_cliente')
+      .map(n => ({ ...n, _tipo: 'aprovacao_alteracao' })),
+    ...notificacoesAprovacao
+      .filter(n => n.tipo_notificacao === 'entrega_aprovada_cliente')
+      .map(n => ({ ...n, _tipo: 'aprovacao_aprovada' })),
+    ...notificacoes.map(n => ({ ...n, _tipo: 'geral' })),
+  ];
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200">
@@ -63,8 +83,15 @@ export default function Header({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="relative">
-                <Bell className="w-5 h-5 text-slate-600" />
-                {unreadCount > 0 && (
+                <Bell className={alteracoesCount > 0 ? 'w-5 h-5 text-red-500' : 'w-5 h-5 text-slate-600'} />
+                {totalAprovacaoCount > 0 && (
+                  <span className={`absolute -top-0.5 -right-0.5 w-4 h-4 text-white text-[10px] font-bold rounded-full flex items-center justify-center ${
+                    alteracoesCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-green-500'
+                  }`}>
+                    {totalAprovacaoCount}
+                  </span>
+                )}
+                {totalAprovacaoCount === 0 && unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {unreadCount}
                   </span>
@@ -72,40 +99,80 @@ export default function Header({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80">
-              <div className="p-3 border-b border-slate-100">
+              <div className="p-3 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="font-semibold text-sm">Notificações</h3>
+                {alteracoesCount > 0 && (
+                  <Badge className="bg-red-100 text-red-700 text-[10px] h-5">
+                    {alteracoesCount} alteração{alteracoesCount > 1 ? 'ões' : ''}
+                  </Badge>
+                )}
               </div>
               <div className="max-h-80 overflow-y-auto">
-                {notificacoes.length === 0 ? (
+                {todasNotificacoes.length === 0 ? (
                   <div className="p-4 text-center text-sm text-slate-500">
                     Nenhuma notificação
                   </div>
                 ) : (
-                  notificacoes.slice(0, 5).map((notif) => (
-                    <DropdownMenuItem 
-                      key={notif.id}
-                      className="p-3 cursor-pointer"
-                      onClick={() => onNotificationClick?.(notif)}
-                    >
-                      <div className="flex gap-3">
-                        <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${notif.lida ? 'bg-slate-300' : 'bg-violet-500'}`} />
-                        <div>
-                          <p className={`text-sm ${notif.lida ? 'text-slate-500' : 'text-slate-900 font-medium'}`}>
-                            {notif.titulo}
-                          </p>
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {formatDistanceToNow(new Date(notif.created_date), { 
-                              addSuffix: true, 
-                              locale: ptBR 
-                            })}
-                          </p>
+                  todasNotificacoes.slice(0, 8).map((notif) => {
+                    const isAprovacao = notif._tipo === 'aprovacao_alteracao' || notif._tipo === 'aprovacao_aprovada';
+                    return (
+                      <DropdownMenuItem 
+                        key={notif.id}
+                        className="p-3 cursor-pointer"
+                        onClick={() => {
+                          if (isAprovacao && notif.demanda_id) {
+                            navigate(`${createPageUrl('Kanban')}?demanda=${notif.demanda_id}`);
+                          } else if (notif._tipo === 'geral') {
+                            onNotificationClick?.(notif);
+                          }
+                        }}
+                      >
+                        <div className="flex gap-3">
+                          {isAprovacao ? (
+                            notif._tipo === 'aprovacao_alteracao' ? (
+                              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                            ) : (
+                              <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            )
+                          ) : (
+                            <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${notif.lida ? 'bg-slate-300' : 'bg-violet-500'}`} />
+                          )}
+                          <div className="min-w-0">
+                            {isAprovacao ? (
+                              <>
+                                <p className="text-sm text-slate-900 font-medium truncate">
+                                  {notif._tipo === 'aprovacao_alteracao' ? '✏️ Alteração solicitada' : '✅ Entrega aprovada'}
+                                </p>
+                                <p className="text-xs text-slate-600 truncate">
+                                  {notif.cliente_nome}: {notif.entrega_nome}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                  {notif.data_resposta_cliente
+                                    ? moment(notif.data_resposta_cliente).tz('America/Sao_Paulo').fromNow()
+                                    : ''}
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className={`text-sm ${notif.lida ? 'text-slate-500' : 'text-slate-900 font-medium'}`}>
+                                  {notif.titulo}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-0.5">
+                                  {formatDistanceToNow(new Date(notif.created_date), { 
+                                    addSuffix: true, 
+                                    locale: ptBR 
+                                  })}
+                                </p>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </DropdownMenuItem>
-                  ))
+                      </DropdownMenuItem>
+                    );
+                  })
                 )}
               </div>
-              {notificacoes.length > 0 && (
+              {todasNotificacoes.length > 0 && (
                 <div className="p-2 border-t border-slate-100">
                   <Button variant="ghost" size="sm" className="w-full text-violet-600">
                     Ver todas
