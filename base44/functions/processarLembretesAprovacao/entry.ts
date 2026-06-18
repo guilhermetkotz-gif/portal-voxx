@@ -70,7 +70,7 @@ function calcularMinutosUteis(inicio, fim) {
   return total;
 }
 
-// --- Templates padrão (fallback se não tiver config) ---
+// --- Templates padrão ---
 const DEFAULT_MENSAGENS = [
   'Olá {{cliente}}! 👋\n\nPassando para lembrar que enviamos a entrega *"{{entrega}}"* para sua aprovação.\n\n📎 Link para aprovar: {{link}}\n\nQualquer dúvida, estamos à disposição!',
   '*{{cliente}}*, tudo bem?\n\nAinda não recebemos sua aprovação para a entrega *"{{entrega}}"*.\n\nSabemos que a rotina é corrida, mas sua aprovação é importante para darmos continuidade ao projeto.\n\n📎 Aprove aqui: {{link}}\n\nPrecisa de algum ajuste? É só nos avisar!',
@@ -103,6 +103,37 @@ async function enviarWhatsApp(grupoId, mensagem, zapiCreds) {
   return sendResp.ok;
 }
 
+// --- Batch loader: busca todos os dados necessários de uma vez ---
+async function carregarDados(sdk, envios) {
+  // Coleta todos os IDs únicos
+  const entregaIds = [...new Set(envios.map(e => e.entrega_id).filter(Boolean))];
+  const demandaIds = [...new Set(envios.map(e => e.demanda_id).filter(Boolean))];
+
+  // Busca lotes por IDs
+  const entregas = entregaIds.length > 0
+    ? await sdk.entities.EntregaDemanda.list('-updated_date', 500)
+    : [];
+  const demandas = demandaIds.length > 0
+    ? await sdk.entities.Demanda.list('-updated_date', 500)
+    : [];
+  const tarefas = await sdk.entities.TarefaAcompanhamento.list('-updated_date', 500);
+  const demandasIntervencao = await sdk.entities.Demanda.filter(
+    { tags: 'aprovacao_pendente' }, '-created_date', 500
+  ).catch(() => []);
+
+  // Mapas para acesso rápido
+  const entregasMap = {};
+  entregas.forEach(e => { entregasMap[e.id] = e; });
+  const demandasMap = {};
+  demandas.forEach(d => { demandasMap[d.id] = d; });
+  const tarefasMap = {};
+  tarefas.forEach(t => { if (t.envio_aprovacao_id) tarefasMap[t.envio_aprovacao_id] = t; });
+  const intervencaoMap = {};
+  demandasIntervencao.forEach(d => { if (d.titulo) intervencaoMap[d.titulo] = d; });
+
+  return { entregasMap, demandasMap, tarefasMap, intervencaoMap };
+}
+
 // --- MAIN ---
 Deno.serve(async (_req) => {
   try {
@@ -125,35 +156,30 @@ Deno.serve(async (_req) => {
       { status_envio: 'enviado' }, '-enviado_em', 500
     );
 
+    // Carregar todos os dados em lote (poucas chamadas)
+    const { entregasMap, demandasMap, tarefasMap, intervencaoMap } = await carregarDados(sdk, envios);
+
+    // Buscar credenciais Z-API uma vez
+    const zapiCreds = await getZapiCredentials(base44);
+
     let processados = 0;
     let lembretesEnviados = 0;
     let intervencoes = 0;
 
-    // Delay helper para evitar rate limit
-    const delay = (ms) => new Promise(r => setTimeout(r, ms));
-
     for (const envio of envios) {
-      // Pausa entre iterações para evitar rate limit
-      if (processados > 0) await delay(400);
+      const entrega = entregasMap[envio.entrega_id];
+      const demanda = demandasMap[envio.demanda_id];
 
       // Filtrar por setor (se configurado)
       if (setoresFiltro) {
-        const entrega = await sdk.entities.EntregaDemanda.filter({ id: envio.entrega_id }, '-updated_date', 1).catch(() => []);
-        const demanda = await sdk.entities.Demanda.filter({ id: envio.demanda_id }, '-updated_date', 1).catch(() => []);
-        const setor = entrega[0]?.setor || demanda[0]?.setor;
+        const setor = entrega?.setor || demanda?.setor;
         if (setor && !setoresFiltro.includes(setor)) continue;
       }
 
       // Verificar se a entrega ainda está em aprovação
-      const entregas = await sdk.entities.EntregaDemanda.filter({ id: envio.entrega_id }, '-updated_date', 1);
-      const entrega = entregas[0];
       if (!entrega || entrega.status_entrega !== 'em_aprovacao') continue;
 
-      // Buscar ou criar TarefaAcompanhamento
-      const tarefasExistentes = await sdk.entities.TarefaAcompanhamento.filter(
-        { envio_aprovacao_id: envio.id }, '-created_date', 1
-      );
-      let tarefa = tarefasExistentes[0] || null;
+      let tarefa = tarefasMap[envio.id] || null;
 
       const clienteNome = envio.cliente_nome || 'Cliente';
       const entregaNome = envio.entrega_nome || 'entrega';
@@ -168,7 +194,6 @@ Deno.serve(async (_req) => {
         const template = templates[0] || DEFAULT_MENSAGENS[0];
         const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
-        const zapiCreds = await getZapiCredentials(base44);
         const enviado = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, zapiCreds);
 
         tarefa = await sdk.entities.TarefaAcompanhamento.create({
@@ -200,6 +225,8 @@ Deno.serve(async (_req) => {
           enviado_em: agora,
         });
 
+        // Atualiza mapa local
+        tarefasMap[envio.id] = tarefa;
         lembretesEnviados++;
         processados++;
         continue;
@@ -207,16 +234,15 @@ Deno.serve(async (_req) => {
 
       if (tarefa.status === 'concluida') continue;
 
+      const minsDesdeUltimo = calcularMinutosUteis(tarefa.data_ultimo_lembrete, agora);
+      const seq = tarefa.sequencia_lembrete;
+
       if (tarefa.status === 'intervencao_humana') {
         // Criar demanda de intervenção se ainda não existe
         const demandaTitulo = `Lembrete Pendente: Aprovação "${envio.entrega_nome}" - ${envio.cliente_nome}`;
-        const demandasIntervencao = await sdk.entities.Demanda.filter({
-          cliente_id: envio.cliente_id,
-          titulo: demandaTitulo
-        }, '-created_date', 1);
-
-        if (demandasIntervencao.length === 0) {
-          await sdk.entities.Demanda.create({
+        
+        if (!intervencaoMap[demandaTitulo]) {
+          const novaDemanda = await sdk.entities.Demanda.create({
             cliente_id: envio.cliente_id,
             cliente_nome: envio.cliente_nome,
             setor: 'ATENDIMENTO',
@@ -228,26 +254,23 @@ Deno.serve(async (_req) => {
             tags: ['aprovacao_pendente', 'intervencao_humana'],
             ultima_atividade_kanban: agora,
           });
+          intervencaoMap[demandaTitulo] = novaDemanda;
           intervencoes++;
         }
         continue;
       }
 
       // Tarefa pendente: verificar próximo intervalo
-      const minsDesdeUltimo = calcularMinutosUteis(tarefa.data_ultimo_lembrete, agora);
-      const seq = tarefa.sequencia_lembrete;
-
-      // Verificar se o próximo lembrete automático está dentro do limite maxAuto
       if (seq < maxAuto) {
-        const idxIntervalo = seq; // intervalos[0] = entre envio e 1º lembrete, intervalos[1] = entre 1º e 2º...
+        // Próximo lembrete automático
+        const idxIntervalo = seq;
         const limiteMin = (intervalos[idxIntervalo] || intervalos[intervalos.length - 1] || 24) * 60;
 
         if (minsDesdeUltimo >= limiteMin) {
-          const idxTemplate = seq; // templates[0]=1º lembrete, templates[1]=2º...
+          const idxTemplate = seq;
           const template = templates[idxTemplate] || DEFAULT_MENSAGENS[Math.min(idxTemplate, DEFAULT_MENSAGENS.length - 1)];
           const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
-          const zapiCreds = await getZapiCredentials(base44);
           const enviado = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, zapiCreds);
 
           await sdk.entities.TarefaAcompanhamento.update(tarefa.id, {
@@ -272,8 +295,9 @@ Deno.serve(async (_req) => {
           lembretesEnviados++;
         }
       } else {
-        // Já atingiu maxAuto: verificar se passou o último intervalo para intervenção
-        const idxUltimo = Math.min(seq, intervalos.length - 1);
+        // Já atingiu maxAuto: verificar último intervalo para intervenção
+        // O último intervalo da lista sempre define o tempo para intervenção humana
+        const idxUltimo = intervalos.length - 1;
         const limiteMin = (intervalos[idxUltimo] || 24) * 60;
 
         if (minsDesdeUltimo >= limiteMin) {
