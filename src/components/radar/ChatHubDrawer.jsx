@@ -330,11 +330,14 @@ export default function ChatHubDrawer({ onClose, user }) {
 
     if (filtroTab === 'minhas') {
       const userEmail = user?.email || '';
+      const userFullName = user?.full_name || '';
+      const userFirstName = userFullName.split(' ')[0] || '';
+      const nomesUsuario = [userFullName, userFirstName, userEmail].filter(Boolean);
       result = result.filter(c => {
         return mensagensRecentes.some(m => 
           m.grupo_id === c.id && 
           (m.remetente_tipo === 'voxx' || m.origem === 'enviada') &&
-          m.remetente_nome === (user?.full_name || userEmail)
+          nomesUsuario.some(nome => m.remetente_nome === nome)
         );
       });
     }
@@ -424,6 +427,7 @@ export default function ChatHubDrawer({ onClose, user }) {
           queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
           queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
           queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
+          concluirTagsAtivas();
         } else {
           toast.error(res.data?.erro || 'Erro ao enviar arquivo');
         }
@@ -465,6 +469,8 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (!res.data?.success) {
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+      } else {
+        concluirTagsAtivas();
       }
     } catch (e) {
       toast.error('Erro ao enviar: ' + (e.message || 'Desconhecido'));
@@ -533,6 +539,8 @@ export default function ChatHubDrawer({ onClose, user }) {
           if (!res.data?.success) {
             toast.error(res.data?.erro || 'Erro ao enviar áudio');
             queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+          } else {
+            concluirTagsAtivas();
           }
         } catch (e) {
           toast.error('Erro ao enviar áudio');
@@ -595,6 +603,20 @@ export default function ChatHubDrawer({ onClose, user }) {
     }
   };
 
+  // Conclui tags "AGUARD. RETORNO" ativas da conversa atual
+  const concluirTagsAtivas = async () => {
+    if (!selectedChat?.id) return;
+    try {
+      const tags = await base44.entities.TagConversa.filter({ grupo_id: selectedChat.id, status: 'ativa' });
+      for (const tag of tags) {
+        await base44.entities.TagConversa.update(tag.id, { status: 'concluida' });
+      }
+      if (tags.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ['chatHubTagsAtivas'] });
+      }
+    } catch (_) { /* silencioso */ }
+  };
+
   // Reagir a uma mensagem
   const handleReaction = async (messageId, emoji) => {
     if (!selectedChat) return;
@@ -606,6 +628,7 @@ export default function ChatHubDrawer({ onClose, user }) {
       });
       if (res.data?.success) {
         toast.success(`Reação ${emoji} enviada`);
+        concluirTagsAtivas();
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar reação');
       }
@@ -693,6 +716,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
         queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
         queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
+        concluirTagsAtivas();
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar sticker');
       }
