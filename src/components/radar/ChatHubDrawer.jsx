@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, ChevronDown } from 'lucide-react';
@@ -1350,14 +1351,20 @@ export default function ChatHubDrawer({ onClose, user }) {
                   <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx" />
 
                   {/* Campo de texto com emoji dentro */}
-                  <div className={`flex-1 flex items-center rounded-full ${t.bgCampoInput} border ${t.inputFieldBorder} shadow-sm`}>
-                    <Input
+                  <div className={`flex-1 flex items-center rounded-2xl ${t.bgCampoInput} border ${t.inputFieldBorder} shadow-sm`}>
+                    <Textarea
                       value={mensagem}
-                      onChange={(e) => setMensagem(e.target.value)}
+                      onChange={(e) => {
+                        setMensagem(e.target.value);
+                        const el = e.target;
+                        el.style.height = 'auto';
+                        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+                      }}
                       onKeyDown={handleKeyDown}
                       onPaste={handlePaste}
                       placeholder="Mensagem"
-                      className={`flex-1 border-0 bg-transparent ${t.textInput} ${t.textPlaceholder} text-sm h-10 px-4 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full`}
+                      rows={1}
+                      className={`flex-1 border-0 bg-transparent ${t.textInput} ${t.textPlaceholder} text-sm min-h-[40px] max-h-[120px] px-4 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-2xl resize-none`}
                       disabled={enviando}
                     />
                     <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
