@@ -14,11 +14,14 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
     queryFn: () => base44.auth.me(),
   });
 
+  // Demanda já é recarregada pelo componente pai (DemandaDetailModal) a cada 3s.
+  // Usar a mesma queryKey para compartilhar o cache e evitar chamadas duplicadas.
   const { data: demandaAtual, refetch } = useQuery({
     queryKey: ['demanda', demandaId],
     queryFn: () => base44.entities.Demanda.filter({ id: demandaId }).then(d => d[0]),
     enabled: !!demandaId,
-    refetchInterval: 5000,
+    staleTime: 3000,
+    refetchInterval: false,
   });
 
   const [nowMs, setNowMs] = useState(Date.now());
@@ -79,13 +82,30 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
     refetch();
   };
 
-  const handleStop = async () => {
+  const handleStop = async (retries = 2) => {
     if (!user || !isRunning) return;
 
-    const resp = await base44.functions.invoke('pausarCronometroUsuario', {
-      demanda_id: demandaId,
-      usuario_id: user.id
-    });
+    const pausar = async () => {
+      const resp = await base44.functions.invoke('pausarCronometroUsuario', {
+        demanda_id: demandaId,
+        usuario_id: user.id
+      });
+      return resp;
+    };
+
+    let resp;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        resp = await pausar();
+        break;
+      } catch (e) {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1500));
+        } else {
+          throw e;
+        }
+      }
+    }
 
     if (resp.data?.success) {
       if (resp.data.minutos_adicionados > 0) {
