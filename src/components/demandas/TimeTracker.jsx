@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } f
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Clock, Users } from 'lucide-react';
+import { Play, Pause, Clock, Users, List, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import ActiveTimersPanel from '@/components/demandas/ActiveTimersPanel';
 
 const TimeTracker = forwardRef(({ demandaId }, ref) => {
   const queryClient = useQueryClient();
@@ -22,6 +23,9 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
 
   const [nowMs, setNowMs] = useState(Date.now());
   const intervalRef = useRef(null);
+  const [showAllTimers, setShowAllTimers] = useState(false);
+  const [pausandoAdmin, setPausandoAdmin] = useState({});
+  const isAdmin = user?.role === 'admin';
 
   // Tick a cada segundo para atualizar exibição em tempo real
   useEffect(() => {
@@ -94,6 +98,24 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
   // Expõe pause via ref para componentes pai
   useImperativeHandle(ref, () => ({ pause: handleStop }));
 
+  const handleAdminPause = async (usuarioId, usuarioNome) => {
+    setPausandoAdmin(prev => ({ ...prev, [usuarioId]: true }));
+    try {
+      const resp = await base44.functions.invoke('pausarCronometroUsuario', {
+        demanda_id: demandaId,
+        usuario_id: usuarioId
+      });
+      if (resp.data?.success) {
+        toast.success(`Cronômetro de ${usuarioNome} pausado (${resp.data.minutos_adicionados}min)`);
+        queryClient.invalidateQueries({ queryKey: ['demanda', demandaId] });
+      }
+    } catch (e) {
+      toast.error('Erro ao pausar cronômetro');
+    } finally {
+      setPausandoAdmin(prev => ({ ...prev, [usuarioId]: false }));
+    }
+  };
+
   const outrosCronometros = (demandaAtual?.cronometros_ativos || []).filter(c => c.usuario_id !== user?.id);
 
   return (
@@ -143,13 +165,50 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
             <span className="font-medium">Também trabalhando:</span>
           </div>
           {outrosCronometros.map((c, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-xs text-violet-700">
-              <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
-              <span>{c.usuario_nome}</span>
+            <div key={i} className="flex items-center justify-between text-xs text-violet-700 py-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-violet-400 rounded-full animate-pulse" />
+                <span>{c.usuario_nome}</span>
+              </div>
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 hover:bg-yellow-100"
+                  onClick={() => handleAdminPause(c.usuario_id, c.usuario_nome)}
+                  disabled={pausandoAdmin[c.usuario_id]}
+                  title={`Pausar ${c.usuario_nome}`}
+                >
+                  {pausandoAdmin[c.usuario_id] ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Pause className="h-3 w-3 text-yellow-600" />
+                  )}
+                </Button>
+              )}
             </div>
           ))}
         </div>
       )}
+
+      {/* Botão Ver todos os cronômetros ativos */}
+      <div className="mt-2 pt-2 border-t border-violet-200">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full h-7 text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-100 gap-1"
+          onClick={() => setShowAllTimers(true)}
+        >
+          <List className="h-3.5 w-3.5" />
+          Ver todos os cronômetros ativos
+        </Button>
+      </div>
+
+      <ActiveTimersPanel
+        open={showAllTimers}
+        onClose={() => setShowAllTimers(false)}
+        user={user}
+      />
     </div>
   );
 });

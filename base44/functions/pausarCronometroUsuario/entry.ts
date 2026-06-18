@@ -9,6 +9,11 @@ Deno.serve(async (req) => {
     const { demanda_id, usuario_id } = await req.json();
     const uid = usuario_id || user.id;
 
+    // Apenas admin pode pausar cronômetro de outro usuário
+    if (usuario_id && usuario_id !== user.id && user.role !== 'admin') {
+      return Response.json({ error: 'Apenas administradores podem pausar cronômetros de outros usuários' }, { status: 403 });
+    }
+
     // Buscar demanda atual
     const demandas = await base44.entities.Demanda.filter({ id: demanda_id });
     if (!demandas.length) return Response.json({ error: 'Demanda não encontrada' }, { status: 404 });
