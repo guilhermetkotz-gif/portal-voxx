@@ -30,7 +30,8 @@
         "aprovacao_entrega",
         "manual",
         "recebida",
-        "reativacao_grupo"
+        "reativacao_grupo",
+        "comentario_demanda"
       ],
       "default": "resumo_diario"
     },
@@ -80,6 +81,14 @@
         "desconhecido"
       ],
       "description": "Tipo do remetente: voxx (enviado pela VOXX), cliente (mensagem do cliente), desconhecido"
+    },
+    "comentario_original": {
+      "type": "string",
+      "description": "Coment\u00e1rio original da demanda (quando origem = comentario_demanda)"
+    },
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da demanda de origem (quando origem = comentario_demanda)"
     }
   },
   "required": [

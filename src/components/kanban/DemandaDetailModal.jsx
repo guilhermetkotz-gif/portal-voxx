@@ -29,7 +29,8 @@ import {
   ArrowRight,
   Building2,
   Tag,
-  Layers
+  Layers,
+  MessageCircle
 } from 'lucide-react';
 import moment from 'moment';
 import { toast } from 'sonner';
@@ -38,6 +39,7 @@ import 'moment-timezone';
 import TimeTracker from '@/components/demandas/TimeTracker';
 import TempoLimiteDemanda from '@/components/demandas/TempoLimiteDemanda';
 import EntregasSection from '@/components/demandas/EntregasSection';
+import EnviarComentarioWhatsAppModal from '@/components/demandas/EnviarComentarioWhatsAppModal';
 
 const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const queryClient = useQueryClient();
@@ -65,6 +67,8 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
   const timerRef = useRef(null);
   const [comentarioAnexo, setComentarioAnexo] = useState(null);
   const [enviandoN8n, setEnviandoN8n] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [comentarioParaWhatsApp, setComentarioParaWhatsApp] = useState('');
   
   const [editData, setEditData] = useState({
     titulo: demanda?.titulo || '',
@@ -224,6 +228,37 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
     });
     
     setComentarioAnexo(null);
+  };
+
+  const handleEnviarComentarioWhatsApp = async () => {
+    if (!comentario.trim() && !comentarioAnexo) return;
+    
+    // Buscar cliente para validar grupo WhatsApp
+    const clienteData = await base44.entities.Cliente.filter({ id: currentDemanda.cliente_id });
+    const cliente = clienteData[0];
+    
+    if (!cliente?.whatsapp_grupo_id) {
+      toast.error('Este cliente ainda não possui grupo WhatsApp vinculado. Vincule o grupo no Radar WhatsApp antes de enviar.');
+      return;
+    }
+
+    // Verificar Z-API
+    const zapiRes = await base44.functions.invoke('zapiStatus', {});
+    if (!zapiRes.data?.connected) {
+      toast.error('Instância Z-API desconectada. Verifique a conexão antes de enviar.');
+      return;
+    }
+
+    // Salvar comentário primeiro
+    const texto = comentarioAnexo 
+      ? `${comentario.trim() || 'Anexo enviado'}\n[Arquivo: ${comentarioAnexo.name}]`
+      : comentario;
+    
+    addComentarioMutation.mutate({ texto, anexo: comentarioAnexo?.url });
+    
+    setComentarioParaWhatsApp(texto);
+    setComentarioAnexo(null);
+    setShowWhatsAppModal(true);
   };
 
   const handlePasteImage = async (e) => {
@@ -1505,6 +1540,15 @@ ${bu.estrutura_criativo || 'Não gerado'}
                         )}
                         Enviar
                       </Button>
+                      <Button
+                        variant="outline"
+                        className="border-green-300 text-green-700 hover:bg-green-50 gap-2"
+                        onClick={handleEnviarComentarioWhatsApp}
+                        disabled={(!comentario.trim() && !comentarioAnexo) || addComentarioMutation.isPending || uploading}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Enviar por WhatsApp
+                      </Button>
                       <Button variant="outline" disabled={uploading} asChild>
                         <label className="cursor-pointer flex items-center gap-2">
                           {uploading ? (
@@ -1601,6 +1645,18 @@ ${bu.estrutura_criativo || 'Não gerado'}
             </div>
           </div>
         )}
+
+        {/* Modal WhatsApp */}
+        <EnviarComentarioWhatsAppModal
+          open={showWhatsAppModal}
+          onClose={() => {
+            setShowWhatsAppModal(false);
+            setComentario('');
+          }}
+          demanda={currentDemanda}
+          comentarioOriginal={comentarioParaWhatsApp}
+          user={user}
+        />
 
         {/* Dialog de Confirmação de Exclusão - inline, sem portal */}
         {showDeleteDialog && (

@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
     const {
       chatId, mensagem, tipo = 'texto', midiaUrl, fileName,
       incluirAssinatura = true, clienteId, clienteNome, chatName,
+      origem: origemEnvio = 'manual', demandaId, comentarioOriginal,
     } = body;
 
     if (!chatId) return Response.json({ error: 'chatId é obrigatório' }, { status: 400 });
@@ -168,7 +169,7 @@ Deno.serve(async (req) => {
       grupo_id: chatId,
       grupo_nome: chatName || '',
       tipo_envio: tipo,
-      origem: 'manual',
+      origem: origemEnvio || 'manual',
       mensagem: mensagemFinal,
       midia_url: midiaUrl || null,
       status_envio: statusEnvio,
@@ -177,6 +178,8 @@ Deno.serve(async (req) => {
       enviado_por: user.email,
       enviado_em: agora,
       remetente_nome: nomeRemetente,
+      demanda_id: demandaId || null,
+      comentario_original: comentarioOriginal || null,
     });
 
     // Atualizar mensagem com status real e messageId do Z-API
