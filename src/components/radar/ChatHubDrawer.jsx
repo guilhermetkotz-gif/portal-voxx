@@ -1332,7 +1332,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                             <p className={`text-[11px] ${t.textSecondary} mb-2`}>Enviar sticker</p>
                             <div className="grid grid-cols-6 gap-1.5 mb-3">
                               {STICKER_PRESETS.map((s) => (
-                                <button key={s.emoji} className={`w-9 h-9 flex items-center justify-center rounded-lg text-xl ${t.popoverHover} transition-colors`} onClick={() => handleSendSticker(s.url)} disabled={enviando}>
+                                <button key={s.emoji} className={`w-9 h-9 flex items-center justify-center rounded-lg text-xl ${t.popoverHover} transition-colors`} onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setStickerOpen(false); handleSendSticker(s.url); }} disabled={enviando}>
                                   <img src={s.url} alt={s.emoji} className="w-7 h-7 object-contain" />
                                 </button>
                               ))}

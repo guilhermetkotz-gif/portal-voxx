@@ -945,7 +945,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                           <button
                             key={s.emoji}
                             className={`w-9 h-9 flex items-center justify-center rounded-lg text-xl ${t.popoverHover} transition-colors`}
-                            onClick={() => handleSendSticker(s.url)}
+                            onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setStickerOpen(false); handleSendSticker(s.url); }}
                             disabled={enviando}
                           >
                             <img src={s.url} alt={s.emoji} className="w-7 h-7 object-contain" />
