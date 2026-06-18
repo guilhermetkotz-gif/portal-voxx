@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, ChevronDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
 import AudioTranscription from '@/components/radar/AudioTranscription';
@@ -1039,10 +1039,9 @@ export default function ChatHubDrawer({ onClose, user }) {
                       };
 
                       return (
-                        <DropdownMenu key={m.id}>
-                          <DropdownMenuTrigger asChild>
-                        <div className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'} cursor-pointer`}>
-                          <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                        <div key={m.id} className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'}`}>
+                          <div className="relative max-w-[75%]">
+                            <div className={`rounded-2xl px-4 py-2.5 text-sm ${
                             isVoxx
                               ? `${t.bgBubbleOut} ${t.textBubbleOut} rounded-br-md`
                               : `${t.bgBubbleIn} ${t.textBubbleIn} rounded-bl-md border ${t.borderLight}`
@@ -1175,14 +1174,18 @@ export default function ChatHubDrawer({ onClose, user }) {
                                 )}
                               </span>
                             </div>
-                          </div>
-                        </div>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            side={isVoxx ? 'left' : 'right'}
-                            align={isVoxx ? 'end' : 'start'}
-                            className={`w-48 p-1.5 border ${t.popoverBorder} ${t.popoverBg} shadow-xl rounded-xl`}
-                          >
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className={`absolute top-2 ${isVoxx ? 'left-1' : 'right-1'} p-1 rounded-full opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity z-10 ${isVoxx ? 'hover:bg-emerald-600/30' : 'hover:bg-black/10'}`}>
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                side={isVoxx ? 'left' : 'right'}
+                                align={isVoxx ? 'end' : 'start'}
+                                className={`w-48 p-1.5 border ${t.popoverBorder} ${t.popoverBg} shadow-xl rounded-xl`}
+                              >
                             <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => setRespondendoA(m)}>
                               <Reply className="w-4 h-4" /> Responder
                             </DropdownMenuItem>
@@ -1221,8 +1224,10 @@ export default function ChatHubDrawer({ onClose, user }) {
                                 </DropdownMenuItem>
                               </>
                             )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
                       );
                     })
                   )}

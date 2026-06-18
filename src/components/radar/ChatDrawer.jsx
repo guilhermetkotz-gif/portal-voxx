@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, CornerDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, CornerDownLeft, RefreshCw, AlertCircle, ChevronDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -621,10 +621,9 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                 };
 
                 return (
-                  <DropdownMenu key={m.id}>
-                    <DropdownMenuTrigger asChild>
-                      <div className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'} cursor-pointer`}>
-                        <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                  <div key={m.id} className={`flex group ${isVoxx ? 'justify-end' : 'justify-start'}`}>
+                    <div className="relative max-w-[80%]">
+                      <div className={`rounded-2xl px-4 py-2.5 text-sm ${
                           isVoxx
                             ? `${t.bgBubbleOut} ${t.textBubbleOut} rounded-br-md`
                             : `${t.bgBubbleIn} ${t.textBubbleIn} rounded-bl-md border ${t.borderLight}`
@@ -760,13 +759,17 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         </span>
                       </div>
                     </div>
-                  </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    side={isVoxx ? 'left' : 'right'}
-                    align={isVoxx ? 'end' : 'start'}
-                    className={`w-48 p-1.5 border ${t.popoverBorder} ${t.popoverBg} shadow-xl rounded-xl`}
-                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className={`absolute top-2 ${isVoxx ? 'left-1' : 'right-1'} p-1 rounded-full opacity-0 group-hover:opacity-70 hover:!opacity-100 transition-opacity z-10 ${isVoxx ? 'hover:bg-emerald-600/30' : 'hover:bg-black/10'}`}>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        side={isVoxx ? 'left' : 'right'}
+                        align={isVoxx ? 'end' : 'start'}
+                        className={`w-48 p-1.5 border ${t.popoverBorder} ${t.popoverBg} shadow-xl rounded-xl`}
+                      >
                     <DropdownMenuItem className="gap-3 px-3 py-2.5 text-sm rounded-lg cursor-pointer" onClick={() => handleReplyMessage(m)}>
                       <Reply className="w-4 h-4" /> Responder
                     </DropdownMenuItem>
@@ -805,8 +808,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         </DropdownMenuItem>
                       </>
                     )}
-                  </DropdownMenuContent>
-                  </DropdownMenu>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
                 );
               })
             )}
