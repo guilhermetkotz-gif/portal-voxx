@@ -129,7 +129,13 @@ Deno.serve(async (_req) => {
     let lembretesEnviados = 0;
     let intervencoes = 0;
 
+    // Delay helper para evitar rate limit
+    const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
     for (const envio of envios) {
+      // Pausa entre iterações para evitar rate limit
+      if (processados > 0) await delay(400);
+
       // Filtrar por setor (se configurado)
       if (setoresFiltro) {
         const entrega = await sdk.entities.EntregaDemanda.filter({ id: envio.entrega_id }, '-updated_date', 1).catch(() => []);
