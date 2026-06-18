@@ -18,10 +18,14 @@ Deno.serve(async (_req) => {
     const remetentesAtivos = remetentes.filter(r => r.ativo !== false);
     const telsCadastrados = new Set(remetentesAtivos.map(r => normalizarTel(r.telefone_normalizado)));
 
-    // Buscar mensagens VOXX sem avaliação
-    const mensagensVoxx = await sdk.entities.WhatsappMensagem.filter(
-      { remetente_tipo: 'voxx' }, '-received_at', 500
-    );
+    // Buscar mensagens VOXX sem avaliação (em lotes p/ pegar todas)
+    let mensagensVoxx = [];
+    for (let skip = 0; skip < 5000; skip += 500) {
+      const lote = await sdk.entities.WhatsappMensagem.list('-received_at', 500, skip);
+      const voxxDoLote = lote.filter(m => m.remetente_tipo === 'voxx');
+      mensagensVoxx = mensagensVoxx.concat(voxxDoLote);
+      if (lote.length < 500) break;
+    }
 
     // Verificar se um telefone de mensagem pertence a algum remetente cadastrado
     // (match exato ou por nome, pois o dígito 9 pode diferir)
@@ -43,12 +47,19 @@ Deno.serve(async (_req) => {
       return textoAvaliavel && textoAvaliavel.trim().length > 5;
     });
 
-    // Verificar quais já têm avaliação
+    // Verificar quais já têm avaliação (usar lotes p/ evitar limite do $in)
     const idsCandidatas = candidatas.map(m => m.id);
-    const avaliacoesExistentes = await sdk.entities.WhatsappAvaliacaoMensagemVoxx.filter(
-      { whatsapp_mensagem_id: { $in: idsCandidatas } }, '-created_date', 500
-    );
-    const idsAvaliados = new Set(avaliacoesExistentes.map(a => a.whatsapp_mensagem_id));
+    const idsAvaliados = new Set();
+    const CHUNK = 30;
+    for (let i = 0; i < idsCandidatas.length; i += CHUNK) {
+      const chunk = idsCandidatas.slice(i, i + CHUNK);
+      const loteAval = await sdk.entities.WhatsappAvaliacaoMensagemVoxx.filter(
+        { whatsapp_mensagem_id: { $in: chunk } }, '-created_date', 500
+      );
+      for (const a of loteAval) {
+        idsAvaliados.add(a.whatsapp_mensagem_id);
+      }
+    }
 
     // Filtrar não avaliadas, limitar
     const naoAvaliadas = candidatas.filter(m => !idsAvaliados.has(m.id)).slice(0, maxMensagens);
