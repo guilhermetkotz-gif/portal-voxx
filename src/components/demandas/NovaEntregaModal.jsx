@@ -22,6 +22,7 @@ export default function NovaEntregaModal({ demanda, user, onClose, entregaExiste
     tipo_entrega: entregaExistente?.tipo_entrega || 'Imagem',
     link_externo: entregaExistente?.link_externo || '',
     observacao_interna: entregaExistente?.observacao_interna || '',
+    observacao_voxx: entregaExistente?.observacao_voxx || '',
   });
   const [arquivos, setArquivos] = useState(entregaExistente?.arquivos || []);
   const [uploading, setUploading] = useState(false);
@@ -144,6 +145,12 @@ export default function NovaEntregaModal({ demanda, user, onClose, entregaExiste
             <Label>Descrição / Observação Interna</Label>
             <Textarea value={form.observacao_interna} onChange={e => set('observacao_interna', e.target.value)}
               placeholder="Instruções internas..." className="min-h-[70px]" />
+          </div>
+
+          <div>
+            <Label>Observação para o Cliente (vai na mensagem)</Label>
+            <Textarea value={form.observacao_voxx} onChange={e => set('observacao_voxx', e.target.value)}
+              placeholder="Ex: Fizemos ajuste no tom de azul conforme solicitado..." className="min-h-[70px]" />
           </div>
 
           <div>

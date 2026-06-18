@@ -11,7 +11,17 @@ function gerarMensagemPadrao(entrega, cliente) {
   const nomeEntrega = entrega.nome_entrega || 'Entrega';
   const tipoEntrega = entrega.tipo_entrega || 'Material';
   const link = entrega.link_publico_aprovacao;
-  return `Olá, ${cliente?.nome || 'equipe'}! 👋\n\nPreparamos uma nova entrega para vocês:\n\n📦 *${nomeEntrega}*\n_Tipo: ${tipoEntrega}_\n\nAcesse o link abaixo para visualizar, aprovar ou solicitar alterações:\n🔗 ${link}\n\nEquipe Voxx`;
+  const observacao = entrega.observacao_voxx?.trim();
+
+  let mensagem = `Olá, ${cliente?.nome || 'equipe'}! 👋\n\nPreparamos uma nova entrega para vocês:\n\n📦 *${nomeEntrega}*\n_Tipo: ${tipoEntrega}_`;
+
+  if (observacao) {
+    mensagem += `\n\n📝 *Observação:* ${observacao}`;
+  }
+
+  mensagem += `\n\nAcesse o link abaixo para visualizar, aprovar ou solicitar alterações:\n🔗 ${link}\n\nEquipe Voxx`;
+
+  return mensagem;
 }
 
 export default function EnvioAprovacaoModal({ entrega, demanda, user, onClose }) {
