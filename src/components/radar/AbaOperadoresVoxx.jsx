@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Users, Clock, Star, AlertTriangle, BarChart3, Search, Eye, RefreshCw, UserX, FileQuestion } from 'lucide-react';
+import { Loader2, Users, Clock, Star, AlertTriangle, BarChart3, Search, Eye, RefreshCw, UserX, FileQuestion, Radio } from 'lucide-react';
 import OperadorDetailDrawer from './OperadorDetailDrawer';
 import { toast } from 'sonner';
 import moment from 'moment';
@@ -41,6 +41,8 @@ export default function AbaOperadoresVoxx() {
   const [filtroAtendente, setFiltroAtendente] = useState('');
   const [operadorSelecionado, setOperadorSelecionado] = useState(null);
   const [avaliando, setAvaliando] = useState(false);
+  const [modoAoVivo, setModoAoVivo] = useState(true);
+  const timerRef = useRef(null);
 
   const getPeriodo = () => {
     const agora = moment().tz(TZ);
@@ -81,6 +83,24 @@ export default function AbaOperadoresVoxx() {
       return true;
     });
   }, [operadores, filtroClassificacao, filtroAtendente]);
+
+  // ── Atualização em tempo real ──────────────────────────────
+  useEffect(() => {
+    if (!modoAoVivo) return;
+    const unsub = base44.entities.WhatsappMensagem.subscribe((event) => {
+      if (event.type === 'create' && event.data?.remetente_tipo === 'voxx') {
+        // Debounce: refaz a query no máximo a cada 15s
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['perfOperadores'] });
+        }, 15000);
+      }
+    });
+    return () => {
+      unsub();
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [modoAoVivo, queryClient]);
 
   const avaliarPendentes = async () => {
     setAvaliando(true);
@@ -158,6 +178,17 @@ export default function AbaOperadoresVoxx() {
         </div>
 
         <div className="flex-1" />
+
+        <Button
+          size="sm"
+          variant={modoAoVivo ? 'default' : 'outline'}
+          onClick={() => setModoAoVivo(!modoAoVivo)}
+          className={`h-7 text-xs gap-1.5 ${modoAoVivo ? 'bg-emerald-600 hover:bg-emerald-500' : 'border-slate-600 text-slate-400 hover:text-white'}`}
+          title={modoAoVivo ? 'Atualização em tempo real ativa' : 'Atualização em tempo real pausada'}
+        >
+          <Radio className={`w-3 h-3 ${modoAoVivo ? 'animate-pulse' : ''}`} />
+          Ao vivo
+        </Button>
 
         <Button
           size="sm"
