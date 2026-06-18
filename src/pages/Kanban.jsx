@@ -60,6 +60,10 @@ const Kanban = ({ user, selectedClienteId }) => {
   const [showNovaCriacaoModal, setShowNovaCriacaoModal] = useState(false);
   const [showPendenciasDrawer, setShowPendenciasDrawer] = useState(false);
   const [viewMode, setViewMode] = useState('ativas'); // 'ativas' ou 'concluidas'
+
+  // Abrir demanda via URL param (?demanda=id)
+  const urlParams = new URLSearchParams(window.location.search);
+  const demandaIdFromUrl = urlParams.get('demanda');
   const [filters, setFilters] = useState({
     cliente_id: 'all',
     status: [],
@@ -354,6 +358,20 @@ const Kanban = ({ user, selectedClienteId }) => {
       finalizadas: doMes.filter(d => d.status === 'finalizada').length,
     };
   }, [demandas]);
+
+  // Abrir modal da demanda via URL (?demanda=id)
+  useEffect(() => {
+    if (demandaIdFromUrl && demandas && demandas.length > 0) {
+      const d = demandas.find(d => d.id === demandaIdFromUrl);
+      if (d) {
+        setSelectedDemanda(d);
+        // Limpar o param da URL sem reload
+        const url = new URL(window.location);
+        url.searchParams.delete('demanda');
+        window.history.replaceState({}, '', url);
+      }
+    }
+  }, [demandaIdFromUrl, demandas]);
 
   // Get all unique tags from demandas
   const allTags = React.useMemo(() => {
