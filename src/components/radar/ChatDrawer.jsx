@@ -13,6 +13,7 @@ import 'moment-timezone';
 import { toast } from 'sonner';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
 import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
+import AudioTranscription from '@/components/radar/AudioTranscription';
 import ModalReativacaoGrupo from '@/components/radar/ModalReativacaoGrupo';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 import { calcularHorasUteisSemFimDeSemana } from '@/lib/minutosUteis';
@@ -547,6 +548,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         <audio src={midiaUrl} controls className="w-full min-w-[200px] h-10" preload="metadata">
                           Seu navegador não suporta áudio.
                         </audio>
+                        <AudioTranscription mensagem={m} />
                       </div>
                     );
                   }

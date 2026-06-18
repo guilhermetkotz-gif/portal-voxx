@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
+import AudioTranscription from '@/components/radar/AudioTranscription';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
@@ -1001,7 +1002,12 @@ export default function ChatHubDrawer({ onClose, user }) {
                         // Áudio
                         if (m.tipo_mensagem === 'audio') {
                           if (midiaUrl) {
-                            return <audio src={midiaUrl} controls className="w-full min-w-[200px] h-10" preload="metadata" />;
+                            return (
+                              <div>
+                                <audio src={midiaUrl} controls className="w-full min-w-[200px] h-10" preload="metadata" />
+                                <AudioTranscription mensagem={m} />
+                              </div>
+                            );
                           }
                           return (
                             <div className="flex items-center gap-2 p-3 bg-slate-700/30 rounded-lg">

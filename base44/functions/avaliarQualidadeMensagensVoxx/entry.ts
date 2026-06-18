@@ -36,9 +36,11 @@ Deno.serve(async (_req) => {
     // Filtrar apenas com conteúdo e de remetentes cadastrados
     const candidatas = mensagensVoxx.filter(m => {
       const tel = normalizarTel(m.remetente_telefone);
-      return ehRemetenteCadastrado(tel, m.remetente_nome) &&
-        m.mensagem && m.mensagem.trim().length > 5 &&
-        m.grupo_id;
+      if (!ehRemetenteCadastrado(tel, m.remetente_nome) || !m.grupo_id) return false;
+      const textoAvaliavel = (m.tipo_mensagem === 'audio' && m.transcricao_audio)
+        ? m.transcricao_audio
+        : m.mensagem;
+      return textoAvaliavel && textoAvaliavel.trim().length > 5;
     });
 
     // Verificar quais já têm avaliação
@@ -73,7 +75,7 @@ Deno.serve(async (_req) => {
           .map(m => ({
             remetente: m.remetente_tipo,
             nome: m.remetente_nome,
-            texto: m.mensagem ? m.mensagem.substring(0, 300) : '',
+            texto: ((m.tipo_mensagem === 'audio' && m.transcricao_audio) ? `[Áudio]: ${m.transcricao_audio}` : (m.mensagem || '')).substring(0, 300),
             tipo: m.tipo_mensagem,
           }));
 
@@ -84,10 +86,15 @@ Deno.serve(async (_req) => {
 
         const temContexto = anteriores.length > 0;
 
-        const prompt = `Avalie a qualidade desta mensagem enviada por um atendente VOXX em um grupo de WhatsApp de cliente.
+        const textoParaAvaliar = (msg.tipo_mensagem === 'audio' && msg.transcricao_audio)
+          ? msg.transcricao_audio
+          : msg.mensagem;
+        const tipoLabel = msg.tipo_mensagem === 'audio' ? 'mensagem de áudio (transcrição)' : 'mensagem';
+
+        const prompt = `Avalie a qualidade desta ${tipoLabel} enviada por um atendente VOXX em um grupo de WhatsApp de cliente.
 
 MENSAGEM A AVALIAR:
-"${msg.mensagem}"
+"${textoParaAvaliar}"
 
 Remetente: ${msg.remetente_nome || 'VOXX'}
 Grupo: ${msg.grupo_nome || 'sem nome'}${contextoTexto}
@@ -143,7 +150,7 @@ ATENÇÃO: Retorne APENAS o JSON, sem markdown, sem explicações.`;
           grupo_nome: msg.grupo_nome || null,
           cliente_id: msg.cliente_id || null,
           cliente_nome: msg.cliente_nome || null,
-          texto_mensagem: msg.mensagem || null,
+          texto_mensagem: textoParaAvaliar || null,
           timestamp_mensagem: msg.timestamp_mensagem || msg.received_at,
           score_qualidade: resultado.score_qualidade,
           classificacao: resultado.classificacao,

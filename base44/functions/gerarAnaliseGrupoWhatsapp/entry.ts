@@ -152,7 +152,10 @@ Deno.serve(async (req) => {
       .map(m => {
         const tipo = m.from_me || m.remetente_tipo === 'voxx' ? 'VOXX' : m.remetente_tipo === 'cliente' ? 'CLIENTE' : 'DESCONHECIDO';
         const ts = toBrasilia(m.received_at || m.timestamp_mensagem) || '';
-        return `[${ts}] ${tipo} (${m.remetente_nome || ''}): ${m.mensagem || ''}`;
+        const textoMsg = (m.tipo_mensagem === 'audio' && m.transcricao_audio)
+          ? `[Áudio transcrito]: ${m.transcricao_audio}`
+          : (m.mensagem || '');
+        return `[${ts}] ${tipo} (${m.remetente_nome || ''}): ${textoMsg}`;
       })
       .join('\n');
 
