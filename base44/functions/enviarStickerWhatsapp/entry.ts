@@ -2,6 +2,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const ZAPI_BASE = 'https://api.z-api.io';
 
+function isZapiError(resultado) {
+  if (!resultado) return null;
+  if (resultado.error) return `Z-API: ${resultado.error}${resultado.message ? ' - ' + resultado.message : ''}`;
+  return null;
+}
+
 async function getZapiCredentials(base44) {
   const configs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1).catch(() => []);
   const entityConfig = configs?.[0];
@@ -45,12 +51,12 @@ Deno.serve(async (req) => {
       }
     );
 
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => '');
-      return Response.json({ success: false, erro: `Z-API HTTP ${resp.status}: ${errText}` }, { status: 502 });
+    const resultadoApi = await resp.json().catch(() => null);
+    const apiError = isZapiError(resultadoApi);
+    if (!resp.ok || apiError) {
+      const erro = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
+      return Response.json({ success: false, erro }, { status: 502 });
     }
-
-    const resultadoApi = await resp.json().catch(() => ({}));
 
     // Registrar envio
     try {
