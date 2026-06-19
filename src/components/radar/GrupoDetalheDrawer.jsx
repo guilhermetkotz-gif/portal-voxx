@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { X, User, Clock, MessageSquare, Wifi, WifiOff, AlertTriangle, Zap, Link2, Users, Info, FileText, Pencil, Check, Loader2, UserPlus, UserMinus, LogOut, MoonStar, RefreshCw } from 'lucide-react';
+import { X, User, Clock, MessageSquare, Wifi, WifiOff, AlertTriangle, Zap, Link2, Users, Info, FileText, Image, Pencil, Check, Loader2, UserPlus, UserMinus, LogOut, MoonStar, RefreshCw } from 'lucide-react';
 import moment from 'moment';
 import 'moment-timezone';
 import { toast } from 'sonner';
 import ModalReativacaoGrupo from './ModalReativacaoGrupo';
+import GrupoMidiaTab from './GrupoMidiaTab';
 
 const TZ = 'America/Sao_Paulo';
 
@@ -184,6 +185,9 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
             </TabsTrigger>
             <TabsTrigger value="atividade" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400 text-xs gap-1.5">
               <MessageSquare className="w-3.5 h-3.5" /> Atividade
+            </TabsTrigger>
+            <TabsTrigger value="midia" className="data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-slate-400 text-xs gap-1.5">
+              <Image className="w-3.5 h-3.5" /> Mídia, links e docs
             </TabsTrigger>
           </TabsList>
 
@@ -424,6 +428,11 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* ── Tab: Mídia, links e docs ── */}
+          <TabsContent value="midia" className="flex-1 overflow-hidden px-6 py-4 mt-0">
+            <GrupoMidiaTab grupoId={grupo.grupo_id} grupoNome={grupo.nome_grupo} />
           </TabsContent>
         </Tabs>
       </div>
