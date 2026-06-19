@@ -15,6 +15,7 @@ import TagLembreteButton from '@/components/radar/TagLembreteButton';
 import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
 import AudioTranscription from '@/components/radar/AudioTranscription';
 import ModalReativacaoGrupo from '@/components/radar/ModalReativacaoGrupo';
+import GrupoDetalheDrawer from '@/components/radar/GrupoDetalheDrawer';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 import { calcularHorasUteisSemFimDeSemana } from '@/lib/minutosUteis';
 
@@ -65,6 +66,28 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const [respondendoA, setRespondendoA] = useState(null); // mensagem sendo respondida
   const [forwardMsg, setForwardMsg] = useState(null); // mensagem a encaminhar
   const [showReativacaoModal, setShowReativacaoModal] = useState(false);
+  const [showGrupoDetalhe, setShowGrupoDetalhe] = useState(false);
+  const [grupoDetalheData, setGrupoDetalheData] = useState(null);
+  const [loadingGrupoDetalhe, setLoadingGrupoDetalhe] = useState(false);
+
+  const handleOpenGrupoDetalhe = async () => {
+    if (!isGroup || !chatId) return;
+    setLoadingGrupoDetalhe(true);
+    try {
+      const grupos = await base44.entities.WhatsappGrupo.filter({ grupo_id: chatId });
+      const g = grupos[0];
+      if (g) {
+        setGrupoDetalheData(g);
+        setShowGrupoDetalhe(true);
+      } else {
+        toast.error('Grupo não encontrado');
+      }
+    } catch (e) {
+      toast.error('Erro ao buscar dados do grupo');
+    } finally {
+      setLoadingGrupoDetalhe(false);
+    }
+  };
   const stickerInputRef = useRef(null);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -446,7 +469,11 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       <div className={`relative w-full max-w-lg ${t.bgPanel} ${t.border} border-l flex flex-col shadow-2xl`}>
         {/* Header */}
         <div className={`flex items-center justify-between px-5 py-4 border-b ${t.border} shrink-0`}>
-          <div className="flex items-center gap-3">
+          <div
+            className={`flex items-center gap-3 ${isGroup ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+            onClick={handleOpenGrupoDetalhe}
+            title={isGroup ? 'Ver detalhes do grupo' : ''}
+          >
             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${isGroup ? `${t.iconGreenBg} ${t.iconGreen}` : `${t.iconBlueBg} ${t.iconBlue}`}`}>
               {(chatName || chatId).charAt(0).toUpperCase()}
             </div>
@@ -454,6 +481,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               <h2 className={`text-sm font-bold ${t.textName}`}>{chatName || chatId}</h2>
               <p className={`text-[11px] ${t.textSecondary}`}>{isGroup ? 'Grupo' : 'Contato direto'}{clienteNome ? ` · ${clienteNome}` : ''}</p>
             </div>
+            {loadingGrupoDetalhe && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
           </div>
           <div className="flex items-center gap-2">
             <TagLembreteButton
@@ -1045,6 +1073,15 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
           open={!!forwardMsg}
           onOpenChange={(isOpen) => { if (!isOpen) setForwardMsg(null); }}
           mensagem={forwardMsg}
+        />
+      )}
+
+      {/* Drawer de detalhes do grupo */}
+      {showGrupoDetalhe && grupoDetalheData && (
+        <GrupoDetalheDrawer
+          grupo={grupoDetalheData}
+          clientes={[]}
+          onClose={() => setShowGrupoDetalhe(false)}
         />
       )}
 

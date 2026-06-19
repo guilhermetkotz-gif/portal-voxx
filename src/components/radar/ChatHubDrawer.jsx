@@ -13,6 +13,7 @@ import AudioTranscription from '@/components/radar/AudioTranscription';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
+import GrupoDetalheDrawer from '@/components/radar/GrupoDetalheDrawer';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 import moment from 'moment';
 import 'moment-timezone';
@@ -144,6 +145,28 @@ export default function ChatHubDrawer({ onClose, user }) {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const stickerInputRef = useRef(null);
+  const [showGrupoDetalhe, setShowGrupoDetalhe] = useState(false);
+  const [grupoDetalheData, setGrupoDetalheData] = useState(null);
+  const [loadingGrupoDetalhe, setLoadingGrupoDetalhe] = useState(false);
+
+  const handleOpenGrupoDetalhe = async () => {
+    if (!selectedChat?.isGroup || !selectedChat?.id) return;
+    setLoadingGrupoDetalhe(true);
+    try {
+      const grupos = await base44.entities.WhatsappGrupo.filter({ grupo_id: selectedChat.id });
+      const g = grupos[0];
+      if (g) {
+        setGrupoDetalheData(g);
+        setShowGrupoDetalhe(true);
+      } else {
+        toast.error('Grupo não encontrado');
+      }
+    } catch (e) {
+      toast.error('Erro ao buscar dados do grupo');
+    } finally {
+      setLoadingGrupoDetalhe(false);
+    }
+  };
 
   // ── Dados ─────────────────────────────────────────────────
   // Compartilha cache com RadarWhatsApp para alertas em tempo real
@@ -923,7 +946,11 @@ export default function ChatHubDrawer({ onClose, user }) {
             <>
               {/* Header do Chat */}
               <div className={`flex items-center justify-between px-5 py-3 border-b ${t.border} shrink-0`}>
-                <div className="flex items-center gap-3">
+                <div
+                  className={`flex items-center gap-3 ${selectedChat.isGroup ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                  onClick={handleOpenGrupoDetalhe}
+                  title={selectedChat.isGroup ? 'Ver detalhes do grupo' : ''}
+                >
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
                     selectedChat.isGroup ? `${t.iconGreenBg} ${t.iconGreen}` : `${t.iconBlueBg} ${t.iconBlue}`
                   }`}>
@@ -936,6 +963,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                       {selectedChat.clienteNome ? ` · ${selectedChat.clienteNome}` : ''}
                     </p>
                   </div>
+                  {loadingGrupoDetalhe && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />}
                   </div>
                   <TagLembreteButton
                   grupoId={selectedChat.id}
@@ -1406,6 +1434,15 @@ export default function ChatHubDrawer({ onClose, user }) {
             </>
           )}
         </div>
+
+        {/* ── Drawer: Detalhes do Grupo ── */}
+        {showGrupoDetalhe && grupoDetalheData && (
+          <GrupoDetalheDrawer
+            grupo={grupoDetalheData}
+            clientes={[]}
+            onClose={() => setShowGrupoDetalhe(false)}
+          />
+        )}
 
         {/* ── Modal: Encaminhamento ── */}
         {forwardMsg && (
