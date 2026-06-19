@@ -132,7 +132,7 @@ const Kanban = ({ user, selectedClienteId }) => {
   }, [customColumns, columnOrder]);
 
   const { data: demandas, isLoading, error } = useQuery({
-    queryKey: ['demandasKanban', selectedClienteId, user?.id],
+    queryKey: ['demandasKanban', selectedClienteId, user?.id, viewMode],
     queryFn: async () => {
       let queryFilters = {};
       if (!isVoxxAdmin(user) && !isVoxxOperacao(user)) {
@@ -142,7 +142,14 @@ const Kanban = ({ user, selectedClienteId }) => {
           return [];
         }
       }
-      return base44.entities.Demanda.filter(queryFilters, '-created_date', 500);
+      // Filtrar por status no servidor para concluídas/finalizadas (evita perder demandas antigas)
+      if (viewMode === 'concluidas') {
+        queryFilters.status = 'concluida';
+      } else if (viewMode === 'finalizadas') {
+        queryFilters.status = 'finalizada';
+      }
+      const limit = (viewMode === 'concluidas' || viewMode === 'finalizadas') ? 2000 : 500;
+      return base44.entities.Demanda.filter(queryFilters, '-created_date', limit);
     },
     enabled: !!user,
     refetchInterval: 10000,
