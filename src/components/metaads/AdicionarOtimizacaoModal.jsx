@@ -85,15 +85,11 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
                 acoes_implementadas: ''
             });
 
-            // Buscar o registro criado e o cliente vinculado
-            const otimizacaoId = result?.id;
-            if (otimizacaoId) {
-                const [otimizacao, cliente] = await Promise.all([
-                    base44.entities.MetaAdsOtimizacao.get(otimizacaoId),
-                    encontrarCliente(conta?.account_name)
-                ]);
-                if (otimizacao && cliente) {
-                    setCreatedOtimizacao(otimizacao);
+            // result já é o registro criado — usar diretamente
+            if (result?.id) {
+                const cliente = await encontrarCliente(conta?.account_name);
+                if (cliente) {
+                    setCreatedOtimizacao(result);
                     setClienteEnvio(cliente);
                     setShowEnvioModal(true);
                 } else {
