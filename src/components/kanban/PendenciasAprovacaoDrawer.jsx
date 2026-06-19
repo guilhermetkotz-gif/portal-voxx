@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Clock, ExternalLink, Send, AlertTriangle, CheckCircle, Filter } from 'lucide-react';
+import { Loader2, Clock, ExternalLink, Send, AlertTriangle, CheckCircle, Filter, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import moment from 'moment-timezone';
 
@@ -17,6 +17,7 @@ const TABS = [
   { key: 'aguardando', label: 'Aguardando cliente', icon: Clock, color: 'text-amber-600' },
   { key: 'alteracao', label: 'Alteração solicitada', icon: AlertTriangle, color: 'text-red-600' },
   { key: 'aprovadas', label: 'Aprovadas pelo cliente', icon: CheckCircle, color: 'text-green-600' },
+  { key: 'enviar', label: 'Enviar p/ Aprovação', icon: Play, color: 'text-blue-600' },
   { key: 'todas', label: 'Todas', icon: Filter, color: 'text-slate-600' },
 ];
 
@@ -76,14 +77,19 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
 
   // ── Categoriza as entregas ──
   const categorias = useMemo(() => {
-    const aguardando = [];   // status enviado / em_aprovacao / reenviado
+    const aguardando = [];   // status enviado / em_aprovacao / reenviado COM envio WhatsApp
+    const pendentesEnvio = []; // status enviado / em_aprovacao / reenviado SEM envio WhatsApp
     const alteracao = [];    // status solicitacao_alteracao
     const aprovadas = [];    // status aprovado
 
     entregas.forEach(entrega => {
       const s = entrega.status_entrega;
       if (s === 'enviado' || s === 'em_aprovacao' || s === 'reenviado') {
-        aguardando.push(entrega);
+        if (enviosMap[entrega.id]) {
+          aguardando.push(entrega);
+        } else {
+          pendentesEnvio.push(entrega);
+        }
       } else if (s === 'solicitacao_alteracao') {
         alteracao.push(entrega);
       } else if (s === 'aprovado') {
@@ -91,8 +97,8 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
       }
     });
 
-    return { aguardando, alteracao, aprovadas };
-  }, [entregas]);
+    return { aguardando, alteracao, aprovadas, pendentesEnvio };
+  }, [entregas, enviosMap]);
 
   // ── Filtra por cliente ──
   const filtrarPorCliente = (lista) => {
@@ -101,6 +107,7 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
   };
 
   const aguardandoFiltrado = filtrarPorCliente(categorias.aguardando);
+  const pendentesEnvioFiltrado = filtrarPorCliente(categorias.pendentesEnvio);
   const alteracaoFiltrada = useMemo(() => {
     let lista = filtrarPorCliente(categorias.alteracao);
     if (filtroStatus === 'nao_tratados') lista = lista.filter(e => e.retorno_cliente_tratado === false || e.retorno_cliente_tratado == null);
@@ -115,8 +122,8 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
   }, [categorias.aprovadas, filtroCliente, filtroStatus]);
 
   const todas = useMemo(() => {
-    const all = [...categorias.alteracao, ...categorias.aprovadas, ...categorias.aguardando];
-    // Ordenar: alteração primeiro, depois aprovadas não tratadas, depois aguardando mais antigo
+    const all = [...categorias.alteracao, ...categorias.aprovadas, ...categorias.aguardando, ...categorias.pendentesEnvio];
+    // Ordenar: alteração primeiro, depois aprovadas não tratadas, depois aguardando, depois pendentes de envio
     all.sort((a, b) => {
       const ordemStatus = {
         'solicitacao_alteracao': 0,
@@ -176,6 +183,9 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
               Aprovadas: {aprovadasFiltrada.length}
             </span>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+              P/ Enviar: {pendentesEnvioFiltrado.length}
+            </span>
             <span className="text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded-full font-medium">
               Não tratados: {totalNaoTratados}
             </span>
@@ -184,12 +194,13 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-5 mt-3 shrink-0 grid grid-cols-4 h-9">
+          <TabsList className="mx-5 mt-3 shrink-0 grid grid-cols-5 h-9">
             {TABS.map(tab => {
               const Icon = tab.icon;
               const count = tab.key === 'aguardando' ? aguardandoFiltrado.length
                 : tab.key === 'alteracao' ? alteracaoFiltrada.length
                 : tab.key === 'aprovadas' ? aprovadasFiltrada.length
+                : tab.key === 'enviar' ? pendentesEnvioFiltrado.length
                 : todas.length;
               return (
                 <TabsTrigger key={tab.key} value={tab.key} className="text-xs gap-1 px-1">
@@ -201,8 +212,8 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
             })}
           </TabsList>
 
-          {/* Filtros rápidos (não mostrar na aba Aguardando) */}
-          {activeTab !== 'aguardando' && (
+          {/* Filtros rápidos (não mostrar nas abas Aguardando e Enviar) */}
+          {activeTab !== 'aguardando' && activeTab !== 'enviar' && (
             <div className="flex items-center gap-2 px-5 mt-2 shrink-0">
               <Filter className="h-3 w-3 text-slate-400" />
               <Select value={filtroStatus} onValueChange={setFiltroStatus}>
@@ -282,6 +293,19 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
                   )}
                 </TabsContent>
 
+                <TabsContent value="enviar" className="mt-0 space-y-3">
+                  {pendentesEnvioFiltrado.length === 0 ? (
+                    <EmptyState message="Nenhuma entrega pendente de envio para aprovação." />
+                  ) : (
+                    pendentesEnvioFiltrado.map(entrega => (
+                      <PendenteEnvioCard
+                        key={entrega.id}
+                        entrega={entrega}
+                      />
+                    ))
+                  )}
+                </TabsContent>
+
                 <TabsContent value="todas" className="mt-0 space-y-3">
                   {todas.length === 0 ? (
                     <EmptyState message="Nenhum registro de aprovação encontrado." />
@@ -294,7 +318,10 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
                       if (s === 'aprovado') {
                         return <AprovadaCard key={entrega.id} entrega={entrega} notificacao={notificacaoMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} />;
                       }
-                      return <AguardandoCard key={entrega.id} entrega={entrega} envio={enviosMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} />;
+                      if (enviosMap[entrega.id]) {
+                        return <AguardandoCard key={entrega.id} entrega={entrega} envio={enviosMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} />;
+                      }
+                      return <PendenteEnvioCard key={entrega.id} entrega={entrega} />;
                     })
                   )}
                 </TabsContent>
@@ -304,6 +331,37 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
         </Tabs>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ── Card: Pendente de envio ──
+function PendenteEnvioCard({ entrega }) {
+  return (
+    <Card className="border-blue-200 bg-blue-50/30 hover:shadow-sm transition-shadow">
+      <CardContent className="p-4">
+        <div className="flex items-start gap-2">
+          <Play className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-slate-900 truncate">{entrega.cliente_nome || 'Cliente'}</p>
+            <p className="text-sm text-slate-600 truncate mt-0.5">{entrega.nome_entrega || 'Entrega'}</p>
+            {entrega.demanda_titulo && (
+              <p className="text-xs text-slate-400 truncate mt-0.5">Demanda: {entrega.demanda_titulo}</p>
+            )}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <Badge className="bg-blue-100 text-blue-700 border-blue-200">Pendente de envio</Badge>
+            </div>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {entrega.demanda_id && (
+                <Button size="sm" variant="outline" className="h-7 text-xs"
+                  onClick={() => window.open(`${window.location.origin}/Kanban?demanda=${entrega.demanda_id}`, '_self')}>
+                  Abrir demanda
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
