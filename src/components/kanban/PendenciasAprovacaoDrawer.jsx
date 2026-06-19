@@ -14,10 +14,10 @@ import { toast } from 'sonner';
 import moment from 'moment-timezone';
 
 const TABS = [
+  { key: 'enviar', label: 'Enviar p/ Aprovação', icon: Play, color: 'text-blue-600' },
   { key: 'aguardando', label: 'Aguardando cliente', icon: Clock, color: 'text-amber-600' },
   { key: 'alteracao', label: 'Alteração solicitada', icon: AlertTriangle, color: 'text-red-600' },
   { key: 'aprovadas', label: 'Aprovadas pelo cliente', icon: CheckCircle, color: 'text-green-600' },
-  { key: 'enviar', label: 'Enviar p/ Aprovação', icon: Play, color: 'text-blue-600' },
   { key: 'todas', label: 'Todas', icon: Filter, color: 'text-slate-600' },
 ];
 
