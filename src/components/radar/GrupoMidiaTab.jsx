@@ -13,16 +13,13 @@ export default function GrupoMidiaTab({ grupoId, grupoNome }) {
   const [selecionando, setSelecionando] = useState(false);
   const [selecionados, setSelecionados] = useState(new Set());
   const [visualizando, setVisualizando] = useState(null);
+  const [todasConvs, setTodasConvs] = useState(true);
 
-  // Buscar todas as mensagens com mídia do grupo
+  // Buscar TODAS as mensagens com mídia de todos os grupos
   const { data: mensagens = [], isLoading } = useQuery({
-    queryKey: ['grupoMidia', grupoId],
+    queryKey: ['grupoMidia', 'todas'],
     queryFn: async () => {
-      const todas = await base44.entities.WhatsappMensagem.filter(
-        { grupo_id: grupoId },
-        '-received_at',
-        500
-      );
+      const todas = await base44.entities.WhatsappMensagem.list('-received_at', 2000);
       return todas.filter(m =>
         !m.deletado &&
         m.tipo_mensagem !== 'sem_conteudo' &&
@@ -31,17 +28,20 @@ export default function GrupoMidiaTab({ grupoId, grupoNome }) {
         m.tipo_mensagem !== 'reacao'
       );
     },
-    enabled: !!grupoId,
     staleTime: 30 * 1000,
   });
 
-  // Separar por tipo
+  // Separar por tipo (filtra por grupo se necessário)
   const { midias, links, docs } = useMemo(() => {
     const m = [];
     const l = [];
     const d = [];
 
-    mensagens.forEach(msg => {
+    const msgsFiltradas = todasConvs
+      ? mensagens
+      : mensagens.filter(msg => msg.grupo_id === grupoId);
+
+    msgsFiltradas.forEach(msg => {
       const tipo = msg.tipo_mensagem;
       const temUrl = msg.midia_url;
       const temLink = msg.mensagem && /https?:\/\/[^\s]+/.test(msg.mensagem);
@@ -62,7 +62,7 @@ export default function GrupoMidiaTab({ grupoId, grupoNome }) {
     });
 
     return { midias: m, links: l, docs: d };
-  }, [mensagens]);
+  }, [mensagens, todasConvs, grupoId]);
 
   const itemsAtuais = subTab === 'midia' ? midias : subTab === 'links' ? links : docs;
 
@@ -186,6 +186,13 @@ export default function GrupoMidiaTab({ grupoId, grupoNome }) {
                     </div>
                   )}
 
+                  {/* Nome do grupo (apenas quando vendo todas as conversas) */}
+                  {todasConvs && item.grupo_nome && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-1.5 py-1">
+                      <span className="text-[8px] text-white/80 truncate block">{item.grupo_nome}</span>
+                    </div>
+                  )}
+
                   {/* Checkbox de seleção */}
                   {selecionando && (
                     <div className={`absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center ${
@@ -210,8 +217,11 @@ export default function GrupoMidiaTab({ grupoId, grupoNome }) {
 
       {/* Rodapé */}
       <div className="flex items-center justify-between pt-3 mt-auto border-t border-slate-800">
-        <button className="text-xs text-emerald-500 hover:text-emerald-400 transition-colors">
-          Mostrar mídias de todas as conversas
+        <button
+          onClick={() => setTodasConvs(!todasConvs)}
+          className="text-xs text-emerald-500 hover:text-emerald-400 transition-colors"
+        >
+          {todasConvs ? `Mostrar apenas desta conversa` : `Mostrar mídias de todas as conversas`}
         </button>
         <Button
           size="sm"
