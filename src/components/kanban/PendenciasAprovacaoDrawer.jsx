@@ -55,7 +55,15 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
     refetchInterval: open ? 20000 : false,
   });
 
-  const isLoading = loadingEntregas || loadingEnvios || loadingNotifs;
+  // ── Busca demandas finalizadas para excluir suas entregas ──
+  const { data: demandasFinalizadas = [], isLoading: loadingDemandas } = useQuery({
+    queryKey: ['demandasFinalizadasParaPendencias'],
+    queryFn: () => base44.entities.Demanda.filter({ status: 'finalizada' }, '-updated_date', 500),
+    enabled: open,
+    refetchInterval: open ? 30000 : false,
+  });
+
+  const isLoading = loadingEntregas || loadingEnvios || loadingNotifs || loadingDemandas;
 
   // ── Mapa entrega_id → envio WhatsApp ──
   const enviosMap = useMemo(() => {
@@ -75,7 +83,14 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
     return map;
   }, [notificacoes]);
 
-  // ── Categoriza as entregas ──
+  // ── Set de IDs de demandas finalizadas ──
+  const demandasFinalizadasSet = useMemo(() => {
+    const set = new Set();
+    demandasFinalizadas.forEach(d => set.add(d.id));
+    return set;
+  }, [demandasFinalizadas]);
+
+  // ── Categoriza as entregas (exclui demandas finalizadas) ──
   const categorias = useMemo(() => {
     const aguardando = [];   // status enviado / em_aprovacao / reenviado COM envio WhatsApp
     const pendentesEnvio = []; // status enviado / em_aprovacao / reenviado SEM envio WhatsApp
@@ -83,6 +98,9 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
     const aprovadas = [];    // status aprovado
 
     entregas.forEach(entrega => {
+      // Pula entregas cuja demanda está finalizada
+      if (entrega.demanda_id && demandasFinalizadasSet.has(entrega.demanda_id)) return;
+
       const s = entrega.status_entrega;
       if (s === 'enviado' || s === 'em_aprovacao' || s === 'reenviado') {
         if (enviosMap[entrega.id]) {
@@ -98,7 +116,7 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
     });
 
     return { aguardando, alteracao, aprovadas, pendentesEnvio };
-  }, [entregas, enviosMap]);
+  }, [entregas, enviosMap, demandasFinalizadasSet]);
 
   // ── Filtra por cliente ──
   const filtrarPorCliente = (lista) => {
