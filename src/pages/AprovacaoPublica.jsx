@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   CheckCircle, AlertCircle, Loader2, ExternalLink, FileText,
-  Image, Video, Download, Clock, History, ChevronDown, ChevronUp, Info
+  Image, Video, Download, Clock, History, ChevronDown, ChevronUp, Info,
+  Upload, Link, Paperclip
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import moment from 'moment';
@@ -110,6 +111,26 @@ function HistoricoSection({ historico = [] }) {
               {h.observacao && (
                 <p className="text-xs text-slate-600 mt-1 italic">"{h.observacao}"</p>
               )}
+              {h.anexos?.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {h.anexos.map((a, i) => (
+                    <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-700">
+                      {a.tipo === 'link' ? <Link className="w-3 h-3" />
+                       : a.tipo === 'imagem' ? <Image className="w-3 h-3" />
+                       : a.tipo === 'video' ? <Video className="w-3 h-3" />
+                       : <FileText className="w-3 h-3" />}
+                      {a.nome}
+                    </a>
+                  ))}
+                </div>
+              )}
+              {h.link_alteracao && (
+                <a href={h.link_alteracao} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-700 mt-1">
+                  <Link className="w-3 h-3" /> {h.link_alteracao}
+                </a>
+              )}
               {h.versao && (
                 <p className="text-xs text-slate-400 mt-0.5">Versão {h.versao}</p>
               )}
@@ -130,6 +151,9 @@ export default function AprovacaoPublica() {
   const [acao, setAcao] = useState(null); // 'aprovar' | 'solicitar'
   const [nome, setNome] = useState('');
   const [observacao, setObservacao] = useState('');
+  const [anexos, setAnexos] = useState([]); // [{url, nome, tipo}]
+  const [linkAlteracao, setLinkAlteracao] = useState('');
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null); // 'aprovado' | 'solicitacao_alteracao' | 'erro'
 
@@ -152,14 +176,54 @@ export default function AprovacaoPublica() {
       });
   }, [token]);
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFile(true);
+    try {
+      const res = await base44.integrations.Core.UploadFile({ file });
+      if (res.file_url) {
+        setAnexos(prev => [...prev, {
+          url: res.file_url,
+          nome: file.name,
+          tipo: file.type.startsWith('image/') ? 'imagem'
+            : file.type.startsWith('video/') ? 'video'
+            : file.type === 'application/pdf' ? 'pdf'
+            : 'documento'
+        }]);
+      }
+    } catch (err) {
+      // silently fail
+    } finally {
+      setUploadingFile(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddLink = () => {
+    const url = linkAlteracao.trim();
+    if (!url) return;
+    try {
+      new URL(url);
+    } catch { return; }
+    setAnexos(prev => [...prev, { url, nome: url, tipo: 'link' }]);
+    setLinkAlteracao('');
+  };
+
+  const handleRemoveAnexo = (index) => {
+    setAnexos(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleAcao = async () => {
     if (!nome.trim()) return;
-    if (acao === 'solicitar' && !observacao.trim()) return;
+    if (acao === 'solicitar' && !observacao.trim() && anexos.length === 0 && !linkAlteracao.trim()) return;
     setEnviando(true);
     try {
       const action = acao === 'aprovar' ? 'aprovar' : 'solicitacao_alteracao';
       const res = await base44.functions.invoke('entregaPublica', {
-        token, action, nome_responsavel: nome.trim(), observacao: observacao.trim()
+        token, action, nome_responsavel: nome.trim(), observacao: observacao.trim(),
+        anexos: anexos.length > 0 ? anexos : undefined,
+        link_alteracao: linkAlteracao.trim() || undefined
       });
       if (res.data?.success) {
         setResultado(action);
@@ -385,17 +449,71 @@ export default function AprovacaoPublica() {
                   </div>
 
                   {acao === 'solicitar' ? (
-                    <div>
-                      <Label className="text-sm font-medium text-slate-700 mb-1.5 block">
-                        Descreva as alterações necessárias <span className="text-red-500">*</span>
-                      </Label>
-                      <Textarea
-                        value={observacao}
-                        onChange={e => setObservacao(e.target.value)}
-                        placeholder="Seja específico sobre o que precisa ser modificado..."
-                        className="min-h-[120px] resize-none"
-                      />
-                    </div>
+                    <>
+                      <div>
+                        <Label className="text-sm font-medium text-slate-700 mb-1.5 block">
+                          Descreva as alterações necessárias <span className="text-red-500">*</span>
+                        </Label>
+                        <Textarea
+                          value={observacao}
+                          onChange={e => setObservacao(e.target.value)}
+                          placeholder="Seja específico sobre o que precisa ser modificado..."
+                          className="min-h-[100px] resize-none"
+                        />
+                      </div>
+
+                      {/* Anexos */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-slate-700">
+                          <Paperclip className="w-3.5 h-3.5 inline mr-1.5" />
+                          Anexar mídia, link ou documento <span className="text-slate-400 font-normal">(opcional)</span>
+                        </Label>
+
+                        {/* Link input */}
+                        <div className="flex gap-2">
+                          <Input
+                            value={linkAlteracao}
+                            onChange={e => setLinkAlteracao(e.target.value)}
+                            placeholder="Cole um link (Dropbox, Drive, etc.)"
+                            className="h-9 text-sm flex-1"
+                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddLink(); } }}
+                          />
+                          <Button type="button" variant="outline" size="sm" className="h-9 gap-1"
+                            onClick={handleAddLink} disabled={!linkAlteracao.trim()}>
+                            <Link className="w-3.5 h-3.5" /> Adicionar
+                          </Button>
+                        </div>
+
+                        {/* File upload */}
+                        <label className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed border-slate-200 hover:border-violet-300 cursor-pointer transition-colors text-sm text-slate-500 hover:text-violet-600">
+                          <Upload className="w-4 h-4" />
+                          {uploadingFile ? 'Enviando arquivo...' : 'Fazer upload de arquivo'}
+                          <input type="file" className="hidden" onChange={handleFileUpload}
+                            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" disabled={uploadingFile} />
+                        </label>
+
+                        {/* Preview dos anexos */}
+                        {anexos.length > 0 && (
+                          <div className="space-y-1.5 mt-2">
+                            {anexos.map((a, i) => (
+                              <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100">
+                                {a.tipo === 'link' ? <Link className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                 : a.tipo === 'imagem' ? <Image className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                                 : a.tipo === 'video' ? <Video className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                                 : <FileText className="w-4 h-4 text-violet-500 flex-shrink-0" />}
+                                <span className="text-xs text-slate-600 truncate flex-1">{a.nome}</span>
+                                <button onClick={() => handleRemoveAnexo(i)}
+                                  className="text-slate-400 hover:text-red-500 flex-shrink-0">
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                  </svg>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     <div>
                       <Label className="text-sm font-medium text-slate-700 mb-1.5 block">
@@ -413,7 +531,7 @@ export default function AprovacaoPublica() {
                   <div className="flex gap-2 pt-1">
                     <Button
                       onClick={handleAcao}
-                      disabled={enviando || !nome.trim() || (acao === 'solicitar' && !observacao.trim())}
+                      disabled={enviando || !nome.trim() || (acao === 'solicitar' && !observacao.trim() && anexos.length === 0 && !linkAlteracao.trim())}
                       className={cn('flex-1 h-11 font-semibold',
                         acao === 'aprovar'
                           ? 'bg-green-600 hover:bg-green-700 text-white'

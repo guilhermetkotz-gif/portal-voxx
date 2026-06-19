@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Clock, ExternalLink, Send, AlertTriangle, CheckCircle, Filter, Play } from 'lucide-react';
+import { Loader2, Clock, ExternalLink, Send, AlertTriangle, CheckCircle, Filter, Play, Paperclip } from 'lucide-react';
 import { toast } from 'sonner';
 import moment from 'moment-timezone';
 
@@ -491,6 +491,23 @@ function AlteracaoCard({ entrega, notificacao, onInvalidate }) {
             {comentario && (
               <div className="mt-2 p-2 bg-white rounded border border-red-200 text-xs text-slate-700 italic">
                 "{comentario}"
+              </div>
+            )}
+            {/* Anexos da alteração */}
+            {(notificacao?.anexos?.length > 0 || notificacao?.link_alteracao) && (
+              <div className="mt-2 space-y-1">
+                {notificacao?.anexos?.map((a, i) => (
+                  <a key={i} href={a.url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-700">
+                    <Paperclip className="w-3 h-3" /> {a.nome}
+                  </a>
+                ))}
+                {notificacao?.link_alteracao && (
+                  <a href={notificacao.link_alteracao} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-700">
+                    <ExternalLink className="w-3 h-3" /> {notificacao.link_alteracao}
+                  </a>
+                )}
               </div>
             )}
             <div className="flex items-center gap-2 mt-2 flex-wrap">

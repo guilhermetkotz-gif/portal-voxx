@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { token, action, nome_responsavel, observacao } = body;
+    const { token, action, nome_responsavel, observacao, anexos, link_alteracao } = body;
 
     if (!token) {
       return Response.json({ error: 'Token obrigatório' }, { status: 400 });
@@ -75,6 +75,8 @@ Deno.serve(async (req) => {
       tipo_resposta: action === 'aprovar' ? 'aprovado' : 'solicitou_alteracao',
       nome_responsavel: nome_responsavel.trim(),
       observacao_cliente: observacao || '',
+      anexos: anexos || [],
+      link_alteracao: link_alteracao || null,
       data_resposta: agora,
       ip,
       user_agent: userAgent
@@ -88,7 +90,9 @@ Deno.serve(async (req) => {
       observacao: observacao || '',
       data: agora,
       ip,
-      versao: entrega.numero_versao_atual || 1
+      versao: entrega.numero_versao_atual || 1,
+      anexos: anexos || [],
+      link_alteracao: link_alteracao || null
     });
 
     const updates = {
@@ -140,6 +144,8 @@ Deno.serve(async (req) => {
         entrega_nome: entrega.nome_entrega,
         status_aprovacao: action === 'aprovar' ? 'aprovado' : 'solicitacao_alteracao',
         comentario_cliente: observacao || null,
+        anexos: anexos || [],
+        link_alteracao: link_alteracao || null,
         lida: false,
         data_resposta_cliente: agora,
         resposta_aprovacao_id: resposta.id
