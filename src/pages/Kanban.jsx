@@ -632,6 +632,11 @@ const Kanban = ({ user, selectedClienteId }) => {
       <PendenciasAprovacaoDrawer
         open={showPendenciasDrawer}
         onClose={() => setShowPendenciasDrawer(false)}
+        onOpenDemanda={async (demandaId) => {
+          setShowPendenciasDrawer(false);
+          const results = await base44.entities.Demanda.filter({ id: demandaId }, null, 1);
+          if (results?.length > 0) setSelectedDemanda(results[0]);
+        }}
       />
     </div>
   );

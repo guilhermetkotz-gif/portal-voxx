@@ -21,7 +21,7 @@ const TABS = [
   { key: 'todas', label: 'Todas', icon: Filter, color: 'text-slate-600' },
 ];
 
-export default function PendenciasAprovacaoDrawer({ open, onClose }) {
+export default function PendenciasAprovacaoDrawer({ open, onClose, onOpenDemanda }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('aguardando');
   const [filtroStatus, setFiltroStatus] = useState('nao_tratados');
@@ -276,6 +276,7 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
                         entrega={entrega}
                         envio={enviosMap[entrega.id]}
                         onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })}
+                        onOpenDemanda={onOpenDemanda}
                       />
                     ))
                   )}
@@ -291,6 +292,7 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
                         entrega={entrega}
                         notificacao={notificacaoMap[entrega.id]}
                         onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })}
+                        onOpenDemanda={onOpenDemanda}
                       />
                     ))
                   )}
@@ -306,6 +308,7 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
                         entrega={entrega}
                         notificacao={notificacaoMap[entrega.id]}
                         onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })}
+                        onOpenDemanda={onOpenDemanda}
                       />
                     ))
                   )}
@@ -319,6 +322,7 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
                       <PendenteEnvioCard
                         key={entrega.id}
                         entrega={entrega}
+                        onOpenDemanda={onOpenDemanda}
                       />
                     ))
                   )}
@@ -331,15 +335,15 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
                     todas.map(entrega => {
                       const s = entrega.status_entrega;
                       if (s === 'solicitacao_alteracao') {
-                        return <AlteracaoCard key={entrega.id} entrega={entrega} notificacao={notificacaoMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} />;
+                        return <AlteracaoCard key={entrega.id} entrega={entrega} notificacao={notificacaoMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} onOpenDemanda={onOpenDemanda} />;
                       }
                       if (s === 'aprovado') {
-                        return <AprovadaCard key={entrega.id} entrega={entrega} notificacao={notificacaoMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} />;
+                        return <AprovadaCard key={entrega.id} entrega={entrega} notificacao={notificacaoMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} onOpenDemanda={onOpenDemanda} />;
                       }
                       if (enviosMap[entrega.id]) {
-                        return <AguardandoCard key={entrega.id} entrega={entrega} envio={enviosMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} />;
+                        return <AguardandoCard key={entrega.id} entrega={entrega} envio={enviosMap[entrega.id]} onInvalidate={() => queryClient.invalidateQueries({ queryKey: ['entregasParaPendencias'] })} onOpenDemanda={onOpenDemanda} />;
                       }
-                      return <PendenteEnvioCard key={entrega.id} entrega={entrega} />;
+                      return <PendenteEnvioCard key={entrega.id} entrega={entrega} onOpenDemanda={onOpenDemanda} />;
                     })
                   )}
                 </TabsContent>
@@ -353,7 +357,7 @@ export default function PendenciasAprovacaoDrawer({ open, onClose }) {
 }
 
 // ── Card: Pendente de envio ──
-function PendenteEnvioCard({ entrega }) {
+function PendenteEnvioCard({ entrega, onOpenDemanda: onOpen }) {
   return (
     <Card className="border-blue-200 bg-blue-50/30 hover:shadow-sm transition-shadow">
       <CardContent className="p-4">
@@ -371,7 +375,7 @@ function PendenteEnvioCard({ entrega }) {
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {entrega.demanda_id && (
                 <Button size="sm" variant="outline" className="h-7 text-xs"
-                  onClick={() => window.open(`${window.location.origin}/Kanban?demanda=${entrega.demanda_id}`, '_self')}>
+                  onClick={() => onOpen?.(entrega.demanda_id)}>
                   Abrir demanda
                 </Button>
               )}
@@ -394,7 +398,7 @@ function EmptyState({ message }) {
 }
 
 // ── Card: Aguardando cliente ──
-function AguardandoCard({ entrega, envio, onInvalidate }) {
+function AguardandoCard({ entrega, envio, onInvalidate, onOpenDemanda: onOpen }) {
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
 
@@ -449,7 +453,7 @@ function AguardandoCard({ entrega, envio, onInvalidate }) {
           )}
           {entrega.demanda_id && (
             <Button size="sm" variant="ghost" className="h-7 text-xs"
-              onClick={() => window.open(`${window.location.origin}/Kanban?demanda=${entrega.demanda_id}`, '_self')}>
+              onClick={() => onOpen?.(entrega.demanda_id)}>
               Abrir demanda
             </Button>
           )}
@@ -460,7 +464,7 @@ function AguardandoCard({ entrega, envio, onInvalidate }) {
 }
 
 // ── Card: Alteração solicitada ──
-function AlteracaoCard({ entrega, notificacao, onInvalidate }) {
+function AlteracaoCard({ entrega, notificacao, onInvalidate, onOpenDemanda: onOpen }) {
   const [marcando, setMarcando] = useState(false);
   const tratado = entrega.retorno_cliente_tratado === true;
 
@@ -531,12 +535,12 @@ function AlteracaoCard({ entrega, notificacao, onInvalidate }) {
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {entrega.demanda_id && (
                 <Button size="sm" variant="outline" className="h-7 text-xs"
-                  onClick={() => window.open(`${window.location.origin}/Kanban?demanda=${entrega.demanda_id}`, '_self')}>
+                  onClick={() => onOpen?.(entrega.demanda_id)}>
                   Abrir demanda
                 </Button>
               )}
               <Button size="sm" variant="outline" className="h-7 text-xs border-orange-300 text-orange-700"
-                onClick={() => window.open(`${window.location.origin}/Kanban?demanda=${entrega.demanda_id}`, '_self')}>
+                onClick={() => onOpen?.(entrega.demanda_id)}>
                 Iniciar ajuste
               </Button>
               {!tratado && (
@@ -554,7 +558,7 @@ function AlteracaoCard({ entrega, notificacao, onInvalidate }) {
 }
 
 // ── Card: Aprovada pelo cliente ──
-function AprovadaCard({ entrega, notificacao, onInvalidate }) {
+function AprovadaCard({ entrega, notificacao, onInvalidate, onOpenDemanda: onOpen }) {
   const [marcando, setMarcando] = useState(false);
   const tratado = entrega.retorno_cliente_tratado === true;
 
@@ -600,7 +604,7 @@ function AprovadaCard({ entrega, notificacao, onInvalidate }) {
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {entrega.demanda_id && (
                 <Button size="sm" variant="outline" className="h-7 text-xs"
-                  onClick={() => window.open(`${window.location.origin}/Kanban?demanda=${entrega.demanda_id}`, '_self')}>
+                  onClick={() => onOpen?.(entrega.demanda_id)}>
                   Abrir demanda
                 </Button>
               )}
