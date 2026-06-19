@@ -1117,7 +1117,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                               <p className={`text-[11px] font-medium ${t.textNameOut} mb-1`}>{m.remetente_nome}</p>
                             )}
                             {renderContent()}
-                            {(m.tipo_mensagem === 'imagem' || m.tipo_mensagem === 'video') && m.mensagem && m.mensagem !== '[Imagem]' && m.mensagem !== '[Vídeo]' && (
+                            {['imagem', 'video', 'documento'].includes(m.tipo_mensagem) && m.mensagem && !['[Imagem]', '[Vídeo]', '[Documento]'].includes(m.mensagem) && !m.mensagem.startsWith('[Documento:') && (
                               renderizarTextoComLinks(m.mensagem, 'mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90')
                             )}
                             {/* Reações */}
