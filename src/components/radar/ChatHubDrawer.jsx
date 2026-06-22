@@ -22,17 +22,53 @@ import { calcularMinutosUteis, nivelAlerta } from '@/lib/minutosUteis';
 
 const TZ = 'America/Sao_Paulo';
 
-function renderizarTextoComLinks(texto, className) {
+function renderizarTextoComLinks(texto, className, telefoneParaNome) {
   if (!texto) return null;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const partes = texto.split(urlRegex);
+  const mapa = telefoneParaNome || {};
+  const pattern = /(https?:\/\/[^\s]+)|@(\d{10,16})/g;
+
+  const segments = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(texto)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', content: texto.slice(lastIndex, match.index) });
+    }
+    if (match[1]) {
+      segments.push({ type: 'url', content: match[1] });
+    } else if (match[2]) {
+      const phoneDigits = match[2];
+      let nome = null;
+      for (const [phoneKey, name] of Object.entries(mapa)) {
+        if (phoneKey.includes(phoneDigits) || phoneDigits.includes(phoneKey)) {
+          nome = name;
+          break;
+        }
+      }
+      segments.push({ type: 'mention', display: nome || phoneDigits, raw: match[0] });
+    }
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < texto.length) {
+    segments.push({ type: 'text', content: texto.slice(lastIndex) });
+  }
+
+  if (segments.length === 0) {
+    segments.push({ type: 'text', content: texto });
+  }
+
   return (
     <p className={className}>
-      {partes.map((parte, i) => {
-        if (urlRegex.test(parte)) {
-          return <a key={i} href={parte} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:decoration-solid break-all">{parte}</a>;
+      {segments.map((seg, i) => {
+        if (seg.type === 'url') {
+          return <a key={i} href={seg.content} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:decoration-solid break-all">{seg.content}</a>;
         }
-        return <span key={i}>{parte}</span>;
+        if (seg.type === 'mention') {
+          return <span key={i} className="text-cyan-500 font-medium" title={seg.raw}>@{seg.display}</span>;
+        }
+        return <span key={i}>{seg.content}</span>;
       })}
     </p>
   );
@@ -113,7 +149,10 @@ function getTimestampSeguro(msg) {
 
 function previewMensagem(m) {
   if (m.tipo_mensagem === 'texto') {
-    const txt = (m.mensagem || '').substring(0, 60);
+    let txt = (m.mensagem || '');
+    // Substituir menções @phone por @⋯ no preview
+    txt = txt.replace(/@\d{10,16}/g, '@⋯');
+    txt = txt.substring(0, 60);
     return txt + (txt.length >= 60 ? '...' : '');
   }
   const map = { imagem: '📷 Imagem', video: '🎬 Vídeo', audio: '🎤 Áudio', documento: '📎 Documento', sticker: '🎨 Figurinha' };
@@ -781,6 +820,18 @@ export default function ChatHubDrawer({ onClose, user }) {
     { emoji: '💪', url: 'https://em-content.zobj.net/thumbs/120/apple/325/flexed-biceps_1f4aa.png' },
   ];
 
+  // Mapa telefone → nome para resolver menções (@phone)
+  const telefoneParaNome = useMemo(() => {
+    const map = {};
+    msgsChat.forEach(m => {
+      if (m.remetente_telefone && m.remetente_nome) {
+        const telNorm = m.remetente_telefone.replace(/\D/g, '');
+        if (telNorm) map[telNorm] = m.remetente_nome;
+      }
+    });
+    return map;
+  }, [msgsChat]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -1064,7 +1115,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                           );
                         }
                         const textoLimpo = (m.mensagem || '').replace(/\n*— [^\n]+ \| Voxx\n*$/, '').trim();
-                        return renderizarTextoComLinks(textoLimpo || '[Sem conteúdo]', 'whitespace-pre-wrap break-words');
+                        return renderizarTextoComLinks(textoLimpo || '[Sem conteúdo]', 'whitespace-pre-wrap break-words', telefoneParaNome);
                       };
 
                       return (
@@ -1118,7 +1169,7 @@ export default function ChatHubDrawer({ onClose, user }) {
                             )}
                             {renderContent()}
                             {['imagem', 'video', 'documento'].includes(m.tipo_mensagem) && m.mensagem && !['[Imagem]', '[Vídeo]', '[Documento]'].includes(m.mensagem) && !m.mensagem.startsWith('[Documento:') && (
-                              renderizarTextoComLinks(m.mensagem, 'mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90')
+                              renderizarTextoComLinks(m.mensagem, 'mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90', telefoneParaNome)
                             )}
                             {/* Reações */}
                             {m.reacoes && m.reacoes.length > 0 && (

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -21,17 +21,54 @@ import { calcularHorasUteisSemFimDeSemana } from '@/lib/minutosUteis';
 
 const TZ = 'America/Sao_Paulo';
 
-function renderizarTextoComLinks(texto, className) {
+function renderizarTextoComLinks(texto, className, telefoneParaNome) {
   if (!texto) return null;
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const partes = texto.split(urlRegex);
+  const mapa = telefoneParaNome || {};
+  // Regex combinada: URLs + menções (@ seguido de 10-16 dígitos)
+  const pattern = /(https?:\/\/[^\s]+)|@(\d{10,16})/g;
+
+  const segments = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(texto)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', content: texto.slice(lastIndex, match.index) });
+    }
+    if (match[1]) {
+      segments.push({ type: 'url', content: match[1] });
+    } else if (match[2]) {
+      const phoneDigits = match[2];
+      let nome = null;
+      for (const [phoneKey, name] of Object.entries(mapa)) {
+        if (phoneKey.includes(phoneDigits) || phoneDigits.includes(phoneKey)) {
+          nome = name;
+          break;
+        }
+      }
+      segments.push({ type: 'mention', display: nome || phoneDigits, raw: match[0] });
+    }
+    lastIndex = pattern.lastIndex;
+  }
+
+  if (lastIndex < texto.length) {
+    segments.push({ type: 'text', content: texto.slice(lastIndex) });
+  }
+
+  if (segments.length === 0) {
+    segments.push({ type: 'text', content: texto });
+  }
+
   return (
     <p className={className}>
-      {partes.map((parte, i) => {
-        if (urlRegex.test(parte)) {
-          return <a key={i} href={parte} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:decoration-solid break-all">{parte}</a>;
+      {segments.map((seg, i) => {
+        if (seg.type === 'url') {
+          return <a key={i} href={seg.content} target="_blank" rel="noopener noreferrer" className="underline decoration-dotted hover:decoration-solid break-all">{seg.content}</a>;
         }
-        return <span key={i}>{parte}</span>;
+        if (seg.type === 'mention') {
+          return <span key={i} className="text-cyan-500 font-medium" title={seg.raw}>@{seg.display}</span>;
+        }
+        return <span key={i}>{seg.content}</span>;
       })}
     </p>
   );
@@ -116,6 +153,18 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     const horas = calcularHorasUteisSemFimDeSemana(ultima.received_at, new Date().toISOString());
     return horas >= 72;
   })();
+
+  // Mapa telefone → nome para resolver menções (@phone)
+  const telefoneParaNome = useMemo(() => {
+    const map = {};
+    mensagens.forEach(m => {
+      if (m.remetente_telefone && m.remetente_nome) {
+        const telNorm = m.remetente_telefone.replace(/\D/g, '');
+        if (telNorm) map[telNorm] = m.remetente_nome;
+      }
+    });
+    return map;
+  }, [mensagens]);
 
   // Auto-scroll para baixo
   useEffect(() => {
@@ -604,7 +653,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                     return <span className="text-xs italic opacity-40">Reação</span>;
                   }
                   // Texto (fallback)
-                  return renderizarTextoComLinks(m.mensagem || '[Sem conteúdo]', 'whitespace-pre-wrap break-words');
+                  return renderizarTextoComLinks(m.mensagem || '[Sem conteúdo]', 'whitespace-pre-wrap break-words', telefoneParaNome);
                 };
 
                 // Ações do menu dropdown ao clicar na mensagem
@@ -700,7 +749,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                       {renderContent()}
                       {/* Mostra legenda/caption abaixo da mídia se houver texto */}
                       {['imagem', 'video', 'documento'].includes(m.tipo_mensagem) && m.mensagem && !['[Imagem]', '[Vídeo]', '[Documento]'].includes(m.mensagem) && !m.mensagem.startsWith('[Documento:') && (
-                        renderizarTextoComLinks(m.mensagem, 'mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90')
+                        renderizarTextoComLinks(m.mensagem, 'mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90', telefoneParaNome)
                       )}
                       {/* Reações */}
                       {m.reacoes && m.reacoes.length > 0 && (
