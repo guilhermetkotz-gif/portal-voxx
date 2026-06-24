@@ -124,7 +124,7 @@ export default function ActiveTimersPanel({ open, onClose, user }) {
                           <span className="font-mono text-sm font-semibold text-violet-700 tabular-nums">
                             {formatTime(segundos)}
                           </span>
-                          {isAdmin && !isMe && (
+                          {(isMe || (isAdmin && !isMe)) && (
                             <Button
                               size="sm"
                               variant="outline"
