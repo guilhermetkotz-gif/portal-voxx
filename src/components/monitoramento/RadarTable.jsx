@@ -329,9 +329,9 @@ export default function RadarTable({
                               </div>
                               <Button
                                 onClick={() => {
-                                  const conta = accounts.find(a => a.account_name === row.account_name);
-                                  setSelectedAccountForOtimizacao(conta);
-                                  setOtimizacaoModalOpen(true);
+                                    const conta = accounts.find(a => a.account_name === row.account_name);
+                                    setSelectedAccountForOtimizacao({ conta, radarRow: row, recommendations: recommendations[row.account_name] });
+                                    setOtimizacaoModalOpen(true);
                                 }}
                                 className="bg-violet-600 hover:bg-violet-700"
                                 size="sm"

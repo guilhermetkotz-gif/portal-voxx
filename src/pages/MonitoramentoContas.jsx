@@ -1854,7 +1854,9 @@ export default function MonitoramentoContas({ user }) {
                         setOtimizacaoModalOpen(isOpen);
                         if (!isOpen) setSelectedAccountForOtimizacao(null);
                     }}
-                    conta={selectedAccountForOtimizacao}
+                    conta={selectedAccountForOtimizacao.conta}
+                    radarRow={selectedAccountForOtimizacao.radarRow}
+                    recommendations={selectedAccountForOtimizacao.recommendations}
                 />
             )}
 

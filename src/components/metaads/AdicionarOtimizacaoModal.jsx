@@ -6,13 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import EnviarOtimizacaoWhatsAppModal from '@/components/metaads/EnviarOtimizacaoWhatsAppModal';
+import AnaliseRadarPanel, { statusConfig } from '@/components/metaads/AnaliseRadarPanel';
 
-export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) {
+export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, radarRow, recommendations }) {
     const [formData, setFormData] = useState({
         data_acao: new Date().toISOString().split('T')[0],
+        status_cliente: 'estavel',
         problema: '',
         objetivo: '',
         acoes_implementadas: ''
@@ -65,6 +68,7 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
                 cliente_id: cliente?.id || '',
                 cliente_nome: cliente?.nome || '',
                 data_acao: data.data_acao,
+                status_cliente: data.status_cliente,
                 problema: data.problema,
                 objetivo: data.objetivo,
                 acoes_implementadas: data.acoes_implementadas,
@@ -80,6 +84,7 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
             toast.success('Otimização registrada com sucesso');
             setFormData({
                 data_acao: new Date().toISOString().split('T')[0],
+                status_cliente: 'estavel',
                 problema: '',
                 objetivo: '',
                 acoes_implementadas: ''
@@ -117,7 +122,7 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Adicionar Otimização</DialogTitle>
                     <DialogDescription>
@@ -125,19 +130,51 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta }) 
                     </DialogDescription>
                 </DialogHeader>
 
+                {/* Análise IA do Radar Meta Ads */}
+                {conta && (
+                    <AnaliseRadarPanel
+                        conta={conta}
+                        radarRow={radarRow}
+                        recommendations={recommendations}
+                    />
+                )}
+
+                <div className="border-t border-slate-200 pt-4">
+                    <p className="text-sm font-semibold text-slate-700 mb-3">Detalhes da Otimização</p>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <Label htmlFor="data_acao">Data da Ação *</Label>
-                        <div className="relative">
-                            <Input
-                                id="data_acao"
-                                type="date"
-                                value={formData.data_acao}
-                                onChange={(e) => setFormData({ ...formData, data_acao: e.target.value })}
-                                required
-                                className="pl-10"
-                            />
-                            <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <Label htmlFor="data_acao">Data da Ação *</Label>
+                            <div className="relative">
+                                <Input
+                                    id="data_acao"
+                                    type="date"
+                                    value={formData.data_acao}
+                                    onChange={(e) => setFormData({ ...formData, data_acao: e.target.value })}
+                                    required
+                                    className="pl-10"
+                                />
+                                <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                            </div>
+                        </div>
+
+                        <div>
+                            <Label htmlFor="status_cliente">Status do Cliente *</Label>
+                            <Select
+                                value={formData.status_cliente}
+                                onValueChange={(value) => setFormData({ ...formData, status_cliente: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione o status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.entries(statusConfig).map(([key, config]) => (
+                                        <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 

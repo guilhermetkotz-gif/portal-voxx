@@ -23,6 +23,18 @@
       "format": "date",
       "description": "Data da a\u00e7\u00e3o"
     },
+    "status_cliente": {
+      "type": "string",
+      "enum": [
+        "estavel",
+        "em_recuperacao",
+        "atencao",
+        "critico",
+        "sem_dados"
+      ],
+      "default": "estavel",
+      "description": "Status do cliente no momento da otimiza\u00e7\u00e3o"
+    },
     "problema": {
       "type": "string",
       "description": "Problema identificado"

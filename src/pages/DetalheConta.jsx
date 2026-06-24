@@ -412,6 +412,7 @@ export default function DetalheConta({ user }) {
                 open={showOtimizacaoModal}
                 onOpenChange={setShowOtimizacaoModal}
                 conta={account}
+                recommendations={recommendations}
             />
         </div>
     );
