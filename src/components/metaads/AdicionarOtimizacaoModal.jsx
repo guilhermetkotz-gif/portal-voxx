@@ -121,12 +121,28 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, ra
         createMutation.mutate(formData);
     };
 
-    // Encontrar cliente vinculado à conta Meta Ads
-    const clienteVinculado = clientes.find(c =>
-        c.nome === conta?.account_name ||
-        c.meta_ads_account_name === conta?.account_name ||
-        (Array.isArray(c.contas_anuncio) && c.contas_anuncio.some(ca => ca.plataforma === 'Meta' && ca.conta_nome === conta?.account_name))
-    );
+    // Normalizar texto para comparação (remove hífens, acentos, espaços extras, lowercase)
+    const normalize = (s) => (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    // Encontrar cliente vinculado à conta Meta Ads (com matching flexível)
+    const accountNameNorm = normalize(conta?.account_name);
+    const clienteVinculado = clientes.find(c => {
+        if (normalize(c.nome) === accountNameNorm) return true;
+        if (normalize(c.meta_ads_account_name) === accountNameNorm) return true;
+        if (Array.isArray(c.contas_anuncio) && c.contas_anuncio.some(ca =>
+            ca.plataforma === 'Meta' && normalize(ca.conta_nome) === accountNameNorm
+        )) return true;
+        // Fallback: correspondência parcial — um nome está contido no outro
+        const cNome = normalize(c.nome);
+        if (cNome && accountNameNorm && (cNome.includes(accountNameNorm) || accountNameNorm.includes(cNome))) return true;
+        return false;
+    });
     const clienteNomeWhatsApp = clienteVinculado?.nome || conta?.account_name;
     const grupoIdWhatsApp = clienteVinculado?.whatsapp_grupo_id;
 
