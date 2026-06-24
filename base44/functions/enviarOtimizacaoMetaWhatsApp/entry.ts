@@ -30,19 +30,15 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Nenhum grupo WhatsApp vinculado ao cliente' }, { status: 400 });
         }
 
-        // Buscar credenciais Z-API
-        const zapiConfigs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1);
-        if (!zapiConfigs || zapiConfigs.length === 0) {
-            return Response.json({ error: 'Z-API não configurada' }, { status: 400 });
-        }
+        // Buscar credenciais Z-API (entidade → fallback para secrets de ambiente)
+        const zapiConfigs = await base44.asServiceRole.entities.ConfiguracaoZapi.list('-created_date', 1).catch(() => []);
+        const zapi = zapiConfigs?.[0];
+        const instanceId = zapi?.instance_id || Deno.env.get('ZAPI_INSTANCE_ID');
+        const token = zapi?.token_instancia || Deno.env.get('ZAPI_TOKEN');
+        const clientToken = zapi?.token_global || Deno.env.get('ZAPI_CLIENT_TOKEN');
 
-        const zapi = zapiConfigs[0];
-        const instanceId = zapi.instance_id;
-        const token = zapi.token_instancia;
-        const clientToken = zapi.token_global;
-
-        if (!instanceId || !token) {
-            return Response.json({ error: 'Credenciais Z-API incompletas' }, { status: 400 });
+        if (!instanceId || !token || !clientToken) {
+            return Response.json({ error: 'Z-API não configurada. Configure os secrets ZAPI_INSTANCE_ID, ZAPI_TOKEN e ZAPI_CLIENT_TOKEN.' }, { status: 503 });
         }
 
         // Enviar via Z-API
