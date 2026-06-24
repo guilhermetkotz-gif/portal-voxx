@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Play, X, CheckCircle2, AlertTriangle, Star, ShieldAlert, Target } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, AlertTriangle, Star, ShieldAlert, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -22,38 +22,28 @@ function scoreColor(score) {
   return 'text-red-400';
 }
 
-function ListItems({ items, icon: Icon, iconColor }) {
-  if (!items?.length) return <p className="text-slate-500 text-xs">Nenhum item identificado.</p>;
-  return (
-    <ul className="space-y-1.5">
-      {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm">
-          <Icon className={cn('w-3.5 h-3.5 mt-0.5 flex-shrink-0', iconColor)} />
-          <span className="text-slate-200">{item}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-export default function WhatsappAnalisePanel({ clienteNome }) {
+export default function WhatsappAnalisePanel({ clienteNome, grupoId }) {
   const [reanalyzing, setReanalyzing] = useState(false);
 
+  const queryFilter = grupoId
+    ? { grupo_id: grupoId }
+    : { cliente_nome: clienteNome };
+
   const { data: analises = [], isLoading } = useQuery({
-    queryKey: ['whatsappAnaliseModal', clienteNome],
+    queryKey: ['whatsappAnaliseModal', grupoId || clienteNome],
     queryFn: () => base44.entities.WhatsappAnaliseGrupo.filter(
-      { cliente_nome: clienteNome },
+      queryFilter,
       '-created_date',
       10
     ),
-    enabled: !!clienteNome,
+    enabled: !!(grupoId || clienteNome),
     staleTime: 60 * 1000,
   });
 
-  const analise = analises[0] || null;
+  const analise = analises && analises.length > 0 ? analises[0] : null;
 
   const handleReanalyze = async () => {
-    if (!analise?.grupo_id) {
+    if (!analise || !analise.grupo_id) {
       toast.error('Grupo WhatsApp não vinculado a esta análise.');
       return;
     }
@@ -63,7 +53,7 @@ export default function WhatsappAnalisePanel({ clienteNome }) {
         grupo_id: analise.grupo_id,
         periodo_dias: 7,
       });
-      if (resp.data?.ok === false) {
+      if (resp.data && resp.data.ok === false) {
         toast.info(resp.data.mensagem || 'Não foi possível gerar a análise.');
       } else {
         toast.success('Análise do WhatsApp atualizada!');
@@ -77,17 +67,20 @@ export default function WhatsappAnalisePanel({ clienteNome }) {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl bg-[#0f1320] p-4 flex items-center justify-center">
+      <div className="rounded-xl bg-[#0f1320] border border-slate-800 p-4 flex items-center justify-center">
         <Loader2 className="w-5 h-5 animate-spin text-violet-400" />
-        <span className="text-slate-400 text-sm ml-2">Carregando análise WhatsApp...</span>
+        <span className="text-slate-400 text-sm ml-2">Carregando análise do Radar WhatsApp...</span>
       </div>
     );
   }
 
   if (!analise) {
     return (
-      <div className="rounded-xl bg-[#0f1320] p-4 text-center">
-        <p className="text-slate-500 text-sm">Nenhuma análise de WhatsApp Radar encontrada para este cliente.</p>
+      <div className="rounded-xl bg-[#0f1320] border border-slate-800 p-4 text-center">
+        <p className="text-slate-400 text-sm">
+          Nenhuma análise de WhatsApp Radar encontrada para <strong className="text-slate-300">{clienteNome}</strong>.
+        </p>
+        <p className="text-slate-500 text-xs mt-1">Gere a análise na página Radar WhatsApp para visualizá-la aqui.</p>
       </div>
     );
   }
@@ -116,16 +109,14 @@ export default function WhatsappAnalisePanel({ clienteNome }) {
             Radar WhatsApp · {analise.grupo_nome || '—'} · {analise.periodo_label || 'Últimos 7 dias'}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
-            onClick={handleReanalyze}
-            disabled={reanalyzing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-violet-400 border border-violet-500/30 hover:bg-violet-500/10 transition-colors disabled:opacity-50"
-          >
-            {reanalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-            Re-analisar
-          </button>
-        </div>
+        <button
+          onClick={handleReanalyze}
+          disabled={reanalyzing}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-violet-400 border border-violet-500/30 hover:bg-violet-500/10 transition-colors disabled:opacity-50 flex-shrink-0"
+        >
+          {reanalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
+          Re-analisar
+        </button>
       </div>
 
       {/* Body */}
@@ -144,26 +135,60 @@ export default function WhatsappAnalisePanel({ clienteNome }) {
         <section>
           <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Diagnóstico</h4>
           <div className="space-y-3">
-            <div>
-              <p className="text-xs text-emerald-400 font-medium mb-1">Pontos positivos</p>
-              <ListItems items={analise.pontos_positivos} icon={CheckCircle2} iconColor="text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-xs text-yellow-400 font-medium mb-1">Pontos de atenção</p>
-              <ListItems items={analise.pontos_atencao} icon={AlertTriangle} iconColor="text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-xs text-red-400 font-medium mb-1">Alertas</p>
-              <ListItems items={analise.alertas} icon={AlertTriangle} iconColor="text-red-400" />
-            </div>
+            {analise.pontos_positivos && analise.pontos_positivos.length > 0 && (
+              <div>
+                <p className="text-xs text-emerald-400 font-medium mb-1">Pontos positivos</p>
+                <ul className="space-y-1.5">
+                  {analise.pontos_positivos.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-emerald-400" />
+                      <span className="text-slate-200">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {analise.pontos_atencao && analise.pontos_atencao.length > 0 && (
+              <div>
+                <p className="text-xs text-yellow-400 font-medium mb-1">Pontos de atenção</p>
+                <ul className="space-y-1.5">
+                  {analise.pontos_atencao.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-yellow-400" />
+                      <span className="text-slate-200">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {analise.alertas && analise.alertas.length > 0 && (
+              <div>
+                <p className="text-xs text-red-400 font-medium mb-1">Alertas</p>
+                <ul className="space-y-1.5">
+                  {analise.alertas.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-red-400" />
+                      <span className="text-slate-200">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </section>
 
         {/* SOLICITAÇÕES SEM CONCLUSÃO */}
-        {analise.solicitacoes_sem_conclusao?.length > 0 && (
+        {analise.solicitacoes_sem_conclusao && analise.solicitacoes_sem_conclusao.length > 0 && (
           <section>
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Solicitações sem conclusão</h4>
-            <ListItems items={analise.solicitacoes_sem_conclusao} icon={AlertTriangle} iconColor="text-orange-400" />
+            <ul className="space-y-1.5">
+              {analise.solicitacoes_sem_conclusao.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-orange-400" />
+                  <span className="text-slate-200">{item}</span>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
 
@@ -190,7 +215,7 @@ export default function WhatsappAnalisePanel({ clienteNome }) {
         </div>
 
         {/* RECOMENDAÇÕES VOXX */}
-        {analise.recomendacoes_voxx?.length > 0 && (
+        {analise.recomendacoes_voxx && analise.recomendacoes_voxx.length > 0 && (
           <section>
             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Recomendações VOXX</h4>
             <ul className="space-y-1.5">
