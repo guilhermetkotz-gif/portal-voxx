@@ -33,19 +33,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 
-export default function MonitoramentoGoogleAds() {
+export default function MonitoramentoGoogleAds({ user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState('cards');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterResponsavel, setFilterResponsavel] = useState('all');
-
-  const { data: user } = useQuery({
-    queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
-    staleTime: 5 * 60 * 1000,
-    retry: false
-  });
 
   const tipoUsuario = user?.tipo_usuario || user?.tipo_acesso;
   const { data: userPermissions } = useQuery({
@@ -65,13 +58,19 @@ export default function MonitoramentoGoogleAds() {
       : !tipoUsuario
   );
 
+  // Reutiliza a mesma query key do Layout para compartilhar cache
+  const { data: clientes = [], refetch: refetchClientes } = useQuery({
+    queryKey: ['clientes', user?.tipo_usuario, user?.tipo_acesso, user?.role],
+    queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000
+  });
+
   const { data: accounts = [], isLoading, refetch: refetchAccounts } = useQuery({
     queryKey: ['google-ads-accounts'],
     staleTime: 2 * 60 * 1000,
-    enabled: true,
     queryFn: async () => {
-      const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score');
-      const clientes = await base44.entities.Cliente.list();
+      const googleAdsAccounts = await base44.entities.GoogleAdsAccount.list('-optimization_score', 500);
       
       // Criar mapa de contas da planilha por account_name
       const googleAdsMap = new Map();
@@ -131,21 +130,14 @@ export default function MonitoramentoGoogleAds() {
       
       return [...contasClientes, ...contasOrfas];
     },
-    enabled: !!user,
+    enabled: !!user && !!clientes.length,
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => base44.entities.User.list('-updated_date', 200),
     enabled: !!user,
     staleTime: 5 * 60 * 1000
-  });
-
-  const { data: clientes = [], refetch: refetchClientes } = useQuery({
-    queryKey: ['clientes-for-google-ads'],
-    queryFn: () => base44.entities.Cliente.list(),
-    enabled: !!user,
-    staleTime: 2 * 60 * 1000
   });
 
   const voxxUsers = users.filter(u => 

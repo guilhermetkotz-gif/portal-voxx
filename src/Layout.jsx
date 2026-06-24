@@ -364,7 +364,8 @@ export default function Layout({ children, currentPageName }) {
           {React.cloneElement(children, { 
             currentCliente: currentCliente || null,
             selectedClienteId: selectedClienteId || null,
-            user
+            user,
+            clientes
           })}
         </div>
       </main>
