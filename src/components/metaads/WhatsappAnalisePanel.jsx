@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Play, CheckCircle2, AlertTriangle, Star, ShieldAlert, Target } from 'lucide-react';
+import { Loader2, Play, CheckCircle2, AlertTriangle, Star, ShieldAlert, Target, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -108,6 +108,12 @@ export default function WhatsappAnalisePanel({ clienteNome, grupoId }) {
           <p className="text-slate-400 text-xs truncate">
             Radar WhatsApp · {analise.grupo_nome || '—'} · {analise.periodo_label || 'Últimos 7 dias'}
           </p>
+          {analise.created_date && (
+            <p className="text-slate-500 text-xs flex items-center gap-1 mt-0.5">
+              <Calendar className="w-3 h-3" />
+              Análise gerada em {new Date(analise.created_date).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
         </div>
         <button
           onClick={handleReanalyze}
