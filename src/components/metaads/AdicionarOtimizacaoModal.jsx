@@ -11,6 +11,7 @@ import { Calendar, Loader2, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import EnviarOtimizacaoWhatsAppModal from '@/components/metaads/EnviarOtimizacaoWhatsAppModal';
 import AnaliseRadarPanel, { statusConfig } from '@/components/metaads/AnaliseRadarPanel';
+import WhatsappAnalisePanel from '@/components/metaads/WhatsappAnalisePanel';
 
 export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, radarRow, recommendations }) {
     const [formData, setFormData] = useState({
@@ -138,6 +139,17 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, ra
                         recommendations={recommendations}
                     />
                 )}
+
+                {/* Análise IA do Radar WhatsApp */}
+                {(() => {
+                    const cliente = clientes.find(c =>
+                        c.nome === conta?.account_name ||
+                        c.meta_ads_account_name === conta?.account_name ||
+                        (Array.isArray(c.contas_anuncio) && c.contas_anuncio.some(ca => ca.plataforma === 'Meta' && ca.conta_nome === conta?.account_name))
+                    );
+                    const clienteNome = cliente?.nome || conta?.account_name;
+                    return <WhatsappAnalisePanel clienteNome={clienteNome} />;
+                })()}
 
                 <div className="border-t border-slate-200 pt-4">
                     <p className="text-sm font-semibold text-slate-700 mb-3">Detalhes da Otimização</p>
