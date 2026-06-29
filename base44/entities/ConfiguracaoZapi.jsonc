@@ -19,5 +19,11 @@
       "description": "URL do webhook configurada no Z-API para receber mensagens"
     }
   },
-  "required": []
+  "required": [],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": null,
+    "delete": null
+  }
 }
