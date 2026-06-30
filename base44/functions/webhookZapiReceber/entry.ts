@@ -307,9 +307,11 @@ Deno.serve(async (req) => {
 
     // PASSO 7 — Criar ou atualizar WhatsappGrupo
     if (isGroupRaw && phoneRaw) {
+      // Não atualizar última mensagem se for "[Sem conteúdo]" — preserva a última mensagem real
+      const ultimaMsgValida = (mensagem && !mensagem.includes('[Sem conteúdo]') && !mensagem.includes('[Sem conteúdo]'.toLowerCase())) ? mensagem : undefined;
       const dadosGrupoUpdate = {
-        ultima_mensagem:       mensagem,
         ultima_atividade:      receivedAt,
+        ...(ultimaMsgValida ? { ultima_mensagem: ultimaMsgValida } : {}),
       };
 
       if (!grupoRecord) {
@@ -318,7 +320,7 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.WhatsappGrupo.create({
             grupo_id:       grupoIdFinal,
             nome_grupo:     chatName || grupoIdFinal,
-            ultima_mensagem: mensagem,
+            ultima_mensagem: ultimaMsgValida || mensagem,
             ultima_atividade: receivedAt,
             cliente_id:     clienteId || null,
             cliente_nome:   clienteNome || null,

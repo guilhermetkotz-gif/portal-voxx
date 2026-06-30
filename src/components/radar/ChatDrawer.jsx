@@ -398,6 +398,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       if (res.data?.success) {
         toast.success(`Reação ${emoji} enviada`);
         concluirTagsAtivas();
+        queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar reação');
       }

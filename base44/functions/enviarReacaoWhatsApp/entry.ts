@@ -59,6 +59,27 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, erro }, { status: 502 });
     }
 
+    // Persistir a reação na mensagem alvo para exibição imediata no Radar
+    try {
+      const targetMsgs = await base44.asServiceRole.entities.WhatsappMensagem.filter({ message_id: messageId });
+      if (targetMsgs.length > 0) {
+        const target = targetMsgs[0];
+        const reacoesAtuais = target.reacoes || [];
+        // Toggle: remove reação anterior do mesmo usuário, adiciona a nova
+        const reacoesFiltradas = reacoesAtuais.filter(r => r.remetente !== user.email && r.remetente_telefone !== user.email);
+        reacoesFiltradas.push({
+          emoji: reaction,
+          remetente: user.full_name || user.email || 'Voxx',
+          remetente_telefone: null,
+          data: new Date().toISOString(),
+        });
+        await base44.asServiceRole.entities.WhatsappMensagem.update(target.id, { reacoes: reacoesFiltradas });
+        console.log('[enviarReacao] ✅ Reação persistida na mensagem:', target.id);
+      }
+    } catch (persistErr) {
+      console.error('[enviarReacao] ⚠️ Erro ao persistir reação:', persistErr.message);
+    }
+
     return Response.json({ success: true, resultado_api: resultadoApi });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

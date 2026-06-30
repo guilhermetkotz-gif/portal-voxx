@@ -693,6 +693,8 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (res.data?.success) {
         toast.success(`Reação ${emoji} enviada`);
         concluirTagsAtivas();
+        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
       } else {
         toast.error(res.data?.erro || 'Erro ao enviar reação');
       }
