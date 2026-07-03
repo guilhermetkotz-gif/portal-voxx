@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Star, Clock, AlertTriangle, Users, MessageSquare, Target, Shield } from 'lucide-react';
+import { Loader2, Star, Clock, AlertTriangle, Users, MessageSquare, Target, Shield, ChevronDown, ChevronRight } from 'lucide-react';
+import MensagensCriticasSection from './MensagensCriticasSection';
 
 const CLASS_COLORS = {
   excelente: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25',
@@ -68,6 +69,8 @@ export default function OperadorDetailDrawer({ open, onClose, operador, periodoI
     staleTime: 30 * 1000,
   });
 
+  const [showCriticas, setShowCriticas] = useState(false);
+
   if (!operador) return null;
 
   const mensagensRecentes = (msgsData || []).slice(0, 20);
@@ -129,8 +132,22 @@ export default function OperadorDetailDrawer({ open, onClose, operador, periodoI
               <ItemMetrica label="Boas" value={operador.mensagens_boas} />
               <ItemMetrica label="Atenção" value={operador.mensagens_atencao} />
               <ItemMetrica label="Fracas" value={operador.mensagens_fracas} />
-              <ItemMetrica label="Críticas" value={operador.mensagens_criticas}
-                destaque={operador.mensagens_criticas > 0 ? 'text-red-400' : undefined} />
+              {operador.mensagens_criticas > 0 ? (
+                <button
+                  onClick={() => setShowCriticas(!showCriticas)}
+                  className="flex items-center justify-between w-full py-1.5 border-b border-slate-800/40 last:border-0 hover:bg-red-500/5 -mx-1 px-1 rounded transition-colors group"
+                >
+                  <span className="text-xs text-slate-400 flex items-center gap-1 group-hover:text-red-300">
+                    {showCriticas
+                      ? <ChevronDown className="w-3 h-3" />
+                      : <ChevronRight className="w-3 h-3" />}
+                    Críticas
+                  </span>
+                  <span className="text-xs font-mono font-semibold text-red-400">{operador.mensagens_criticas}</span>
+                </button>
+              ) : (
+                <ItemMetrica label="Críticas" value={0} />
+              )}
             </Secao>
 
             {/* Resolutividade */}
@@ -149,6 +166,13 @@ export default function OperadorDetailDrawer({ open, onClose, operador, periodoI
               <ItemMetrica label="Respostas defensivas" value={operador.respostas_defensivas} />
               <ItemMetrica label="Respostas muito curtas" value={operador.respostas_muito_curtas} />
             </Secao>
+
+            {/* Mensagens Críticas — Análise e Orientação */}
+            {showCriticas && (
+              <Secao titulo="Mensagens Críticas — Análise e Orientação" icon={AlertTriangle}>
+                <MensagensCriticasSection avaliacoes={avalsRecentes} />
+              </Secao>
+            )}
 
             {/* Grupos e Clientes */}
             <Secao titulo="Grupos e Clientes" icon={Users}>
