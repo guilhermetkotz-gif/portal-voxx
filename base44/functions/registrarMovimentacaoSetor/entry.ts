@@ -65,6 +65,43 @@ Deno.serve(async (req) => {
             minutos_no_setor: null,
             concluida: false,
           });
+
+          // ── Limpar pendências de aprovação ao mover o card ──
+          // Quando o operador move o card para outro setor, isso conta como "ação tratada"
+          // para entregas com retorno do cliente (alteração solicitada ou aprovada)
+          try {
+            const entregasDaDemanda = await db.entities.EntregaDemanda.filter({
+              demanda_id: event.entity_id,
+            });
+
+            const entregasPendentes = entregasDaDemanda.filter(e =>
+              (e.status_entrega === 'solicitacao_alteracao' || e.status_entrega === 'aprovado') &&
+              e.retorno_cliente_tratado !== true
+            );
+
+            if (entregasPendentes.length > 0) {
+              await db.entities.EntregaDemanda.bulkUpdate(
+                entregasPendentes.map(e => ({ id: e.id, retorno_cliente_tratado: true }))
+              );
+              console.log(`[registrarMovimentacaoSetor] ✅ ${entregasPendentes.length} pendência(s) de aprovação tratada(s) para demanda ${event.entity_id}`);
+            }
+
+            // Marcar notificações de aprovação como lidas
+            const notifsPendentes = await db.entities.NotificacaoAprovacao.filter({
+              demanda_id: event.entity_id,
+              lida: false,
+            });
+
+            if (notifsPendentes.length > 0) {
+              await db.entities.NotificacaoAprovacao.updateMany(
+                { demanda_id: event.entity_id, lida: false },
+                { $set: { lida: true, visualizada_em: new Date().toISOString() } }
+              );
+              console.log(`[registrarMovimentacaoSetor] ✅ ${notifsPendentes.length} notificação(ões) de aprovação marcada(s) como lida(s) para demanda ${event.entity_id}`);
+            }
+          } catch (e) {
+            console.error('[registrarMovimentacaoSetor] ⚠️ Erro ao limpar pendências:', e.message);
+          }
         }
       }
     }
