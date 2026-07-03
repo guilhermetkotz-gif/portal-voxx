@@ -54,7 +54,9 @@ Deno.serve(async (req) => {
       const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
       const creds = await getZapiCredentials(base44);
-      const enviado = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, creds);
+      const resultadoEnvio = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, creds);
+
+      await registrarMensagemEnviada(sdk, envio, mensagem, resultadoEnvio);
 
       tarefa = await sdk.entities.TarefaAcompanhamento.create({
         cliente_id: envio.cliente_id,
@@ -80,12 +82,12 @@ Deno.serve(async (req) => {
         origem: 'aprovacao_entrega',
         origem_id: envio.id,
         mensagem,
-        status_envio: enviado ? 'enviado' : 'erro',
+        status_envio: resultadoEnvio.success ? 'enviado' : 'erro',
         enviado_por: user.email || 'manual',
         enviado_em: agora,
       });
 
-      return Response.json({ success: true, sequencia: seq, enviado });
+      return Response.json({ success: true, sequencia: seq, enviado: resultadoEnvio.success });
     }
 
     // Já existe tarefa — avançar sequência
@@ -95,7 +97,9 @@ Deno.serve(async (req) => {
     const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
     const creds = await getZapiCredentials(base44);
-    const enviado = await enviarWhatsApp(base44, envio.whatsapp_grupo_id, mensagem, creds);
+    const resultadoEnvio = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, creds);
+
+    await registrarMensagemEnviada(sdk, envio, mensagem, resultadoEnvio);
 
     await sdk.entities.TarefaAcompanhamento.update(tarefa.id, {
       sequencia_lembrete: seq,
@@ -112,12 +116,12 @@ Deno.serve(async (req) => {
       origem: 'aprovacao_entrega',
       origem_id: envio.id,
       mensagem,
-      status_envio: enviado ? 'enviado' : 'erro',
+      status_envio: resultadoEnvio.success ? 'enviado' : 'erro',
       enviado_por: user.email || 'manual',
       enviado_em: agora,
     });
 
-    return Response.json({ success: true, sequencia: seq, enviado });
+    return Response.json({ success: true, sequencia: seq, enviado: resultadoEnvio.success });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
@@ -136,18 +140,40 @@ async function getZapiCredentials(base44) {
 async function enviarWhatsApp(grupoId, mensagem, zapiCreds) {
   const { zapiInstanceId, zapiToken, zapiClientToken } = zapiCreds;
 
-  if (!zapiInstanceId || !zapiToken || !zapiClientToken) return false;
+  if (!zapiInstanceId || !zapiToken || !zapiClientToken) return { success: false, messageId: null };
 
   const statusResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`, {
     headers: { 'Client-Token': zapiClientToken }
   });
   const statusData = await statusResp.json().catch(() => ({}));
-  if (!statusData.connected) return false;
+  if (!statusData.connected) return { success: false, messageId: null };
 
   const sendResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`, {
     method: 'POST',
     headers: { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone: grupoId, message: mensagem })
   });
-  return sendResp.ok;
+  const resultado = await sendResp.json().catch(() => ({}));
+  const messageId = resultado?.messageId || resultado?.id || null;
+  return { success: sendResp.ok, messageId };
+}
+
+async function registrarMensagemEnviada(sdk, envio, mensagem, resultadoEnvio) {
+  const agora = new Date().toISOString();
+  return sdk.entities.WhatsappMensagem.create({
+    message_id: resultadoEnvio.messageId || null,
+    cliente_id: envio.cliente_id || null,
+    cliente_nome: envio.cliente_nome || null,
+    grupo_id: envio.whatsapp_grupo_id,
+    is_group: true,
+    remetente_nome: 'Lembrete de Aprovação',
+    remetente_tipo: 'voxx',
+    origem: 'enviada',
+    mensagem,
+    tipo_mensagem: 'texto',
+    received_at: agora,
+    from_me: true,
+    status_entrega: resultadoEnvio.success ? 'enviado' : 'erro',
+    status_processamento: 'ok',
+  }).catch(() => null);
 }

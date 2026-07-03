@@ -87,20 +87,42 @@ function formatarMensagem(template, clienteNome, entregaNome, link) {
 async function enviarWhatsApp(grupoId, mensagem, zapiCreds) {
   const { zapiInstanceId, zapiToken, zapiClientToken } = zapiCreds;
 
-  if (!zapiInstanceId || !zapiToken || !zapiClientToken) return false;
+  if (!zapiInstanceId || !zapiToken || !zapiClientToken) return { success: false, messageId: null };
 
   const statusResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/status`, {
     headers: { 'Client-Token': zapiClientToken }
   });
   const statusData = await statusResp.json().catch(() => ({}));
-  if (!statusData.connected) return false;
+  if (!statusData.connected) return { success: false, messageId: null };
 
   const sendResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-text`, {
     method: 'POST',
     headers: { 'Client-Token': zapiClientToken, 'Content-Type': 'application/json' },
     body: JSON.stringify({ phone: grupoId, message: mensagem })
   });
-  return sendResp.ok;
+  const resultado = await sendResp.json().catch(() => ({}));
+  const messageId = resultado?.messageId || resultado?.id || null;
+  return { success: sendResp.ok, messageId };
+}
+
+async function registrarMensagemEnviada(sdk, envio, mensagem, resultadoEnvio) {
+  const agora = new Date().toISOString();
+  return sdk.entities.WhatsappMensagem.create({
+    message_id: resultadoEnvio.messageId || null,
+    cliente_id: envio.cliente_id || null,
+    cliente_nome: envio.cliente_nome || null,
+    grupo_id: envio.whatsapp_grupo_id,
+    is_group: true,
+    remetente_nome: 'Lembrete de Aprovação',
+    remetente_tipo: 'voxx',
+    origem: 'enviada',
+    mensagem,
+    tipo_mensagem: 'texto',
+    received_at: agora,
+    from_me: true,
+    status_entrega: resultadoEnvio.success ? 'enviado' : 'erro',
+    status_processamento: 'ok',
+  }).catch(() => null);
 }
 
 // --- Batch loader: busca todos os dados necessários de uma vez ---
@@ -194,7 +216,9 @@ Deno.serve(async (_req) => {
         const template = templates[0] || DEFAULT_MENSAGENS[0];
         const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
-        const enviado = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, zapiCreds);
+        const resultadoEnvio = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, zapiCreds);
+
+        await registrarMensagemEnviada(sdk, envio, mensagem, resultadoEnvio);
 
         tarefa = await sdk.entities.TarefaAcompanhamento.create({
           cliente_id: envio.cliente_id,
@@ -220,7 +244,7 @@ Deno.serve(async (_req) => {
           origem: 'aprovacao_entrega',
           origem_id: envio.id,
           mensagem,
-          status_envio: enviado ? 'enviado' : 'erro',
+          status_envio: resultadoEnvio.success ? 'enviado' : 'erro',
           enviado_por: 'sistema',
           enviado_em: agora,
         });
@@ -271,7 +295,9 @@ Deno.serve(async (_req) => {
           const template = templates[idxTemplate] || DEFAULT_MENSAGENS[Math.min(idxTemplate, DEFAULT_MENSAGENS.length - 1)];
           const mensagem = formatarMensagem(template, clienteNome, entregaNome, link);
 
-          const enviado = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, zapiCreds);
+          const resultadoEnvio = await enviarWhatsApp(envio.whatsapp_grupo_id, mensagem, zapiCreds);
+
+          await registrarMensagemEnviada(sdk, envio, mensagem, resultadoEnvio);
 
           await sdk.entities.TarefaAcompanhamento.update(tarefa.id, {
             sequencia_lembrete: seq + 1,
@@ -287,7 +313,7 @@ Deno.serve(async (_req) => {
             origem: 'aprovacao_entrega',
             origem_id: envio.id,
             mensagem,
-            status_envio: enviado ? 'enviado' : 'erro',
+            status_envio: resultadoEnvio.success ? 'enviado' : 'erro',
             enviado_por: 'sistema',
             enviado_em: agora,
           });
