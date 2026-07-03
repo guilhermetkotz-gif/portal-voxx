@@ -64,11 +64,18 @@ export default function NovaEntregaModal({ demanda, user, onClose, entregaExiste
           versoes,
           numero_versao_atual: numeroAtual + 1,
           status_entrega: 'reenviado',
+          retorno_cliente_tratado: true,
           data_envio: agora,
           usuario_envio: user?.email,
           usuario_envio_nome: user?.full_name || user?.email
         };
         await base44.entities.EntregaDemanda.update(entregaExistente.id, updates);
+
+        // Limpar notificações de aprovação pendentes da versão anterior
+        await base44.entities.NotificacaoAprovacao.updateMany(
+          { entrega_id: entregaExistente.id, lida: false },
+          { $set: { lida: true, visualizada_em: agora } }
+        ).catch(() => null);
         // Timeline
         await base44.entities.TimelineEvent.create({
           demanda_id: demanda.id,

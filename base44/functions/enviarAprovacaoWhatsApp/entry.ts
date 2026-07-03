@@ -136,9 +136,16 @@ Deno.serve(async (req) => {
 
       // Atualizar status da entrega para em_aprovacao
       await base44.asServiceRole.entities.EntregaDemanda.update(entrega.id, {
-        status_entrega: 'em_aprovacao'
+        status_entrega: 'em_aprovacao',
+        retorno_cliente_tratado: true
       }).catch(() => null);
-    }
+
+      // Limpar notificações de aprovação pendentes (nova versão enviada)
+      await base44.asServiceRole.entities.NotificacaoAprovacao.updateMany(
+        { entrega_id: entrega.id, lida: false },
+        { $set: { lida: true, visualizada_em: agora } }
+      ).catch(() => null);
+      }
 
     return Response.json({
       success: statusEnvio === 'enviado',
