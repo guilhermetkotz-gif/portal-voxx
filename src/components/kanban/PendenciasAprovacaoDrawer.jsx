@@ -55,10 +55,10 @@ export default function PendenciasAprovacaoDrawer({ open, onClose, onOpenDemanda
     refetchInterval: open ? 20000 : false,
   });
 
-  // ── Busca demandas finalizadas para excluir suas entregas ──
-  const { data: demandasFinalizadas = [], isLoading: loadingDemandas } = useQuery({
-    queryKey: ['demandasFinalizadasParaPendencias'],
-    queryFn: () => base44.entities.Demanda.filter({ status: 'finalizada' }, '-updated_date', 500),
+  // ── Busca demandas em "aguardando_cliente" — apenas essas geram pendências ──
+  const { data: demandasAguardando = [], isLoading: loadingDemandas } = useQuery({
+    queryKey: ['demandasAguardandoClientePendencias'],
+    queryFn: () => base44.entities.Demanda.filter({ status: 'aguardando_cliente' }, '-updated_date', 500),
     enabled: open,
     refetchInterval: open ? 30000 : false,
   });
@@ -83,12 +83,12 @@ export default function PendenciasAprovacaoDrawer({ open, onClose, onOpenDemanda
     return map;
   }, [notificacoes]);
 
-  // ── Set de IDs de demandas finalizadas ──
-  const demandasFinalizadasSet = useMemo(() => {
+  // ── Set de IDs de demandas em "aguardando_cliente" ──
+  const demandasAguardandoSet = useMemo(() => {
     const set = new Set();
-    demandasFinalizadas.forEach(d => set.add(d.id));
+    demandasAguardando.forEach(d => set.add(d.id));
     return set;
-  }, [demandasFinalizadas]);
+  }, [demandasAguardando]);
 
   // ── Categoriza as entregas (exclui demandas finalizadas) ──
   const categorias = useMemo(() => {
@@ -98,8 +98,8 @@ export default function PendenciasAprovacaoDrawer({ open, onClose, onOpenDemanda
     const aprovadas = [];    // status aprovado
 
     entregas.forEach(entrega => {
-      // Pula entregas cuja demanda está finalizada
-      if (entrega.demanda_id && demandasFinalizadasSet.has(entrega.demanda_id)) return;
+      // Só mostra pendências de demandas que estão em "aguardando_cliente"
+      if (entrega.demanda_id && !demandasAguardandoSet.has(entrega.demanda_id)) return;
 
       const s = entrega.status_entrega;
       if (s === 'enviado' || s === 'em_aprovacao' || s === 'reenviado') {
@@ -116,7 +116,7 @@ export default function PendenciasAprovacaoDrawer({ open, onClose, onOpenDemanda
     });
 
     return { aguardando, alteracao, aprovadas, pendentesEnvio };
-  }, [entregas, enviosMap, demandasFinalizadasSet]);
+  }, [entregas, enviosMap, demandasAguardandoSet]);
 
   // ── Filtra por cliente ──
   const filtrarPorCliente = (lista) => {
