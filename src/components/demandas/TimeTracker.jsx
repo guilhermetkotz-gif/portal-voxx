@@ -167,7 +167,7 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
             <Play className="w-3.5 h-3.5" />
           </Button>
           <Button
-            onClick={handleStop}
+            onClick={() => handleStop()}
             disabled={!isRunning}
             size="sm"
             className="h-7 w-7 p-0 bg-yellow-500 hover:bg-yellow-600 text-white rounded"
