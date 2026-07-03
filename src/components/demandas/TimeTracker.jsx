@@ -107,7 +107,7 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
       }
     }
 
-    if (resp.data?.success) {
+    if (resp?.data?.success) {
       if (resp.data.minutos_adicionados > 0) {
         toast.success(`${resp.data.minutos_adicionados}min registrados!`);
       }
@@ -125,7 +125,7 @@ const TimeTracker = forwardRef(({ demandaId }, ref) => {
         demanda_id: demandaId,
         usuario_id: usuarioId
       });
-      if (resp.data?.success) {
+      if (resp?.data?.success) {
         toast.success(`Cronômetro de ${usuarioNome} pausado (${resp.data.minutos_adicionados}min)`);
         queryClient.invalidateQueries({ queryKey: ['demanda', demandaId] });
       }
