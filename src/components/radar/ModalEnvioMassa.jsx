@@ -81,7 +81,17 @@ export default function ModalEnvioMassa({ gruposSelecionados, gruposEnriquecidos
                 {resultados.enviados} enviado(s), {resultados.erros} erro(s)
               </span>
             </div>
-            {resultados.erros > 0 && (
+            {/* Erro de assinatura Z-API — mensagem destacada */}
+            {resultados.erro_assinatura && (
+              <div className="mb-2 p-3 bg-red-950/50 border border-red-800 rounded-lg">
+                <p className="text-xs text-red-300 font-medium mb-1">⚠️ Assinatura Z-API expirada</p>
+                <p className="text-[11px] text-red-400">{resultados.erro_assinatura}</p>
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Renove a assinatura da instância no painel da Z-API para continuar enviando.
+                </p>
+              </div>
+            )}
+            {resultados.erros > 0 && !resultados.erro_assinatura && (
               <div className="max-h-32 overflow-y-auto space-y-1">
                 {resultados.resultados
                   ?.filter(r => !r.success)
