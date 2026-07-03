@@ -70,6 +70,8 @@ const DemandaDetailModal = ({ demanda, open, onClose, kanbanColumns = [] }) => {
   const [enviandoN8n, setEnviandoN8n] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [comentarioParaWhatsApp, setComentarioParaWhatsApp] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState('');
   
   const [editData, setEditData] = useState({
     titulo: demanda?.titulo || '',
@@ -147,6 +149,39 @@ const DemandaDetailModal = ({ demanda, open, onClose, kanbanColumns = [] }) => {
       toast.success('Comentário adicionado!');
     },
   });
+
+  const updateComentarioMutation = useMutation({
+    mutationFn: ({ eventId, texto }) => base44.entities.TimelineEvent.update(eventId, {
+      descricao: texto,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      setEditingCommentId(null);
+      setEditingCommentText('');
+      toast.success('Comentário atualizado!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar comentário: ' + error.message);
+    },
+  });
+
+  const handleStartEditComment = (event) => {
+    setEditingCommentId(event.id);
+    setEditingCommentText(event.descricao || '');
+  };
+
+  const handleCancelEditComment = () => {
+    setEditingCommentId(null);
+    setEditingCommentText('');
+  };
+
+  const handleSaveEditComment = () => {
+    if (!editingCommentText.trim()) {
+      toast.error('O comentário não pode ficar vazio.');
+      return;
+    }
+    updateComentarioMutation.mutate({ eventId: editingCommentId, texto: editingCommentText });
+  };
 
   const deleteDemandaMutation = useMutation({
     mutationFn: () => base44.entities.Demanda.delete(demanda.id),
@@ -1467,37 +1502,82 @@ ${bu.estrutura_criativo || 'Não gerado'}
                     {timeline.length === 0 ? (
                       <p className="text-sm text-slate-500 text-center py-4">Nenhum evento registrado</p>
                     ) : (
-                      timeline.map((event) => (
-                        <div key={event.id} className="flex gap-3 text-sm border-l-2 border-slate-200 pl-3 py-1">
-                          <div className="flex-1">
-                            <p 
-                              className="font-medium text-slate-800 whitespace-pre-wrap"
-                              dangerouslySetInnerHTML={{
-                                __html: event.descricao?.replace(
-                                  /(https?:\/\/[^\s]+)/g, 
-                                  '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-violet-600 hover:text-violet-700 underline">$1</a>'
-                                )
-                              }}
-                            />
-                            <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
-                              <User className="h-3 w-3" />
-                              <span>{event.autor}</span>
-                              <span>•</span>
-                              <span>{moment(event.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</span>
+                      timeline.map((event) => {
+                        const isComentario = event.tipo === 'comentario' || event.tipo === 'anexo';
+                        const isEditing = editingCommentId === event.id;
+                        return (
+                          <div key={event.id} className="flex gap-3 text-sm border-l-2 border-slate-200 pl-3 py-1">
+                            <div className="flex-1">
+                              {isEditing ? (
+                                <div className="space-y-2">
+                                  <Textarea
+                                    value={editingCommentText}
+                                    onChange={(e) => setEditingCommentText(e.target.value)}
+                                    className="min-h-[80px]"
+                                    autoFocus
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={handleSaveEditComment}
+                                      disabled={updateComentarioMutation.isPending}
+                                    >
+                                      {updateComentarioMutation.isPending ? (
+                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                      ) : (
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                      )}
+                                      Salvar
+                                    </Button>
+                                    <Button size="sm" variant="outline" onClick={handleCancelEditComment}>
+                                      Cancelar
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <p 
+                                    className="font-medium text-slate-800 whitespace-pre-wrap"
+                                    dangerouslySetInnerHTML={{
+                                      __html: event.descricao?.replace(
+                                        /(https?:\/\/[^\s]+)/g, 
+                                        '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-violet-600 hover:text-violet-700 underline">$1</a>'
+                                      )
+                                    }}
+                                  />
+                                  <div className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+                                    <User className="h-3 w-3" />
+                                    <span>{event.autor}</span>
+                                    <span>•</span>
+                                    <span>{moment(event.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}</span>
+                                    {isComentario && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-5 px-1.5 text-xs text-slate-400 hover:text-violet-600"
+                                        onClick={() => handleStartEditComment(event)}
+                                      >
+                                        <Edit className="h-3 w-3 mr-1" />
+                                        Editar
+                                      </Button>
+                                    )}
+                                  </div>
+                                  {event.anexo_url && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenFile(event.anexo_url)}
+                                      className="flex items-center gap-1 mt-2 text-violet-600 hover:text-violet-700"
+                                    >
+                                      <Paperclip className="h-3 w-3" />
+                                      Ver anexo
+                                    </button>
+                                  )}
+                                </>
+                              )}
                             </div>
-                            {event.anexo_url && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenFile(event.anexo_url)}
-                                className="flex items-center gap-1 mt-2 text-violet-600 hover:text-violet-700"
-                              >
-                                <Paperclip className="h-3 w-3" />
-                                Ver anexo
-                              </button>
-                            )}
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </CardContent>
                 </Card>
