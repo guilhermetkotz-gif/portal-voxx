@@ -287,18 +287,32 @@ Deno.serve(async (req) => {
       }, '-received_at', 5);
       
       const msgNormalizada = (mensagem || '').trim().substring(0, 100);
+      const ehPlaceholder = ['[sem conteúdo]', '[sem conteudo]', '[mídia]', '[midia]'].includes(msgNormalizada.toLowerCase());
+      
       const duplicata = recentes.find(m => {
         const mNorm = (m.mensagem || '').trim().substring(0, 100);
-        return mNorm === msgNormalizada && m.tipo_mensagem === tipo;
+        // Match exato (texto + tipo)
+        if (mNorm === msgNormalizada && m.tipo_mensagem === tipo) return true;
+        // Se o webhook não extraiu texto válido (placeholder), casar por proximidade de tempo (< 2min)
+        // — a confirmação de envio do Z-API às vezes vem sem o texto legível
+        if (ehPlaceholder) {
+          const diffMs = Math.abs(new Date(m.received_at).getTime() - new Date(receivedAt).getTime());
+          return diffMs < 2 * 60 * 1000;
+        }
+        return false;
       });
       
       if (duplicata) {
-        console.log('[webhook] Duplicata ignorada (from_me similar):', duplicata.id);
+        console.log('[webhook] Duplicata ignorada (from_me):', duplicata.id, '| msg webhook:', msgNormalizada);
+        // Aproveitar para atualizar message_id no registro original se o webhook trouxer
+        if (messageId && !duplicata.message_id) {
+          await base44.asServiceRole.entities.WhatsappMensagem.update(duplicata.id, { message_id: messageId }).catch(() => null);
+        }
         if (rawId) {
           await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
             processed: true,
             processing_status: 'ignorado',
-            processing_error: 'Duplicata: mensagem similar já existe (criada pelo enviarMensagemGeral)',
+            processing_error: 'Duplicata: mensagem enviada já registrada pelo enviarMensagemGeral',
           });
         }
         return Response.json({ ok: true, duplicate: true });
