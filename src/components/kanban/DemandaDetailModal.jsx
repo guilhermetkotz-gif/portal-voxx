@@ -40,8 +40,9 @@ import TimeTracker from '@/components/demandas/TimeTracker';
 import TempoLimiteDemanda from '@/components/demandas/TempoLimiteDemanda';
 import EntregasSection from '@/components/demandas/EntregasSection';
 import EnviarComentarioWhatsAppModal from '@/components/demandas/EnviarComentarioWhatsAppModal';
+import MoverCardSection from '@/components/kanban/MoverCardSection';
 
-const DemandaDetailModal = ({ demanda, open, onClose }) => {
+const DemandaDetailModal = ({ demanda, open, onClose, kanbanColumns = [] }) => {
   const queryClient = useQueryClient();
   const [comentario, setComentario] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -153,6 +154,33 @@ const DemandaDetailModal = ({ demanda, open, onClose }) => {
       queryClient.invalidateQueries({ queryKey: ['demandasKanban'] });
       toast.success('Demanda excluída!');
       onClose();
+    },
+  });
+
+  // Mutation para mover o card entre colunas (setores) do Kanban
+  const moverCardMutation = useMutation({
+    mutationFn: async (novoSetor) => {
+      const setorAnterior = currentDemanda.setor;
+      await base44.entities.Demanda.update(demanda.id, {
+        setor: novoSetor,
+        ultima_atividade_kanban: new Date().toISOString(),
+      });
+      base44.functions.invoke('registrarMovimentacaoSetor', {
+        demanda_id: demanda.id,
+        setor_novo: novoSetor,
+        setor_anterior: setorAnterior || null,
+        usuario_id: user?.id || null,
+        usuario_nome: user?.full_name || user?.email || 'Sistema',
+      }).catch(() => {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['demandasKanban'] });
+      queryClient.invalidateQueries({ queryKey: ['demanda', demanda.id] });
+      queryClient.invalidateQueries({ queryKey: ['timeline'] });
+      toast.success('Card movido com sucesso!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao mover card: ' + error.message);
     },
   });
 
@@ -1592,6 +1620,14 @@ ${bu.estrutura_criativo || 'Não gerado'}
                     </select>
                   </CardContent>
                 </Card>
+
+                {/* Mover Card entre colunas do Kanban */}
+                <MoverCardSection
+                  setorAtual={currentDemanda.setor}
+                  columns={kanbanColumns}
+                  onMove={(novoSetor) => moverCardMutation.mutate(novoSetor)}
+                  isMoving={moverCardMutation.isPending}
+                />
 
                 {/* Excluir */}
                 <Button

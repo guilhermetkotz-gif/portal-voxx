@@ -622,6 +622,9 @@ const Kanban = ({ user, selectedClienteId }) => {
         demanda={selectedDemanda} 
         open={!!selectedDemanda} 
         onClose={() => setSelectedDemanda(null)} 
+        kanbanColumns={allColumnOrder
+          .filter(id => id !== '__SEM_SETOR__')
+          .map(id => ({ id, name: allColumnDefinitions[id]?.name || id }))}
       />
 
       <ColumnManagerModal
