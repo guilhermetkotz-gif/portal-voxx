@@ -47,25 +47,45 @@ export default function OperadorDetailDrawer({ open, onClose, operador, periodoI
     queryKey: ['opMsgs', telNormalizado, periodoInicio, periodoFim],
     queryFn: async () => {
       const msgs = await base44.entities.WhatsappMensagem.filter(
-        { remetente_tipo: 'voxx' }, '-received_at', 200
+        { remetente_tipo: 'voxx' }, '-received_at', 500
       );
+      const nomeOp = (operador?.nome || '').toUpperCase();
       return msgs.filter(m => {
-        const ts = m.timestamp_mensagem || m.received_at;
-        return normalizarTel(m.remetente_telefone) === telNormalizado &&
-          ts >= periodoInicio && ts <= periodoFim;
+        // Backend usa received_at (timestamp_mensagem pode estar corrompido)
+        const ts = m.received_at || m.timestamp_mensagem;
+        if (!ts || ts < periodoInicio || ts > periodoFim) return false;
+        // Match exato por telefone, ou por nome (mapa reverso do backend)
+        if (normalizarTel(m.remetente_telefone) === telNormalizado) return true;
+        if (nomeOp && m.remetente_nome && m.remetente_nome.toUpperCase().includes(nomeOp)) return true;
+        return false;
       });
     },
     enabled: open && !!telNormalizado,
     staleTime: 30 * 1000,
   });
 
+  // Buscar avaliações pelos IDs das mensagens do operador no período
+  // (mesma lógica do backend: avaliação ↔ mensagem via whatsapp_mensagem_id)
+  // Evita depender de remetente_telefone (que é o telefone da mensagem, pode diferir)
+  // e de timestamp_mensagem (que pode estar corrompido)
+  const msgIds = (msgsData || []).map(m => m.id);
+
   const { data: avaliacoes = [] } = useQuery({
-    queryKey: ['opAvals', telNormalizado],
+    queryKey: ['opAvals', telNormalizado, periodoInicio, periodoFim, msgIds],
     queryFn: async () => {
-      const avals = await base44.entities.WhatsappAvaliacaoMensagemVoxx.list('-avaliado_em', 500);
-      return avals.filter(a => normalizarTel(a.remetente_telefone) === telNormalizado);
+      if (!msgIds.length) return [];
+      const all = [];
+      const CHUNK = 30;
+      for (let i = 0; i < msgIds.length; i += CHUNK) {
+        const chunk = msgIds.slice(i, i + CHUNK);
+        const lote = await base44.entities.WhatsappAvaliacaoMensagemVoxx.filter(
+          { whatsapp_mensagem_id: { $in: chunk } }, '-avaliado_em', 500
+        );
+        all.push(...lote);
+      }
+      return all;
     },
-    enabled: open && !!telNormalizado,
+    enabled: open && !!telNormalizado && msgIds.length > 0,
     staleTime: 30 * 1000,
   });
 
@@ -74,10 +94,8 @@ export default function OperadorDetailDrawer({ open, onClose, operador, periodoI
   if (!operador) return null;
 
   const mensagensRecentes = (msgsData || []).slice(0, 20);
-  const avalsRecentes = avaliacoes.filter(a => {
-    const ts = a.timestamp_mensagem || a.avaliado_em;
-    return ts && ts >= periodoInicio && ts <= periodoFim;
-  });
+  // Já escopadas às mensagens do operador no período (via whatsapp_mensagem_id)
+  const avalsRecentes = avaliacoes;
 
   return (
     <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
