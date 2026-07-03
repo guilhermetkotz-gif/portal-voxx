@@ -38,13 +38,16 @@ Deno.serve(async (_req) => {
     }
 
     // Filtrar apenas com conteúdo e de remetentes cadastrados
+    const TIPOS_IGNORAR = ['sticker', 'reacao', 'sistema', 'atividade', 'sem_conteudo'];
     const candidatas = mensagensVoxx.filter(m => {
       const tel = normalizarTel(m.remetente_telefone);
       if (!ehRemetenteCadastrado(tel, m.remetente_nome) || !m.grupo_id) return false;
-      const textoAvaliavel = (m.tipo_mensagem === 'audio' && m.transcricao_audio)
-        ? m.transcricao_audio
-        : m.mensagem;
-      return textoAvaliavel && textoAvaliavel.trim().length > 5;
+      if (TIPOS_IGNORAR.includes(m.tipo_mensagem)) return false;
+      // Áudio: só avaliar se houver transcrição (sem transcrição não há conteúdo avaliável)
+      if (m.tipo_mensagem === 'audio') {
+        return m.transcricao_audio && m.transcricao_audio.trim().length > 5;
+      }
+      return m.mensagem && m.mensagem.trim().length > 5;
     });
 
     // Verificar quais já têm avaliação (usar lotes p/ evitar limite do $in)

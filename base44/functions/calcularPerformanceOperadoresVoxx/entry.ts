@@ -72,7 +72,7 @@ function normalizarTel(tel) {
 }
 
 const TIPOS_VALIDOS_CLIENTE = ['texto', 'audio', 'imagem', 'video', 'documento'];
-const IGNORAR_TIPOS = ['sistema', 'atividade', 'sem_conteudo'];
+const IGNORAR_TIPOS = ['sistema', 'atividade', 'sem_conteudo', 'sticker', 'reacao'];
 
 // ── MAIN ────────────────────────────────────────────────────────
 Deno.serve(async (_req) => {
@@ -134,6 +134,7 @@ Deno.serve(async (_req) => {
       if (!isInPeriod(m)) return false;
       if (filtroClienteId && m.cliente_id !== filtroClienteId) return false;
       if (filtroGrupoId && m.grupo_id !== filtroGrupoId) return false;
+      if (IGNORAR_TIPOS.includes(m.tipo_mensagem)) return false;
       return true;
     });
 
@@ -241,10 +242,12 @@ Deno.serve(async (_req) => {
       // Só conta como pendente msgs com texto (candidatas reais à avaliação)
       // Audio messages use transcricao_audio when available, same as avaliarQualidadeMensagensVoxx
       const msgsCandidatas = msgsDoOp.filter(m => {
-        if (['sistema', 'atividade', 'sem_conteudo'].includes(m.tipo_mensagem)) return false;
-        const texto = (m.tipo_mensagem === 'audio' && m.transcricao_audio)
-          ? m.transcricao_audio
-          : m.mensagem;
+        if (IGNORAR_TIPOS.includes(m.tipo_mensagem)) return false;
+        // Áudio: só é candidato se houver transcrição
+        if (m.tipo_mensagem === 'audio') {
+          return m.transcricao_audio && m.transcricao_audio.trim().length > 5;
+        }
+        const texto = m.mensagem;
         return texto && texto.trim().length > 5;
       });
       const pendentes = Math.max(0, msgsCandidatas.length - avaliadas);
