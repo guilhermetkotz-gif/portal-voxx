@@ -65,10 +65,12 @@ Deno.serve(async (req) => {
             minutos_no_setor: null,
             concluida: false,
           });
+        }
 
-          // ── Limpar pendências de aprovação ao mover o card ──
-          // Quando o operador move o card para outro setor, isso conta como "ação tratada"
-          // para entregas com retorno do cliente (alteração solicitada ou aprovada)
+        // ── Limpar pendências e notificações de aprovação ──
+        // Executa quando o card é movido de setor (ação tratada) OU quando
+        // a demanda é concluída/finalizada (mesmo sem mudança de setor).
+        if (setorMudou || foiConcluida) {
           try {
             const entregasDaDemanda = await db.entities.EntregaDemanda.filter({
               demanda_id: event.entity_id,
