@@ -215,9 +215,19 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
                       <td className="px-4 py-3">
                         <div className="font-semibold text-white text-sm">{g.cliente_nome || <span className="text-slate-500 italic">Sem cliente</span>}</div>
                         <div className="text-slate-500 text-[11px] mt-0.5">{g.nome_grupo}</div>
-                        {g.ultimaGeral?.mensagem && (
-                          <div className="text-slate-400 text-[11px] mt-1 max-w-[220px] truncate">{g.ultimaGeral.mensagem}</div>
-                        )}
+                        {(() => {
+                          const m = g.ultimaMensagemPreview;
+                          if (!m) return null;
+                          const preview = m.tipo_mensagem === 'texto' ? (m.mensagem || '') :
+                            m.tipo_mensagem === 'imagem' ? '📷 Imagem' :
+                            m.tipo_mensagem === 'video' ? '🎬 Vídeo' :
+                            m.tipo_mensagem === 'audio' ? '🎤 Áudio' :
+                            m.tipo_mensagem === 'documento' ? '📎 Documento' :
+                            m.tipo_mensagem === 'sticker' ? '🏷️ Sticker' :
+                            m.tipo_mensagem === 'reacao' ? `${m.mensagem || '👍'} Reação` : '';
+                          if (!preview) return null;
+                          return <div className="text-slate-400 text-[11px] mt-1 max-w-[220px] truncate">{preview}</div>;
+                        })()}
                       </td>
                       <td className="px-3 py-3">
                         <Badge className={`text-[10px] border ${vinculo.color}`}>{vinculo.label}</Badge>

@@ -110,6 +110,11 @@ export default function RadarWhatsApp({ user }) {
         return acc;
       }, null)?.m || null;
 
+      // Última mensagem com conteúdo real (exclui sem_conteudo, sistema, atividade)
+      const ultimaMensagemPreview = msgs
+        .filter(m => !['sistema', 'atividade', 'sem_conteudo'].includes(m.tipo_mensagem) && !m.deletado)
+        .sort((a, b) => ((b.received_at || '') > (a.received_at || '') ? 1 : -1))[0] || null;
+
       const ultimaCliente = msgs
         .filter(m => m.remetente_tipo === 'cliente' || m.origem === 'recebida')
         .sort((a, b) => (b.received_at > a.received_at ? 1 : -1))[0] || null;
@@ -166,6 +171,7 @@ export default function RadarWhatsApp({ user }) {
       return {
         ...g,
         ultimaGeral,
+        ultimaMensagemPreview,
         ultimaCliente,
         ultimaVoxx,
         ultimaClienteValida,
