@@ -637,7 +637,7 @@ Status: ${currentDemanda.status}
 🎬 MODELO DE EDIÇÃO
 --------------------------------------------------
 
-🎞️ Modelo selecionado: ${v('modelo_edicao')}
+🎞️ Modelo selecionado: ${v('modelo_edicao')}${ca.modelo_observacao ? `\n📝 Observação sobre o modelo: ${ca.modelo_observacao}` : ''}
 
 --------------------------------------------------
 📥 VÍDEO BASE
