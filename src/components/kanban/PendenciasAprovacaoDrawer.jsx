@@ -98,11 +98,14 @@ export default function PendenciasAprovacaoDrawer({ open, onClose, onOpenDemanda
     const aprovadas = [];    // status aprovado
 
     entregas.forEach(entrega => {
-      // Só mostra pendências de demandas que estão em "aguardando_cliente"
-      if (entrega.demanda_id && !demandasAguardandoSet.has(entrega.demanda_id)) return;
-
       const s = entrega.status_entrega;
+
+      // Para entregas em "aguardando cliente" (enviado/em_aprovacao/reenviado),
+      // só mostrar se a demanda ainda está em "aguardando_cliente".
+      // Aprovadas e alterações solicitadas aparecem independentemente do status
+      // da demanda, pois representam retorno do cliente que pode precisar de ação.
       if (s === 'enviado' || s === 'em_aprovacao' || s === 'reenviado') {
+        if (entrega.demanda_id && !demandasAguardandoSet.has(entrega.demanda_id)) return;
         if (enviosMap[entrega.id]) {
           aguardando.push(entrega);
         } else {
