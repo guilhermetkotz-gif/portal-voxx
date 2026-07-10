@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Phone, ExternalLink, Clock, Edit2, Save, X, CalendarCheck, CalendarX, CalendarClock } from 'lucide-react';
 import RegistrarTentativaModal from './RegistrarTentativaModal';
+import LeadHistoryTimeline from './LeadHistoryTimeline';
+import LeadDataCard from './LeadDataCard';
 import { format } from 'date-fns';
 
 const statusAgendamentoConfig = {
@@ -426,33 +428,11 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
             </div>
           </Card>
 
-          {/* Timeline de Tentativas */}
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3">Timeline de Tentativas ({tentativas.length})</h3>
-            <div className="space-y-3">
-              {tentativas.length === 0 ? (
-                <p className="text-sm text-slate-500">Nenhuma tentativa registrada</p>
-              ) : (
-                tentativas.map((t) => (
-                  <div key={t.id} className="flex gap-3 pb-3 border-b last:border-0">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                        <Phone className="w-4 h-4 text-blue-600" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium">{t.canal}</span>
-                        <span className="text-xs text-slate-500">{format(new Date(t.data_hora), "dd/MM 'às' HH:mm")}</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs mb-1">{t.resultado?.replace(/_/g, ' ')}</Badge>
-                      {t.nota && <p className="text-sm text-slate-600">{t.nota}</p>}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
+          {/* Dados do Lead */}
+          <LeadDataCard lead={currentLead} />
+
+          {/* Histórico Completo (linha do tempo unificada) */}
+          <LeadHistoryTimeline lead={currentLead} tentativas={tentativas} />
         </div>
       </SheetContent>
       {showTentativaModal && (
