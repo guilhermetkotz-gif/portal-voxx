@@ -359,22 +359,30 @@ export default function CrcCaixaLeads({ currentCliente, user }) {
                            )}
                          </div>
                         </td>
-                        <td className="px-4 py-4 text-sm" onClick={() => setEditingCell({ leadId: lead.id, field: 'nome' })}>
-                          {editingCell?.leadId === lead.id && editingCell?.field === 'nome' ? (
-                            <Input
-                              value={lead.nome}
-                              onChange={(e) => handleFieldUpdate(lead.id, 'nome', e.target.value)}
-                              onBlur={() => setEditingCell(null)}
-                              autoFocus
-                              className="h-8 text-sm"
-                            />
-                          ) : (
-                            <div className="flex items-center gap-2 group cursor-pointer">
-                              <span className="font-semibold text-slate-900">{lead.nome || '-'}</span>
-                              <Edit2 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
-                          )}
-                        </td>
+                        <td className="px-4 py-4 text-sm">
+                           {editingCell?.leadId === lead.id && editingCell?.field === 'nome' ? (
+                             <Input
+                               value={lead.nome}
+                               onChange={(e) => handleFieldUpdate(lead.id, 'nome', e.target.value)}
+                               onBlur={() => setEditingCell(null)}
+                               autoFocus
+                               className="h-8 text-sm"
+                             />
+                           ) : (
+                             <div className="flex items-center gap-2 group">
+                               <span
+                                 className="font-semibold text-slate-900 cursor-pointer hover:text-violet-600 transition-colors"
+                                 onClick={() => handleLeadClick(lead)}
+                               >
+                                 {lead.nome || '-'}
+                               </span>
+                               <Edit2
+                                 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                                 onClick={() => setEditingCell({ leadId: lead.id, field: 'nome' })}
+                               />
+                             </div>
+                           )}
+                         </td>
                         <td className="px-4 py-4 text-sm">
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-slate-700">{lead.telefone}</span>
