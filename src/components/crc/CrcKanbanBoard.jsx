@@ -2,7 +2,7 @@ import React from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Phone, Calendar, AlertTriangle, User, ExternalLink } from 'lucide-react';
+import { Phone, Calendar, AlertTriangle, User, ExternalLink, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -95,10 +95,22 @@ function LeadCard({ lead, index, onClick }) {
                 )}
               </div>
 
-              {/* Telefone */}
-              <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                <Phone className="w-3 h-3" />
-                <span className="font-mono">{lead.telefone}</span>
+              {/* Telefone + WhatsApp */}
+              <div className="flex items-center justify-between gap-1.5 text-xs text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <Phone className="w-3 h-3" />
+                  <span className="font-mono">{lead.telefone}</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`https://wa.me/55${lead.telefone.replace(/\D/g, '')}`, '_blank');
+                  }}
+                  className="p-1 rounded hover:bg-green-100 transition-colors"
+                  title="Enviar WhatsApp"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+                </button>
               </div>
 
               {/* Tratamento e Origem */}
