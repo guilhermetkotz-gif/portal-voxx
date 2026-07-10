@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -9,9 +9,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Phone, ExternalLink, Clock, Edit2, Save, X } from 'lucide-react';
+import { Phone, ExternalLink, Clock, Edit2, Save, X, CalendarCheck, CalendarX, CalendarClock } from 'lucide-react';
 import RegistrarTentativaModal from './RegistrarTentativaModal';
 import { format } from 'date-fns';
+
+const statusAgendamentoConfig = {
+  pendente: { label: 'Pendente', color: 'bg-slate-100 text-slate-700 border-slate-300', icon: Clock },
+  compareceu: { label: 'Compareceu', color: 'bg-emerald-100 text-emerald-700 border-emerald-300', icon: CalendarCheck },
+  faltou: { label: 'Faltou', color: 'bg-red-100 text-red-700 border-red-300', icon: CalendarX },
+  desmarcou: { label: 'Desmarcou', color: 'bg-amber-100 text-amber-700 border-amber-300', icon: CalendarX },
+  reagendou: { label: 'Reagendou', color: 'bg-violet-100 text-violet-700 border-violet-300', icon: CalendarClock }
+};
 
 const statusColors = {
   sem_contato: 'bg-slate-100 text-slate-700',
@@ -25,8 +33,25 @@ const statusColors = {
 export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
   const queryClient = useQueryClient();
   const [editField, setEditField] = useState(null);
-  const [editData, setEditData] = useState(lead);
   const [showTentativaModal, setShowTentativaModal] = useState(false);
+
+  // Busca sempre os dados mais recentes do lead — evita exibir dados desatualizados após salvar
+  const { data: freshLead } = useQuery({
+    queryKey: ['crcLead', lead.id],
+    queryFn: () => base44.entities.CrcLead.get(lead.id),
+    enabled: !!lead.id,
+    initialData: lead,
+    refetchOnWindowFocus: true,
+    staleTime: 0
+  });
+
+  const currentLead = freshLead || lead;
+  const [editData, setEditData] = useState(currentLead);
+
+  // Sincroniza editData quando o lead é atualizado no servidor
+  useEffect(() => {
+    setEditData(currentLead);
+  }, [currentLead.updated_date]);
 
   const { data: tentativas = [] } = useQuery({
     queryKey: ['crcTentativas', lead.id],
@@ -39,6 +64,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
     onSuccess: () => {
       queryClient.invalidateQueries(['crcLeads']);
       queryClient.invalidateQueries(['crcTentativas']);
+      queryClient.invalidateQueries(['crcLead', lead.id]);
       setEditField(null);
       onUpdate();
     }
@@ -88,14 +114,14 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                 {editField === 'nome' ? (
                   <div className="flex gap-2">
                     <Input 
-                      value={editData.nome} 
+                      value={editData.nome || ''} 
                       onChange={(e) => setEditData({ ...editData, nome: e.target.value })}
                       autoFocus
                     />
                     <Button size="sm" onClick={() => { handleFieldSave('nome', editData.nome); }}>
                       <Save className="w-4 h-4" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setEditData(lead); setEditField(null); }}>
+                    <Button size="sm" variant="outline" onClick={() => { setEditData(currentLead); setEditField(null); }}>
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
@@ -104,26 +130,59 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                     className="text-sm font-medium cursor-pointer hover:bg-slate-50 p-2 rounded" 
                     onClick={() => setEditField('nome')}
                   >
-                    {lead.nome || '-'}
+                    {currentLead.nome || '-'}
                   </p>
                 )}
               </div>
               <div>
                 <Label>Telefone</Label>
-                <p className="text-sm font-medium">{lead.telefone}</p>
+                <p className="text-sm font-medium">{currentLead.telefone}</p>
               </div>
               <div>
                 <Label>Data de Chegada</Label>
-                <p className="text-sm">{lead.data_chegada ? format(new Date(lead.data_chegada), "dd/MM/yyyy 'às' HH:mm") : '-'}</p>
+                <p className="text-sm">{currentLead.data_chegada ? format(new Date(currentLead.data_chegada), "dd/MM/yyyy 'às' HH:mm") : '-'}</p>
               </div>
-              {lead.link_anuncio && (
-                <div>
-                  <Label>Link do Anúncio</Label>
-                  <a href={lead.link_anuncio} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 flex items-center gap-1">
-                    Ver anúncio <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              )}
+              <div>
+                <Label>Link da Origem (WhatsApp/Meta)</Label>
+                {editField === 'link_anuncio' ? (
+                  <div className="space-y-2">
+                    <Input 
+                      value={editData.link_anuncio || ''} 
+                      onChange={(e) => setEditData({ ...editData, link_anuncio: e.target.value })}
+                      placeholder="Cole aqui o link do anúncio ou conversa..."
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => { handleFieldSave('link_anuncio', editData.link_anuncio); }}>
+                        <Save className="w-4 h-4 mr-2" />
+                        Salvar
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setEditData(currentLead); setEditField(null); }}>
+                        <X className="w-4 h-4 mr-2" />
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  currentLead.link_anuncio ? (
+                    <div className="flex items-center gap-2 group">
+                      <a href={currentLead.link_anuncio} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 flex items-center gap-1 hover:underline">
+                        Ver anúncio <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setEditField('link_anuncio')}>
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <p 
+                      className="text-sm text-slate-400 cursor-pointer hover:bg-slate-50 p-2 rounded"
+                      onClick={() => setEditField('link_anuncio')}
+                    >
+                      Clique para adicionar o link da origem
+                    </p>
+                  )
+                )}
+              </div>
             </div>
           </Card>
 
@@ -135,7 +194,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                 <Label>Status</Label>
                 {editField === 'status' ? (
                   <Select 
-                    value={editData.status} 
+                    value={editData.status || 'sem_contato'} 
                     onValueChange={(v) => { 
                       setEditData({ ...editData, status: v }); 
                       handleFieldSave('status', v);
@@ -157,17 +216,17 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                   </Select>
                 ) : (
                   <div onClick={() => setEditField('status')} className="cursor-pointer">
-                    <Badge className={statusColors[lead.status] || 'bg-slate-100 text-slate-700'}>{(lead.status || 'sem_contato').replace(/_/g, ' ')}</Badge>
+                    <Badge className={statusColors[currentLead.status] || 'bg-slate-100 text-slate-700'}>{(currentLead.status || 'sem_contato').replace(/_/g, ' ')}</Badge>
                   </div>
                 )}
               </div>
 
-              {lead.status === 'perda' && (
+              {currentLead.status === 'perda' && (
                 <div>
                   <Label>Motivo da Perda</Label>
                   {editField === 'motivo_perda' ? (
                     <Select 
-                      value={editData.motivo_perda} 
+                      value={editData.motivo_perda || ''} 
                       onValueChange={(v) => { 
                         setEditData({ ...editData, motivo_perda: v }); 
                         handleFieldSave('motivo_perda', v);
@@ -191,56 +250,97 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                       className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
                       onClick={() => setEditField('motivo_perda')}
                     >
-                      {lead.motivo_perda?.replace(/_/g, ' ') || 'Clique para definir'}
+                      {currentLead.motivo_perda?.replace(/_/g, ' ') || 'Clique para definir'}
                     </p>
                   )}
                 </div>
               )}
 
-              {lead.status === 'agendou' && (
-                <div>
-                  <Label>Data de Agendamento</Label>
-                  {editField === 'data_agendamento' ? (
-                    <div className="flex gap-2">
-                      <Input 
-                        type="datetime-local" 
-                        value={editData.data_agendamento} 
-                        onChange={(e) => setEditData({ ...editData, data_agendamento: e.target.value })}
-                        autoFocus
-                      />
-                      <Button size="sm" onClick={() => { handleFieldSave('data_agendamento', editData.data_agendamento); }}>
-                        <Save className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setEditData(lead); setEditField(null); }}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <p 
-                      className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
-                      onClick={() => setEditField('data_agendamento')}
-                    >
-                      {lead.data_agendamento ? format(new Date(lead.data_agendamento), "dd/MM/yyyy 'às' HH:mm") : 'Clique para definir'}
-                    </p>
-                  )}
-                </div>
+              {(currentLead.status === 'agendou' || currentLead.data_agendamento) && (
+                <>
+                  <div>
+                    <Label>Data de Agendamento</Label>
+                    {editField === 'data_agendamento' ? (
+                      <div className="flex gap-2">
+                        <Input 
+                          type="datetime-local" 
+                          value={editData.data_agendamento || ''} 
+                          onChange={(e) => setEditData({ ...editData, data_agendamento: e.target.value })}
+                          autoFocus
+                        />
+                        <Button size="sm" onClick={() => { handleFieldSave('data_agendamento', editData.data_agendamento); }}>
+                          <Save className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => { setEditData(currentLead); setEditField(null); }}>
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <p 
+                        className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
+                        onClick={() => setEditField('data_agendamento')}
+                      >
+                        {currentLead.data_agendamento ? format(new Date(currentLead.data_agendamento), "dd/MM/yyyy 'às' HH:mm") : 'Clique para definir'}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label>Status do Agendamento</Label>
+                    {editField === 'status_agendamento' ? (
+                      <Select 
+                        value={editData.status_agendamento || 'pendente'} 
+                        onValueChange={(v) => { 
+                          setEditData({ ...editData, status_agendamento: v }); 
+                          handleFieldSave('status_agendamento', v);
+                        }}
+                        open={editField === 'status_agendamento'}
+                        onOpenChange={(open) => !open && setEditField(null)}
+                      >
+                        <SelectTrigger autoFocus>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pendente">Pendente</SelectItem>
+                          <SelectItem value="compareceu">Compareceu</SelectItem>
+                          <SelectItem value="faltou">Faltou</SelectItem>
+                          <SelectItem value="desmarcou">Desmarcou</SelectItem>
+                          <SelectItem value="reagendou">Reagendou</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div onClick={() => setEditField('status_agendamento')} className="cursor-pointer">
+                        {(() => {
+                          const cfg = statusAgendamentoConfig[currentLead.status_agendamento || 'pendente'] || statusAgendamentoConfig.pendente;
+                          const Icon = cfg.icon;
+                          return (
+                            <Badge className={`${cfg.color} border inline-flex items-center gap-1.5 px-3 py-1.5`}>
+                              <Icon className="w-3.5 h-3.5" />
+                              {cfg.label}
+                            </Badge>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
 
-              {lead.status === 'interesse_futuro' && (
+              {currentLead.status === 'interesse_futuro' && (
                 <div>
                   <Label>Data de Retorno</Label>
                   {editField === 'data_retorno' ? (
                     <div className="flex gap-2">
                       <Input 
                         type="date" 
-                        value={editData.data_retorno} 
+                        value={editData.data_retorno || ''} 
                         onChange={(e) => setEditData({ ...editData, data_retorno: e.target.value })}
                         autoFocus
                       />
                       <Button size="sm" onClick={() => { handleFieldSave('data_retorno', editData.data_retorno); }}>
                         <Save className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setEditData(lead); setEditField(null); }}>
+                      <Button size="sm" variant="outline" onClick={() => { setEditData(currentLead); setEditField(null); }}>
                         <X className="w-4 h-4" />
                       </Button>
                     </div>
@@ -249,7 +349,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                       className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
                       onClick={() => setEditField('data_retorno')}
                     >
-                      {lead.data_retorno ? format(new Date(lead.data_retorno), 'dd/MM/yyyy') : 'Clique para definir'}
+                      {currentLead.data_retorno ? format(new Date(currentLead.data_retorno), 'dd/MM/yyyy') : 'Clique para definir'}
                     </p>
                   )}
                 </div>
@@ -259,7 +359,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                 <Label>Tratamento</Label>
                 {editField === 'tratamento' ? (
                   <Select 
-                    value={editData.tratamento} 
+                    value={editData.tratamento || 'nao_informado'} 
                     onValueChange={(v) => { 
                       setEditData({ ...editData, tratamento: v }); 
                       handleFieldSave('tratamento', v);
@@ -287,7 +387,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                     className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded"
                     onClick={() => setEditField('tratamento')}
                   >
-                    {lead.tratamento?.replace(/_/g, ' ') || '-'}
+                    {currentLead.tratamento?.replace(/_/g, ' ') || '-'}
                   </p>
                 )}
               </div>
@@ -299,6 +399,8 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                     <Textarea 
                       value={editData.observacoes || ''} 
                       onChange={(e) => setEditData({ ...editData, observacoes: e.target.value })}
+                      placeholder="Digite observações sobre o paciente..."
+                      className="min-h-[100px]"
                       autoFocus
                     />
                     <div className="flex gap-2">
@@ -306,19 +408,19 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
                         <Save className="w-4 h-4 mr-2" />
                         Salvar
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setEditData(lead); setEditField(null); }}>
+                      <Button size="sm" variant="outline" onClick={() => { setEditData(currentLead); setEditField(null); }}>
                         <X className="w-4 h-4 mr-2" />
                         Cancelar
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <p 
-                    className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded min-h-[40px]"
+                  <div 
+                    className="text-sm cursor-pointer hover:bg-slate-50 p-2 rounded min-h-[40px] whitespace-pre-wrap"
                     onClick={() => setEditField('observacoes')}
                   >
-                    {lead.observacoes || 'Clique para adicionar'}
-                  </p>
+                    {currentLead.observacoes || <span className="text-slate-400">Clique para adicionar observações</span>}
+                  </div>
                 )}
               </div>
             </div>
@@ -355,7 +457,7 @@ export default function LeadDetailDrawer({ lead, onClose, onUpdate }) {
       </SheetContent>
       {showTentativaModal && (
         <RegistrarTentativaModal
-          lead={lead}
+          lead={currentLead}
           onClose={() => setShowTentativaModal(false)}
           onSuccess={() => {
             queryClient.invalidateQueries(['crcLeads']);

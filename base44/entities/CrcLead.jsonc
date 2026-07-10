@@ -71,6 +71,18 @@
       "default": "sem_contato",
       "description": "Status do lead"
     },
+    "status_agendamento": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "compareceu",
+        "faltou",
+        "desmarcou",
+        "reagendou"
+      ],
+      "default": "pendente",
+      "description": "Status do agendamento (acompanhamento p\u00f3s-agendamento)"
+    },
     "motivo_perda": {
       "type": "string",
       "enum": [
@@ -84,7 +96,7 @@
     },
     "link_anuncio": {
       "type": "string",
-      "description": "URL do an\u00fancio"
+      "description": "URL do an\u00fancio (WhatsApp/Meta) \u2014 pode ser adicionado ap\u00f3s cadastro"
     },
     "observacoes": {
       "type": "string",
