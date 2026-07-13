@@ -98,9 +98,12 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
     });
     return lista.sort((a, b) => {
       const peso = { emergencial: 0, critico: 1, alerta: 2, alarme: 3 };
-      const pA = a.alertaNivel ? (peso[a.alertaNivel] ?? 99) : 99;
-      const pB = b.alertaNivel ? (peso[b.alertaNivel] ?? 99) : 99;
-      return pA - pB;
+      const getPriority = (g) => {
+        if (g.alertaNivel && peso[g.alertaNivel] !== undefined) return peso[g.alertaNivel];
+        if (g.inativo72h || g.status_vinculo === 'inativo') return 4;
+        return 99;
+      };
+      return getPriority(a) - getPriority(b);
     });
   }, [gruposEnriquecidos, busca, filtroVinculo, filtroAlerta, periodoCorte]);
 
