@@ -46,46 +46,107 @@ Deno.serve(async (req) => {
         let otimizacoesEnriquecidas = [...(otimizacoes_meta_ads || [])];
         let contaMetaAdsData = null;
 
-        if (cliente_id && cliente_nome) {
+        // Sempre tenta enriquecer se houver cliente_nome (mesmo sem cliente_id válido)
+        if (cliente_nome) {
             try {
                 // 1. Buscar otimizações por cliente_id (caso o frontend já não tenha pego todas)
-                const porClienteId = await base44.asServiceRole.entities.MetaAdsOtimizacao.filter(
-                    { cliente_id }, '-created_date', 10
-                );
+                if (cliente_id) {
+                    const porClienteId = await base44.asServiceRole.entities.MetaAdsOtimizacao.filter(
+                        { cliente_id }, '-created_date', 10
+                    );
+                    const idsJa = new Set(otimizacoesEnriquecidas.map(o => o.conta_meta_ads_id).filter(Boolean));
+                    for (const o of porClienteId) {
+                        if (o.conta_meta_ads_id && !idsJa.has(o.conta_meta_ads_id)) {
+                            idsJa.add(o.conta_meta_ads_id);
+                            otimizacoesEnriquecidas.push(o);
+                        }
+                    }
+                }
 
-                // 2. Buscar otimizações por account_name que contenha o nome do cliente
-                // Pega todas as otimizações recentes e filtra por nome (não tem like/search no filter)
+                // 2. Extrair tokens significativos do nome do cliente E do grupo
+                // Remove números entre parênteses/colchetes, depois divide em palavras
+                const stopWords = new Set(['sin', 'os', 'voxx', 'or', 'the', 'de', 'da', 'do', 'rs', 'sp', 'pr', 'sc']);
+                const nomeComposto = `${cliente_nome} ${grupo_nome || ''}`.toLowerCase();
+                const tokens = nomeComposto
+                    .replace(/[()\[\]{}\d]/g, ' ')
+                    .split(/[\s\-|/\\]+/)
+                    .map(t => t.trim())
+                    .filter(t => t.length > 2 && !stopWords.has(t));
+
+                // Tokens únicos
+                const tokensUnicos = [...new Set(tokens)];
+
+                // 3. Buscar ContaMetaAds por correspondência de tokens
+                const todasContas = await base44.asServiceRole.entities.ContaMetaAds.list('-updated_date', 100);
+                
+                // Função de score: quantos tokens do cliente aparecem no nome da conta
+                const scoreConta = (accName) => {
+                    if (!accName) return 0;
+                    const accLower = accName.toLowerCase();
+                    return tokensUnicos.filter(t => accLower.includes(t)).length;
+                };
+
+                // Encontra a conta com maior score (mínimo 2 tokens ou 1 se só houver 1 token)
+                let melhorConta = null;
+                let melhorScore = 0;
+                for (const c of todasContas) {
+                    const score = scoreConta(c.account_name);
+                    if (score > melhorScore) {
+                        melhorScore = score;
+                        melhorConta = c;
+                    }
+                }
+                // Aceita se pelo menos 2 tokens casarem, ou 1 se o cliente só tem 1 token significativo
+                const minTokens = tokensUnicos.length >= 2 ? 2 : 1;
+                if (melhorConta && melhorScore >= minTokens) {
+                    contaMetaAdsData = melhorConta;
+                }
+
+                // 4. Buscar otimizações por correspondência de tokens no account_name/cliente_nome
                 const todasOtimizacoes = await base44.asServiceRole.entities.MetaAdsOtimizacao.list('-created_date', 50);
-                const nomeLower = cliente_nome.toLowerCase();
                 const porNome = todasOtimizacoes.filter(o => {
-                    const contaNome = (o.account_name || '').toLowerCase();
-                    const clienteNomeRecord = (o.cliente_nome || '').toLowerCase();
-                    return contaNome.includes(nomeLower) || clienteNomeRecord.includes(nomeLower);
+                    const nomeBusca = `${o.account_name || ''} ${o.cliente_nome || ''}`.toLowerCase();
+                    return tokensUnicos.every(t => nomeBusca.includes(t));
                 });
 
-                // Merge sem duplicar
-                const idsJaAdicionados = new Set(otimizacoesEnriquecidas.map(o => o.conta_meta_ads_id).filter(Boolean));
-                for (const o of porClienteId) {
-                    if (o.conta_meta_ads_id && !idsJaAdicionados.has(o.conta_meta_ads_id)) {
-                        idsJaAdicionados.add(o.conta_meta_ads_id);
-                        otimizacoesEnriquecidas.push(o);
-                    }
-                }
+                const idsJa2 = new Set(otimizacoesEnriquecidas.map(o => o.conta_meta_ads_id).filter(Boolean));
                 for (const o of porNome) {
-                    if (o.conta_meta_ads_id && !idsJaAdicionados.has(o.conta_meta_ads_id)) {
-                        idsJaAdicionados.add(o.conta_meta_ads_id);
+                    if (!idsJa2.has(o.conta_meta_ads_id)) {
+                        idsJa2.add(o.conta_meta_ads_id);
                         otimizacoesEnriquecidas.push(o);
                     }
                 }
 
-                // 3. Buscar ContaMetaAds pelo nome
-                const todasContas = await base44.asServiceRole.entities.ContaMetaAds.list(null, 100);
-                const contaMatch = todasContas.find(c => {
-                    const accName = (c.account_name || '').toLowerCase();
-                    return accName.includes(nomeLower) || nomeLower.includes(accName);
-                });
-                if (contaMatch) {
-                    contaMetaAdsData = contaMatch;
+                // 5. Se encontrou uma conta Meta Ads, buscar otimizações dessa conta específica
+                if (contaMetaAdsData?.account_name) {
+                    const otmPorConta = todasOtimizacoes.filter(o =>
+                        (o.account_name || '').toLowerCase() === contaMetaAdsData.account_name.toLowerCase()
+                    );
+                    for (const o of otmPorConta) {
+                        if (!idsJa2.has(o.conta_meta_ads_id)) {
+                            idsJa2.add(o.conta_meta_ads_id);
+                            otimizacoesEnriquecidas.push(o);
+                        }
+                    }
+                }
+
+                // 6. Buscar RadarMetaData (métricas diárias de performance) por tokens
+                if (tokensUnicos.length > 0) {
+                    const radarData = await base44.asServiceRole.entities.RadarMetaData.list('-updated_date', 100);
+                    const radarMatch = radarData.find(r => {
+                        const accName = (r.account_name || '').toLowerCase();
+                        const score = tokensUnicos.filter(t => accName.includes(t)).length;
+                        return score >= minTokens;
+                    });
+                    if (radarMatch && !contaMetaAdsData) {
+                        // Usa dados do radar como fonte alternativa de métricas
+                        contaMetaAdsData = {
+                            account_name: radarMatch.account_name,
+                            leads: radarMatch.leads_7d,
+                            cpl_meta_ads: radarMatch.cpl_7d,
+                            amount_spent: radarMatch.amount_spent_ontem,
+                        };
+                    }
                 }
             } catch (_) {
                 // Silencioso: se falhar enriquecimento, usa só o que o frontend mandou
