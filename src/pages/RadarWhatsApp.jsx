@@ -14,6 +14,7 @@ import AbaAnalises from '@/components/radar/AbaAnalises';
 import AbaRemetentesVoxx from '@/components/radar/AbaRemetentesVoxx';
 import AbaOperadoresVoxx from '@/components/radar/AbaOperadoresVoxx';
 import ChatHubDrawer from '@/components/radar/ChatHubDrawer';
+import AlertaNovoRadar from '@/components/radar/AlertaNovoRadar';
 import { calcularMinutosUteis, nivelAlerta, calcularHorasUteisSemFimDeSemana } from '@/lib/minutosUteis';
 import { useAlertaSomRadar } from '@/hooks/useAlertaSomRadar';
 import { Button } from '@/components/ui/button';
@@ -260,6 +261,9 @@ export default function RadarWhatsApp({ user }) {
           </div>
         </div>
       </div>
+
+      {/* Alerta de novos alertas de tempo de resposta / inatividade */}
+      <AlertaNovoRadar gruposEnriquecidos={gruposEnriquecidos} />
 
       {/* Alerta Z-API desconectada */}
       {zapiStatus && !zapiStatus.connected && (
