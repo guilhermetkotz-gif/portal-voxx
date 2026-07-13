@@ -1701,6 +1701,31 @@ ${bu.estrutura_criativo || 'Não gerado'}
                   </CardContent>
                 </Card>
 
+                {/* Sinalizar Alteração Manual */}
+                <Button
+                  variant="outline"
+                  className={cn(
+                    'w-full',
+                    (currentDemanda.tags || []).includes('ajuste-manual')
+                      ? 'border-orange-500 text-orange-700 bg-orange-100 hover:bg-orange-200'
+                      : 'border-orange-300 text-orange-600 hover:bg-orange-50'
+                  )}
+                  disabled={updateDemandaMutation.isPending}
+                  onClick={() => {
+                    const currentTags = currentDemanda.tags || [];
+                    const hasTag = currentTags.includes('ajuste-manual');
+                    const newTags = hasTag
+                      ? currentTags.filter(t => t !== 'ajuste-manual')
+                      : [...currentTags, 'ajuste-manual'];
+                    updateDemandaMutation.mutate({ tags: newTags });
+                  }}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  {(currentDemanda.tags || []).includes('ajuste-manual')
+                    ? 'Remover Sinalização de Alteração'
+                    : 'Sinalizar Alteração'}
+                </Button>
+
                 {/* Mover Card entre colunas do Kanban */}
                 <MoverCardSection
                   setorAtual={currentDemanda.setor}
