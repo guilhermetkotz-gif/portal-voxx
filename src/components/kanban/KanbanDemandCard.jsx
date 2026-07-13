@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { CalendarDays, User, Tag, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import moment from 'moment-timezone';
 import ActiveTimerIndicator from './ActiveTimerIndicator';
@@ -41,9 +42,13 @@ const aprovacaoCardStyle = {
   solicitacao_alteracao: 'border-red-500 bg-red-50',
 };
 
+const ALTERACAO_TAG = 'ajuste-manual';
+const ajusteManualStyle = 'border-orange-500 bg-orange-100';
+
 const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags, aprovacaoStatus }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by, tags = [] } = demanda;
   const aprovacaoStyle = aprovacaoStatus ? aprovacaoCardStyle[aprovacaoStatus] : null;
+  const hasAjusteManual = (demanda.tags || []).includes(ALTERACAO_TAG);
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ top: 0, left: 0 });
   const cardRef = useRef(null);
@@ -69,6 +74,9 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
   }
   if (aprovacaoStatus === 'aprovado') {
     notificacoes.push({ tipo: 'ok', texto: 'Entrega aprovada pelo cliente' });
+  }
+  if (hasAjusteManual) {
+    notificacoes.push({ tipo: 'alerta', texto: 'Alteração manual sinalizada — fora do fluxo de aprovação' });
   }
   if (previsao_entrega && moment(previsao_entrega).isBefore(moment())) {
     notificacoes.push({ tipo: 'alerta', texto: `Prazo vencido: ${moment(previsao_entrega).tz('America/Sao_Paulo').format('DD/MM/YYYY')}` });
@@ -131,7 +139,9 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
     );
   };
 
-  const cardBorderStyle = aprovacaoStyle || (isInactive ? 'border-orange-400 bg-orange-50' : '');
+  const cardBorderStyle = hasAjusteManual
+    ? ajusteManualStyle
+    : (aprovacaoStyle || (isInactive ? 'border-orange-400 bg-orange-50' : ''));
 
   if (isMinimized) {
     return (
@@ -239,13 +249,39 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
             </div>
           )}
 
-          {onUpdateTags && (
-            <TagManagerPopover
-              demanda={demanda}
-              onUpdateTags={onUpdateTags}
-              availableTags={allTags}
-            />
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {onUpdateTags && (
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  'h-7 text-xs',
+                  hasAjusteManual
+                    ? 'border-orange-500 text-orange-700 bg-orange-100 hover:bg-orange-200'
+                    : 'border-orange-300 text-orange-600 hover:bg-orange-50'
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const currentTags = demanda.tags || [];
+                  onUpdateTags(
+                    hasAjusteManual
+                      ? currentTags.filter(t => t !== ALTERACAO_TAG)
+                      : [...currentTags, ALTERACAO_TAG]
+                  );
+                }}
+              >
+                <AlertTriangle className="w-3 h-3 mr-1" />
+                {hasAjusteManual ? 'Sinalizada' : 'Sinalizar Alteração'}
+              </Button>
+            )}
+            {onUpdateTags && (
+              <TagManagerPopover
+                demanda={demanda}
+                onUpdateTags={onUpdateTags}
+                availableTags={allTags}
+              />
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
