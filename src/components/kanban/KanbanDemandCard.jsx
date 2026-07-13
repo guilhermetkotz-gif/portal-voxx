@@ -8,6 +8,7 @@ import { CalendarDays, User, Tag, AlertTriangle, Clock, CheckCircle } from 'luci
 import moment from 'moment-timezone';
 import ActiveTimerIndicator from './ActiveTimerIndicator';
 import TagManagerPopover from './TagManagerPopover';
+import AlteracaoManualPopover from './AlteracaoManualPopover';
 
 // Calcula horas úteis decorridas desde uma data (Seg-Sex, 9h-18h, fuso Brasília)
 function calcBusinessHours(fromDate) {
@@ -251,28 +252,11 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
 
           <div className="flex items-center gap-1.5 flex-wrap">
             {onUpdateTags && (
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  'h-7 text-xs',
-                  hasAjusteManual
-                    ? 'border-orange-500 text-orange-700 bg-orange-100 hover:bg-orange-200'
-                    : 'border-orange-300 text-orange-600 hover:bg-orange-50'
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const currentTags = demanda.tags || [];
-                  onUpdateTags(
-                    hasAjusteManual
-                      ? currentTags.filter(t => t !== ALTERACAO_TAG)
-                      : [...currentTags, ALTERACAO_TAG]
-                  );
-                }}
-              >
-                <AlertTriangle className="w-3 h-3 mr-1" />
-                {hasAjusteManual ? 'Sinalizada' : 'Sinalizar Alteração'}
-              </Button>
+              <AlteracaoManualPopover
+                demanda={demanda}
+                onUpdateTags={onUpdateTags}
+                hasAjusteManual={hasAjusteManual}
+              />
             )}
             {onUpdateTags && (
               <TagManagerPopover
