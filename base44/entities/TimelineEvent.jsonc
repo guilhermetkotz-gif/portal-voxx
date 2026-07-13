@@ -17,7 +17,8 @@
         "comentario",
         "anexo",
         "criacao",
-        "acao_voxx"
+        "acao_voxx",
+        "alteracao_manual"
       ],
       "description": "Tipo do evento"
     },

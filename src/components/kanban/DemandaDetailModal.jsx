@@ -41,6 +41,7 @@ import TempoLimiteDemanda from '@/components/demandas/TempoLimiteDemanda';
 import EntregasSection from '@/components/demandas/EntregasSection';
 import EnviarComentarioWhatsAppModal from '@/components/demandas/EnviarComentarioWhatsAppModal';
 import MoverCardSection from '@/components/kanban/MoverCardSection';
+import AlteracaoManualSection from '@/components/kanban/AlteracaoManualSection';
 
 const DemandaDetailModal = ({ demanda, open, onClose, kanbanColumns = [] }) => {
   const queryClient = useQueryClient();
@@ -69,6 +70,7 @@ const DemandaDetailModal = ({ demanda, open, onClose, kanbanColumns = [] }) => {
   const [comentarioAnexo, setComentarioAnexo] = useState(null);
   const [enviandoN8n, setEnviandoN8n] = useState(false);
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [showAlteracaoForm, setShowAlteracaoForm] = useState(false);
   const [comentarioParaWhatsApp, setComentarioParaWhatsApp] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState('');
@@ -1683,6 +1685,14 @@ ${bu.estrutura_criativo || 'Não gerado'}
                   </CardContent>
                 </Card>
 
+                {/* Alterações Manuais — formulário + lista */}
+                <AlteracaoManualSection
+                  demanda={currentDemanda}
+                  user={user}
+                  showForm={showAlteracaoForm}
+                  onCloseForm={() => setShowAlteracaoForm(false)}
+                />
+
                 {/* Ações Rápidas */}
                 <Card>
                   <CardHeader>
@@ -1710,20 +1720,10 @@ ${bu.estrutura_criativo || 'Não gerado'}
                       ? 'border-orange-500 text-orange-700 bg-orange-100 hover:bg-orange-200'
                       : 'border-orange-300 text-orange-600 hover:bg-orange-50'
                   )}
-                  disabled={updateDemandaMutation.isPending}
-                  onClick={() => {
-                    const currentTags = currentDemanda.tags || [];
-                    const hasTag = currentTags.includes('ajuste-manual');
-                    const newTags = hasTag
-                      ? currentTags.filter(t => t !== 'ajuste-manual')
-                      : [...currentTags, 'ajuste-manual'];
-                    updateDemandaMutation.mutate({ tags: newTags });
-                  }}
+                  onClick={() => setShowAlteracaoForm(true)}
                 >
                   <AlertTriangle className="h-4 w-4 mr-2" />
-                  {(currentDemanda.tags || []).includes('ajuste-manual')
-                    ? 'Remover Sinalização de Alteração'
-                    : 'Sinalizar Alteração'}
+                  Sinalizar Alteração
                 </Button>
 
                 {/* Mover Card entre colunas do Kanban */}
