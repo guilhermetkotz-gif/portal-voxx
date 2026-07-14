@@ -290,10 +290,21 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   };
 
   // Gravação de áudio nativo
+  const recordingFormatRef = useRef({ mimeType: 'audio/webm;codecs=opus', ext: 'webm' });
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      // Z-API não converte .webm — priorizar formatos suportados (mp4/m4a, ogg)
+      const possibleFormats = [
+        { mimeType: 'audio/mp4', ext: 'm4a' },
+        { mimeType: 'audio/ogg;codecs=opus', ext: 'ogg' },
+        { mimeType: 'audio/webm;codecs=opus', ext: 'webm' },
+      ];
+      const selectedFormat = possibleFormats.find(f => MediaRecorder.isTypeSupported(f.mimeType)) || possibleFormats[2];
+      recordingFormatRef.current = selectedFormat;
+
+      const recorder = new MediaRecorder(stream, { mimeType: selectedFormat.mimeType });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
       cancelandoGravacaoRef.current = false;
@@ -315,10 +326,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
           return;
         }
 
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(audioChunksRef.current, { type: selectedFormat.mimeType });
         if (blob.size < 100) { setTempoGravacao(0); return; }
 
-        const audioFile = new File([blob], 'audio.webm', { type: 'audio/webm' });
+        const audioFile = new File([blob], `audio.${selectedFormat.ext}`, { type: selectedFormat.mimeType });
 
         setEnviando(true);
         try {
@@ -330,7 +341,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             chatId,
             tipo: 'audio',
             midiaUrl: uploadRes.file_url,
-            fileName: 'audio.webm',
+            fileName: `audio.${selectedFormat.ext}`,
             incluirAssinatura: false,
             clienteId: clienteId || '',
             clienteNome: clienteNome || '',

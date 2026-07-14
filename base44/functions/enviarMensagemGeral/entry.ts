@@ -134,16 +134,32 @@ Deno.serve(async (req) => {
         erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else if (tipo === 'audio' && midiaUrl) {
-      const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-audio`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ phone: chatId, audio: midiaUrl }),
-      });
-      resultadoApi = await resp.json().catch(() => null);
-      const apiError = isZapiError(resultadoApi);
-      if (!resp.ok || apiError) {
-        statusEnvio = 'erro';
-        erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
+      const audioExt = (fileName || midiaUrl || '').split('.').pop()?.toLowerCase() || '';
+      // Z-API não converte .webm — enviar como documento neste caso
+      if (audioExt === 'webm') {
+        const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-document/webm`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileName || 'audio.webm' }),
+        });
+        resultadoApi = await resp.json().catch(() => null);
+        const apiError = isZapiError(resultadoApi);
+        if (!resp.ok || apiError) {
+          statusEnvio = 'erro';
+          erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
+        }
+      } else {
+        const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-audio`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ phone: chatId, audio: midiaUrl }),
+        });
+        resultadoApi = await resp.json().catch(() => null);
+        const apiError = isZapiError(resultadoApi);
+        if (!resp.ok || apiError) {
+          statusEnvio = 'erro';
+          erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
+        }
       }
     } else if (tipo === 'documento' && midiaUrl) {
       const ext = (fileName || midiaUrl || '').split('.').pop()?.toLowerCase() || 'pdf';
