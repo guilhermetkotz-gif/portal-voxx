@@ -348,7 +348,7 @@ export default function ChatVoxx({ user }) {
                   <p className="text-sm text-slate-400">Nenhuma mensagem ainda. Envie a primeira!</p>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="flex flex-col justify-end min-h-full space-y-2">
                   {messages.map((msg) => (
                     <MessageBubble
                       key={msg.id}
