@@ -123,6 +123,33 @@ Deno.serve(async (req) => {
       link_aprovacao: entrega.link_publico_aprovacao
     });
 
+    // Registrar mensagem enviada no WhatsappMensagem para aparecer no Radar WhatsApp
+    if (statusEnvio === 'enviado') {
+      try {
+        const zapiId = resultadoEnvio?.messageId || resultadoEnvio?.id || null;
+        await base44.asServiceRole.entities.WhatsappMensagem.create({
+          message_id: zapiId || null,
+          cliente_id: cliente.id,
+          cliente_nome: cliente.nome,
+          grupo_id: grupoId,
+          grupo_nome: cliente.whatsapp_grupo_nome || null,
+          is_group: true,
+          remetente_nome: user.full_name || user.email,
+          remetente_tipo: 'voxx',
+          origem: 'enviada',
+          mensagem,
+          tipo_mensagem: tipoEnvioFinal === 'imagem' ? 'imagem' : 'texto',
+          midia_url: tipoEnvioFinal === 'imagem' ? (midia_url || null) : null,
+          received_at: agora,
+          from_me: true,
+          status_entrega: 'enviado',
+          status_processamento: 'ok',
+        });
+      } catch (e) {
+        console.error('Erro ao salvar WhatsappMensagem:', e.message);
+      }
+    }
+
     // Registrar no histórico da demanda (TimelineEvent)
     if (entrega.demanda_id && statusEnvio === 'enviado') {
       await base44.asServiceRole.entities.TimelineEvent.create({

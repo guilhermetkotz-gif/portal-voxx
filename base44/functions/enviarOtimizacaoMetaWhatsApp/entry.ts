@@ -91,13 +91,19 @@ Deno.serve(async (req) => {
             enviado_em: new Date().toISOString()
         });
 
-        // Salvar na tabela de mensagens para rastreabilidade
+        // Salvar na tabela de mensagens para rastreabilidade e exibição no Radar WhatsApp
         try {
+            let grupoNome = null;
+            if (cliente_id) {
+                const cliente = await base44.asServiceRole.entities.Cliente.get(cliente_id).catch(() => null);
+                grupoNome = cliente?.whatsapp_grupo_nome || null;
+            }
             await base44.asServiceRole.entities.WhatsappMensagem.create({
                 message_id: messageId || null,
                 cliente_id: cliente_id || otimizacao.cliente_id || null,
                 cliente_nome: otimizacao.cliente_nome || otimizacao.account_name || null,
                 grupo_id: whatsappGrupoId,
+                grupo_nome: grupoNome,
                 is_group: true,
                 remetente_nome: user.full_name || user.email,
                 remetente_tipo: 'voxx',
@@ -109,7 +115,9 @@ Deno.serve(async (req) => {
                 status_entrega: 'enviado',
                 status_processamento: 'ok',
             });
-        } catch (_) { /* non-critical */ }
+        } catch (e) {
+            console.error('Erro ao salvar WhatsappMensagem (otimização):', e.message);
+        }
 
         return Response.json({
             success: true,

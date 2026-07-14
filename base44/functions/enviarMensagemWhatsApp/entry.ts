@@ -117,7 +117,31 @@ Deno.serve(async (req) => {
       enviado_em: agora
     });
 
+    // Registrar mensagem enviada no WhatsappMensagem para aparecer no Radar WhatsApp
     if (statusEnvio === 'enviado') {
+      try {
+        const zapiId = resultadoApi?.messageId || resultadoApi?.id || null;
+        await base44.asServiceRole.entities.WhatsappMensagem.create({
+          message_id: zapiId || null,
+          cliente_id: cliente.id,
+          cliente_nome: cliente.nome,
+          grupo_id: cliente.whatsapp_grupo_id,
+          grupo_nome: cliente.whatsapp_grupo_nome || null,
+          is_group: true,
+          remetente_nome: user.full_name || user.email,
+          remetente_tipo: 'voxx',
+          origem: 'enviada',
+          mensagem: mensagemFinal,
+          tipo_mensagem: 'texto',
+          received_at: agora,
+          from_me: true,
+          status_entrega: 'enviado',
+          status_processamento: 'ok',
+        });
+      } catch (e) {
+        console.error('Erro ao salvar WhatsappMensagem:', e.message);
+      }
+
       await base44.asServiceRole.entities.ResumoDiarioCliente.update(resumo.id, {
         status_envio: 'enviado'
       }).catch(() => null);
