@@ -17,21 +17,18 @@ export default function ChatVoxx({ user }) {
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
 
-  const VOXX_TIPOS = ['voxx_admin', 'voxx_operacao', 'voxx_manager', 'voxx_financeiro'];
-
   const { data: users = [] } = useQuery({
     queryKey: ['chatVoxxUsers'],
-    queryFn: () => base44.entities.User.list('-created_date', 500),
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listVoxxUsers', {});
+      return res.data?.users || [];
+    },
     enabled: !!user,
     staleTime: 60 * 1000
   });
 
   const contactList = useMemo(() => {
-    return users.filter(u =>
-      u.id !== user?.id &&
-      u.status === 'ativo' &&
-      VOXX_TIPOS.includes(u.tipo_acesso || u.tipo_usuario)
-    );
+    return users.filter(u => u.id !== user?.id && u.status === 'ativo');
   }, [users, user?.id]);
 
   const { data: conversations = [] } = useQuery({
