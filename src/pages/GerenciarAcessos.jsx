@@ -91,7 +91,11 @@ export default function GerenciarAcessos({ user }) {
 
   const updateNameMutation = useMutation({
     mutationFn: async ({ userId, newName }) => {
-      await base44.entities.User.update(userId, { full_name: newName });
+      const response = await base44.functions.invoke('updateUserNome', {
+        usuario_id: userId,
+        full_name: newName
+      });
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['todosUsuarios']);
