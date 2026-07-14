@@ -36,6 +36,7 @@ export default function GerenciarAcessos({ user }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [deleteUserId, setDeleteUserId] = useState(null);
   const [filterSetor, setFilterSetor] = useState('');
+  const [filterVoxxOnly, setFilterVoxxOnly] = useState(false);
   const [editingNameId, setEditingNameId] = useState(null);
   const [editNameValue, setEditNameValue] = useState('');
 
@@ -118,7 +119,8 @@ export default function GerenciarAcessos({ user }) {
       u.email?.toLowerCase().includes(search.toLowerCase());
     const notDeleted = u.status !== 'excluido';
     const matchesSetor = filterSetor === '' || u.setor_responsavel === filterSetor;
-    return matchesSearch && notDeleted && matchesSetor;
+    const matchesVoxxOnly = !filterVoxxOnly || isVoxxTipo(u);
+    return matchesSearch && notDeleted && matchesSetor && matchesVoxxOnly;
   });
 
   console.log('Total usuarios:', usuarios.length, 'Filtrados:', filteredUsuarios.length);
@@ -245,6 +247,13 @@ export default function GerenciarAcessos({ user }) {
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
+        <Button
+          variant={filterVoxxOnly ? "default" : "outline"}
+          onClick={() => setFilterVoxxOnly(!filterVoxxOnly)}
+          className="whitespace-nowrap"
+        >
+          Apenas VOXX
+        </Button>
         <Button variant="outline" onClick={() => {
           refetchUsuarios();
           refetchSolicitacoes();
