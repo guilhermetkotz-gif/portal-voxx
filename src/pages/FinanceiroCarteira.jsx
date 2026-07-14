@@ -252,7 +252,6 @@ export default function FinanceiroCarteira() {
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="novos" fill="#10b981" name="Novos" radius={[3,3,0,0]} />
               <Bar dataKey="perdidos" fill="#ef4444" name="Perdidos" radius={[3,3,0,0]} />
-              <Line type="monotone" dataKey="ativos" stroke="#7c3aed" strokeWidth={2} name="Ativos" dot={false} />
             </ComposedChart>
           </ResponsiveContainer>
         </Card>
@@ -268,7 +267,37 @@ export default function FinanceiroCarteira() {
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Bar dataKey="receitaNova" fill="#10b981" name="Nova" radius={[3,3,0,0]} />
               <Bar dataKey="receitaPerdida" fill="#ef4444" name="Perdida" radius={[3,3,0,0]} />
-              <Line type="monotone" dataKey="receita" stroke="#7c3aed" strokeWidth={2} name="Total Ativa" dot={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </Card>
+      </div>
+
+      {/* Gráficos de Evolução */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="p-6">
+          <h2 className="text-sm font-semibold text-slate-700 mb-4">Clientes Ativos (6 meses)</h2>
+          <ResponsiveContainer width="100%" height={220}>
+            <ComposedChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line type="monotone" dataKey="ativos" stroke="#7c3aed" strokeWidth={2} name="Ativos" dot={{ r: 3 }} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </Card>
+
+        <Card className="p-6">
+          <h2 className="text-sm font-semibold text-slate-700 mb-4">Receita Total Ativa (6 meses)</h2>
+          <ResponsiveContainer width="100%" height={220}>
+            <ComposedChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={v => fmt(v)} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line type="monotone" dataKey="receita" stroke="#7c3aed" strokeWidth={2} name="Total Ativa" dot={{ r: 3 }} />
             </ComposedChart>
           </ResponsiveContainer>
         </Card>
