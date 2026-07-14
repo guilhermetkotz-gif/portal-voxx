@@ -53,19 +53,27 @@ function kpisForMonth(clientes, mesRef) {
   const inicio = startOfMonth(new Date(year, month - 1));
   const fim = endOfMonth(new Date(year, month - 1));
 
-  const ativos = clientes.filter(c => c.status === 'ativo');
+  const ativos = clientes.filter(c => {
+    const dataInicio = c.data_inicio ? parseISO(c.data_inicio) : null;
+    const dataFim = c.data_fim ? parseISO(c.data_fim) : null;
+    // Cliente estava ativo neste mês: já tinha iniciado e ainda não tinha encerrado
+    const jaIniciou = !dataInicio || dataInicio <= fim;
+    const aindaNaoEncerrou = !dataFim || dataFim >= inicio;
+    // Excluir clientes que não tinham iniciado ainda OU já estavam encerrados neste mês
+    return jaIniciou && aindaNaoEncerrou;
+  });
   const novos = clientes.filter(c => {
     if (!c.data_inicio) return false;
     const d = parseISO(c.data_inicio);
     return d >= inicio && d <= fim;
   });
   const perdidos = clientes.filter(c => {
-    if (c.status !== 'encerrado' || !c.data_fim) return false;
+    if (!c.data_fim) return false;
     const d = parseISO(c.data_fim);
     return d >= inicio && d <= fim;
   });
 
-  const baseInicio = ativos.length + perdidos.length; // ativos atuais + quem saiu esse mês
+  const baseInicio = ativos.length + perdidos.length;
   const churnClientes = baseInicio > 0 ? (perdidos.length / baseInicio) * 100 : 0;
 
   const receitaAtiva = ativos.reduce((s, c) => s + (c.valor_mensal || 0), 0);
