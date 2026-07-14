@@ -180,7 +180,7 @@ function InadimplenciaView({ allRecebimentos }) {
 
   const { data: todasReceitas = [], isLoading } = useQuery({
     queryKey: ['fin-receitas-inadimplencia'],
-    queryFn: () => base44.entities.FinanceiroReceita.filter({}, '-created_date', 1000),
+    queryFn: () => base44.entities.FinanceiroReceita.filter({}, '-created_date', 5000),
   });
 
   const inadimplentes = useMemo(() => {
@@ -193,7 +193,7 @@ function InadimplenciaView({ allRecebimentos }) {
         const calc = calcularStatus(r, allRecebimentos);
         return { ...r, ...calc, dias: diasAtraso(r.data_cobranca) };
       })
-      .filter(r => !r.is_previsto && (r.status === 'em_atraso' || r.status === 'parcial') && r.data_cobranca < hoje)
+      .filter(r => (r.status === 'em_atraso' || r.status === 'parcial') && r.data_cobranca < hoje)
       .filter(r => {
         const matchUnidade = !filtroUnidade || r.cliente_nome?.toLowerCase().includes(filtroUnidade.toLowerCase());
         const matchPeriodo = filtroPeriodo === 'all'
