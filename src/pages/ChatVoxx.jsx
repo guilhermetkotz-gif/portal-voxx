@@ -60,6 +60,42 @@ export default function ChatVoxx({ user }) {
     return map;
   }, [conversations, user?.id]);
 
+  const { data: unreadMessages = [] } = useQuery({
+    queryKey: ['chatVoxxUnread', user?.id],
+    queryFn: () => base44.entities.ChatVoxxMensagem.filter({ lida: false }, '-created_date', 500),
+    enabled: !!user,
+    staleTime: 5 * 1000,
+    refetchInterval: 15 * 1000
+  });
+
+  const unreadByConvId = useMemo(() => {
+    const map = {};
+    unreadMessages.forEach(m => {
+      if (m.remetente_id !== user?.id) {
+        map[m.conversa_id] = (map[m.conversa_id] || 0) + 1;
+      }
+    });
+    return map;
+  }, [unreadMessages, user?.id]);
+
+  const unreadByUserId = useMemo(() => {
+    const map = {};
+    Object.entries(directConvMap).forEach(([userId, conv]) => {
+      const count = unreadByConvId[conv.convId] || 0;
+      if (count > 0) map[userId] = count;
+    });
+    return map;
+  }, [directConvMap, unreadByConvId]);
+
+  const unreadByGroupId = useMemo(() => {
+    const map = {};
+    myGroups.forEach(g => {
+      const count = unreadByConvId[g.id] || 0;
+      if (count > 0) map[g.id] = count;
+    });
+    return map;
+  }, [myGroups, unreadByConvId]);
+
   // Find or create 1:1 conversation
   useEffect(() => {
     if (!selectedUserId || !user?.id) return;
@@ -114,6 +150,9 @@ export default function ChatVoxx({ user }) {
         } else if (event.type === 'delete') {
           setMessages(prev => prev.filter(m => m.id !== event.data.id));
         }
+      } else if (event.type === 'create' && event.data?.remetente_id !== user?.id) {
+        queryClient.invalidateQueries(['chatVoxxConversas']);
+        queryClient.invalidateQueries(['chatVoxxUnread']);
       }
     });
 
@@ -129,9 +168,11 @@ export default function ChatVoxx({ user }) {
   useEffect(() => {
     if (!activeConversation?.id || !user?.id) return;
     const unread = messages.filter(m => !m.lida && m.remetente_id !== user.id);
+    if (unread.length === 0) return;
     unread.forEach(async (msg) => {
       await base44.entities.ChatVoxxMensagem.update(msg.id, { lida: true });
     });
+    queryClient.invalidateQueries(['chatVoxxUnread']);
   }, [messages, activeConversation?.id, user?.id]);
 
   const updateConversationPreview = async (content, tipo) => {
@@ -265,6 +306,8 @@ export default function ChatVoxx({ user }) {
           onSelectGroup={handleSelectGroup}
           getUserPreview={getUserPreview}
           onCreateGroup={() => setShowCreateGroup(true)}
+          unreadByUserId={unreadByUserId}
+          unreadByGroupId={unreadByGroupId}
         />
       </div>
 
