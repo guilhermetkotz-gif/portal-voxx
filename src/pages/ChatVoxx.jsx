@@ -192,7 +192,7 @@ export default function ChatVoxx({ user }) {
       await base44.entities.ChatVoxxMensagem.create({
         conversa_id: activeConversation.id,
         remetente_id: user.id,
-        remetente_nome: user.full_name || user.email,
+        remetente_nome: user.nome_customizado || user.full_name || user.email,
         conteudo: text,
         tipo_mensagem: 'texto',
         lida: false,
@@ -213,7 +213,7 @@ export default function ChatVoxx({ user }) {
       await base44.entities.ChatVoxxMensagem.create({
         conversa_id: activeConversation.id,
         remetente_id: user.id,
-        remetente_nome: user.full_name || user.email,
+        remetente_nome: user.nome_customizado || user.full_name || user.email,
         conteudo: mediaData.conteudo || '',
         tipo_mensagem: mediaData.tipo_mensagem,
         midia_url: mediaData.midia_url,
@@ -240,7 +240,7 @@ export default function ChatVoxx({ user }) {
       await base44.entities.ChatVoxxMensagem.create({
         conversa_id: activeConversation.id,
         remetente_id: user.id,
-        remetente_nome: user.full_name || user.email,
+        remetente_nome: user.nome_customizado || user.full_name || user.email,
         conteudo: emoji,
         tipo_mensagem: 'sticker',
         lida: false
@@ -286,7 +286,7 @@ export default function ChatVoxx({ user }) {
 
   const headerTitle = isGroupChat
     ? activeConversation?.nome_grupo || 'Grupo'
-    : selectedUser?.full_name || selectedUser?.email || '';
+    : selectedUser?.nome_customizado || selectedUser?.full_name || selectedUser?.email || '';
   const headerSubtitle = isGroupChat
     ? `${groupParticipants.length} participantes`
     : selectedUser?.cargo || '';
@@ -332,7 +332,7 @@ export default function ChatVoxx({ user }) {
                 <img src={selectedUser.profile_picture} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-violet-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                  {(selectedUser?.full_name || selectedUser?.email || '?')[0].toUpperCase()}
+                  {(selectedUser?.nome_customizado || selectedUser?.full_name || selectedUser?.email || '?')[0].toUpperCase()}
                 </div>
               )}
               <div className="flex-1 min-w-0">

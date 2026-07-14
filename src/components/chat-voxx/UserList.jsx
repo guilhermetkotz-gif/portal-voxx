@@ -11,10 +11,10 @@ export default function UserList({ users, groups, currentUserId, selectedConvers
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;
     const q = search.toLowerCase();
-    return users.filter(u =>
-      (u.full_name || '').toLowerCase().includes(q) ||
-      (u.email || '').toLowerCase().includes(q)
-    );
+    return users.filter(u => {
+      const name = u.nome_customizado || u.full_name || '';
+      return name.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
+    });
   }, [users, search]);
 
   const filteredGroups = useMemo(() => {
@@ -44,7 +44,9 @@ export default function UserList({ users, groups, currentUserId, selectedConvers
         return 1;
       }
 
-      return (a.full_name || a.email || '').localeCompare(b.full_name || b.email || '');
+      const nameA = a.nome_customizado || a.full_name || a.email || '';
+      const nameB = b.nome_customizado || b.full_name || b.email || '';
+      return nameA.localeCompare(nameB);
     });
   }, [filteredUsers, getUserPreview, unreadByUserId]);
 
@@ -180,12 +182,12 @@ export default function UserList({ users, groups, currentUserId, selectedConvers
                     <img src={u.profile_picture} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
                   ) : (
                     <div className="w-11 h-11 rounded-full bg-violet-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                      {(u.full_name || u.email || '?')[0].toUpperCase()}
+                      {(u.nome_customizado || u.full_name || u.email || '?')[0].toUpperCase()}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className={cn("text-sm truncate", hasUnread ? "font-bold text-slate-900" : "font-medium text-slate-900")}>{u.full_name || u.email}</span>
+                      <span className={cn("text-sm truncate", hasUnread ? "font-bold text-slate-900" : "font-medium text-slate-900")}>{u.nome_customizado || u.full_name || u.email}</span>
                       <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                         {renderUnreadBadge(unreadCount)}
                         {preview?.timestamp && (
