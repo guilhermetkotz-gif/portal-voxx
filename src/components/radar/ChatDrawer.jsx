@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
-import { X, Send, Paperclip, Mic, MicOff, Image, FileText, Video, Loader2, Download, Play, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, CornerDownLeft, RefreshCw, AlertCircle, ChevronDown } from 'lucide-react';
+import { X, Send, Paperclip, Mic, Image, FileText, Video, Loader2, Download, Play, Pause, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, CornerDownLeft, RefreshCw, AlertCircle, ChevronDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -96,6 +96,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const [mensagem, setMensagem] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [gravando, setGravando] = useState(false);
+  const [gravandoPausado, setGravandoPausado] = useState(false);
+  const [tempoGravacao, setTempoGravacao] = useState(0);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
   const [imagemColada, setImagemColada] = useState(null); // { file, previewUrl }
@@ -130,6 +132,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const fileInputRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const cancelandoGravacaoRef = useRef(false);
+  const timerRef = useRef(null);
 
   // Buscar mensagens do chat
   const { data: mensagens = [], isLoading: loadingMsgs } = useQuery({
@@ -292,6 +296,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
+      cancelandoGravacaoRef.current = false;
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
@@ -300,16 +305,24 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         setGravando(false);
+        setGravandoPausado(false);
+        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+
+        if (cancelandoGravacaoRef.current) {
+          cancelandoGravacaoRef.current = false;
+          audioChunksRef.current = [];
+          setTempoGravacao(0);
+          return;
+        }
 
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        if (blob.size < 100) return; // muito curto
+        if (blob.size < 100) { setTempoGravacao(0); return; }
 
         const audioFile = new File([blob], 'audio.webm', { type: 'audio/webm' });
 
         setEnviando(true);
         try {
           const uploadRes = await base44.integrations.Core.UploadFile({ file: audioFile });
-          // Invalida antes da resposta — backend salva msg antes de chamar Z-API
           queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
           queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
 
@@ -334,17 +347,53 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
           toast.error('Erro ao enviar áudio: ' + (e.message || 'Desconhecido'));
         } finally {
           setEnviando(false);
+          setTempoGravacao(0);
         }
       };
 
       recorder.start();
       setGravando(true);
+      setTempoGravacao(0);
+      timerRef.current = setInterval(() => {
+        setTempoGravacao(prev => prev + 1);
+      }, 1000);
     } catch (e) {
       toast.error('Microfone não disponível');
     }
   };
 
-  const stopRecording = () => {
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.pause();
+      setGravandoPausado(true);
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
+      mediaRecorderRef.current.resume();
+      setGravandoPausado(false);
+      timerRef.current = setInterval(() => {
+        setTempoGravacao(prev => prev + 1);
+      }, 1000);
+    }
+  };
+
+  const cancelRecording = () => {
+    cancelandoGravacaoRef.current = true;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    } else {
+      setGravando(false);
+      setGravandoPausado(false);
+      setTempoGravacao(0);
+      cancelandoGravacaoRef.current = false;
+      audioChunksRef.current = [];
+    }
+  };
+
+  const stopAndSendRecording = () => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
@@ -924,9 +973,39 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             </div>
           )}
           {gravando && (
-            <div className={`flex items-center justify-center gap-2 py-2 mb-2 ${t.bgRecording} rounded-lg border ${t.borderRecording}`}>
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-red-500 text-xs font-medium">Gravando áudio...</span>
+            <div className={`flex flex-col gap-2 py-3 mb-2 ${t.bgRecording} rounded-lg border ${t.borderRecording}`}>
+              <div className="flex items-center gap-3 px-2">
+                <span className="text-red-500 text-xs font-mono font-semibold tabular-nums">
+                  {Math.floor(tempoGravacao / 60)}:{String(tempoGravacao % 60).padStart(2, '0')}
+                </span>
+                <div className="flex-1 border-t border-dotted border-red-300/50" />
+                <div className={`w-5 h-5 rounded-full border-2 border-dotted border-red-400 flex items-center justify-center text-[9px] text-red-500 ${gravandoPausado ? '' : 'animate-spin'}`} style={{ animationDuration: '3s' }}>
+                  {gravandoPausado ? '⏸' : ''}
+                </div>
+              </div>
+              <div className="flex items-center justify-center gap-12 px-2">
+                <button
+                  className="flex flex-col items-center gap-1 text-slate-600 hover:text-red-500 transition-colors"
+                  onClick={cancelRecording}
+                  title="Cancelar gravação"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+                <button
+                  className={`w-12 h-12 rounded-full flex items-center justify-center bg-red-500 text-white hover:bg-red-600 transition-colors shadow-lg`}
+                  onClick={gravandoPausado ? resumeRecording : pauseRecording}
+                  title={gravandoPausado ? 'Retomar gravação' : 'Pausar gravação'}
+                >
+                  {gravandoPausado ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+                </button>
+                <button
+                  className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-colors ${gravandoPausado ? 'bg-emerald-400' : 'bg-emerald-500 hover:bg-emerald-600'}`}
+                  onClick={stopAndSendRecording}
+                  title="Enviar áudio"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
           {imagemColada && (
@@ -1090,14 +1169,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             </div>
 
             {/* Microfone ou Enviar */}
-            {gravando ? (
-              <button
-                className="w-10 h-10 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50 shrink-0"
-                onClick={stopRecording}
-              >
-                <MicOff className="w-5 h-5" />
-              </button>
-            ) : (mensagem.trim() || imagemColada || arquivoSelecionado) ? (
+            {gravando ? null : (mensagem.trim() || imagemColada || arquivoSelecionado) ? (
               <button
                 className={`w-10 h-10 flex items-center justify-center rounded-full text-white ${t.sendBtnBg} shrink-0 transition-colors`}
                 onClick={handleSend}
