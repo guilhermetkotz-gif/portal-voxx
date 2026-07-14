@@ -188,7 +188,22 @@ function InadimplenciaView({ allRecebimentos }) {
     const mesAtual = format(new Date(), 'yyyy-MM');
     const limite30 = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
 
-    return todasReceitas
+    // Deduplicar: para cada cliente_nome + mes_referencia, manter apenas o mais recente
+    const mapa = new Map();
+    for (const r of todasReceitas) {
+      const key = `${(r.cliente_nome || '').toLowerCase().trim()}|${r.mes_referencia || ''}`;
+      const existente = mapa.get(key);
+      if (!existente) {
+        mapa.set(key, r);
+      } else {
+        const dtR = r.updated_date || r.created_date || '';
+        const dtE = existente.updated_date || existente.created_date || '';
+        if (dtR > dtE) mapa.set(key, r);
+      }
+    }
+    const receitasDedup = Array.from(mapa.values());
+
+    return receitasDedup
       .map(r => {
         const calc = calcularStatus(r, allRecebimentos);
         return { ...r, ...calc, dias: diasAtraso(r.data_cobranca) };
