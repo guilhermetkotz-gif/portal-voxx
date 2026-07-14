@@ -87,6 +87,11 @@ export default function RadarWhatsApp({ user }) {
     return () => { unsub1(); unsub2(); unsub3(); };
   }, [queryClient]);
 
+  // Filtrar grupos internos "Voxx Marketing" — não geram alertas
+  const gruposFiltrados = useMemo(() => {
+    return grupos.filter(g => !(g.nome_grupo || '').toLowerCase().includes('voxx marketing'));
+  }, [grupos]);
+
   // ── Enriquecimento dos grupos ────────────────────────────────
   const gruposEnriquecidos = useMemo(() => {
     const agora = moment().tz(TZ);
@@ -101,7 +106,7 @@ export default function RadarWhatsApp({ user }) {
       msgsPorGrupo[gId].push(m);
     });
 
-    return grupos.map(g => {
+    return gruposFiltrados.map(g => {
       const msgs = msgsPorGrupo[g.grupo_id] || [];
 
       // últimas mensagens
@@ -186,7 +191,7 @@ export default function RadarWhatsApp({ user }) {
         horasSemMensagem: isFinite(horasSemMensagem) ? horasSemMensagem : null,
       };
     }).sort((a, b) => a.ordem - b.ordem || (b.ultimaGeral?.received_at || '') > (a.ultimaGeral?.received_at || '') ? 1 : -1);
-  }, [grupos, mensagens]);
+  }, [gruposFiltrados, mensagens]);
 
   // ── KPIs do topo ─────────────────────────────────────────────
   const kpis = useMemo(() => {
@@ -200,15 +205,15 @@ export default function RadarWhatsApp({ user }) {
     const ultimoRaw = rawWebhooks[0];
 
     return {
-      totalGrupos:    grupos.length,
-      vinculados:     grupos.filter(g => g.status_vinculo === 'vinculado').length,
-      naoVinculados:  grupos.filter(g => g.status_vinculo === 'nao_vinculado').length,
+      totalGrupos:    gruposFiltrados.length,
+      vinculados:     gruposFiltrados.filter(g => g.status_vinculo === 'vinculado').length,
+      naoVinculados:  gruposFiltrados.filter(g => g.status_vinculo === 'nao_vinculado').length,
       msgsHoje:       msgsHoje.length,
       totalMsgs:      mensagens.length,
       alarmes, alertas, criticos, emergs, inativos72,
       ultimoRaw: ultimoRaw?.received_at,
     };
-  }, [grupos, mensagens, gruposEnriquecidos, rawWebhooks]);
+  }, [gruposFiltrados, mensagens, gruposEnriquecidos, rawWebhooks]);
 
   // ── Alarme sonoro ─────────────────────────────────────────────
   const { somAtivo, toggleSom, audioBloqueado } = useAlertaSomRadar(gruposEnriquecidos);
