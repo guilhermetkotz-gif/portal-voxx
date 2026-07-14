@@ -50,7 +50,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
-  { name: "Chat Voxx", icon: MessageSquare, page: "ChatVoxx" },
+  { name: "Chat Voxx", icon: MessageSquare, page: "ChatVoxx", voxxOnly: true },
   { name: "Home", icon: LayoutDashboard, page: "Home" },
   { name: "Radar WhatsApp", icon: Radio, page: "RadarWhatsApp", voxxOnly: true, greenHighlight: true },
   { name: "Kanban", icon: KanbanSquare, page: "Kanban", voxxOnly: true },

@@ -23,8 +23,13 @@ export default function ChatVoxx({ user }) {
     staleTime: 60 * 1000
   });
 
+  const VOXX_TIPOS = ['voxx_admin', 'voxx_operacao', 'voxx_manager', 'voxx_financeiro'];
   const contactList = useMemo(() => {
-    return users.filter(u => u.id !== user?.id && u.status === 'ativo');
+    return users.filter(u =>
+      u.id !== user?.id &&
+      u.status === 'ativo' &&
+      VOXX_TIPOS.includes(u.tipo_acesso || u.tipo_usuario)
+    );
   }, [users, user?.id]);
 
   const { data: conversations = [] } = useQuery({
