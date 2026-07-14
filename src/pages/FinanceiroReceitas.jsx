@@ -383,12 +383,6 @@ export default function FinanceiroReceitas() {
     queryFn: () => base44.entities.RecebimentoReceita.filter({}, '-created_date', 5000),
   });
 
-  const { data: allRecebimentosGlobal = [] } = useQuery({
-    queryKey: ['fin-recebimentos-global'],
-    queryFn: () => base44.entities.RecebimentoReceita.filter({}, '-created_date', 5000),
-    enabled: view === 'inadimplencia',
-  });
-
   // Deduplicar: para cada cliente_nome + mes_referencia, manter apenas o mais recente
   const receitasDedupadas = useMemo(() => {
     const mapa = new Map();
@@ -643,7 +637,7 @@ export default function FinanceiroReceitas() {
       </div>
 
       {view === 'inadimplencia' ? (
-        <InadimplenciaView allRecebimentos={allRecebimentosGlobal} />
+        <InadimplenciaView allRecebimentos={allRecebimentos} />
       ) : (
         <>
           <AlertaRecorrenciaVencendo tipo="receita" />
