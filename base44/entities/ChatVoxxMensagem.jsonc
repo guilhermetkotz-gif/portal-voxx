@@ -16,12 +16,68 @@
     },
     "conteudo": {
       "type": "string",
-      "description": "Conte\u00fado da mensagem"
+      "description": "Conte\u00fado da mensagem (texto, emoji sticker, ou legenda de m\u00eddia)"
+    },
+    "tipo_mensagem": {
+      "type": "string",
+      "enum": [
+        "texto",
+        "imagem",
+        "video",
+        "documento",
+        "sticker",
+        "audio"
+      ],
+      "default": "texto",
+      "description": "Tipo da mensagem"
+    },
+    "midia_url": {
+      "type": "string",
+      "description": "URL da m\u00eddia (imagem, v\u00eddeo, documento, sticker)"
+    },
+    "midia_nome": {
+      "type": "string",
+      "description": "Nome original do arquivo"
+    },
+    "midia_mimetype": {
+      "type": "string",
+      "description": "MIME type da m\u00eddia"
     },
     "lida": {
       "type": "boolean",
       "default": false,
-      "description": "Se a mensagem foi lida pelo destinat\u00e1rio"
+      "description": "Se a mensagem foi lida"
+    },
+    "reacoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "emoji": {
+            "type": "string"
+          },
+          "usuario_id": {
+            "type": "string"
+          },
+          "usuario_nome": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Rea\u00e7\u00f5es (emojis) recebidas na mensagem"
+    },
+    "resposta_id": {
+      "type": "string",
+      "description": "ID da mensagem que est\u00e1 sendo respondida"
+    },
+    "resposta_texto": {
+      "type": "string",
+      "description": "Preview do texto da mensagem respondida"
+    },
+    "resposta_remetente_nome": {
+      "type": "string",
+      "description": "Nome do remetente da mensagem respondida"
     }
   },
   "required": [

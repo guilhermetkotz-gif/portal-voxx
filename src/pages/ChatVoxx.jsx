@@ -3,18 +3,21 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import UserList from '@/components/chat-voxx/UserList';
 import MessageBubble from '@/components/chat-voxx/MessageBubble';
-import { Send, Loader2, MessageCircle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import MessageInput from '@/components/chat-voxx/MessageInput';
+import CreateGroupModal from '@/components/chat-voxx/CreateGroupModal';
+import { Loader2, MessageCircle, Users, ArrowLeft } from 'lucide-react';
 
 export default function ChatVoxx({ user }) {
   const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [sending, setSending] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
   const messagesEndRef = useRef(null);
   const queryClient = useQueryClient();
+
+  const VOXX_TIPOS = ['voxx_admin', 'voxx_operacao', 'voxx_manager', 'voxx_financeiro'];
 
   const { data: users = [] } = useQuery({
     queryKey: ['chatVoxxUsers'],
@@ -23,7 +26,6 @@ export default function ChatVoxx({ user }) {
     staleTime: 60 * 1000
   });
 
-  const VOXX_TIPOS = ['voxx_admin', 'voxx_operacao', 'voxx_manager', 'voxx_financeiro'];
   const contactList = useMemo(() => {
     return users.filter(u =>
       u.id !== user?.id &&
@@ -39,39 +41,56 @@ export default function ChatVoxx({ user }) {
     staleTime: 10 * 1000
   });
 
-  const conversationMap = useMemo(() => {
+  const myGroups = useMemo(() => {
+    return conversations.filter(c => c.is_group && c.participantes?.includes(user?.id));
+  }, [conversations, user?.id]);
+
+  const directConvMap = useMemo(() => {
     const map = {};
     conversations.forEach(c => {
-      const otherUserId = c.participantes?.find(p => p !== user?.id);
-      if (otherUserId) map[otherUserId] = c;
+      if (!c.is_group && c.participantes?.includes(user?.id)) {
+        const otherUserId = c.participantes.find(p => p !== user?.id);
+        if (otherUserId) {
+          map[otherUserId] = {
+            preview: c.ultima_mensagem_preview || '',
+            timestamp: c.timestamp_ultima_atividade,
+            tipo: c.ultima_mensagem_tipo,
+            convId: c.id
+          };
+        }
+      }
     });
     return map;
   }, [conversations, user?.id]);
 
+  // Find or create 1:1 conversation
   useEffect(() => {
     if (!selectedUserId || !user?.id) return;
-
-    const findOrCreate = async () => {
-      const existing = conversations.find(c =>
-        c.participantes?.includes(user.id) && c.participantes?.includes(selectedUserId)
-      );
-
-      if (existing) {
-        setActiveConversation(existing);
-      } else {
-        const newConv = await base44.entities.ChatVoxxConversa.create({
-          participantes: [user.id, selectedUserId],
-          timestamp_ultima_atividade: new Date().toISOString(),
-          ultima_mensagem_preview: ''
-        });
+    const existing = conversations.find(c =>
+      !c.is_group && c.participantes?.includes(user.id) && c.participantes?.includes(selectedUserId)
+    );
+    if (existing) {
+      setActiveConversation(existing);
+    } else {
+      base44.entities.ChatVoxxConversa.create({
+        participantes: [user.id, selectedUserId],
+        is_group: false,
+        timestamp_ultima_atividade: new Date().toISOString(),
+        ultima_mensagem_preview: ''
+      }).then(newConv => {
         setActiveConversation(newConv);
         queryClient.invalidateQueries(['chatVoxxConversas']);
-      }
-    };
-
-    findOrCreate();
+      });
+    }
   }, [selectedUserId, user?.id, conversations]);
 
+  useEffect(() => {
+    if (selectedGroup) {
+      setActiveConversation(selectedGroup);
+    }
+  }, [selectedGroup]);
+
+  // Load messages + subscribe
   useEffect(() => {
     if (!activeConversation?.id) {
       setMessages([]);
@@ -92,7 +111,7 @@ export default function ChatVoxx({ user }) {
     const unsubscribe = base44.entities.ChatVoxxMensagem.subscribe((event) => {
       if (event.data?.conversa_id === activeConversation.id) {
         if (event.type === 'create') {
-          setMessages(prev => [...prev, event.data]);
+          setMessages(prev => prev.some(m => m.id === event.data.id) ? prev : [...prev, event.data]);
         } else if (event.type === 'update') {
           setMessages(prev => prev.map(m => m.id === event.data.id ? event.data : m));
         } else if (event.type === 'delete') {
@@ -104,10 +123,12 @@ export default function ChatVoxx({ user }) {
     return () => unsubscribe();
   }, [activeConversation?.id]);
 
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Mark as read
   useEffect(() => {
     if (!activeConversation?.id || !user?.id) return;
     const unread = messages.filter(m => !m.lida && m.remetente_id !== user.id);
@@ -116,95 +137,172 @@ export default function ChatVoxx({ user }) {
     });
   }, [messages, activeConversation?.id, user?.id]);
 
-  const handleSend = async () => {
-    if (!inputMessage.trim() || !activeConversation?.id || !user?.id) return;
+  const updateConversationPreview = async (content, tipo) => {
+    if (!activeConversation?.id) return;
+    await base44.entities.ChatVoxxConversa.update(activeConversation.id, {
+      ultima_mensagem_preview: content.substring(0, 100),
+      ultima_mensagem_tipo: tipo,
+      timestamp_ultima_atividade: new Date().toISOString(),
+      remetente_ultima_mensagem: user.id
+    });
+    queryClient.invalidateQueries(['chatVoxxConversas']);
+  };
 
-    const content = inputMessage.trim();
-    setInputMessage('');
-    setSending(true);
-
+  const handleSendText = async (text) => {
+    if (!activeConversation?.id || !user?.id) return;
     try {
       await base44.entities.ChatVoxxMensagem.create({
         conversa_id: activeConversation.id,
         remetente_id: user.id,
         remetente_nome: user.full_name || user.email,
-        conteudo: content,
-        lida: false
+        conteudo: text,
+        tipo_mensagem: 'texto',
+        lida: false,
+        resposta_id: replyingTo?.id || undefined,
+        resposta_texto: replyingTo?.conteudo || replyingTo?.midia_nome || undefined,
+        resposta_remetente_nome: replyingTo?.remetente_nome || undefined
       });
-
-      await base44.entities.ChatVoxxConversa.update(activeConversation.id, {
-        ultima_mensagem_preview: content.substring(0, 100),
-        timestamp_ultima_atividade: new Date().toISOString(),
-        remetente_ultima_mensagem: user.id
-      });
-
-      queryClient.invalidateQueries(['chatVoxxConversas']);
-    } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
-      setInputMessage(content);
-    } finally {
-      setSending(false);
+      await updateConversationPreview(text, 'texto');
+      setReplyingTo(null);
+    } catch (err) {
+      console.error('Erro ao enviar:', err);
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  const handleSendMedia = async (mediaData) => {
+    if (!activeConversation?.id || !user?.id) return;
+    try {
+      await base44.entities.ChatVoxxMensagem.create({
+        conversa_id: activeConversation.id,
+        remetente_id: user.id,
+        remetente_nome: user.full_name || user.email,
+        conteudo: mediaData.conteudo || '',
+        tipo_mensagem: mediaData.tipo_mensagem,
+        midia_url: mediaData.midia_url,
+        midia_nome: mediaData.midia_nome,
+        midia_mimetype: mediaData.midia_mimetype,
+        lida: false,
+        resposta_id: replyingTo?.id || undefined,
+        resposta_texto: replyingTo?.conteudo || replyingTo?.midia_nome || undefined,
+        resposta_remetente_nome: replyingTo?.remetente_nome || undefined
+      });
+      const previewLabel = mediaData.tipo_mensagem === 'imagem' ? '📷 Foto' :
+                           mediaData.tipo_mensagem === 'video' ? '🎥 Vídeo' :
+                           mediaData.tipo_mensagem === 'audio' ? '🎵 Áudio' : '📄 Documento';
+      await updateConversationPreview(previewLabel, mediaData.tipo_mensagem);
+      setReplyingTo(null);
+    } catch (err) {
+      console.error('Erro ao enviar mídia:', err);
     }
+  };
+
+  const handleSendSticker = async (emoji) => {
+    if (!activeConversation?.id || !user?.id) return;
+    try {
+      await base44.entities.ChatVoxxMensagem.create({
+        conversa_id: activeConversation.id,
+        remetente_id: user.id,
+        remetente_nome: user.full_name || user.email,
+        conteudo: emoji,
+        tipo_mensagem: 'sticker',
+        lida: false
+      });
+      await updateConversationPreview('🎨 Figurinha', 'sticker');
+    } catch (err) {
+      console.error('Erro ao enviar sticker:', err);
+    }
+  };
+
+  const handleCreateGroup = async (groupData) => {
+    try {
+      const newGroup = await base44.entities.ChatVoxxConversa.create({
+        ...groupData,
+        timestamp_ultima_atividade: new Date().toISOString(),
+        ultima_mensagem_preview: ''
+      });
+      queryClient.invalidateQueries(['chatVoxxConversas']);
+      setSelectedGroup(newGroup);
+      setSelectedUserId(null);
+    } catch (err) {
+      console.error('Erro ao criar grupo:', err);
+    }
+  };
+
+  const handleSelectUser = (userId) => {
+    setSelectedUserId(userId);
+    setSelectedGroup(null);
+    setReplyingTo(null);
+  };
+
+  const handleSelectGroup = (group) => {
+    setSelectedGroup(group);
+    setSelectedUserId(null);
+    setReplyingTo(null);
   };
 
   const selectedUser = contactList.find(u => u.id === selectedUserId);
+  const isGroupChat = activeConversation?.is_group;
+  const groupParticipants = isGroupChat
+    ? (activeConversation?.participantes || []).map(pid => users.find(u => u.id === pid)).filter(Boolean)
+    : [];
 
-  const getUserPreview = (userId) => {
-    const conv = conversationMap[userId];
-    if (!conv) return null;
-    return {
-      preview: conv.ultima_mensagem_preview || '',
-      timestamp: conv.timestamp_ultima_atividade
-    };
-  };
+  const headerTitle = isGroupChat
+    ? activeConversation?.nome_grupo || 'Grupo'
+    : selectedUser?.full_name || selectedUser?.email || '';
+  const headerSubtitle = isGroupChat
+    ? `${groupParticipants.length} participantes`
+    : selectedUser?.cargo || '';
+
+  const getUserPreview = (userId) => directConvMap[userId] || null;
+  const selectedConvId = activeConversation?.id;
 
   return (
     <div className="flex h-[calc(100vh-140px)] bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-      <div className="w-80 border-r border-slate-200 flex flex-col bg-slate-50">
+      <div className="w-80 border-r border-slate-200 flex flex-col bg-slate-50 flex-shrink-0">
         <UserList
           users={contactList}
+          groups={myGroups}
           currentUserId={user?.id}
-          selectedUserId={selectedUserId}
-          onSelectUser={setSelectedUserId}
+          selectedConversationId={selectedConvId}
+          onSelectUser={handleSelectUser}
+          onSelectGroup={handleSelectGroup}
           getUserPreview={getUserPreview}
+          onCreateGroup={() => setShowCreateGroup(true)}
         />
       </div>
 
-      <div className="flex-1 flex flex-col">
-        {!selectedUserId ? (
+      <div className="flex-1 flex flex-col min-w-0">
+        {!activeConversation ? (
           <div className="flex-1 flex items-center justify-center bg-slate-50">
             <div className="text-center">
               <MessageCircle className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-600">Chat Voxx</h3>
-              <p className="text-sm text-slate-400 mt-1">Selecione um contato para começar a conversar</p>
+              <p className="text-sm text-slate-400 mt-1">Selecione um contato ou crie um grupo para começar</p>
             </div>
           </div>
         ) : (
           <>
-            <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3 bg-white">
-              {selectedUser?.profile_picture ? (
-                <img src={selectedUser.profile_picture} alt="" className="w-10 h-10 rounded-full object-cover" />
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3 bg-white flex-shrink-0">
+              {isGroupChat ? (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0">
+                  <Users className="w-5 h-5" />
+                </div>
+              ) : selectedUser?.profile_picture ? (
+                <img src={selectedUser.profile_picture} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-violet-600 flex items-center justify-center text-white font-semibold">
+                <div className="w-10 h-10 rounded-full bg-violet-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
                   {(selectedUser?.full_name || selectedUser?.email || '?')[0].toUpperCase()}
                 </div>
               )}
-              <div>
-                <h3 className="font-semibold text-slate-900">{selectedUser?.full_name || selectedUser?.email}</h3>
-                {selectedUser?.cargo && (
-                  <p className="text-xs text-slate-500">{selectedUser.cargo}</p>
-                )}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-slate-900 truncate">{headerTitle}</h3>
+                <p className="text-xs text-slate-500 truncate">{headerSubtitle}</p>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-4 bg-slate-50">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 bg-slate-50">
               {messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full">
                   <p className="text-sm text-slate-400">Nenhuma mensagem ainda. Envie a primeira!</p>
@@ -216,6 +314,9 @@ export default function ChatVoxx({ user }) {
                       key={msg.id}
                       message={msg}
                       isMine={msg.remetente_id === user?.id}
+                      isGroup={isGroupChat}
+                      currentUserId={user?.id}
+                      onReply={setReplyingTo}
                     />
                   ))}
                   <div ref={messagesEndRef} />
@@ -223,29 +324,26 @@ export default function ChatVoxx({ user }) {
               )}
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-200 bg-white">
-              <div className="flex gap-2">
-                <Input
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  placeholder="Digite sua mensagem..."
-                  disabled={sending}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleSend}
-                  disabled={!inputMessage.trim() || sending}
-                  size="icon"
-                  className="bg-violet-600 hover:bg-violet-700"
-                >
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                </Button>
-              </div>
-            </div>
+            {/* Input */}
+            <MessageInput
+              onSend={handleSendText}
+              onSendMedia={handleSendMedia}
+              onSendSticker={handleSendSticker}
+              replyingTo={replyingTo}
+              onCancelReply={() => setReplyingTo(null)}
+              disabled={false}
+            />
           </>
         )}
       </div>
+
+      <CreateGroupModal
+        open={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
+        users={contactList}
+        currentUser={user}
+        onCreate={handleCreateGroup}
+      />
     </div>
   );
 }

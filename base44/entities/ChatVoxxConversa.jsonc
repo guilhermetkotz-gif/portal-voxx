@@ -7,16 +7,38 @@
       "items": {
         "type": "string"
       },
-      "description": "IDs dos dois usu\u00e1rios participantes"
+      "description": "IDs dos usu\u00e1rios participantes"
+    },
+    "is_group": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 uma conversa em grupo"
+    },
+    "nome_grupo": {
+      "type": "string",
+      "description": "Nome do grupo"
+    },
+    "foto_grupo": {
+      "type": "string",
+      "description": "URL da foto do grupo"
+    },
+    "criador_id": {
+      "type": "string",
+      "description": "ID do criador do grupo"
     },
     "ultima_mensagem_preview": {
       "type": "string",
-      "description": "Pr\u00e9via da \u00faltima mensagem trocada"
+      "description": "Pr\u00e9via da \u00faltima mensagem"
+    },
+    "ultima_mensagem_tipo": {
+      "type": "string",
+      "default": "texto",
+      "description": "Tipo da \u00faltima mensagem (para preview)"
     },
     "timestamp_ultima_atividade": {
       "type": "string",
       "format": "date-time",
-      "description": "Data/hora da \u00faltima atividade na conversa"
+      "description": "Data/hora da \u00faltima atividade"
     },
     "remetente_ultima_mensagem": {
       "type": "string",
