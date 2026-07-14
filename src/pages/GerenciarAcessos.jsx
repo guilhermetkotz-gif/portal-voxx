@@ -17,7 +17,10 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Trash2
+  Trash2,
+  Pencil,
+  Save,
+  X
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -33,6 +36,8 @@ export default function GerenciarAcessos({ user }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [deleteUserId, setDeleteUserId] = useState(null);
   const [filterSetor, setFilterSetor] = useState('');
+  const [editingNameId, setEditingNameId] = useState(null);
+  const [editNameValue, setEditNameValue] = useState('');
 
   const SETORES_VOXX = [
     { value: 'ATENDIMENTO', label: 'Atendimento' },
@@ -83,6 +88,25 @@ export default function GerenciarAcessos({ user }) {
   });
 
   const isVoxxTipo = (u) => (u.tipo_usuario || u.tipo_acesso || '').startsWith('voxx_');
+
+  const updateNameMutation = useMutation({
+    mutationFn: async ({ userId, newName }) => {
+      await base44.entities.User.update(userId, { full_name: newName });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['todosUsuarios']);
+      setEditingNameId(null);
+      toast.success('Nome atualizado com sucesso!');
+    },
+    onError: (error) => {
+      toast.error('Erro ao atualizar nome: ' + error.message);
+    }
+  });
+
+  const handleSaveName = (userId) => {
+    if (!editNameValue.trim()) return;
+    updateNameMutation.mutate({ userId, newName: editNameValue.trim() });
+  };
 
   const filteredUsuarios = usuarios.filter(u => {
     const matchesSearch = search === '' || 
@@ -265,7 +289,51 @@ export default function GerenciarAcessos({ user }) {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-slate-900">{usuario.full_name || 'Sem nome'}</h3>
+                      {editingNameId === usuario.id ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            value={editNameValue}
+                            onChange={(e) => setEditNameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveName(usuario.id);
+                              if (e.key === 'Escape') setEditingNameId(null);
+                            }}
+                            className="h-7 w-56 text-sm font-semibold"
+                            autoFocus
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                            onClick={() => handleSaveName(usuario.id)}
+                            disabled={updateNameMutation.isPending}
+                          >
+                            <Save className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-slate-400 hover:text-slate-600"
+                            onClick={() => setEditingNameId(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <h3 className="font-semibold text-slate-900">{usuario.full_name || 'Sem nome'}</h3>
+                          <button
+                            onClick={() => {
+                              setEditingNameId(usuario.id);
+                              setEditNameValue(usuario.full_name || '');
+                            }}
+                            className="text-slate-400 hover:text-violet-600 transition-colors p-0.5"
+                            title="Editar nome"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                       <Badge className={statusColors[usuario.status || 'pendente']}>
                         {usuario.status || 'pendente'}
                       </Badge>
