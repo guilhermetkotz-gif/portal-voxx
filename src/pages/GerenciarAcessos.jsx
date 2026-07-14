@@ -94,7 +94,7 @@ export default function GerenciarAcessos({ user }) {
     mutationFn: async ({ userId, newName }) => {
       const response = await base44.functions.invoke('updateUserNome', {
         usuario_id: userId,
-        full_name: newName
+        nome_customizado: newName
       });
       return response.data;
     },
@@ -114,8 +114,9 @@ export default function GerenciarAcessos({ user }) {
   };
 
   const filteredUsuarios = usuarios.filter(u => {
+    const displayName = u.nome_customizado || u.full_name || '';
     const matchesSearch = search === '' || 
-      u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      displayName.toLowerCase().includes(search.toLowerCase()) ||
       u.email?.toLowerCase().includes(search.toLowerCase());
     const notDeleted = u.status !== 'excluido';
     const matchesSetor = filterSetor === '' || u.setor_responsavel === filterSetor;
@@ -334,11 +335,11 @@ export default function GerenciarAcessos({ user }) {
                         </div>
                       ) : (
                         <div className="flex items-center gap-1">
-                          <h3 className="font-semibold text-slate-900">{usuario.full_name || 'Sem nome'}</h3>
+                          <h3 className="font-semibold text-slate-900">{usuario.nome_customizado || usuario.full_name || 'Sem nome'}</h3>
                           <button
                             onClick={() => {
                               setEditingNameId(usuario.id);
-                              setEditNameValue(usuario.full_name || '');
+                              setEditNameValue(usuario.nome_customizado || usuario.full_name || '');
                             }}
                             className="text-slate-400 hover:text-violet-600 transition-colors p-0.5"
                             title="Editar nome"

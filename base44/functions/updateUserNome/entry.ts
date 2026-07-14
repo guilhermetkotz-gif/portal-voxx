@@ -13,13 +13,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { usuario_id, full_name } = await req.json();
+    const { usuario_id, nome_customizado } = await req.json();
 
-    if (!usuario_id || !full_name || !full_name.trim()) {
-      return Response.json({ error: 'usuario_id e full_name são obrigatórios' }, { status: 400 });
+    if (!usuario_id || !nome_customizado || !nome_customizado.trim()) {
+      return Response.json({ error: 'usuario_id e nome_customizado são obrigatórios' }, { status: 400 });
     }
 
-    await base44.asServiceRole.entities.User.update(usuario_id, { full_name: full_name.trim() });
+    await base44.asServiceRole.entities.User.update(usuario_id, { nome_customizado: nome_customizado.trim() });
 
     return Response.json({ success: true });
   } catch (error) {
