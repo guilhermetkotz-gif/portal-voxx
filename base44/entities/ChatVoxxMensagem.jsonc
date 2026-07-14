@@ -1,0 +1,32 @@
+{
+  "name": "ChatVoxxMensagem",
+  "type": "object",
+  "properties": {
+    "conversa_id": {
+      "type": "string",
+      "description": "ID da conversa vinculada"
+    },
+    "remetente_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio remetente"
+    },
+    "remetente_nome": {
+      "type": "string",
+      "description": "Nome do remetente (cache)"
+    },
+    "conteudo": {
+      "type": "string",
+      "description": "Conte\u00fado da mensagem"
+    },
+    "lida": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a mensagem foi lida pelo destinat\u00e1rio"
+    }
+  },
+  "required": [
+    "conversa_id",
+    "remetente_id",
+    "conteudo"
+  ]
+}

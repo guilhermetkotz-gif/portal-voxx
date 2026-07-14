@@ -58,7 +58,8 @@ const pageTitles = {
         BriefingClientes: { title: "Briefing Clientes", subtitle: "Central de contexto operacional e estratégico das marcas" },
         InteligeniciaOperacional: { title: "Inteligência Operacional", subtitle: "Consumo e carga operacional por cliente" },
         CentralComunicacao: { title: "Central de Comunicação", subtitle: "Resumos diários automáticos para clientes via WhatsApp" },
-        RadarWhatsApp: { title: "Radar WhatsApp", subtitle: "Monitoramento em tempo real dos grupos de atendimento" }
+        RadarWhatsApp: { title: "Radar WhatsApp", subtitle: "Monitoramento em tempo real dos grupos de atendimento" },
+        ChatVoxx: { title: "Chat Voxx", subtitle: "Comunicação interna da equipe" }
                 };
 
 export default function Layout({ children, currentPageName }) {

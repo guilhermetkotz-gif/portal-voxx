@@ -29,6 +29,7 @@ import ConfiguracaoWhatsApp from './pages/ConfiguracaoWhatsApp';
 import ConfiguracaoInstancias from './pages/ConfiguracaoInstancias';
 import Analises from './pages/Analises';
 import RadarWhatsApp from './pages/RadarWhatsApp';
+import ChatVoxx from './pages/ChatVoxx';
 import ImportarHistoricoWhatsapp from './pages/ImportarHistoricoWhatsapp';
 import MigracaoComunicacao from './pages/MigracaoComunicacao';
 import AprovacaoPublica from './pages/AprovacaoPublica';
@@ -157,6 +158,7 @@ const AuthenticatedApp = () => {
       <Route path="/Analises" element={<LayoutWrapper currentPageName="Analises"><Analises /></LayoutWrapper>} />
       <Route path="/RadarWhatsApp" element={<LayoutWrapper currentPageName="RadarWhatsApp"><RadarWhatsApp /></LayoutWrapper>} />
       <Route path="/ImportarHistoricoWhatsapp" element={<LayoutWrapper currentPageName="Analises"><ImportarHistoricoWhatsapp /></LayoutWrapper>} />
+      <Route path="/ChatVoxx" element={<LayoutWrapper currentPageName="ChatVoxx"><ChatVoxx /></LayoutWrapper>} />
       <Route path="/aprovacao/:token" element={<AprovacaoPublica />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>

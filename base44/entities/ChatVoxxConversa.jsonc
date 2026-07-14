@@ -1,0 +1,29 @@
+{
+  "name": "ChatVoxxConversa",
+  "type": "object",
+  "properties": {
+    "participantes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs dos dois usu\u00e1rios participantes"
+    },
+    "ultima_mensagem_preview": {
+      "type": "string",
+      "description": "Pr\u00e9via da \u00faltima mensagem trocada"
+    },
+    "timestamp_ultima_atividade": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da \u00faltima atividade na conversa"
+    },
+    "remetente_ultima_mensagem": {
+      "type": "string",
+      "description": "ID do remetente da \u00faltima mensagem"
+    }
+  },
+  "required": [
+    "participantes"
+  ]
+}
