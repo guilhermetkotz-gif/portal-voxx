@@ -133,10 +133,10 @@ export default function ChatVoxx({ user }) {
     const loadMessages = async () => {
       const msgs = await base44.entities.ChatVoxxMensagem.filter(
         { conversa_id: activeConversation.id },
-        'created_date',
+        '-created_date',
         500
       );
-      setMessages(msgs);
+      setMessages(msgs.reverse());
     };
 
     loadMessages();
