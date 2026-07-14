@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
 const ZAPI_BASE = 'https://api.z-api.io';
 
@@ -34,33 +34,33 @@ Deno.serve(async (req) => {
 
     const agora = new Date().toISOString();
 
-    // Excluir para todos: chamar Z-API + marcar como deletado
-    if (modo !== 'para_mim') {
-      const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
-      if (!zapiInstanceId) {
-        return Response.json({ error: 'Z-API não configurada' }, { status: 503 });
-      }
-
-      // Usar o novo endpoint da Z-API: DELETE /messages?messageId=...&phone=...&owner=...
-      const owner = msgRecord.from_me === true ? 'true' : 'false';
-      const url = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/messages?messageId=${encodeURIComponent(messageId)}&phone=${encodeURIComponent(chatId)}&owner=${owner}`;
-      
-      const resp = await fetch(url, {
-        method: 'DELETE',
-        headers: {
-          'Client-Token': zapiClientToken,
-        },
-      });
-
-      const respBody = await resp.text().catch(() => '');
-      
-      if (!resp.ok) {
-        console.error('[deletarMensagem] Z-API erro HTTP', resp.status, respBody);
-        return Response.json({ error: `Z-API HTTP ${resp.status}: ${respBody}` }, { status: 502 });
-      }
-
-      console.log('[deletarMensagem] Z-API delete OK:', messageId, 'phone:', chatId, 'owner:', owner);
+    // Chamar Z-API para ambos os modos:
+    //   - "para todos": DELETE /messages?messageId=...&phone=...&owner=...  (deleteForMe omitido = false)
+    //   - "para mim":   mesmo endpoint + deleteForMe=true  (some só do seu WhatsApp)
+    const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
+    if (!zapiInstanceId) {
+      return Response.json({ error: 'Z-API não configurada' }, { status: 503 });
     }
+
+    const owner = msgRecord.from_me === true ? 'true' : 'false';
+    const deleteForMeParam = modo === 'para_mim' ? '&deleteForMe=true' : '';
+    const url = `${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/messages?messageId=${encodeURIComponent(messageId)}&phone=${encodeURIComponent(chatId)}&owner=${owner}${deleteForMeParam}`;
+
+    const resp = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Client-Token': zapiClientToken,
+      },
+    });
+
+    const respBody = await resp.text().catch(() => '');
+
+    if (!resp.ok) {
+      console.error('[deletarMensagem] Z-API erro HTTP', resp.status, respBody);
+      return Response.json({ error: `Z-API HTTP ${resp.status}: ${respBody}` }, { status: 502 });
+    }
+
+    console.log('[deletarMensagem] Z-API delete OK:', messageId, 'modo:', modo, 'owner:', owner);
 
     // Marcar como deletado no banco
     await base44.asServiceRole.entities.WhatsappMensagem.update(msgRecord.id, {
