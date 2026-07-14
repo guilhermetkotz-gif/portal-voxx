@@ -273,7 +273,13 @@ export default function ChatHubDrawer({ onClose, user }) {
     queryKey: ['chatHubMsgs', selectedChat?.id],
     queryFn: async () => {
       const msgs = await base44.entities.WhatsappMensagem.filter({ grupo_id: selectedChat?.id }, '-received_at', 100);
-      return msgs.filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo');
+      return msgs
+        .filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo')
+        .sort((a, b) => {
+          const ta = a.received_at || a.timestamp_mensagem || '';
+          const tb = b.received_at || b.timestamp_mensagem || '';
+          return tb.localeCompare(ta);
+        });
     },
     enabled: !!selectedChat?.id,
     staleTime: 10 * 1000,
