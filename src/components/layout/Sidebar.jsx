@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { cn } from "@/lib/utils";
@@ -121,6 +121,39 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
     staleTime: 5 * 60 * 1000
   });
 
+  const isVoxxUserSidebar = user?.role === 'admin' ||
+    ['voxx_admin', 'voxx_operacao', 'voxx_manager', 'voxx_financeiro'].includes(tipoUsuario);
+
+  const { data: chatVoxxUnread = 0, refetch: refetchChatVoxxUnread } = useQuery({
+    queryKey: ['chatVoxxUnread', user?.id],
+    queryFn: async () => {
+      const conversations = await base44.entities.ChatVoxxConversa.list('-updated_date', 500);
+      const myConvIds = conversations
+        .filter(c => c.participantes?.includes(user.id))
+        .map(c => c.id);
+      if (myConvIds.length === 0) return 0;
+      const unreadMsgs = await base44.entities.ChatVoxxMensagem.filter(
+        { lida: false },
+        '-created_date',
+        500
+      );
+      return unreadMsgs.filter(m =>
+        myConvIds.includes(m.conversa_id) && m.remetente_id !== user.id
+      ).length;
+    },
+    enabled: !!user?.id && isVoxxUserSidebar,
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000
+  });
+
+  useEffect(() => {
+    if (!user?.id || !isVoxxUserSidebar) return;
+    const unsubscribe = base44.entities.ChatVoxxMensagem.subscribe(() => {
+      refetchChatVoxxUnread();
+    });
+    return unsubscribe;
+  }, [user?.id, isVoxxUserSidebar, refetchChatVoxxUnread]);
+
   const isPageAllowed = (pageName) => {
     // Base44 admin has full access
     if (user?.role === 'admin') return true;
@@ -199,7 +232,7 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
               key={item.page}
               to={createPageUrl(item.page)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
+                "relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group",
                 isActive 
                   ? item.greenHighlight ? "bg-emerald-600 text-white" : "bg-violet-600 text-white"
                   : item.greenHighlight
@@ -221,7 +254,17 @@ export default function Sidebar({ currentPage, collapsed, setCollapsed, pendingD
                       {pendingDemandas}
                     </Badge>
                   )}
+                  {item.page === 'ChatVoxx' && chatVoxxUnread > 0 && (
+                    <Badge className="bg-red-500 text-white text-[10px] px-1.5 py-0 min-w-[20px] flex items-center justify-center">
+                      {chatVoxxUnread > 99 ? '99+' : chatVoxxUnread}
+                    </Badge>
+                  )}
                 </>
+              )}
+              {item.page === 'ChatVoxx' && chatVoxxUnread > 0 && collapsed && (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {chatVoxxUnread > 9 ? '9+' : chatVoxxUnread}
+                </span>
               )}
             </Link>
           );
