@@ -13,8 +13,9 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
   const filtered = useMemo(() => {
     if (!search.trim()) return users;
     const q = search.toLowerCase();
+    const getName = (u) => u.nome_customizado || u.full_name || '';
     return users.filter(u =>
-      (u.full_name || '').toLowerCase().includes(q) ||
+      getName(u).toLowerCase().includes(q) ||
       (u.email || '').toLowerCase().includes(q)
     );
   }, [users, search]);
@@ -25,7 +26,7 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
 
   const handleCreate = () => {
     if (selected.length < 1) return;
-    const name = groupName.trim() || selected.map(id => users.find(u => u.id === id)?.full_name).filter(Boolean).join(', ').substring(0, 50);
+    const name = groupName.trim() || selected.map(id => { const u = users.find(u => u.id === id); return u?.nome_customizado || u?.full_name; }).filter(Boolean).join(', ').substring(0, 50);
     onCreate({
       nome_grupo: name,
       participantes: [currentUser.id, ...selected],
@@ -73,7 +74,7 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
                 const u = users.find(u => u.id === id);
                 return (
                   <span key={id} className="inline-flex items-center gap-1 bg-violet-100 text-violet-700 text-xs px-2 py-1 rounded-full">
-                    {u?.full_name || u?.email}
+                    {u?.nome_customizado || u?.full_name || u?.email}
                     <button onClick={() => toggleUser(id)}><X className="w-3 h-3" /></button>
                   </span>
                 );
@@ -93,9 +94,9 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
                   )}
                 >
                   <div className="w-9 h-9 rounded-full bg-violet-600 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                    {(u.full_name || u.email || '?')[0].toUpperCase()}
+                    {(u.nome_customizado || u.full_name || u.email || '?')[0].toUpperCase()}
                   </div>
-                  <span className="flex-1 text-sm font-medium text-slate-900 truncate">{u.full_name || u.email}</span>
+                  <span className="flex-1 text-sm font-medium text-slate-900 truncate">{u.nome_customizado || u.full_name || u.email}</span>
                   <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0", isSelected ? "bg-violet-600 border-violet-600" : "border-slate-300")}>
                     {isSelected && <Check className="w-3 h-3 text-white" />}
                   </div>
