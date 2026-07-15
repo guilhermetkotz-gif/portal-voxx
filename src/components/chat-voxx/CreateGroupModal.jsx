@@ -1,14 +1,18 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Check, X, Users } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Search, Check, X, Users, Camera } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { base44 } from '@/api/base44Client';
 
 export default function CreateGroupModal({ open, onClose, users, currentUser, onCreate }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
   const [groupName, setGroupName] = useState('');
+  const [groupPhoto, setGroupPhoto] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef(null);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return users;
@@ -24,6 +28,21 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
     setSelected(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
   };
 
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingPhoto(true);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setGroupPhoto(file_url);
+    } catch (err) {
+      console.error('Erro ao enviar foto:', err);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleCreate = () => {
     if (selected.length < 1) return;
     const name = groupName.trim() || selected.map(id => { const u = users.find(u => u.id === id); return u?.nome_customizado || u?.full_name; }).filter(Boolean).join(', ').substring(0, 50);
@@ -31,16 +50,19 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
       nome_grupo: name,
       participantes: [currentUser.id, ...selected],
       is_group: true,
-      criador_id: currentUser.id
+      criador_id: currentUser.id,
+      foto_grupo: groupPhoto || undefined
     });
     setSelected([]);
     setGroupName('');
+    setGroupPhoto(null);
     onClose();
   };
 
   const handleClose = () => {
     setSelected([]);
     setGroupName('');
+    setGroupPhoto(null);
     onClose();
   };
 
@@ -54,6 +76,33 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* Group photo */}
+          <div className="flex flex-col items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoSelect}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="relative w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white overflow-hidden hover:opacity-90 transition-opacity"
+            >
+              {groupPhoto ? (
+                <img src={groupPhoto} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Users className="w-8 h-8" />
+              )}
+              <span className="absolute bottom-0 right-0 w-7 h-7 bg-violet-600 rounded-full flex items-center justify-center border-2 border-white">
+                <Camera className="w-3.5 h-3.5" />
+              </span>
+            </button>
+            <p className="text-xs text-slate-400">{uploadingPhoto ? 'Enviando...' : 'Foto do grupo (opcional)'}</p>
+          </div>
+
           <Input
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
@@ -107,7 +156,7 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>Cancelar</Button>
-          <Button onClick={handleCreate} disabled={selected.length < 1} className="bg-violet-600 hover:bg-violet-700">
+          <Button onClick={handleCreate} disabled={selected.length < 1 || uploadingPhoto} className="bg-violet-600 hover:bg-violet-700">
             Criar Grupo ({selected.length + 1})
           </Button>
         </DialogFooter>

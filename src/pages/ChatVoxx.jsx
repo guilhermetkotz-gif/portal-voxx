@@ -7,7 +7,7 @@ import MessageBubble from '@/components/chat-voxx/MessageBubble';
 import MessageInput from '@/components/chat-voxx/MessageInput';
 import CreateGroupModal from '@/components/chat-voxx/CreateGroupModal';
 import ChatErrorBoundary from '@/components/chat-voxx/ChatErrorBoundary';
-import { Loader2, MessageCircle, Users, ArrowLeft } from 'lucide-react';
+import { Loader2, MessageCircle, Users, ArrowLeft, Camera } from 'lucide-react';
 
 function ChatVoxxInner({ user }) {
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -16,7 +16,9 @@ function ChatVoxxInner({ user }) {
   const [messages, setMessages] = useState([]);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
   const messagesEndRef = useRef(null);
+  const groupPhotoInputRef = useRef(null);
   const queryClient = useQueryClient();
 
   const { data: users = [] } = useQuery({
@@ -265,6 +267,24 @@ function ChatVoxxInner({ user }) {
     }
   };
 
+  const handleUpdateGroupPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeConversation?.id) return;
+    try {
+      setUploadingGroupPhoto(true);
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const updated = await base44.entities.ChatVoxxConversa.update(activeConversation.id, { foto_grupo: file_url });
+      setActiveConversation(updated);
+      setSelectedGroup(updated);
+      queryClient.invalidateQueries(['chatVoxxConversas']);
+    } catch (err) {
+      console.error('Erro ao atualizar foto do grupo:', err);
+    } finally {
+      setUploadingGroupPhoto(false);
+      if (groupPhotoInputRef.current) groupPhotoInputRef.current.value = '';
+    }
+  };
+
   const handleCreateGroup = async (groupData) => {
     try {
       const newGroup = await base44.entities.ChatVoxxConversa.create({
@@ -362,9 +382,20 @@ function ChatVoxxInner({ user }) {
             {/* Header */}
             <div className="px-6 py-4 border-b border-slate-200 flex items-center gap-3 bg-white flex-shrink-0">
               {isGroupChat ? (
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0">
-                  <Users className="w-5 h-5" />
-                </div>
+                <button
+                  onClick={() => groupPhotoInputRef.current?.click()}
+                  disabled={uploadingGroupPhoto}
+                  className="relative w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 overflow-hidden hover:opacity-90 transition-opacity"
+                >
+                  {activeConversation?.foto_grupo ? (
+                    <img src={activeConversation.foto_grupo} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Users className="w-5 h-5" />
+                  )}
+                  <span className="absolute bottom-0 right-0 w-5 h-5 bg-violet-600 rounded-full flex items-center justify-center border border-white">
+                    <Camera className="w-2.5 h-2.5" />
+                  </span>
+                </button>
               ) : selectedUser?.profile_picture ? (
                 <img src={selectedUser.profile_picture} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
               ) : (
@@ -413,6 +444,14 @@ function ChatVoxxInner({ user }) {
           </>
         )}
       </div>
+
+      <input
+        ref={groupPhotoInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleUpdateGroupPhoto}
+        className="hidden"
+      />
 
       <CreateGroupModal
         open={showCreateGroup}

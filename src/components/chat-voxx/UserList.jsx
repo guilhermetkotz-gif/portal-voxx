@@ -135,9 +135,13 @@ export default function UserList({ users, groups, currentUserId, selectedConvers
                     isSelected ? "bg-violet-50 border-violet-600" : hasUnread ? "bg-violet-50/50 border-violet-300" : "border-transparent"
                   )}
                 >
-                  <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0">
-                    <Users className="w-5 h-5" />
-                  </div>
+                  {g.foto_grupo ? (
+                    <img src={g.foto_grupo} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0">
+                      <Users className="w-5 h-5" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span className={cn("text-sm truncate", hasUnread ? "font-bold text-slate-900" : "font-medium text-slate-900")}>{g.nome_grupo}</span>
