@@ -190,7 +190,7 @@ function ChatVoxxInner({ user }) {
   const handleSendText = async (text) => {
     if (!activeConversation?.id || !user?.id) return;
     try {
-      await base44.entities.ChatVoxxMensagem.create({
+      const newMsg = await base44.entities.ChatVoxxMensagem.create({
         conversa_id: activeConversation.id,
         remetente_id: user.id,
         remetente_nome: user.nome_customizado || user.full_name || user.email,
@@ -201,6 +201,7 @@ function ChatVoxxInner({ user }) {
         resposta_texto: replyingTo?.conteudo || replyingTo?.midia_nome || undefined,
         resposta_remetente_nome: replyingTo?.remetente_nome || undefined
       });
+      setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]);
       await updateConversationPreview(text, 'texto');
       setReplyingTo(null);
     } catch (err) {
@@ -211,7 +212,7 @@ function ChatVoxxInner({ user }) {
   const handleSendMedia = async (mediaData) => {
     if (!activeConversation?.id || !user?.id) return;
     try {
-      await base44.entities.ChatVoxxMensagem.create({
+      const newMsg = await base44.entities.ChatVoxxMensagem.create({
         conversa_id: activeConversation.id,
         remetente_id: user.id,
         remetente_nome: user.nome_customizado || user.full_name || user.email,
@@ -225,6 +226,7 @@ function ChatVoxxInner({ user }) {
         resposta_texto: replyingTo?.conteudo || replyingTo?.midia_nome || undefined,
         resposta_remetente_nome: replyingTo?.remetente_nome || undefined
       });
+      setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]);
       const previewLabel = mediaData.tipo_mensagem === 'imagem' ? '📷 Foto' :
                            mediaData.tipo_mensagem === 'video' ? '🎥 Vídeo' :
                            mediaData.tipo_mensagem === 'audio' ? '🎵 Áudio' : '📄 Documento';
@@ -238,7 +240,7 @@ function ChatVoxxInner({ user }) {
   const handleSendSticker = async (emoji) => {
     if (!activeConversation?.id || !user?.id) return;
     try {
-      await base44.entities.ChatVoxxMensagem.create({
+      const newSticker = await base44.entities.ChatVoxxMensagem.create({
         conversa_id: activeConversation.id,
         remetente_id: user.id,
         remetente_nome: user.nome_customizado || user.full_name || user.email,
@@ -246,6 +248,7 @@ function ChatVoxxInner({ user }) {
         tipo_mensagem: 'sticker',
         lida: false
       });
+      setMessages(prev => prev.some(m => m.id === newSticker.id) ? prev : [...prev, newSticker]);
       await updateConversationPreview('🎨 Figurinha', 'sticker');
     } catch (err) {
       console.error('Erro ao enviar sticker:', err);
