@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Check, CheckCheck, Download, FileText, Play, Smile, Reply } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import moment from 'moment-timezone';
+import moment from 'moment';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { base44 } from '@/api/base44Client';
 
@@ -21,7 +21,9 @@ function renderTextWithLinks(text) {
 
 export default function MessageBubble({ message, isMine, isGroup, currentUserId, onReply }) {
   const [showReactions, setShowReactions] = useState(false);
-  const time = message.created_date ? moment(message.created_date).tz('America/Sao_Paulo').format('HH:mm') : '';
+  const time = message.created_date
+    ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(message.created_date))
+    : '';
 
   const handleReact = async (emoji) => {
     setShowReactions(false);
