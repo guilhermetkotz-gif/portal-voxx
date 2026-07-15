@@ -71,7 +71,7 @@ function ChatVoxxInner({ user }) {
 
   const unreadByConvId = useMemo(() => {
     const map = {};
-    (unreadMessages || []).forEach(m => {
+    (Array.isArray(unreadMessages) ? unreadMessages : []).forEach(m => {
       if (m.remetente_id !== user?.id) {
         map[m.conversa_id] = (map[m.conversa_id] || 0) + 1;
       }
