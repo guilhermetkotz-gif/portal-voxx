@@ -124,7 +124,19 @@ function ChatVoxxInner({ user }) {
     }
   }, [selectedGroup]);
 
-  // Load messages + subscribe
+  // Global subscription — always listening for new messages (for unread badges)
+  useEffect(() => {
+    if (!user?.id) return;
+    const unsubscribe = base44.entities.ChatVoxxMensagem.subscribe((event) => {
+      if (event.type === 'create' && event.data?.remetente_id !== user.id) {
+        queryClient.invalidateQueries({ queryKey: ['chatVoxxConversas'] });
+        queryClient.invalidateQueries({ queryKey: ['chatVoxxUnread'] });
+      }
+    });
+    return () => unsubscribe();
+  }, [user?.id, queryClient]);
+
+  // Load messages for active conversation + subscribe to its updates
   useEffect(() => {
     if (!activeConversation?.id) {
       setMessages([]);
@@ -151,9 +163,6 @@ function ChatVoxxInner({ user }) {
         } else if (event.type === 'delete') {
           setMessages(prev => prev.filter(m => m.id !== event.data.id));
         }
-      } else if (event.type === 'create' && event.data?.remetente_id !== user?.id) {
-        queryClient.invalidateQueries(['chatVoxxConversas']);
-        queryClient.invalidateQueries(['chatVoxxUnread']);
       }
     });
 
