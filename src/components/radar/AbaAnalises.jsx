@@ -115,6 +115,14 @@ export default function AbaAnalises({ gruposEnriquecidos, clientes }) {
         if (!g.nome_grupo?.toLowerCase().includes(b) && !g.cliente_nome?.toLowerCase().includes(b)) return false;
       }
       return true;
+    }).sort((a, b) => {
+      // Ordenar pelo score da análise IA (menor → maior); sem análise vai para o final
+      const sa = a.analise?.score_geral;
+      const sb = b.analise?.score_geral;
+      if (sa == null && sb == null) return 0;
+      if (sa == null) return 1;
+      if (sb == null) return -1;
+      return sa - sb;
     });
   }, [itens, filtroStatus, filtroChurn, filtroTendencia, filtroAlerta, busca]);
 
