@@ -100,6 +100,7 @@ export default function GerenciarAcessos({ user }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['todosUsuarios']);
+      queryClient.invalidateQueries(['chatVoxxUsers']);
       setEditingNameId(null);
       toast.success('Nome atualizado com sucesso!');
     },
