@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
@@ -59,6 +59,15 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
     enabled: !!grupo.grupo_id,
     staleTime: 15 * 1000,
   });
+
+  // ── Últimas mensagens (computadas do histórico buscado neste componente) ──
+  const ultimasMsgs = useMemo(() => {
+    const msgsValidas = msgHistorico.filter(m => m.tipo_mensagem !== 'sem_conteudo' && !m.deletado);
+    const ultimaGeral = msgsValidas[0] || null;
+    const ultimaCliente = msgsValidas.find(m => m.remetente_tipo === 'cliente' || m.origem === 'recebida') || null;
+    const ultimaVoxx = msgsValidas.find(m => m.remetente_tipo === 'voxx' || m.origem === 'enviada') || null;
+    return { ultimaGeral, ultimaCliente, ultimaVoxx };
+  }, [msgHistorico]);
 
   const vinculo = grupo.status_vinculo;
   const alertaNivel = grupo.alertaNivel;
@@ -364,9 +373,9 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
             <div className="space-y-2">
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Últimas mensagens</h3>
               <div className="grid gap-2">
-                <MsgCard label="Última geral" msg={grupo.ultimaGeral} />
-                <MsgCard label="Última cliente" msg={grupo.ultimaCliente} color="blue" />
-                <MsgCard label="Última VOXX" msg={grupo.ultimaVoxx} color="violet" />
+                <MsgCard label="Última geral" msg={ultimasMsgs.ultimaGeral} />
+                <MsgCard label="Última cliente" msg={ultimasMsgs.ultimaCliente} color="blue" />
+                <MsgCard label="Última VOXX" msg={ultimasMsgs.ultimaVoxx} color="violet" />
               </div>
             </div>
 
@@ -413,15 +422,25 @@ export default function GrupoDetalheDrawer({ grupo, clientes, onClose }) {
                   {msgHistorico.map(m => {
                     const ts = m.received_at || m.timestamp_mensagem;
                     const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada';
+                    const nomeExibido = (!m.remetente_nome || m.remetente_nome === 'Desconhecido')
+                      ? (isVoxx ? 'VOXX' : 'Cliente')
+                      : m.remetente_nome;
+                    const preview = m.mensagem
+                      || (m.tipo_mensagem === 'imagem' ? '📷 Imagem'
+                        : m.tipo_mensagem === 'audio' ? '🎤 Áudio'
+                        : m.tipo_mensagem === 'video' ? '🎬 Vídeo'
+                        : m.tipo_mensagem === 'documento' ? '📎 Documento'
+                        : m.tipo_mensagem === 'sticker' ? '🎨 Figurinha'
+                        : '[Sem conteúdo]');
                     return (
                       <div key={m.id} className={`rounded-lg px-3 py-2 text-xs ${isVoxx ? 'bg-violet-950/30 border border-violet-800/30' : 'bg-slate-800 border border-slate-700/50'}`}>
                         <div className="flex items-center justify-between mb-1">
                           <span className={`font-medium ${isVoxx ? 'text-violet-300' : 'text-blue-300'}`}>
-                            {m.remetente_nome || (isVoxx ? 'VOXX' : 'Cliente')}
+                            {nomeExibido}
                           </span>
-                          <span className="text-slate-500">{moment(ts).tz(TZ).format('DD/MM HH:mm')}</span>
+                          <span className="text-slate-500">{ts ? moment(ts).tz(TZ).format('DD/MM HH:mm') : '—'}</span>
                         </div>
-                        <p className="text-slate-300">{m.mensagem}</p>
+                        <p className="text-slate-300 truncate">{preview}</p>
                       </div>
                     );
                   })}
