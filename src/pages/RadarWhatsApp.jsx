@@ -61,6 +61,15 @@ export default function RadarWhatsApp({ user }) {
     refetchInterval: 30 * 1000,
   });
 
+  // Remetente Voxx do usuário atual — para filtrar mensagens pessoais (não-grupo)
+  const { data: remetenteAtual } = useQuery({
+    queryKey: ['remetenteVoxxUsuario', user?.id],
+    queryFn: () => base44.entities.WhatsappRemetenteVoxx.filter({ usuario_id: user?.id, ativo: true }),
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+  });
+  const telefoneUsuarioAtual = remetenteAtual?.[0]?.telefone_normalizado || '';
+
   // Tags ativas "AGUARD. RETORNO" → conjunto de grupo_ids
   const { data: tagsAtivas = [] } = useQuery({
     queryKey: ['radarTagsAtivas'],
@@ -353,7 +362,7 @@ export default function RadarWhatsApp({ user }) {
         </TabsContent>
 
         <TabsContent value="mensagens">
-          <AbaMensagensRadar mensagens={mensagens} clientes={clientes} loading={loadingMsgs} gruposEnriquecidos={gruposEnriquecidos} tagGrupoIds={tagGrupoIds} />
+          <AbaMensagensRadar mensagens={mensagens} clientes={clientes} loading={loadingMsgs} gruposEnriquecidos={gruposEnriquecidos} tagGrupoIds={tagGrupoIds} telefoneUsuarioAtual={telefoneUsuarioAtual} />
         </TabsContent>
 
         <TabsContent value="diagnostico">

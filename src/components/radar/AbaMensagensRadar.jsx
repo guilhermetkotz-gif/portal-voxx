@@ -59,7 +59,7 @@ function buildGrupoMap(gruposEnriquecidos) {
   return map;
 }
 
-export default function AbaMensagensRadar({ mensagens, clientes, loading, gruposEnriquecidos, tagGrupoIds }) {
+export default function AbaMensagensRadar({ mensagens, clientes, loading, gruposEnriquecidos, tagGrupoIds, telefoneUsuarioAtual }) {
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState('');
   const [filtroOrigem, setFiltroOrigem] = useState('todos');
@@ -85,6 +85,9 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
     return map;
   }, [gruposEnriquecidos]);
 
+  // Telefone do usuário atual normalizado (apenas dígitos)
+  const telefoneAtualNorm = (telefoneUsuarioAtual || '').replace(/\D/g, '');
+
   const filtrados = useMemo(() => {
     const resultado = mensagens.filter(m => {
       const ts = m.received_at || m.timestamp_mensagem;
@@ -96,6 +99,14 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
       if (filtroEspecial === 'voxx' && m.remetente_tipo !== 'voxx' && m.origem !== 'enviada') return false;
       if (filtroEspecial === 'cliente' && m.remetente_tipo !== 'cliente' && m.origem !== 'recebida') return false;
       if (filtroEspecial === 'aguard_retorno' && (!m.grupo_id || !tagGrupoIds?.has(m.grupo_id))) return false;
+
+      // Mensagens enviadas por VOXX para contato pessoal (não-grupo) → só visíveis para o remetente
+      const enviadaPorVoxx = m.origem === 'enviada' || m.remetente_tipo === 'voxx';
+      const ehMensagemPessoal = !m.is_group && !m.grupo_id;
+      if (enviadaPorVoxx && ehMensagemPessoal && telefoneAtualNorm) {
+        const telRemetente = (m.remetente_telefone || '').replace(/\D/g, '');
+        if (telRemetente && telRemetente !== telefoneAtualNorm) return false;
+      }
       if (busca) {
         const b = busca.toLowerCase();
         const match = m.cliente_nome?.toLowerCase().includes(b) ||
@@ -117,7 +128,7 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
       const tb = b.received_at || b.timestamp_mensagem || '';
       return tb.localeCompare(ta);
     });
-  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte, prioridadePorGrupo, tagGrupoIds]);
+  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte, prioridadePorGrupo, tagGrupoIds, telefoneAtualNorm]);
 
   return (
     <div className="space-y-4">
