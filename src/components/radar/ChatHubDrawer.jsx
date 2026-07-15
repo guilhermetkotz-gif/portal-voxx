@@ -187,6 +187,7 @@ export default function ChatHubDrawer({ onClose, user }) {
   const [showGrupoDetalhe, setShowGrupoDetalhe] = useState(false);
   const [grupoDetalheData, setGrupoDetalheData] = useState(null);
   const [loadingGrupoDetalhe, setLoadingGrupoDetalhe] = useState(false);
+  const [lastViewedAt, setLastViewedAt] = useState({}); // { [chatId]: ISO timestamp }
 
   const handleOpenGrupoDetalhe = async () => {
     if (!selectedChat?.isGroup || !selectedChat?.id) return;
@@ -360,9 +361,11 @@ export default function ChatHubDrawer({ onClose, user }) {
       const msgs = mensagensRecentes.filter(m => m.grupo_id === c.id);
       const ultimaVoxx = msgs.filter(m => m.remetente_tipo === 'voxx' || m.origem === 'enviada')
         .sort((a, b) => (b.received_at || '').localeCompare(a.received_at || ''))[0];
+      const viewedTs = lastViewedAt[c.id];
       const unreadCount = msgs.filter(m =>
         (m.remetente_tipo === 'cliente' || m.origem === 'recebida') &&
-        (!ultimaVoxx || (m.received_at || m.timestamp_mensagem) > (ultimaVoxx.received_at || ultimaVoxx.timestamp_mensagem))
+        (!ultimaVoxx || (m.received_at || m.timestamp_mensagem) > (ultimaVoxx.received_at || ultimaVoxx.timestamp_mensagem)) &&
+        (!viewedTs || (m.received_at || m.timestamp_mensagem) > viewedTs)
       ).length;
       return { ...c, unreadCount };
     }).sort((a, b) => {
@@ -373,7 +376,7 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (tsB === null) return -1;
       return tsB - tsA;
     });
-  }, [grupos, mensagensRecentes, ultimaMsgPorChat]);
+  }, [grupos, mensagensRecentes, ultimaMsgPorChat, lastViewedAt]);
 
   // ── Filtrar conversas ─────────────────────────────────────
   const conversasFiltradas = useMemo(() => {
@@ -961,7 +964,10 @@ export default function ChatHubDrawer({ onClose, user }) {
                 return (
                   <button
                     key={c.id}
-                    onClick={() => setSelectedChat(c)}
+                    onClick={() => {
+                      setSelectedChat(c);
+                      setLastViewedAt(prev => ({ ...prev, [c.id]: new Date().toISOString() }));
+                    }}
                     className={`w-full text-left px-4 py-3 border-b ${t.borderSubtle} ${t.bgCardHover} transition-colors ${
                       isSelected ? t.bgCardSelected : ''
                     } ${
