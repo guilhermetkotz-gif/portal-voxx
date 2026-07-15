@@ -59,7 +59,7 @@ function buildGrupoMap(gruposEnriquecidos) {
   return map;
 }
 
-export default function AbaMensagensRadar({ mensagens, clientes, loading, gruposEnriquecidos, tagGrupoIds, telefoneUsuarioAtual }) {
+export default function AbaMensagensRadar({ mensagens, clientes, loading, gruposEnriquecidos, tagGrupoIds, usuarioIdAtual }) {
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState('');
   const [filtroOrigem, setFiltroOrigem] = useState('todos');
@@ -85,9 +85,6 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
     return map;
   }, [gruposEnriquecidos]);
 
-  // Telefone do usuário atual normalizado (apenas dígitos)
-  const telefoneAtualNorm = (telefoneUsuarioAtual || '').replace(/\D/g, '');
-
   const filtrados = useMemo(() => {
     const resultado = mensagens.filter(m => {
       const ts = m.received_at || m.timestamp_mensagem;
@@ -103,9 +100,8 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
       // Mensagens enviadas por VOXX para contato pessoal (não-grupo) → só visíveis para o remetente
       const enviadaPorVoxx = m.origem === 'enviada' || m.remetente_tipo === 'voxx';
       const ehMensagemPessoal = !m.is_group && !m.grupo_id;
-      if (enviadaPorVoxx && ehMensagemPessoal && telefoneAtualNorm) {
-        const telRemetente = (m.remetente_telefone || '').replace(/\D/g, '');
-        if (telRemetente && telRemetente !== telefoneAtualNorm) return false;
+      if (enviadaPorVoxx && ehMensagemPessoal && usuarioIdAtual && m.usuario_id) {
+        if (m.usuario_id !== usuarioIdAtual) return false;
       }
       if (busca) {
         const b = busca.toLowerCase();
@@ -128,7 +124,7 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
       const tb = b.received_at || b.timestamp_mensagem || '';
       return tb.localeCompare(ta);
     });
-  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte, prioridadePorGrupo, tagGrupoIds, telefoneAtualNorm]);
+  }, [mensagens, busca, filtroOrigem, filtroTipo, filtroEspecial, periodoCorte, prioridadePorGrupo, tagGrupoIds, usuarioIdAtual]);
 
   return (
     <div className="space-y-4">

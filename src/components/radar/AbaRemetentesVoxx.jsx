@@ -90,8 +90,8 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
   };
 
   const salvar = async () => {
-    if (!form.nome.trim() || !form.telefone.trim()) {
-      toast.error('Nome e telefone são obrigatórios.');
+    if (!form.nome.trim()) {
+      toast.error('Nome é obrigatório.');
       return;
     }
     setSalvando(true);
@@ -271,7 +271,7 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
               />
             </div>
             <div>
-              <label className="text-xs text-slate-400 mb-1.5 block">Telefone</label>
+              <label className="text-xs text-slate-400 mb-1.5 block">Telefone <span className="text-slate-600">(opcional)</span></label>
               <Input
                 placeholder="ex: 5543999999999"
                 value={form.telefone}
@@ -283,6 +283,9 @@ export default function AbaRemetentesVoxx({ mensagens = [] }) {
                   Normalizado: <span className="text-emerald-400 font-mono">{normalizarTelefone(form.telefone)}</span>
                 </p>
               )}
+              <p className="text-[11px] text-slate-600 mt-1">
+                Use apenas se este membro enviar mensagens de seu celular pessoal em grupos.
+              </p>
             </div>
             <div>
               <label className="text-xs text-slate-400 mb-1.5 block">Usuário vinculado</label>

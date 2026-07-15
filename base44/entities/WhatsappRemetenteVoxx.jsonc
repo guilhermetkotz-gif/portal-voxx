@@ -8,7 +8,7 @@
     },
     "telefone": {
       "type": "string",
-      "description": "Telefone como digitado pelo usu\u00e1rio"
+      "description": "Telefone como digitado pelo usu\u00e1rio (opcional \u2014 usado para reconhecer mensagens enviadas de celulares pessoais em grupos)"
     },
     "telefone_normalizado": {
       "type": "string",
@@ -25,7 +25,6 @@
     }
   },
   "required": [
-    "nome",
-    "telefone"
+    "nome"
   ]
 }

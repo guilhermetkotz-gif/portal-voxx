@@ -75,6 +75,8 @@ Deno.serve(async (req) => {
       remetente_nome: nomeRemetente,
       remetente_telefone: telefoneRemetente,
       remetente_tipo: 'voxx',
+      usuario_id: user.id,
+      usuario_nome: nomeRemetente,
       origem: 'enviada',
       mensagem: mensagemFinal || '[Mídia]',
       tipo_mensagem: tipoMsgMap[tipo] || 'texto',

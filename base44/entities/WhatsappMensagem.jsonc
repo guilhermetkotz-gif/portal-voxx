@@ -45,6 +45,14 @@
       ],
       "default": "desconhecido"
     },
+    "usuario_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio Base44 que enviou a mensagem (apenas para mensagens enviadas via VOXX pela plataforma)"
+    },
+    "usuario_nome": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio que enviou (cache)"
+    },
     "origem": {
       "type": "string",
       "enum": [
