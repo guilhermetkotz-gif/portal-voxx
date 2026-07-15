@@ -4,14 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { base44 } from '@/api/base44Client';
+import ImageCropperModal from './ImageCropperModal';
 
 export default function CreateGroupModal({ open, onClose, users, currentUser, onCreate }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState([]);
   const [groupName, setGroupName] = useState('');
   const [groupPhoto, setGroupPhoto] = useState(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [cropperFile, setCropperFile] = useState(null);
   const fileInputRef = useRef(null);
 
   const filtered = useMemo(() => {
@@ -28,19 +28,16 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
     setSelected(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
   };
 
-  const handlePhotoSelect = async (e) => {
+  const handlePhotoSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setUploadingPhoto(true);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setGroupPhoto(file_url);
-    } catch (err) {
-      console.error('Erro ao enviar foto:', err);
-    } finally {
-      setUploadingPhoto(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+    setCropperFile(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleCrop = (url) => {
+    setGroupPhoto(url);
+    setCropperFile(null);
   };
 
   const handleCreate = () => {
@@ -63,6 +60,7 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
     setSelected([]);
     setGroupName('');
     setGroupPhoto(null);
+    setCropperFile(null);
     onClose();
   };
 
@@ -76,7 +74,6 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          {/* Group photo */}
           <div className="flex flex-col items-center gap-2">
             <input
               ref={fileInputRef}
@@ -88,7 +85,6 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPhoto}
               className="relative w-20 h-20 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white overflow-hidden hover:opacity-90 transition-opacity"
             >
               {groupPhoto ? (
@@ -100,7 +96,7 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
                 <Camera className="w-3.5 h-3.5" />
               </span>
             </button>
-            <p className="text-xs text-slate-400">{uploadingPhoto ? 'Enviando...' : 'Foto do grupo (opcional)'}</p>
+            <p className="text-xs text-slate-400">Foto do grupo (opcional)</p>
           </div>
 
           <Input
@@ -156,11 +152,18 @@ export default function CreateGroupModal({ open, onClose, users, currentUser, on
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>Cancelar</Button>
-          <Button onClick={handleCreate} disabled={selected.length < 1 || uploadingPhoto} className="bg-violet-600 hover:bg-violet-700">
+          <Button onClick={handleCreate} disabled={selected.length < 1} className="bg-violet-600 hover:bg-violet-700">
             Criar Grupo ({selected.length + 1})
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ImageCropperModal
+        open={!!cropperFile}
+        file={cropperFile}
+        onClose={() => setCropperFile(null)}
+        onCrop={handleCrop}
+      />
     </Dialog>
   );
 }

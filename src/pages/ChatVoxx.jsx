@@ -6,6 +6,7 @@ import UserList from '@/components/chat-voxx/UserList';
 import MessageBubble from '@/components/chat-voxx/MessageBubble';
 import MessageInput from '@/components/chat-voxx/MessageInput';
 import CreateGroupModal from '@/components/chat-voxx/CreateGroupModal';
+import ImageCropperModal from '@/components/chat-voxx/ImageCropperModal';
 import ChatErrorBoundary from '@/components/chat-voxx/ChatErrorBoundary';
 import { Loader2, MessageCircle, Users, ArrowLeft, Camera } from 'lucide-react';
 
@@ -16,7 +17,7 @@ function ChatVoxxInner({ user }) {
   const [messages, setMessages] = useState([]);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
+  const [groupPhotoFile, setGroupPhotoFile] = useState(null);
   const messagesEndRef = useRef(null);
   const groupPhotoInputRef = useRef(null);
   const queryClient = useQueryClient();
@@ -267,22 +268,24 @@ function ChatVoxxInner({ user }) {
     }
   };
 
-  const handleUpdateGroupPhoto = async (e) => {
+  const handleGroupPhotoSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file || !activeConversation?.id) return;
+    setGroupPhotoFile(file);
+    if (groupPhotoInputRef.current) groupPhotoInputRef.current.value = '';
+  };
+
+  const handleCropGroupPhoto = async (url) => {
+    if (!activeConversation?.id) return;
     try {
-      setUploadingGroupPhoto(true);
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const updated = await base44.entities.ChatVoxxConversa.update(activeConversation.id, { foto_grupo: file_url });
+      const updated = await base44.entities.ChatVoxxConversa.update(activeConversation.id, { foto_grupo: url });
       setActiveConversation(updated);
       setSelectedGroup(updated);
       queryClient.invalidateQueries(['chatVoxxConversas']);
     } catch (err) {
       console.error('Erro ao atualizar foto do grupo:', err);
-    } finally {
-      setUploadingGroupPhoto(false);
-      if (groupPhotoInputRef.current) groupPhotoInputRef.current.value = '';
     }
+    setGroupPhotoFile(null);
   };
 
   const handleCreateGroup = async (groupData) => {
@@ -384,7 +387,6 @@ function ChatVoxxInner({ user }) {
               {isGroupChat ? (
                 <button
                   onClick={() => groupPhotoInputRef.current?.click()}
-                  disabled={uploadingGroupPhoto}
                   className="relative w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 overflow-hidden hover:opacity-90 transition-opacity"
                 >
                   {activeConversation?.foto_grupo ? (
@@ -449,8 +451,15 @@ function ChatVoxxInner({ user }) {
         ref={groupPhotoInputRef}
         type="file"
         accept="image/*"
-        onChange={handleUpdateGroupPhoto}
+        onChange={handleGroupPhotoSelect}
         className="hidden"
+      />
+
+      <ImageCropperModal
+        open={!!groupPhotoFile}
+        file={groupPhotoFile}
+        onClose={() => setGroupPhotoFile(null)}
+        onCrop={handleCropGroupPhoto}
       />
 
       <CreateGroupModal
