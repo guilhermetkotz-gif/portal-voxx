@@ -55,9 +55,10 @@ Deno.serve(async (req) => {
     let mensagemFinal = mensagem || '';
 
     // Mensagem com assinatura para envio ao WhatsApp (visível no app do cliente)
+    // Assinatura no início, antes da mensagem — mesma área onde o remetente aparece
     let mensagemWhatsApp = mensagemFinal;
     if (incluirAssinatura && mensagemFinal.trim()) {
-      mensagemWhatsApp = mensagemFinal.trim() + `\n\n— ${nomeRemetente} | Voxx`;
+      mensagemWhatsApp = `${nomeRemetente} | Voxx\n\n${mensagemFinal.trim()}`;
     }
 
     const agora = new Date().toISOString();
