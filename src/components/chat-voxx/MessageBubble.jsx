@@ -10,9 +10,10 @@ const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 function renderTextWithLinks(text) {
   if (!text) return null;
   const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const testRegex = /(https?:\/\/[^\s]+)/;
   const parts = text.split(urlRegex);
   return parts.map((part, i) => {
-    if (urlRegex.test(part)) {
+    if (testRegex.test(part)) {
       return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="underline break-all">{part}</a>;
     }
     return <span key={i}>{part}</span>;
@@ -21,9 +22,16 @@ function renderTextWithLinks(text) {
 
 export default function MessageBubble({ message, isMine, isGroup, currentUserId, onReply }) {
   const [showReactions, setShowReactions] = useState(false);
-  const time = message.created_date
-    ? new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(message.created_date))
-    : '';
+  const time = (() => {
+    if (!message.created_date) return '';
+    try {
+      const d = new Date(message.created_date);
+      if (isNaN(d.getTime())) return '';
+      return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+    } catch {
+      return '';
+    }
+  })();
 
   const handleReact = async (emoji) => {
     setShowReactions(false);

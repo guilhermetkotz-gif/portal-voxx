@@ -5,9 +5,10 @@ import UserList from '@/components/chat-voxx/UserList';
 import MessageBubble from '@/components/chat-voxx/MessageBubble';
 import MessageInput from '@/components/chat-voxx/MessageInput';
 import CreateGroupModal from '@/components/chat-voxx/CreateGroupModal';
+import ChatErrorBoundary from '@/components/chat-voxx/ChatErrorBoundary';
 import { Loader2, MessageCircle, Users, ArrowLeft } from 'lucide-react';
 
-export default function ChatVoxx({ user }) {
+function ChatVoxxInner({ user }) {
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeConversation, setActiveConversation] = useState(null);
@@ -385,5 +386,13 @@ export default function ChatVoxx({ user }) {
         onCreate={handleCreateGroup}
       />
     </div>
+  );
+}
+
+export default function ChatVoxx(props) {
+  return (
+    <ChatErrorBoundary>
+      <ChatVoxxInner {...props} />
+    </ChatErrorBoundary>
   );
 }
