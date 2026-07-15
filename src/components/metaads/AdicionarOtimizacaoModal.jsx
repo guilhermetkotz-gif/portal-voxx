@@ -40,14 +40,33 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, ra
         staleTime: 5 * 60 * 1000
     });
 
+    // Normalizar texto para comparação (remove hífens, acentos, espaços extras, lowercase)
+    const normalize = (s) => (s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[-_]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
     const encontrarCliente = async (accountName) => {
         if (!accountName || !clientes.length) return null;
+        const accountNorm = normalize(accountName);
+
+        // 1. Match exato normalizado (nome, meta_ads_account_name, contas_anuncio)
         const cliente = clientes.find(c =>
-            c.nome === accountName ||
-            c.meta_ads_account_name === accountName ||
-            (Array.isArray(c.contas_anuncio) && c.contas_anuncio.some(ca => ca.plataforma === 'Meta' && ca.conta_nome === accountName))
+            normalize(c.nome) === accountNorm ||
+            normalize(c.meta_ads_account_name) === accountNorm ||
+            (Array.isArray(c.contas_anuncio) && c.contas_anuncio.some(ca => ca.plataforma === 'Meta' && normalize(ca.conta_nome) === accountNorm))
         );
-        return cliente || null;
+        if (cliente) return cliente;
+
+        // 2. Fallback: correspondência parcial — um nome contém o outro
+        return clientes.find(c => {
+            const cNome = normalize(c.nome);
+            if (cNome && accountNorm && (cNome.includes(accountNorm) || accountNorm.includes(cNome))) return true;
+            return false;
+        }) || null;
     };
 
     const createMutation = useMutation({
@@ -120,15 +139,6 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, ra
 
         createMutation.mutate(formData);
     };
-
-    // Normalizar texto para comparação (remove hífens, acentos, espaços extras, lowercase)
-    const normalize = (s) => (s || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[-_]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
 
     // Encontrar cliente vinculado à conta Meta Ads (com matching flexível)
     const accountNameNorm = normalize(conta?.account_name);
