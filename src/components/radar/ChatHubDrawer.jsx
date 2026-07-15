@@ -512,7 +512,7 @@ export default function ChatHubDrawer({ onClose, user }) {
 
     if (!texto) return;
     setEnviando(true);
-    // Limpa input, reply e invalida queries IMEDIATAMENTE
+    // Limpa input e reply IMEDIATAMENTE
     setMensagem('');
     const citacao = respondendoA ? {
       citacaoId: respondendoA.message_id || respondendoA.id,
@@ -522,9 +522,48 @@ export default function ChatHubDrawer({ onClose, user }) {
       citacaoMidiaUrl: respondendoA.midia_url || '',
     } : null;
     setRespondendoA(null);
-    queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+
+    // Otimistic update: adiciona a mensagem ao cache instantaneamente
+    const tempId = 'opt-' + Date.now();
+    const agoraIso = new Date().toISOString();
+    const nomeRemetente = user?.full_name?.split(' ')[0] || 'Você';
+    const optimisticMsg = {
+      id: tempId,
+      message_id: null,
+      mensagem: texto,
+      tipo_mensagem: 'texto',
+      remetente_nome: nomeRemetente,
+      remetente_tipo: 'voxx',
+      origem: 'enviada',
+      from_me: true,
+      received_at: agoraIso,
+      timestamp_mensagem: agoraIso,
+      status_entrega: 'pendente',
+      midia_url: null,
+      midia_nome: null,
+      midia_mimetype: null,
+      reacoes: [],
+      deletado: false,
+      is_group: selectedChat.isGroup,
+      grupo_id: selectedChat.id,
+      grupo_nome: selectedChat.name || null,
+      cliente_id: selectedChat.clienteId || null,
+      cliente_nome: selectedChat.clienteNome || null,
+      ...(citacao && {
+        citacao_id: citacao.citacaoId,
+        citacao_texto: citacao.citacaoTexto,
+        citacao_remetente: citacao.citacaoRemetente,
+        citacao_tipo: citacao.citacaoTipo,
+        citacao_midia_url: citacao.citacaoMidiaUrl,
+      }),
+    };
+    queryClient.setQueryData(['chatHubMsgs', selectedChat.id], (old) => {
+      if (!old) return [optimisticMsg];
+      return [optimisticMsg, ...old];
+    });
     queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
     queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
+
     try {
       const res = await base44.functions.invoke('enviarMensagemGeral', {
         chatId: selectedChat.id,
@@ -540,10 +579,15 @@ export default function ChatHubDrawer({ onClose, user }) {
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
         queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
       } else {
+        // Invalida para sincronizar com a mensagem real do banco
+        queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
+        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+        queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
         concluirTagsAtivas();
       }
     } catch (e) {
       toast.error('Erro ao enviar: ' + (e.message || 'Desconhecido'));
+      queryClient.invalidateQueries({ queryKey: ['chatHubMsgs', selectedChat.id] });
     } finally {
       setEnviando(false);
     }

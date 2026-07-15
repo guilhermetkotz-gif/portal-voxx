@@ -230,11 +230,9 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
 
     if (!texto) return;
     setEnviando(true);
-    // Limpa input, reply e invalida queries IMEDIATAMENTE — backend salva a msg antes de chamar Z-API
+    // Limpa input e reply IMEDIATAMENTE
     setMensagem('');
     setRespondendoA(null);
-    queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
-    queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
     const citacao = respondendoA ? {
       citacaoId: respondendoA.message_id || respondendoA.id,
       citacaoTexto: respondendoA.mensagem || '',
@@ -242,6 +240,45 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       citacaoTipo: respondendoA.tipo_mensagem || 'texto',
       citacaoMidiaUrl: respondendoA.midia_url || '',
     } : null;
+
+    // Otimistic update: adiciona a mensagem ao cache instantaneamente
+    const tempId = 'opt-' + Date.now();
+    const agoraIso = new Date().toISOString();
+    const optimisticMsg = {
+      id: tempId,
+      message_id: null,
+      mensagem: texto,
+      tipo_mensagem: 'texto',
+      remetente_nome: 'Você',
+      remetente_tipo: 'voxx',
+      origem: 'enviada',
+      from_me: true,
+      received_at: agoraIso,
+      timestamp_mensagem: agoraIso,
+      status_entrega: 'pendente',
+      midia_url: null,
+      midia_nome: null,
+      midia_mimetype: null,
+      reacoes: [],
+      deletado: false,
+      is_group: isGroup,
+      grupo_id: chatId,
+      grupo_nome: chatName || null,
+      cliente_id: clienteId || null,
+      cliente_nome: clienteNome || null,
+      ...(citacao && {
+        citacao_id: citacao.citacaoId,
+        citacao_texto: citacao.citacaoTexto,
+        citacao_remetente: citacao.citacaoRemetente,
+        citacao_tipo: citacao.citacaoTipo,
+        citacao_midia_url: citacao.citacaoMidiaUrl,
+      }),
+    };
+    queryClient.setQueryData(['chatMsgs', chatId], (old) => {
+      if (!old) return [optimisticMsg];
+      return [optimisticMsg, ...old];
+    });
+    queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
 
     try {
       const res = await base44.functions.invoke('enviarMensagemGeral', {
@@ -258,10 +295,14 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         toast.error(res.data?.erro || 'Erro ao enviar mensagem');
         queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
       } else {
+        // Invalida para sincronizar com a mensagem real do banco
+        queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+        queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
         concluirTagsAtivas();
       }
     } catch (e) {
       toast.error('Erro ao enviar: ' + (e.message || 'Desconhecido'));
+      queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
     } finally {
       setEnviando(false);
     }
