@@ -163,7 +163,7 @@ export default function RadarWhatsApp({ user }) {
       const horasSemMensagem = tsUltimaGeral
         ? calcularHorasUteisSemFimDeSemana(tsUltimaGeral, new Date().toISOString())
         : Infinity;
-      const inativo72h = horasSemMensagem >= 72;
+      const inativo72h = horasSemMensagem >= 72 && !!g.cliente_id;
 
       // score de ordenação (1=mais urgente)
       let ordem = 6; // saudável
