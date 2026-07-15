@@ -134,31 +134,30 @@ Deno.serve(async (req) => {
         erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
       }
     } else if (tipo === 'audio' && midiaUrl) {
-      const audioExt = (fileName || midiaUrl || '').split('.').pop()?.toLowerCase() || '';
-      // Z-API não converte .webm — enviar como documento neste caso
-      if (audioExt === 'webm') {
-        const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-document/webm`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileName || 'audio.webm' }),
-        });
-        resultadoApi = await resp.json().catch(() => null);
-        const apiError = isZapiError(resultadoApi);
-        if (!resp.ok || apiError) {
-          statusEnvio = 'erro';
-          erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
-        }
+      // Tentar send-audio primeiro (envia como áudio reproduzível / nota de voz)
+      const audioResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-audio`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ phone: chatId, audio: midiaUrl, waveform: true }),
+      });
+      const audioResult = await audioResp.json().catch(() => null);
+      const audioError = isZapiError(audioResult);
+
+      if (audioResp.ok && !audioError) {
+        resultadoApi = audioResult;
       } else {
-        const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-audio`, {
+        // Fallback: se send-audio falhar, enviar como documento
+        const audioExt = (fileName || midiaUrl || '').split('.').pop()?.toLowerCase() || 'mp3';
+        const fallbackResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-document/${audioExt}`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ phone: chatId, audio: midiaUrl }),
+          body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileName || 'audio.' + audioExt }),
         });
-        resultadoApi = await resp.json().catch(() => null);
-        const apiError = isZapiError(resultadoApi);
-        if (!resp.ok || apiError) {
+        resultadoApi = await fallbackResp.json().catch(() => null);
+        const fallbackError = isZapiError(resultadoApi);
+        if (!fallbackResp.ok || fallbackError) {
           statusEnvio = 'erro';
-          erroEnvio = apiError || `Z-API HTTP ${resp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
+          erroEnvio = fallbackError || `Z-API HTTP ${fallbackResp.status}: ${JSON.stringify(resultadoApi).substring(0, 200)}`;
         }
       }
     } else if (tipo === 'documento' && midiaUrl) {
