@@ -154,11 +154,13 @@ export default function GestaoSaldoMetaAds({ user }) {
       let gastoDiario = 0;
       const nomeCliente = cliente.nome?.trim();
       
-      // Normalizar nome para comparação (remover espaços extras, hífens, tornar minúsculo)
+      // Normalizar nome para comparação (remover espaços extras, hífens, sufixos entre parênteses/colchetes)
       const normalizeNome = (nome) => {
         return nome?.toLowerCase()
+          .replace(/\s*\(.*?\)\s*/g, ' ')
+          .replace(/\s*\[.*?\]\s*/g, ' ')
+          .replace(/\s*-\s*/g, ' ')
           .replace(/\s+/g, ' ')
-          .replace(/\s*-\s*/g, '')
           .trim() || '';
       };
       
@@ -208,7 +210,7 @@ export default function GestaoSaldoMetaAds({ user }) {
         saldoAlert,
       };
     });
-  }, [clientes, balanceControls, planejamentos, statusFilter, searchTerm, editingRows]);
+  }, [clientes, balanceControls, planejamentos, statusFilter, searchTerm, editingRows, diarioD1ByAccount]);
 
   const handleFieldChange = (clientId, field, value) => {
     setEditingRows(prev => ({
