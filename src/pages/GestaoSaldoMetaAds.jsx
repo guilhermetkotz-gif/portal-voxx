@@ -150,9 +150,10 @@ export default function GestaoSaldoMetaAds({ user }) {
         .filter(t => t.pago)
         .reduce((sum, t) => sum + (parseFloat(t.valor) || 0), 0);
       
-      // Buscar gasto diário da planilha (D-1) usando o nome do cliente
+      // Buscar gasto diário da planilha (D-1) usando o nome do cliente ou conta_nome
       let gastoDiario = 0;
       const nomeCliente = cliente.nome?.trim();
+      const contaNome = mainAccount?.conta_nome?.trim();
       
       // Normalizar nome para comparação (remover espaços extras, hífens, sufixos entre parênteses/colchetes)
       const normalizeNome = (nome) => {
@@ -164,18 +165,26 @@ export default function GestaoSaldoMetaAds({ user }) {
           .trim() || '';
       };
       
-      const clienteNormalizado = normalizeNome(nomeCliente);
+      const candidatosBusca = [nomeCliente, contaNome].filter(Boolean);
+      const candidatosNormalizados = candidatosBusca.map(n => normalizeNome(n));
+      const sheetKeys = Object.keys(diarioD1ByAccount);
       
-      // Buscar correspondência exata primeiro
-      if (nomeCliente && diarioD1ByAccount[nomeCliente] !== undefined) {
-        gastoDiario = diarioD1ByAccount[nomeCliente];
-      } else {
-        // Buscar por correspondência normalizada
-        const matchingKey = Object.keys(diarioD1ByAccount).find(key => 
-          normalizeNome(key) === clienteNormalizado
-        );
-        if (matchingKey) {
-          gastoDiario = diarioD1ByAccount[matchingKey];
+      // 1. Buscar correspondência exata (cliente.nome ou conta_nome)
+      for (const candidato of candidatosBusca) {
+        if (diarioD1ByAccount[candidato] !== undefined) {
+          gastoDiario = diarioD1ByAccount[candidato];
+          break;
+        }
+      }
+      
+      // 2. Buscar por correspondência normalizada
+      if (!gastoDiario) {
+        for (const normCandidato of candidatosNormalizados) {
+          const matchingKey = sheetKeys.find(key => normalizeNome(key) === normCandidato);
+          if (matchingKey) {
+            gastoDiario = diarioD1ByAccount[matchingKey];
+            break;
+          }
         }
       }
       const qtdTomadas = edits.qtd_tomadas !== undefined ? parseInt(edits.qtd_tomadas) : (balance?.qtd_tomadas || 4);
