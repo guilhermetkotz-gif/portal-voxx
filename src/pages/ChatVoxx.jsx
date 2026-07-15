@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import UserList from '@/components/chat-voxx/UserList';
 import MessageBubble from '@/components/chat-voxx/MessageBubble';
 import MessageInput from '@/components/chat-voxx/MessageInput';
@@ -290,6 +291,29 @@ function ChatVoxxInner({ user }) {
     setSelectedUserId(null);
     setReplyingTo(null);
   };
+
+  // Abrir conversa a partir de notificação (URL param convId)
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const convId = searchParams.get('convId');
+    if (!convId || !conversations.length || !user?.id) return;
+    const conv = conversations.find(c => c.id === convId);
+    if (!conv) return;
+    if (conv.is_group) {
+      setSelectedGroup(conv);
+      setSelectedUserId(null);
+      setReplyingTo(null);
+    } else {
+      const otherUserId = conv.participantes?.find(p => p !== user.id);
+      if (otherUserId) {
+        setSelectedUserId(otherUserId);
+        setSelectedGroup(null);
+        setReplyingTo(null);
+      }
+    }
+    searchParams.delete('convId');
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, conversations, user?.id, setSearchParams]);
 
   const selectedUser = contactList.find(u => u.id === selectedUserId);
   const isGroupChat = activeConversation?.is_group;

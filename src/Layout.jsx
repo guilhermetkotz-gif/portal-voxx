@@ -14,6 +14,7 @@ import { createPageUrl } from '@/utils';
 import ChatWidget from '@/components/chat/ChatWidget';
 import ReuniaoLembrete from '@/components/agenda/ReuniaoLembrete';
 import RetornoClienteToast from '@/components/notificacoes/RetornoClienteToast';
+import ChatVoxxNotifier from '@/components/chat-voxx/ChatVoxxNotifier';
 import { Toaster } from '@/components/ui/toaster';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/AuthContext';
@@ -384,6 +385,9 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Toast grande de retorno de cliente */}
       {user && isVoxxUserEarly && <RetornoClienteToast />}
+
+      {/* Notificações de novas mensagens do Chat Voxx */}
+      {user && isVoxxUserEarly && <ChatVoxxNotifier user={user} />}
     </div>
   );
 }
