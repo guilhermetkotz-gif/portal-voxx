@@ -30,6 +30,36 @@ export default function MessageInput({ onSend, onSendMedia, onSendSticker, reply
     }
   };
 
+  const handlePaste = async (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) return;
+        const ext = file.type.split('/')[1] || 'png';
+        const namedFile = new File([file], `imagem-cola.${ext}`, { type: file.type });
+        setUploading(true);
+        try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: namedFile });
+          onSendMedia({
+            tipo_mensagem: 'imagem',
+            midia_url: file_url,
+            midia_nome: namedFile.name,
+            midia_mimetype: file.type,
+            conteudo: ''
+          });
+        } catch (err) {
+          console.error('Erro no upload da imagem colada:', err);
+        } finally {
+          setUploading(false);
+        }
+        return;
+      }
+    }
+  };
+
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -121,6 +151,7 @@ export default function MessageInput({ onSend, onSendMedia, onSendSticker, reply
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder="Digite sua mensagem..."
           disabled={disabled || sending}
           rows={1}
