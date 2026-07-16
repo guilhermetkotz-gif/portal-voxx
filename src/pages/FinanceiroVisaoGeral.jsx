@@ -48,6 +48,7 @@ export default function FinanceiroVisaoGeral() {
     }, 0);
     const lucro = recebido - custoTotal - folhaTotal;
     const clientesAtivos = clientesFinanceiros.filter(c => c.status === 'ativo').length;
+    const clientesEncerrados = clientesFinanceiros.filter(c => c.status === 'encerrado').length;
     const clientesNovos = clientesFinanceiros.filter(c => {
       if (!c.data_inicio) return false;
       return c.data_inicio.startsWith(mesAtual);
@@ -59,7 +60,7 @@ export default function FinanceiroVisaoGeral() {
       if (!dataReferencia) return false;
       return dataReferencia.startsWith(mesAtual);
     }).length;
-    return { mrr, recebido, pendente, atraso, inadimplencia, custoFixo, custoVariavel, custoTotal, folhaTotal, lucro, clientesAtivos, clientesNovos, clientesPerdidos };
+    return { mrr, recebido, pendente, atraso, inadimplencia, custoFixo, custoVariavel, custoTotal, folhaTotal, lucro, clientesAtivos, clientesEncerrados, clientesNovos, clientesPerdidos };
   }, [receitas, custos, folha]);
 
   const alertas = useMemo(() => {
@@ -89,6 +90,7 @@ export default function FinanceiroVisaoGeral() {
 
   const carteiraCards = [
     { label: 'Clientes Ativos', value: kpis.clientesAtivos, icon: Users, color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-200' },
+    { label: 'Encerrados', value: kpis.clientesEncerrados, icon: UserMinus, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
     { label: 'Novos no Mês', value: kpis.clientesNovos, icon: UserPlus, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
     { label: 'Perdidos no Mês', value: kpis.clientesPerdidos, icon: UserMinus, color: kpis.clientesPerdidos > 0 ? 'text-red-600' : 'text-slate-500', bg: kpis.clientesPerdidos > 0 ? 'bg-red-50' : 'bg-slate-50', border: kpis.clientesPerdidos > 0 ? 'border-red-200' : 'border-slate-200' },
     { label: 'Crescimento Líquido', value: kpis.clientesNovos - kpis.clientesPerdidos >= 0 ? `+${kpis.clientesNovos - kpis.clientesPerdidos}` : kpis.clientesNovos - kpis.clientesPerdidos, icon: Activity, color: kpis.clientesNovos - kpis.clientesPerdidos >= 0 ? 'text-emerald-600' : 'text-red-600', bg: kpis.clientesNovos - kpis.clientesPerdidos >= 0 ? 'bg-emerald-50' : 'bg-red-50', border: kpis.clientesNovos - kpis.clientesPerdidos >= 0 ? 'border-emerald-200' : 'border-red-200' },
@@ -182,7 +184,7 @@ export default function FinanceiroVisaoGeral() {
           </h2>
           <Link to="/FinanceiroCarteira" className="text-xs text-violet-600 hover:underline">Ver detalhes →</Link>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {carteiraCards.map((kpi, i) => {
             const Icon = kpi.icon;
             return (
