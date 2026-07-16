@@ -100,8 +100,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const [tempoGravacao, setTempoGravacao] = useState(0);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
-  const [imagemColada, setImagemColada] = useState(null); // { file, previewUrl }
-  const [arquivoSelecionado, setArquivoSelecionado] = useState(null); // { file, previewUrl, tipo }
+  const [arquivosSelecionados, setArquivosSelecionados] = useState([]); // [{ file, previewUrl, tipo }]
   const [respondendoA, setRespondendoA] = useState(null); // mensagem sendo respondida
   const [forwardMsg, setForwardMsg] = useState(null); // mensagem a encaminhar
   const [showReativacaoModal, setShowReativacaoModal] = useState(false);
@@ -188,42 +187,41 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     const texto = mensagem.trim();
     if (enviando) return;
 
-    const midiaParaEnviar = imagemColada || arquivoSelecionado;
-
-    // Se tem imagem colada ou arquivo selecionado, envia a mídia (com texto opcional como legenda)
-    if (midiaParaEnviar) {
+    // Se tem arquivos selecionados, envia todos (legenda apenas no primeiro)
+    if (arquivosSelecionados.length > 0) {
       setEnviando(true);
-      const file = midiaParaEnviar.file;
-      const previewUrl = midiaParaEnviar.previewUrl;
-      const tipoMidia = midiaParaEnviar.tipo || 'imagem';
+      const arquivos = [...arquivosSelecionados];
+      setArquivosSelecionados([]);
       setMensagem('');
-      setImagemColada(null);
-      setArquivoSelecionado(null);
       try {
-        const uploadRes = await base44.integrations.Core.UploadFile({ file });
-        const res = await base44.functions.invoke('enviarMensagemGeral', {
-          chatId,
-          tipo: tipoMidia,
-          mensagem: texto || '',
-          midiaUrl: uploadRes.file_url,
-          fileName: file.name || (tipoMidia === 'imagem' ? 'imagem.png' : tipoMidia === 'video' ? 'video.mp4' : 'documento'),
-          incluirAssinatura: false,
-          clienteId: clienteId || '',
-          clienteNome: clienteNome || '',
-          chatName: chatName || '',
-        });
-        if (res.data?.success) {
-          queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
-          queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
-          concluirTagsAtivas();
-        } else {
-          toast.error(res.data?.erro || 'Erro ao enviar arquivo');
+        for (let i = 0; i < arquivos.length; i++) {
+          const { file, previewUrl, tipo } = arquivos[i];
+          const tipoMidia = tipo || 'imagem';
+          const uploadRes = await base44.integrations.Core.UploadFile({ file });
+          const res = await base44.functions.invoke('enviarMensagemGeral', {
+            chatId,
+            tipo: tipoMidia,
+            mensagem: i === 0 ? texto : '',
+            midiaUrl: uploadRes.file_url,
+            fileName: file.name || (tipoMidia === 'imagem' ? 'imagem.png' : tipoMidia === 'video' ? 'video.mp4' : 'documento'),
+            incluirAssinatura: false,
+            clienteId: clienteId || '',
+            clienteNome: clienteNome || '',
+            chatName: chatName || '',
+          });
+          if (res.data?.success) {
+            queryClient.invalidateQueries({ queryKey: ['chatMsgs', chatId] });
+            queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
+            if (i === arquivos.length - 1) concluirTagsAtivas();
+          } else {
+            toast.error(res.data?.erro || 'Erro ao enviar arquivo');
+          }
         }
       } catch (e) {
         toast.error('Erro ao enviar arquivo: ' + (e.message || 'Desconhecido'));
       } finally {
+        arquivos.forEach(a => { if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); });
         setEnviando(false);
-        if (previewUrl) URL.revokeObjectURL(previewUrl);
       }
       return;
     }
@@ -308,32 +306,26 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     }
   };
 
-  // Selecionar arquivo — armazena preview, envia só ao clicar enviar
+  // Selecionar arquivos — armazena preview, envia só ao clicar enviar
   const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     e.target.value = '';
 
-    let tipo = 'documento';
-    let previewUrl = null;
-    if (file.type.startsWith('image/')) {
-      tipo = 'imagem';
-      previewUrl = URL.createObjectURL(file);
-    } else if (file.type.startsWith('video/')) {
-      tipo = 'video';
-      previewUrl = URL.createObjectURL(file);
-    }
+    const novos = files.map(file => {
+      let tipo = 'documento';
+      let previewUrl = null;
+      if (file.type.startsWith('image/')) {
+        tipo = 'imagem';
+        previewUrl = URL.createObjectURL(file);
+      } else if (file.type.startsWith('video/')) {
+        tipo = 'video';
+        previewUrl = URL.createObjectURL(file);
+      }
+      return { file, previewUrl, tipo };
+    });
 
-    // Remove preview anterior se existir
-    if (imagemColada) {
-      URL.revokeObjectURL(imagemColada.previewUrl);
-      setImagemColada(null);
-    }
-    if (arquivoSelecionado?.previewUrl) {
-      URL.revokeObjectURL(arquivoSelecionado.previewUrl);
-    }
-
-    setArquivoSelecionado({ file, previewUrl, tipo });
+    setArquivosSelecionados(prev => [...prev, ...novos]);
   };
 
   // Gravação de áudio nativo
@@ -464,7 +456,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     }
   };
 
-  // Colar imagem do clipboard — armazena preview, envia só ao clicar enviar
+  // Colar imagem do clipboard — adiciona à lista, envia só ao clicar enviar
   const handlePaste = (e) => {
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -474,7 +466,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
         const file = item.getAsFile();
         if (!file) continue;
         const previewUrl = URL.createObjectURL(file);
-        setImagemColada({ file, previewUrl });
+        setArquivosSelecionados(prev => [...prev, { file, previewUrl, tipo: 'imagem' }]);
         break;
       }
     }
@@ -1066,38 +1058,31 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               </div>
             </div>
           )}
-          {imagemColada && (
-            <div className="mb-2 relative inline-block">
-              <img src={imagemColada.previewUrl} alt="Preview" className={`max-h-32 rounded-lg border ${t.borderLight}`} />
-              <button
-                onClick={() => { URL.revokeObjectURL(imagemColada.previewUrl); setImagemColada(null); }}
-                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          )}
-          {arquivoSelecionado && (
-            <div className="mb-2 relative inline-block">
-              {arquivoSelecionado.tipo === 'imagem' && arquivoSelecionado.previewUrl ? (
-                <img src={arquivoSelecionado.previewUrl} alt="Preview" className={`max-h-32 rounded-lg border ${t.borderLight}`} />
-              ) : arquivoSelecionado.tipo === 'video' && arquivoSelecionado.previewUrl ? (
-                <video src={arquivoSelecionado.previewUrl} className={`max-h-32 rounded-lg border ${t.borderLight}`} controls />
-              ) : (
-                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${t.borderLight} ${t.bg}`}>
-                  <FileText className="w-5 h-5 text-slate-400" />
-                  <span className={`text-xs ${t.textSecondary} truncate max-w-[200px]`}>{arquivoSelecionado.file.name}</span>
+          {arquivosSelecionados.length > 0 && (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {arquivosSelecionados.map((arq, idx) => (
+                <div key={idx} className="relative inline-block">
+                  {arq.tipo === 'imagem' && arq.previewUrl ? (
+                    <img src={arq.previewUrl} alt="Preview" className={`max-h-32 rounded-lg border ${t.borderLight}`} />
+                  ) : arq.tipo === 'video' && arq.previewUrl ? (
+                    <video src={arq.previewUrl} className={`max-h-32 rounded-lg border ${t.borderLight}`} controls />
+                  ) : (
+                    <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border ${t.borderLight} ${t.bg}`}>
+                      <FileText className="w-5 h-5 text-slate-400" />
+                      <span className={`text-xs ${t.textSecondary} truncate max-w-[200px]`}>{arq.file.name}</span>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (arq.previewUrl) URL.revokeObjectURL(arq.previewUrl);
+                      setArquivosSelecionados(prev => prev.filter((_, i) => i !== idx));
+                    }}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 </div>
-              )}
-              <button
-                onClick={() => {
-                  if (arquivoSelecionado.previewUrl) URL.revokeObjectURL(arquivoSelecionado.previewUrl);
-                  setArquivoSelecionado(null);
-                }}
-                className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs shadow"
-              >
-                <X className="w-3 h-3" />
-              </button>
+              ))}
             </div>
           )}
           <div className="flex items-center gap-2">
@@ -1183,6 +1168,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
               ref={fileInputRef}
               onChange={handleFileSelect}
               className="hidden"
+              multiple
               accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx"
             />
 
@@ -1227,7 +1213,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             </div>
 
             {/* Microfone ou Enviar */}
-            {gravando ? null : (mensagem.trim() || imagemColada || arquivoSelecionado) ? (
+            {gravando ? null : (mensagem.trim() || arquivosSelecionados.length > 0) ? (
               <button
                 className={`w-10 h-10 flex items-center justify-center rounded-full text-white ${t.sendBtnBg} shrink-0 transition-colors`}
                 onClick={handleSend}
