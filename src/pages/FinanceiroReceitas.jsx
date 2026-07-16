@@ -183,26 +183,6 @@ function InadimplenciaView({ allRecebimentos }) {
     queryFn: () => base44.entities.FinanceiroReceita.filter({}, '-created_date', 5000),
   });
 
-  const { data: clientesFinanceiros = [] } = useQuery({
-    queryKey: ['clientesFinanceiros'],
-    queryFn: () => base44.entities.ClienteFinanceiro.list('-created_date', 500),
-    staleTime: 60 * 1000,
-  });
-
-  // Set de nomes de clientes encerrados para excluir da inadimplência
-  const encerradosSet = useMemo(() => {
-    const set = new Set();
-    for (const c of clientesFinanceiros) {
-      if (c.status === 'encerrado') {
-        const base = (c.nome || '').toLowerCase().trim();
-        const full = base + (c.unidade ? ` — ${c.unidade}` : '');
-        set.add(base);
-        set.add(full.toLowerCase().trim());
-      }
-    }
-    return set;
-  }, [clientesFinanceiros]);
-
   const inadimplentes = useMemo(() => {
     const hoje = format(new Date(), 'yyyy-MM-dd');
     const mesAtual = format(new Date(), 'yyyy-MM');
@@ -229,12 +209,6 @@ function InadimplenciaView({ allRecebimentos }) {
         return { ...r, ...calc, dias: diasAtraso(r.data_cobranca) };
       })
       .filter(r => (r.status === 'em_atraso' || r.status === 'parcial') && r.data_cobranca < hoje)
-      // Excluir clientes encerrados
-      .filter(r => {
-        const nomeNorm = (r.cliente_nome || '').toLowerCase().trim();
-        const baseNome = nomeNorm.split(' — ')[0].trim();
-        return !encerradosSet.has(nomeNorm) && !encerradosSet.has(baseNome);
-      })
       .filter(r => {
         const matchUnidade = !filtroUnidade || r.cliente_nome?.toLowerCase().includes(filtroUnidade.toLowerCase());
         const matchPeriodo = filtroPeriodo === 'all'
@@ -243,7 +217,7 @@ function InadimplenciaView({ allRecebimentos }) {
         return matchUnidade && matchPeriodo;
       })
       .sort((a, b) => b.dias - a.dias);
-  }, [todasReceitas, allRecebimentos, filtroUnidade, filtroPeriodo, encerradosSet]);
+  }, [todasReceitas, allRecebimentos, filtroUnidade, filtroPeriodo]);
 
   const totalPendente = inadimplentes.reduce((s, r) => s + (r.saldoPendente || 0), 0);
   const inadTotal = inadimplentes.filter(r => r.status === 'em_atraso').length;
