@@ -6,9 +6,10 @@ import UserList from '@/components/chat-voxx/UserList';
 import MessageBubble from '@/components/chat-voxx/MessageBubble';
 import MessageInput from '@/components/chat-voxx/MessageInput';
 import CreateGroupModal from '@/components/chat-voxx/CreateGroupModal';
+import ManageParticipantsModal from '@/components/chat-voxx/ManageParticipantsModal';
 import ImageCropperModal from '@/components/chat-voxx/ImageCropperModal';
 import ChatErrorBoundary from '@/components/chat-voxx/ChatErrorBoundary';
-import { Loader2, MessageCircle, Users, ArrowLeft, Camera } from 'lucide-react';
+import { Loader2, MessageCircle, Users, ArrowLeft, Camera, UserCog } from 'lucide-react';
 
 function ChatVoxxInner({ user }) {
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -17,6 +18,7 @@ function ChatVoxxInner({ user }) {
   const [messages, setMessages] = useState([]);
   const [replyingTo, setReplyingTo] = useState(null);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showManageParticipants, setShowManageParticipants] = useState(false);
   const [groupPhotoFile, setGroupPhotoFile] = useState(null);
   const messagesEndRef = useRef(null);
   const groupPhotoInputRef = useRef(null);
@@ -303,6 +305,16 @@ function ChatVoxxInner({ user }) {
     }
   };
 
+  const handleUpdateParticipants = async (newParticipants) => {
+    if (!activeConversation?.id) return;
+    const updated = await base44.entities.ChatVoxxConversa.update(activeConversation.id, {
+      participantes: newParticipants
+    });
+    setActiveConversation(updated);
+    setSelectedGroup(updated);
+    queryClient.invalidateQueries(['chatVoxxConversas']);
+  };
+
   const handleSelectUser = (userId) => {
     setSelectedUserId(userId);
     setSelectedGroup(null);
@@ -409,6 +421,15 @@ function ChatVoxxInner({ user }) {
                 <h3 className="font-semibold text-slate-900 truncate">{headerTitle}</h3>
                 <p className="text-xs text-slate-500 truncate">{headerSubtitle}</p>
               </div>
+              {isGroupChat && (
+                <button
+                  onClick={() => setShowManageParticipants(true)}
+                  className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-violet-600 transition-colors flex-shrink-0"
+                  title="Gerenciar participantes"
+                >
+                  <UserCog className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
             {/* Messages */}
@@ -468,6 +489,15 @@ function ChatVoxxInner({ user }) {
         users={contactList}
         currentUser={user}
         onCreate={handleCreateGroup}
+      />
+
+      <ManageParticipantsModal
+        open={showManageParticipants}
+        onClose={() => setShowManageParticipants(false)}
+        group={activeConversation}
+        users={contactList}
+        currentUser={user}
+        onUpdate={handleUpdateParticipants}
       />
     </div>
   );
