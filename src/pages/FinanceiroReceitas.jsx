@@ -507,7 +507,16 @@ export default function FinanceiroReceitas() {
   };
 
   const handleDelete = async () => {
+    // Excluir também duplicatas do mesmo cliente_nome + mes_referencia (que estavam ocultas pela deduplicação)
+    const duplicates = receitas.filter(r =>
+      r.id !== deleteTarget.id &&
+      (r.cliente_nome || '').toLowerCase().trim() === (deleteTarget.cliente_nome || '').toLowerCase().trim() &&
+      r.mes_referencia === deleteTarget.mes_referencia
+    );
     await base44.entities.FinanceiroReceita.delete(deleteTarget.id);
+    for (const r of duplicates) {
+      await base44.entities.FinanceiroReceita.delete(r.id);
+    }
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setDeleteTarget(null);
   };
@@ -532,8 +541,14 @@ export default function FinanceiroReceitas() {
     for (const r of futuros) {
       await base44.entities.FinanceiroReceita.delete(r.id);
     }
-    // Atualiza o registro atual encerrando a recorrência
-    await base44.entities.FinanceiroReceita.update(form.id, { recorrente: false, data_fim: mes + '-28' });
+    // Atualiza o registro atual e quaisquer duplicatas do mesmo cliente/mês (encerrando a recorrência)
+    const atuais = await base44.entities.FinanceiroReceita.filter({
+      cliente_nome: form.cliente_nome,
+      mes_referencia: mes,
+    }, '-created_date', 50);
+    for (const r of atuais) {
+      await base44.entities.FinanceiroReceita.update(r.id, { recorrente: false, data_fim: mes + '-28' });
+    }
     qc.invalidateQueries({ queryKey: ['fin-receitas'] });
     setFinalizando(false);
     setShowFinalizarRecorrencia(false);
