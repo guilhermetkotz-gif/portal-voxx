@@ -180,7 +180,7 @@ export default function HistoricoOtimizacoesCliente() {
                     const data = o.data_acao?.slice(0, 10);
                     if (dateFrom && data < dateFrom) return false;
                     if (dateTo && data > dateTo) return false;
-                    if (origemFiltro !== 'todos' && o.origem_registro !== origemFiltro) return false;
+                    if (origemFiltro !== 'todos' && (o.origem_registro || 'monitoramento') !== origemFiltro) return false;
                     return true;
                 });
                 return otimizacoesFiltradas.length === 0 ? (

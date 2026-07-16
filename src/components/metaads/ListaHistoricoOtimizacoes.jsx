@@ -31,7 +31,7 @@ export default function ListaHistoricoOtimizacoes() {
     // Aplicar filtro de origem antes de agrupar
     const otimizacoesFiltradasOrigem = origemFiltro === 'todos'
         ? todasOtimizacoes
-        : todasOtimizacoes.filter(o => o.origem_registro === origemFiltro);
+        : todasOtimizacoes.filter(o => (o.origem_registro || 'monitoramento') === origemFiltro);
 
     // Agrupar otimizações por conta e pegar a última
     const contasComOtimizacoes = contas.map(conta => {
