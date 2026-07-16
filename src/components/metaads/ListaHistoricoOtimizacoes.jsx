@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Calendar, FileText, ExternalLink, Kanban, BarChart3 } from 'lucide-react';
+import { Loader2, Search, Calendar, FileText, ExternalLink, Kanban, BarChart3, TrendingUp, Users, CalendarDays } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from 'moment-timezone';
@@ -36,6 +36,34 @@ export default function ListaHistoricoOtimizacoes() {
     const otimizacoesFiltradasOrigem = origemFiltro === 'todos'
         ? todasOtimizacoes
         : todasOtimizacoes.filter(o => (o.origem_registro || 'monitoramento') === origemFiltro);
+
+    // KPIs: total no mês, total hoje, por usuário
+    const kpis = useMemo(() => {
+        const now = moment().tz('America/Sao_Paulo');
+        const mesAtual = now.format('YYYY-MM');
+        const diaAtual = now.format('YYYY-MM-DD');
+
+        const noMes = otimizacoesFiltradasOrigem.filter(o => {
+            const data = o.data_acao?.slice(0, 10);
+            return data && data.startsWith(mesAtual);
+        });
+
+        const hoje = otimizacoesFiltradasOrigem.filter(o => {
+            return o.data_acao?.slice(0, 10) === diaAtual;
+        });
+
+        const porUsuario = {};
+        otimizacoesFiltradasOrigem.forEach(o => {
+            const nome = o.usuario_nome || 'Não identificado';
+            if (!porUsuario[nome]) porUsuario[nome] = { nome, total: 0, noMes: 0 };
+            porUsuario[nome].total++;
+            const data = o.data_acao?.slice(0, 10);
+            if (data && data.startsWith(mesAtual)) porUsuario[nome].noMes++;
+        });
+        const usuariosRanking = Object.values(porUsuario).sort((a, b) => b.total - a.total);
+
+        return { totalMes: noMes.length, totalHoje: hoje.length, usuariosRanking };
+    }, [otimizacoesFiltradasOrigem]);
 
     // Agrupar otimizações por conta e pegar a última
     const contasComOtimizacoes = contas.map(conta => {
@@ -101,6 +129,47 @@ export default function ListaHistoricoOtimizacoes() {
 
     return (
         <div className="space-y-6">
+            {/* KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <CalendarDays className="w-4 h-4 text-violet-600" />
+                            <span className="text-xs text-slate-500">Otimizações no Mês</span>
+                        </div>
+                        <p className="text-2xl font-bold text-slate-900">
+                            {kpis.totalMes}
+                            <span className="text-sm text-slate-400 ml-1">/ {otimizacoesFiltradasOrigem.length} total</span>
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <TrendingUp className="w-4 h-4 text-green-600" />
+                            <span className="text-xs text-slate-500">Otimizações Hoje</span>
+                        </div>
+                        <p className="text-2xl font-bold text-slate-900">{kpis.totalHoje}</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <Users className="w-4 h-4 text-blue-600" />
+                            <span className="text-xs text-slate-500">Por Usuário</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                            {kpis.usuariosRanking.slice(0, 4).map((u, i) => (
+                                <Badge key={i} variant="outline" className="text-xs gap-1">
+                                    {u.nome}
+                                    <span className="text-violet-600 font-bold">{u.total}</span>
+                                </Badge>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
             <div className="flex items-center gap-4">
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
