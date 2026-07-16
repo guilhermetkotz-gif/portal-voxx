@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
       cliente_id: clienteId,
       cliente_nome: clienteNome,
       account_name: accountName,
+      origem_registro: otim.origem_registro || 'monitoramento',
       data_otimizacao: otim.data_acao || new Date().toISOString().split('T')[0],
       status: 'pendente',
       snapshot_t0: snapshotT0,

@@ -2,7 +2,7 @@ import React from 'react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, Minus, MessageSquare, Sparkles, Lightbulb, Target, Activity, Smile } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, MessageSquare, Sparkles, Lightbulb, Target, Activity, Smile, Kanban, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import moment from 'moment-timezone';
 
@@ -75,6 +75,17 @@ export default function EficaciaDetalheDrawer({ open, onOpenChange, avaliacao })
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <h2 className="text-xl font-bold text-slate-900">{avaliacao.account_name}</h2>
+                            {avaliacao.origem_registro === 'kanban' ? (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                                    <Kanban className="w-3 h-3" />
+                                    Kanban
+                                </Badge>
+                            ) : (
+                                <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                                    <BarChart3 className="w-3 h-3" />
+                                    Monitoramento
+                                </Badge>
+                            )}
                             {isConcluida && (
                                 <Badge className={eficaciaConfig.className}>
                                     <EficaciaIcon className="w-3 h-3 mr-1" />

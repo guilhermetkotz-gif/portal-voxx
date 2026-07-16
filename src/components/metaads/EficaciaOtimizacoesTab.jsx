@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, TrendingUp, TrendingDown, Minus, MessageSquare, BarChart3, Target, Smile, Activity, Clock } from 'lucide-react';
+import { Loader2, Search, TrendingUp, TrendingDown, Minus, MessageSquare, BarChart3, Target, Smile, Activity, Clock, Kanban } from 'lucide-react';
 import EficaciaDetalheDrawer from '@/components/metaads/EficaciaDetalheDrawer';
 import { cn } from '@/lib/utils';
 import moment from 'moment-timezone';
@@ -212,6 +212,17 @@ export default function EficaciaOtimizacoesTab() {
                                             <h3 className="font-semibold text-slate-900 truncate">
                                                 {aval.account_name}
                                             </h3>
+                                            {aval.origem_registro === 'kanban' ? (
+                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                                                    <Kanban className="w-3 h-3" />
+                                                    Kanban
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                                                    <BarChart3 className="w-3 h-3" />
+                                                    Monitoramento
+                                                </Badge>
+                                            )}
                                             {aval.status === 'pendente' && (
                                                 <Badge variant="outline" className="text-yellow-600 border-yellow-300">
                                                     <Clock className="w-3 h-3 mr-1" />
