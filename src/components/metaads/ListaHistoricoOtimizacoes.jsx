@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Calendar, FileText, ExternalLink } from 'lucide-react';
+import { Loader2, Search, Calendar, FileText, ExternalLink, Kanban } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from 'moment-timezone';
@@ -117,7 +117,12 @@ export default function ListaHistoricoOtimizacoes() {
                                         <h3 className="font-semibold text-slate-900">
                                             {conta.account_name}
                                         </h3>
-
+                                        {conta.ultima_otimizacao?.origem_registro === 'kanban' && (
+                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                                                <Kanban className="w-3 h-3" />
+                                                Kanban
+                                            </Badge>
+                                        )}
                                     </div>
                                     
                                     {conta.ultima_otimizacao ? (

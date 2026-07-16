@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Calendar, Target, AlertCircle, CheckCircle2, Loader2, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Target, AlertCircle, CheckCircle2, Loader2, User, Kanban, BarChart3 } from 'lucide-react';
 import { format, startOfMonth, subDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -193,6 +193,17 @@ export default function HistoricoOtimizacoesCliente() {
                                             {index === 0 && (
                                                 <Badge variant="outline" className="ml-2">
                                                     Mais recente
+                                                </Badge>
+                                            )}
+                                            {otimizacao.origem_registro === 'kanban' ? (
+                                                <Badge variant="outline" className="ml-2 bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                                                    <Kanban className="w-3 h-3" />
+                                                    Demanda Kanban
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="ml-2 bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                                                    <BarChart3 className="w-3 h-3" />
+                                                    Monitoramento
                                                 </Badge>
                                             )}
                                         </div>

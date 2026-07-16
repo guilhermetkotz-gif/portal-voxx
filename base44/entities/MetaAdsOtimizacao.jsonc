@@ -71,6 +71,23 @@
     "comunicacao_enviada_fila": {
       "type": "boolean",
       "default": false
+    },
+    "origem_registro": {
+      "type": "string",
+      "enum": [
+        "monitoramento",
+        "kanban"
+      ],
+      "default": "monitoramento",
+      "description": "Origem do registro: monitoramento (tela Meta Ads) ou kanban (coment\u00e1rio em demanda do Kanban)"
+    },
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da demanda do Kanban vinculada (quando origem_registro=kanban)"
+    },
+    "timeline_event_id": {
+      "type": "string",
+      "description": "ID do TimelineEvent de origem (quando origem_registro=kanban)"
     }
   },
   "required": [
