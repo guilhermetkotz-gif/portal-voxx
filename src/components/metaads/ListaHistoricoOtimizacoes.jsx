@@ -24,7 +24,11 @@ export default function ListaHistoricoOtimizacoes() {
 
     const { data: todasOtimizacoes = [], isLoading: loadingOtimizacoes } = useQuery({
         queryKey: ['metaAdsOtimizacoes'],
-        queryFn: () => base44.entities.MetaAdsOtimizacao.list('-data_acao', 1000),
+        queryFn: async () => {
+            const batch1 = await base44.entities.MetaAdsOtimizacao.list('-data_acao', 1000, 0);
+            const batch2 = await base44.entities.MetaAdsOtimizacao.list('-data_acao', 1000, 1000);
+            return [...batch1, ...batch2];
+        },
         staleTime: 60 * 1000
     });
 
