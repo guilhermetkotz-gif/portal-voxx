@@ -168,13 +168,18 @@ export default function FinanceiroCarteira() {
     const matchStatus = filterStatus === 'todos' || c.status === filterStatus;
 
     // Filtro por mês: cliente deve estar ativo no período selecionado
+    // Exceção: encerrados aparecem independentemente do mês selecionado
     const [year, month] = mesRef.split('-').map(Number);
     const inicioMes = startOfMonth(new Date(year, month - 1));
     const fimMes = endOfMonth(new Date(year, month - 1));
     const dataInicio = c.data_inicio ? parseISO(c.data_inicio) : null;
     const dataFim = c.data_fim ? parseISO(c.data_fim) : null;
     // Exclui clientes que ainda não haviam iniciado ou já haviam encerrado nesse mês
-    const matchMes = (!dataInicio || dataInicio <= fimMes) && (!dataFim || dataFim >= inicioMes);
+    // Mas encerrados são sempre mostrados (independente do mês) para não sumirem da lista
+    const isEncerrado = c.status === 'encerrado';
+    const matchMes = isEncerrado
+      ? (!dataInicio || dataInicio <= fimMes)  // encerrados: apenas precisam ter iniciado
+      : (!dataInicio || dataInicio <= fimMes) && (!dataFim || dataFim >= inicioMes);
 
     return matchSearch && matchStatus && matchMes;
   });
