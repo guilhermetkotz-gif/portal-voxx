@@ -34,8 +34,8 @@ Deno.serve(async (req) => {
   for (const [, grupo] of Object.entries(porCliente)) {
     if (grupo.length <= 1) continue;
 
-    // Classifica: tem dados = tem data_recebimento, comprovante ou observação
-    const temDados = (r) => !!(r.data_recebimento || r.comprovante_recebimento || r.observacao_recebimento);
+    // Classifica: tem dados = tem data_recebimento, comprovante, observação ou data_cobranca
+    const temDados = (r) => !!(r.data_recebimento || r.comprovante_recebimento || r.observacao_recebimento || r.data_cobranca);
 
     const comDados = grupo.filter(temDados);
     const semDados = grupo.filter(r => !temDados(r));
@@ -58,6 +58,18 @@ Deno.serve(async (req) => {
 
   // Recarrega existentes após limpeza
   const existentesAtualizados = await base44.asServiceRole.entities.FinanceiroReceita.filter({ mes_referencia });
+
+  // Buscar clientes financeiros para fallback de dia_cobranca
+  const clientesFin = await base44.asServiceRole.entities.ClienteFinanceiro.list('-created_date', 500);
+  const diaCobrancaPorNome = {};
+  for (const c of clientesFin) {
+    if (c.dia_cobranca) {
+      const base = (c.nome || '').toLowerCase().trim();
+      const full = base + (c.unidade ? ` — ${c.unidade}` : '');
+      diaCobrancaPorNome[base] = c.dia_cobranca;
+      diaCobrancaPorNome[full] = c.dia_cobranca;
+    }
+  }
 
   // ── PASSO 2: Gerar lançamentos para receitas recorrentes ──
   for (const receita of recorrentes) {
@@ -88,12 +100,20 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // Calcula data_cobranca preservando o dia original
+    // Calcula data_cobranca: preserva o dia original do template, ou usa dia_cobranca do ClienteFinanceiro
     let data_cobranca = null;
+    let diaCobranca = null;
     if (receita.data_cobranca) {
-      const diaOriginal = new Date(receita.data_cobranca).getDate();
+      diaCobranca = new Date(receita.data_cobranca).getDate();
+    } else {
+      // Fallback: buscar dia_cobranca do ClienteFinanceiro
+      const nomeKey = (receita.cliente_nome || '').toLowerCase().trim();
+      const baseKey = nomeKey.split(' — ')[0].trim();
+      diaCobranca = diaCobrancaPorNome[nomeKey] || diaCobrancaPorNome[baseKey];
+    }
+    if (diaCobranca) {
       const ultimoDia = new Date(targetYear, targetMonth, 0).getDate();
-      const dia = Math.min(diaOriginal, ultimoDia);
+      const dia = Math.min(diaCobranca, ultimoDia);
       data_cobranca = `${mes_referencia}-${String(dia).padStart(2, '0')}`;
     }
 
