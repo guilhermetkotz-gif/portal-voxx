@@ -65,10 +65,13 @@ export default function ListaHistoricoOtimizacoes() {
     });
     const todasContasComOtimizacoes = [...contasComOtimizacoes, ...contasOrfas];
 
-    // Filtrar por termo de busca
-    const contasFiltradas = todasContasComOtimizacoes.filter(conta => 
-        conta.account_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Filtrar por termo de busca; quando um filtro de origem está ativo,
+    // esconder contas que não têm otimizações daquela origem
+    const contasFiltradas = todasContasComOtimizacoes.filter(conta => {
+        if (!conta.account_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+        if (origemFiltro !== 'todos' && conta.total_otimizacoes === 0) return false;
+        return true;
+    });
 
     // Ordenar: primeiro as que têm otimizações (por data mais recente), depois as sem otimizações
     const contasOrdenadas = contasFiltradas.sort((a, b) => {
@@ -145,16 +148,18 @@ export default function ListaHistoricoOtimizacoes() {
                                         <h3 className="font-semibold text-slate-900">
                                             {conta.account_name}
                                         </h3>
-                                        {conta.ultima_otimizacao?.origem_registro === 'kanban' ? (
-                                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
-                                                <Kanban className="w-3 h-3" />
-                                                Kanban
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 gap-1">
-                                                <BarChart3 className="w-3 h-3" />
-                                                Monitoramento
-                                            </Badge>
+                                        {conta.ultima_otimizacao && (
+                                            conta.ultima_otimizacao.origem_registro === 'kanban' ? (
+                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
+                                                    <Kanban className="w-3 h-3" />
+                                                    Kanban
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                                                    <BarChart3 className="w-3 h-3" />
+                                                    Monitoramento
+                                                </Badge>
+                                            )
                                         )}
                                     </div>
                                     
