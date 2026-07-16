@@ -16,6 +16,7 @@ export default function HistoricoOtimizacoesCliente() {
     const urlParams = new URLSearchParams(window.location.search);
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [origemFiltro, setOrigemFiltro] = useState('todos');
     const contaId = urlParams.get('conta_id');
     const contaName = urlParams.get('conta_name');
 
@@ -146,6 +147,29 @@ export default function HistoricoOtimizacoesCliente() {
                                 Limpar filtro
                             </button>
                         )}
+                        <div className="flex items-center gap-2 ml-auto">
+                            <span className="text-sm font-medium text-slate-700">Origem:</span>
+                            {[
+                                { value: 'todos', label: 'Todas', icon: null },
+                                { value: 'monitoramento', label: 'Monitoramento', icon: BarChart3 },
+                                { value: 'kanban', label: 'Kanban', icon: Kanban }
+                            ].map(opt => {
+                                const Icon = opt.icon;
+                                const active = origemFiltro === opt.value;
+                                return (
+                                    <Button
+                                        key={opt.value}
+                                        variant={active ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setOrigemFiltro(opt.value)}
+                                        className={active ? 'bg-violet-600 h-8' : 'h-8'}
+                                    >
+                                        {Icon && <Icon className="w-3.5 h-3.5 mr-1" />}
+                                        {opt.label}
+                                    </Button>
+                                );
+                            })}
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -156,6 +180,7 @@ export default function HistoricoOtimizacoesCliente() {
                     const data = o.data_acao?.slice(0, 10);
                     if (dateFrom && data < dateFrom) return false;
                     if (dateTo && data > dateTo) return false;
+                    if (origemFiltro !== 'todos' && o.origem_registro !== origemFiltro) return false;
                     return true;
                 });
                 return otimizacoesFiltradas.length === 0 ? (

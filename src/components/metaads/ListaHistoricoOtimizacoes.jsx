@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Calendar, FileText, ExternalLink, Kanban } from 'lucide-react';
+import { Loader2, Search, Calendar, FileText, ExternalLink, Kanban, BarChart3 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import moment from 'moment-timezone';
 
 export default function ListaHistoricoOtimizacoes() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [origemFiltro, setOrigemFiltro] = useState('todos');
     const navigate = useNavigate();
 
     const { data: contas = [], isLoading: loadingContas } = useQuery({
@@ -27,9 +28,14 @@ export default function ListaHistoricoOtimizacoes() {
         staleTime: 60 * 1000
     });
 
+    // Aplicar filtro de origem antes de agrupar
+    const otimizacoesFiltradasOrigem = origemFiltro === 'todos'
+        ? todasOtimizacoes
+        : todasOtimizacoes.filter(o => o.origem_registro === origemFiltro);
+
     // Agrupar otimizações por conta e pegar a última
     const contasComOtimizacoes = contas.map(conta => {
-        const otimizacoesConta = todasOtimizacoes.filter(
+        const otimizacoesConta = otimizacoesFiltradasOrigem.filter(
             o => o.account_name === conta.account_name
         );
         const ultimaOtimizacao = otimizacoesConta.length > 0 ? otimizacoesConta[0] : null;
@@ -43,12 +49,12 @@ export default function ListaHistoricoOtimizacoes() {
     // Incluir otimizações "órfãs" (account_name não encontrado em ContaMetaAds)
     const accountNamesContas = new Set(contas.map(c => c.account_name));
     const accountNamesOrfaos = [...new Set(
-        todasOtimizacoes
+        otimizacoesFiltradasOrigem
             .map(o => o.account_name)
             .filter(name => name && !accountNamesContas.has(name))
     )];
     const contasOrfas = accountNamesOrfaos.map(name => {
-        const otimizacoesConta = todasOtimizacoes.filter(o => o.account_name === name);
+        const otimizacoesConta = otimizacoesFiltradasOrigem.filter(o => o.account_name === name);
         return {
             id: `orfao_${name}`,
             account_name: name,
@@ -101,6 +107,28 @@ export default function ListaHistoricoOtimizacoes() {
                 <Badge variant="outline" className="text-sm">
                     {contasOrdenadas.length} contas
                 </Badge>
+                <div className="flex items-center gap-1 ml-auto">
+                    {[
+                        { value: 'todos', label: 'Todas', icon: null },
+                        { value: 'monitoramento', label: 'Monitoramento', icon: BarChart3 },
+                        { value: 'kanban', label: 'Kanban', icon: Kanban }
+                    ].map(opt => {
+                        const Icon = opt.icon;
+                        const active = origemFiltro === opt.value;
+                        return (
+                            <Button
+                                key={opt.value}
+                                variant={active ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setOrigemFiltro(opt.value)}
+                                className={active ? 'bg-violet-600' : ''}
+                            >
+                                {Icon && <Icon className="w-3.5 h-3.5 mr-1" />}
+                                {opt.label}
+                            </Button>
+                        );
+                    })}
+                </div>
             </div>
 
             <div className="grid gap-4">
@@ -117,10 +145,15 @@ export default function ListaHistoricoOtimizacoes() {
                                         <h3 className="font-semibold text-slate-900">
                                             {conta.account_name}
                                         </h3>
-                                        {conta.ultima_otimizacao?.origem_registro === 'kanban' && (
+                                        {conta.ultima_otimizacao?.origem_registro === 'kanban' ? (
                                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 gap-1">
                                                 <Kanban className="w-3 h-3" />
                                                 Kanban
+                                            </Badge>
+                                        ) : (
+                                            <Badge variant="outline" className="bg-violet-50 text-violet-700 border-violet-200 gap-1">
+                                                <BarChart3 className="w-3 h-3" />
+                                                Monitoramento
                                             </Badge>
                                         )}
                                     </div>
