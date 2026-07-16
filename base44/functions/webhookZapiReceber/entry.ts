@@ -381,12 +381,18 @@ Deno.serve(async (req) => {
     let citacaoRemetente = null;
     let citacaoTipo = null;
     let citacaoMidiaUrl = null;
-    
-    const quotedMsg = body.quotedMsg || body.quotedMessage || body.message?.quotedMsg || body.message?.quotedMessage || null;
+
+    // Z-API pode enviar a mensagem citada de várias formas:
+    // 1. quotedMsg/quotedMessage (objeto completo com conteúdo)
+    // 2. referenceMessageId (apenas o ID da mensagem original)
+    // 3. referenceMessage (objeto com dados parciais)
+    const quotedMsg = body.quotedMsg || body.quotedMessage || body.message?.quotedMsg || body.message?.quotedMessage || body.referenceMessage || null;
+    const referenceId = body.referenceMessageId || body.message?.referenceMessageId || quotedMsg?.messageId || quotedMsg?.id || null;
+
     if (quotedMsg) {
-      citacaoId = quotedMsg.messageId || quotedMsg.id || null;
+      citacaoId = quotedMsg.messageId || quotedMsg.id || referenceId || null;
       citacaoRemetente = quotedMsg.senderName || quotedMsg.pushName || null;
-      
+
       // Extrai texto citado
       if (quotedMsg.body) {
         citacaoTexto = typeof quotedMsg.body === 'string' ? quotedMsg.body : null;
@@ -395,7 +401,7 @@ Deno.serve(async (req) => {
       } else if (quotedMsg.caption) {
         citacaoTexto = quotedMsg.caption;
       }
-      
+
       // Detecta tipo da mensagem citada
       if (quotedMsg.image) {
         citacaoTipo = 'imagem';
@@ -417,6 +423,24 @@ Deno.serve(async (req) => {
         citacaoMidiaUrl = quotedMsg.sticker.stickerUrl || quotedMsg.sticker || null;
       } else if (citacaoTexto) {
         citacaoTipo = 'texto';
+      }
+    }
+
+    // Se só temos o referenceMessageId (Z-API não envia o conteúdo completo),
+    // buscar a mensagem original no banco para preencher os dados da citação
+    if (referenceId && !citacaoTexto && !citacaoRemetente) {
+      citacaoId = citacaoId || referenceId;
+      try {
+        const originais = await base44.asServiceRole.entities.WhatsappMensagem.filter({ message_id: referenceId });
+        if (originais.length > 0) {
+          const orig = originais[0];
+          citacaoTexto = orig.mensagem || null;
+          citacaoRemetente = orig.remetente_nome || null;
+          citacaoTipo = orig.tipo_mensagem || null;
+          citacaoMidiaUrl = orig.midia_url || null;
+        }
+      } catch (e) {
+        console.log('[webhook] ⚠️ Erro ao buscar mensagem citada:', e.message);
       }
     }
 
