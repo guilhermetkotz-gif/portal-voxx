@@ -1,0 +1,120 @@
+{
+  "name": "AvaliacaoEficaciaOtimizacao",
+  "type": "object",
+  "properties": {
+    "otimizacao_id": {
+      "type": "string",
+      "description": "ID do registro MetaAdsOtimizacao vinculado"
+    },
+    "cliente_id": {
+      "type": "string"
+    },
+    "cliente_nome": {
+      "type": "string"
+    },
+    "account_name": {
+      "type": "string",
+      "description": "Nome da conta Meta Ads"
+    },
+    "data_otimizacao": {
+      "type": "string",
+      "format": "date",
+      "description": "Data em que a otimiza\u00e7\u00e3o foi cadastrada"
+    },
+    "data_avaliacao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que a an\u00e1lise T3 foi conclu\u00edda"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "concluida",
+        "erro"
+      ],
+      "default": "pendente",
+      "description": "Status da avalia\u00e7\u00e3o"
+    },
+    "snapshot_t0": {
+      "type": "object",
+      "description": "M\u00e9tricas no momento da otimiza\u00e7\u00e3o (cpl_7d, leads_7d, ctr_7d, frequencia_7d, amount_spent_ontem, leads_ontem, nota_gpt, classificacao, cpl_meta_ads, messaging_conversations, new_messaging_connections)"
+    },
+    "snapshot_t3": {
+      "type": "object",
+      "description": "M\u00e9tricas 3 dias ap\u00f3s a otimiza\u00e7\u00e3o (mesma estrutura do snapshot_t0)"
+    },
+    "delta_cpl": {
+      "type": "number",
+      "description": "Varia\u00e7\u00e3o percentual do CPL (T3 vs T0). Negativo = melhora"
+    },
+    "delta_leads": {
+      "type": "number",
+      "description": "Varia\u00e7\u00e3o percentual de leads (T3 vs T0)"
+    },
+    "delta_ctr": {
+      "type": "number",
+      "description": "Varia\u00e7\u00e3o percentual do CTR (T3 vs T0)"
+    },
+    "delta_frequencia": {
+      "type": "number",
+      "description": "Varia\u00e7\u00e3o percentual da frequ\u00eancia (T3 vs T0)"
+    },
+    "delta_nota_gpt": {
+      "type": "number",
+      "description": "Varia\u00e7\u00e3o absoluta da nota GPT (T3 vs T0)"
+    },
+    "eficacia_tecnica": {
+      "type": "string",
+      "enum": [
+        "melhorou",
+        "estavel",
+        "piorou"
+      ],
+      "description": "Veredito t\u00e9cnico da efic\u00e1cia"
+    },
+    "score_eficacia": {
+      "type": "number",
+      "description": "Score de efic\u00e1cia t\u00e9cnica (0-100)"
+    },
+    "total_mensagens_whatsapp": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de mensagens trocadas no grupo do cliente entre T0 e T3"
+    },
+    "sentimento_cliente": {
+      "type": "string",
+      "enum": [
+        "positivo",
+        "neutro",
+        "negativo"
+      ],
+      "description": "Sentimento do cliente nas mensagens p\u00f3s-otimiza\u00e7\u00e3o"
+    },
+    "score_satisfacao": {
+      "type": "number",
+      "description": "Score de satisfa\u00e7\u00e3o do cliente (0-100)"
+    },
+    "resumo_satisfacao": {
+      "type": "string",
+      "description": "Resumo da an\u00e1lise de satisfa\u00e7\u00e3o gerado pelo LLM"
+    },
+    "analise_llm": {
+      "type": "string",
+      "description": "An\u00e1lise completa de efic\u00e1cia gerada pelo LLM"
+    },
+    "recomendacoes": {
+      "type": "string",
+      "description": "Recomenda\u00e7\u00f5es de pr\u00f3ximos passos geradas pelo LLM"
+    },
+    "erro_detalhe": {
+      "type": "string",
+      "description": "Detalhe do erro quando status=erro"
+    }
+  },
+  "required": [
+    "otimizacao_id",
+    "account_name",
+    "data_otimizacao"
+  ]
+}
