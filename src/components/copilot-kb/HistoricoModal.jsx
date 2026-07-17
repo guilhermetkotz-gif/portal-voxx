@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, RotateCcw, ChevronDown, ChevronRight, History as HistoryIcon } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 import { labelCategoria, labelTipoOrientacao, escopoAlvoText } from './constants';
 import { cn } from '@/lib/utils';
 
@@ -108,12 +109,10 @@ export default function HistoricoModal({ open, onClose, orientacaoId, permissoes
     if (!open || !orientacaoId) return;
     setData(null);
     setLoading(true);
-    import('@/api/base44Client').then(({ base44 }) => {
-      base44.functions.invoke('gerenciarConhecimentoCopilot', { acao: 'historico', orientacao_id: orientacaoId })
-        .then(res => setData({ orientacao: res.data?.orientacao, versoes: res.data?.versoes || [] }))
-        .catch(() => setData(null))
-        .finally(() => setLoading(false));
-    });
+    base44.functions.invoke('gerenciarConhecimentoCopilot', { acao: 'historico', orientacao_id: orientacaoId })
+      .then(res => setData({ orientacao: res.data?.orientacao, versoes: res.data?.versoes || [] }))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
   }, [open, orientacaoId]);
 
   const handleConfirmRestaurar = () => {

@@ -250,7 +250,7 @@ export default function OrientacaoFormModal({ open, onClose, orientacaoEdit, per
               placeholder="Texto da orientação..."
               className="mt-1"
               rows={4}
-              maxLength={900}
+              maxLength={800}
             />
             {errors.conteudo && <p className="text-xs text-red-500 mt-1">{errors.conteudo}</p>}
           </div>

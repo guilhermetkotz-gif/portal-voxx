@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle, ArrowLeft, Replace } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 import { labelCategoria, labelEscopo, escopoAlvoText } from './constants';
 import { cn } from '@/lib/utils';
 
@@ -20,12 +21,10 @@ export default function ConflitoModal({ open, onClose, conflitanteId, onSubstitu
     setStep('info');
     setMotivo('');
     setLoading(true);
-    import('@/api/base44Client').then(({ base44 }) => {
-      base44.functions.invoke('gerenciarConhecimentoCopilot', { acao: 'consultar', orientacao_id: conflitanteId })
-        .then(res => setConflitante(res.data?.orientacao || null))
-        .catch(() => setConflitante(null))
-        .finally(() => setLoading(false));
-    });
+    base44.functions.invoke('gerenciarConhecimentoCopilot', { acao: 'consultar', orientacao_id: conflitanteId })
+      .then(res => setConflitante(res.data?.orientacao || null))
+      .catch(() => setConflitante(null))
+      .finally(() => setLoading(false));
   }, [open, conflitanteId]);
 
   const handleSubstituir = () => {
