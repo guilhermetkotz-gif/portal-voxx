@@ -224,6 +224,34 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, tipo: 'reacao_ignorada_incompleta' });
     }
 
+    // PASSO 4d — Tratar mensagem revogada/apagada pelo cliente: marcar a mensagem original como deletada
+    const revokedTypes = ['RevokedMessage', 'MessageRevoked', 'revoked', 'message_revoked', 'revoke'];
+    const isRevokedEvent = revokedTypes.includes(eventType) || revokedTypes.includes(body.type) || body.type === 'RevokedMessage';
+    if (isRevokedEvent) {
+      // O messageId do evento de revogação corresponde ao messageId da mensagem original
+      const targetMsgId = messageId || body.messageId || body.id || body.key?.id || body.referenceMessageId || '';
+      if (targetMsgId) {
+        const targetMsgs = await base44.asServiceRole.entities.WhatsappMensagem.filter({ message_id: targetMsgId });
+        if (targetMsgs.length > 0) {
+          await base44.asServiceRole.entities.WhatsappMensagem.update(targetMsgs[0].id, {
+            deletado: true,
+            deletado_em: receivedAt,
+            deletado_por: senderName || participantPhone || null,
+          });
+          console.log('[webhook] ✅ Mensagem marcada como deletada (revogada):', targetMsgId);
+        } else {
+          console.log('[webhook] ⚠️ Mensagem revogada não encontrada no banco:', targetMsgId);
+        }
+      }
+      if (rawId) {
+        await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
+          processed: true,
+          processing_status: 'processado',
+        });
+      }
+      return Response.json({ ok: true, tipo: 'revoked', targetMsgId });
+    }
+
     // PASSO 5 — Idempotência: evitar duplicatas
     // 5a: por message_id (preciso)
     if (messageId) {

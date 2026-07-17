@@ -140,7 +140,7 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     queryFn: async () => {
       const msgs = await base44.entities.WhatsappMensagem.filter({ grupo_id: chatId }, '-received_at', 100);
       return msgs
-        .filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo')
+        .filter(m => m.tipo_mensagem !== 'sem_conteudo')
         .sort((a, b) => {
           const ta = a.received_at || a.timestamp_mensagem || '';
           const tb = b.received_at || b.timestamp_mensagem || '';
@@ -682,7 +682,17 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                 const ts = m.received_at || m.timestamp_mensagem;
                 const midiaUrl = m.midia_url;
 
+                const isDeleted = m.deletado === true;
+
                 const renderContent = () => {
+                  // Mensagem apagada — exibe conteúdo em vermelho com observação
+                  if (isDeleted) {
+                    return (
+                      <div className="text-red-500">
+                        {renderizarTextoComLinks(m.mensagem || '[Sem conteúdo]', 'whitespace-pre-wrap break-words italic', telefoneParaNome)}
+                      </div>
+                    );
+                  }
                   // Sticker / Figurinha
                   if (m.tipo_mensagem === 'sticker') {
                     if (midiaUrl) {
@@ -848,6 +858,12 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                         <p className={`text-[11px] font-medium ${t.textNameOut} mb-1`}>{m.remetente_nome}</p>
                       )}
                       {renderContent()}
+                      {isDeleted && (
+                        <p className="text-[10px] text-red-500 italic mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          mensagem apagada
+                        </p>
+                      )}
                       {/* Mostra legenda/caption abaixo da mídia se houver texto */}
                       {['imagem', 'video', 'documento'].includes(m.tipo_mensagem) && m.mensagem && !['[Imagem]', '[Vídeo]', '[Documento]'].includes(m.mensagem) && !m.mensagem.startsWith('[Documento:') && (
                         renderizarTextoComLinks(m.mensagem, 'mt-1.5 whitespace-pre-wrap break-words text-xs opacity-90', telefoneParaNome)
