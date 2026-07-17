@@ -60,7 +60,8 @@ const pageTitles = {
         InteligeniciaOperacional: { title: "Inteligência Operacional", subtitle: "Consumo e carga operacional por cliente" },
         CentralComunicacao: { title: "Central de Comunicação", subtitle: "Resumos diários automáticos para clientes via WhatsApp" },
         RadarWhatsApp: { title: "Radar WhatsApp", subtitle: "Monitoramento em tempo real dos grupos de atendimento" },
-        ChatVoxx: { title: "Chat Voxx", subtitle: "Comunicação interna da equipe" }
+        ChatVoxx: { title: "Chat Voxx", subtitle: "Comunicação interna da equipe" },
+        BaseConhecimentoCopilot: { title: "Base de Conhecimento do Copilot", subtitle: "Gerencie as orientações utilizadas pelo Copilot nas respostas do Radar WhatsApp" }
                 };
 
 export default function Layout({ children, currentPageName }) {
