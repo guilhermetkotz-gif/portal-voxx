@@ -84,5 +84,11 @@
     "conversa_id",
     "remetente_id",
     "conteudo"
-  ]
+  ],
+  "rls": {
+    "create": null,
+    "read": null,
+    "update": null,
+    "delete": null
+  }
 }
