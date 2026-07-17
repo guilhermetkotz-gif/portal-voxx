@@ -9,7 +9,9 @@ import CreateGroupModal from '@/components/chat-voxx/CreateGroupModal';
 import ManageParticipantsModal from '@/components/chat-voxx/ManageParticipantsModal';
 import ImageCropperModal from '@/components/chat-voxx/ImageCropperModal';
 import ChatErrorBoundary from '@/components/chat-voxx/ChatErrorBoundary';
-import { Loader2, MessageCircle, Users, ArrowLeft, Camera, UserCog } from 'lucide-react';
+import { useChatVoxxSound } from '@/hooks/useChatVoxxSound';
+import { cn } from '@/lib/utils';
+import { Loader2, MessageCircle, Users, ArrowLeft, Camera, UserCog, Volume2, VolumeX } from 'lucide-react';
 
 function ChatVoxxInner({ user }) {
   const [selectedUserId, setSelectedUserId] = useState(null);
@@ -23,6 +25,12 @@ function ChatVoxxInner({ user }) {
   const messagesEndRef = useRef(null);
   const groupPhotoInputRef = useRef(null);
   const queryClient = useQueryClient();
+  const { somAtivado, toggleSom, tocarSom } = useChatVoxxSound();
+  const activeConversationRef = useRef(null);
+
+  useEffect(() => {
+    activeConversationRef.current = activeConversation?.id;
+  }, [activeConversation?.id]);
 
   const { data: users = [] } = useQuery({
     queryKey: ['chatVoxxUsers'],
@@ -138,12 +146,16 @@ function ChatVoxxInner({ user }) {
       if (event.type === 'create') {
         queryClient.invalidateQueries({ queryKey: ['chatVoxxConversas'] });
         queryClient.invalidateQueries({ queryKey: ['chatVoxxUnread'] });
+        // Toca som se a mensagem não for da conversa ativa
+        if (event.data?.conversa_id !== activeConversationRef.current) {
+          tocarSom();
+        }
       } else if (event.type === 'delete') {
         queryClient.invalidateQueries({ queryKey: ['chatVoxxUnread'] });
       }
     });
     return () => unsubscribe();
-  }, [user?.id, queryClient]);
+  }, [user?.id, queryClient, tocarSom]);
 
   // Load messages for active conversation + subscribe to its updates
   useEffect(() => {
@@ -424,6 +436,16 @@ function ChatVoxxInner({ user }) {
                 <h3 className="font-semibold text-slate-900 truncate">{headerTitle}</h3>
                 <p className="text-xs text-slate-500 truncate">{headerSubtitle}</p>
               </div>
+              <button
+                onClick={toggleSom}
+                className={cn(
+                  "p-2 rounded-lg transition-colors flex-shrink-0",
+                  somAtivado ? "text-violet-600 hover:bg-violet-50" : "text-slate-400 hover:bg-slate-100"
+                )}
+                title={somAtivado ? "Desativar som" : "Ativar som"}
+              >
+                {somAtivado ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              </button>
               {isGroupChat && (
                 <button
                   onClick={() => setShowManageParticipants(true)}

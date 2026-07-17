@@ -4,11 +4,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { MessageCircle } from 'lucide-react';
+import { useChatVoxxSound } from '@/hooks/useChatVoxxSound';
 
 export default function ChatVoxxNotifier({ user }) {
   const navigate = useNavigate();
   const seenIdsRef = useRef(new Set());
   const conversationsRef = useRef([]);
+  const { tocarSom } = useChatVoxxSound();
 
   const { data: conversations = [] } = useQuery({
     queryKey: ['chatVoxxConversas', user?.id],
@@ -40,6 +42,9 @@ export default function ChatVoxxNotifier({ user }) {
 
       // Skip if user is already on the ChatVoxx page
       if (window.location.pathname === '/ChatVoxx') return;
+
+      // Som de notificação
+      tocarSom();
 
       const senderName = msg.remetente_nome || 'Usuário';
 
@@ -74,7 +79,7 @@ export default function ChatVoxxNotifier({ user }) {
     });
 
     return () => unsubscribe();
-  }, [user?.id, navigate]);
+  }, [user?.id, navigate, tocarSom]);
 
   return null;
 }
