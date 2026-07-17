@@ -6,6 +6,16 @@ Deno.serve(async (req) => {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // ── Validar permissão: somente colaboradores VOXX ou admin da plataforma ──
+    // Estrutura utilizada: user.tipo_usuario / user.tipo_acesso (mesmo padrão do Layout.jsx e auth.jsx)
+    const tipoUsuario = user.tipo_usuario || user.tipo_acesso;
+    const isVoxxUser = tipoUsuario === 'voxx_admin' || tipoUsuario === 'voxx_operacao' || tipoUsuario === 'voxx_manager' || tipoUsuario === 'voxx_financeiro';
+    const isPlatformAdmin = user.role === 'admin';
+
+    if (!isVoxxUser && !isPlatformAdmin) {
+      return Response.json({ error: 'Acesso negado. O Copilot está disponível apenas para colaboradores da VOXX.' }, { status: 403 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const {
       chatId,
