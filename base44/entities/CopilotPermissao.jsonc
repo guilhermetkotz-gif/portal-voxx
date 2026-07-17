@@ -20,17 +20,17 @@
     "pode_criar": {
       "type": "boolean",
       "default": false,
-      "description": "Pode criar orienta\u00e7\u00f5es"
+      "description": "Pode criar orienta\u00e7\u00f5es (respeitando categorias_administraveis)"
     },
     "pode_editar": {
       "type": "boolean",
       "default": false,
-      "description": "Pode editar orienta\u00e7\u00f5es"
+      "description": "Pode editar orienta\u00e7\u00f5es (respeitando categorias_administraveis)"
     },
     "pode_ativar_desativar": {
       "type": "boolean",
       "default": false,
-      "description": "Pode ativar ou desativar orienta\u00e7\u00f5es"
+      "description": "Pode ativar ou desativar orienta\u00e7\u00f5es (respeitando categorias_administraveis)"
     },
     "pode_visualizar_historico": {
       "type": "boolean",
@@ -40,12 +40,24 @@
     "pode_restaurar_versao": {
       "type": "boolean",
       "default": false,
-      "description": "Pode restaurar vers\u00f5es anteriores"
+      "description": "Pode restaurar vers\u00f5es anteriores (respeitando categorias_administraveis)"
     },
-    "pode_administrar_sensiveis": {
-      "type": "boolean",
-      "default": false,
-      "description": "Pode administrar orienta\u00e7\u00f5es das categorias reclamacoes_sensiveis e contratos_financeiro"
+    "categorias_administraveis": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "padrao_comunicacao",
+          "campanhas_trafego",
+          "criacao_artes",
+          "conteudo_redes_sociais",
+          "operacao_atendimento",
+          "reclamacoes_sensiveis",
+          "contratos_financeiro"
+        ]
+      },
+      "default": [],
+      "description": "Categorias em que o usu\u00e1rio pode criar/editar/ativar/desativar/restaurar orienta\u00e7\u00f5es. Vazio ou ausente = sem permiss\u00e3o de escrita (acesso negado). Backend valida obrigatoriamente."
     }
   },
   "required": [
