@@ -11,28 +11,28 @@ const DICIONARIO_CATEGORIAS = {
     sinonimos: ['como responder', 'como falar', 'cordialidade', 'formalidade']
   },
   campanhas_trafego: {
-    termos_diretos: ['meta ads', 'google ads', 'facebook ads', 'instagram ads', 'campanha', 'tráfego', 'anúncio', 'impulsionar'],
-    sinonimos: ['leads', 'contatos', 'conversões', 'cpl', 'cpc', 'ctr', 'investimento', 'gasto', 'resultado', 'queda', 'diminuiu', 'aumentou', 'cliques', 'visualizações', 'alcance', 'impressões']
+    termos_diretos: ['meta ads', 'google ads', 'facebook ads', 'instagram ads', 'campanha', 'campanhas', 'tráfego', 'anúncio', 'anúncios', 'impulsionar'],
+    sinonimos: ['leads', 'lead', 'contatos', 'contato', 'conversões', 'cpl', 'cpc', 'ctr', 'investimento', 'gasto', 'resultado', 'queda', 'caiu', 'caíram', 'cair', 'diminuiu', 'aumentou', 'cliques', 'visualizações', 'alcance', 'impressões']
   },
   criacao_artes: {
-    termos_diretos: ['arte', 'design', 'banner', 'cartaz', 'flyer', 'peça gráfica', 'logotipo', 'identidade visual'],
-    sinonimos: ['imagem', 'criativo', 'layout', 'paleta', 'tipografia', 'montagem', 'edição']
+    termos_diretos: ['arte', 'artes', 'design', 'banner', 'cartaz', 'flyer', 'peça gráfica', 'logotipo', 'logo', 'identidade visual', 'layout'],
+    sinonimos: ['imagem', 'imagens', 'criativo', 'paleta', 'tipografia', 'montagem', 'edição']
   },
   conteudo_redes_sociais: {
-    termos_diretos: ['redes sociais', 'instagram', 'facebook', 'post', 'reels', 'stories', 'conteúdo', 'calendário'],
+    termos_diretos: ['redes sociais', 'instagram', 'facebook', 'post', 'posts', 'reels', 'stories', 'conteúdo', 'calendário', 'postagem', 'postagens'],
     sinonimos: ['publicação', 'legenda', 'feed', 'perfil', 'engajamento', 'seguidores', 'hashtag']
   },
   operacao_atendimento: {
-    termos_diretos: ['atendimento', 'operacional', 'equipe', 'processo', 'fluxo'],
-    sinonimos: ['tempo de resposta', 'demora', 'aguardando', 'andamento', 'status']
+    termos_diretos: ['operacional', 'equipe', 'processo', 'fluxo'],
+    sinonimos: ['atendimento', 'tempo de resposta', 'demora', 'aguardando', 'andamento', 'status']
   },
   reclamacoes_sensiveis: {
-    termos_diretos: ['reclamação', 'processo jurídico', 'advogado', 'ameaça', 'insatisfação', 'elogio à concorrência'],
-    sinonimos: ['chateado', 'frustrado', 'decepcionado', 'irritado', 'revoltado'],
+    termos_diretos: ['reclamação', 'reclamar', 'processo jurídico', 'advogado', 'ameaça', 'insatisfação', 'insatisfeito', 'elogio à concorrência'],
+    sinonimos: ['chateado', 'frustrado', 'decepcionado', 'irritado', 'revoltado', 'ninguém resolveu'],
     termos_inequivocos: ['cobrança indevida', 'vão processar', 'advogado', 'ação judicial', 'procon']
   },
   contratos_financeiro: {
-    termos_diretos: ['contrato', 'faturamento', 'cobrança', 'boleto', 'nota fiscal', 'pagamento', 'vencimento', 'renovação'],
+    termos_diretos: ['contrato', 'faturamento', 'cobrança', 'boleto', 'nota fiscal', 'pagamento', 'vencimento', 'renovação', 'cancelar contrato'],
     sinonimos: ['valor', 'mensalidade', 'honorários', 'orçamento', 'reajuste', 'inadimplência']
   }
 };
@@ -270,19 +270,19 @@ async function selecionarOrientacoes(sdk, classificacao, cliente) {
       resolvidas.push(grupo[0]);
     } else {
       // Múltiplas com mesma chave — verificar se são mesma categoria
-      const porCategoriaEscopo = {};
+      // Agrupar por categoria (NÃO por categoria+escopo) para aplicar precedência de escopo
+      const porCategoria = {};
       for (const o of grupo) {
-        const key = `${o.categoria}|${o.escopo_tipo}`;
-        if (!porCategoriaEscopo[key]) porCategoriaEscopo[key] = [];
-        porCategoriaEscopo[key].push(o);
+        if (!porCategoria[o.categoria]) porCategoria[o.categoria] = [];
+        porCategoria[o.categoria].push(o);
       }
 
-      for (const [comboKey, subgrupo] of Object.entries(porCategoriaEscopo)) {
+      for (const [categoria, subgrupo] of Object.entries(porCategoria)) {
         if (subgrupo.length === 1) {
           resolvidas.push(subgrupo[0]);
         } else {
-          // Conflito real: mesma chave + categoria + escopo
-          // Ordenar por precedência de escopo (mais específico vence)
+          // Múltiplas com mesma chave + categoria em escopos diferentes
+          // Aplicar precedência: cliente > marca > segmento > global
           subgrupo.sort((a, b) => (ESCOPO_PRECEDENCIA[b.escopo_tipo] || 0) - (ESCOPO_PRECEDENCIA[a.escopo_tipo] || 0));
           const maxPrec = ESCOPO_PRECEDENCIA[subgrupo[0].escopo_tipo] || 0;
           const top = subgrupo.filter(o => (ESCOPO_PRECEDENCIA[o.escopo_tipo] || 0) === maxPrec);
@@ -304,7 +304,7 @@ async function selecionarOrientacoes(sdk, classificacao, cliente) {
                   escopo_tipo: o.escopo_tipo
                 });
               }
-              console.warn(`[CopilotKB] Conflito irresolveível: ${JSON.stringify(conflitosDetectados[conflitosDetectados.length - 1])}`);
+              console.warn(`[CopilotKB] Conflito irresolvevel: chave=${chave} categoria=${categoria} ids=${top.map(o => o.id).join(',')}`);
             }
           }
         }
