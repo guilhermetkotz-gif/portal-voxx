@@ -330,11 +330,14 @@ export default function ChatHubDrawer({ onClose, user }) {
       };
     });
 
-    // Preencher lastMessageAt a partir de mensagens (prioridade absoluta sobre ultima_atividade)
+    // Preencher lastMessageAt a partir de mensagens — somente mensagens recebidas de clientes
+    // para que conversas só subam para o topo quando há nova mensagem do cliente (não enviadas pelo portal VOXX)
     // Como mensagensRecentes já vem ordenado por -received_at, a primeira é a mais recente
     mensagensRecentes.forEach(m => {
       const cid = m.grupo_id;
       if (!cid || !map[cid]) return;
+      // Ignorar mensagens enviadas pelo portal VOXX — não geram "notificação de nova mensagem"
+      if (m.remetente_tipo !== 'cliente' && m.origem !== 'recebida') return;
       const ts = m.received_at || m.timestamp_mensagem;
       if (ts && !map[cid]._temMensagem) {
         map[cid]._temMensagem = true;
