@@ -1,0 +1,54 @@
+{
+  "name": "CopilotPermissao",
+  "type": "object",
+  "properties": {
+    "tipo_usuario": {
+      "type": "string",
+      "enum": [
+        "voxx_admin",
+        "voxx_manager",
+        "voxx_operacao",
+        "voxx_financeiro"
+      ],
+      "description": "Tipo de usu\u00e1rio VOXX (clientes n\u00e3o t\u00eam registro nesta entidade)"
+    },
+    "pode_visualizar": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pode visualizar orienta\u00e7\u00f5es"
+    },
+    "pode_criar": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pode criar orienta\u00e7\u00f5es"
+    },
+    "pode_editar": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pode editar orienta\u00e7\u00f5es"
+    },
+    "pode_ativar_desativar": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pode ativar ou desativar orienta\u00e7\u00f5es"
+    },
+    "pode_visualizar_historico": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pode visualizar hist\u00f3rico de vers\u00f5es"
+    },
+    "pode_restaurar_versao": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pode restaurar vers\u00f5es anteriores"
+    },
+    "pode_administrar_sensiveis": {
+      "type": "boolean",
+      "default": false,
+      "description": "Pode administrar orienta\u00e7\u00f5es das categorias reclamacoes_sensiveis e contratos_financeiro"
+    }
+  },
+  "required": [
+    "tipo_usuario"
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "name": "CopilotConhecimento",
+  "type": "object",
+  "properties": {
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo curto da orienta\u00e7\u00e3o"
+    },
+    "conteudo": {
+      "type": "string",
+      "description": "Texto da orienta\u00e7\u00e3o (m\u00e1ximo 800 caracteres)",
+      "maxLength": 800
+    },
+    "categoria": {
+      "type": "string",
+      "enum": [
+        "padrao_comunicacao",
+        "campanhas_trafego",
+        "criacao_artes",
+        "conteudo_redes_sociais",
+        "operacao_atendimento",
+        "reclamacoes_sensiveis",
+        "contratos_financeiro"
+      ],
+      "description": "Assunto da orienta\u00e7\u00e3o (n\u00e3o confundir com escopo)"
+    },
+    "tipo_orientacao": {
+      "type": "string",
+      "enum": [
+        "tom_linguagem",
+        "regra_operacional",
+        "restricao",
+        "procedimento",
+        "info_autorizada",
+        "info_exige_confirmacao",
+        "revisao_obrigatoria"
+      ],
+      "description": "Natureza da orienta\u00e7\u00e3o"
+    },
+    "escopo_tipo": {
+      "type": "string",
+      "enum": [
+        "global",
+        "segmento",
+        "marca",
+        "cliente"
+      ],
+      "description": "Tipo de escopo de aplica\u00e7\u00e3o"
+    },
+    "escopo_segmento": {
+      "type": "string",
+      "description": "Texto livre que referencia Cliente.tipo_cliente (quando escopo_tipo=segmento)"
+    },
+    "escopo_marca": {
+      "type": "string",
+      "description": "Texto livre que referencia Cliente.marca (quando escopo_tipo=marca)"
+    },
+    "escopo_cliente_id": {
+      "type": "string",
+      "description": "ID do cliente (quando escopo_tipo=cliente)"
+    },
+    "escopo_cliente_nome": {
+      "type": "string",
+      "description": "Nome do cliente (cache)"
+    },
+    "chave_tematica": {
+      "type": "string",
+      "description": "Agrupa orienta\u00e7\u00f5es sobre o mesmo tema para resolu\u00e7\u00e3o de conflito"
+    },
+    "prioridade": {
+      "type": "number",
+      "default": 5,
+      "description": "Peso 1-10 para desempate dentro do mesmo escopo"
+    },
+    "palavras_chave": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Termos para matching complementar (n\u00e3o exclusivo)"
+    },
+    "obrigatoria": {
+      "type": "boolean",
+      "default": false,
+      "description": "Inclui independentemente de matching, respeitando escopo e relev\u00e2ncia"
+    },
+    "exige_verificacao": {
+      "type": "boolean",
+      "default": false,
+      "description": "Requer confirma\u00e7\u00e3o operacional antes de comunicar"
+    },
+    "ativa": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se a orienta\u00e7\u00e3o est\u00e1 ativa"
+    },
+    "versao_atual": {
+      "type": "number",
+      "default": 1,
+      "description": "N\u00famero da vers\u00e3o atual"
+    },
+    "substituiu_orientacao_id": {
+      "type": "string",
+      "description": "ID da orienta\u00e7\u00e3o que foi substitu\u00edda por esta (quando houve substitui\u00e7\u00e3o expl\u00edcita)"
+    },
+    "criado_por_nome": {
+      "type": "string"
+    },
+    "criado_por_email": {
+      "type": "string"
+    },
+    "atualizado_por_nome": {
+      "type": "string"
+    },
+    "atualizado_por_email": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "titulo",
+    "conteudo",
+    "categoria",
+    "tipo_orientacao",
+    "escopo_tipo"
+  ]
+}
