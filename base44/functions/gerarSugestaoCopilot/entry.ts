@@ -84,8 +84,8 @@ Deno.serve(async (req) => {
       cliente.publico_alvo ? `Público-alvo: ${cliente.publico_alvo}` : null,
     ].filter(Boolean).join('\n') : `Nome: ${clienteNome || 'Não informado'}`;
 
-    // ── Montar histórico da conversa ─────────────────────────
-    const historico = mensagensUteis.map(m => {
+    // ── Montar linhas formatadas do histórico ─────────────────
+    const linhasFormatadas = mensagensUteis.map(m => {
       const ts = m.received_at || m.timestamp_mensagem;
       const horario = ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
       const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada' || m.from_me;
@@ -110,7 +110,6 @@ Deno.serve(async (req) => {
       } else if (m.tipo_mensagem === 'sticker') {
         texto = '[Figurinha]';
       } else {
-        // texto
         texto = (m.mensagem || '').replace(/\n*— [^\n]+ \| Voxx\n*$/, '').trim();
         if (!texto) texto = '[Sem conteúdo textual]';
       }
@@ -119,7 +118,25 @@ Deno.serve(async (req) => {
       if (texto.length > 500) texto = texto.substring(0, 500) + '...';
 
       return `[${horario}] [${autor}] ${nome}: ${texto}`;
-    }).join('\n');
+    });
+
+    // ── Limite global do bloco de histórico ──────────────────
+    // Prioriza mensagens mais recentes; remove das mais antigas quando atinge o limite.
+    // Sempre preserva pelo menos a última mensagem (não corta a solicitação do cliente no meio).
+    const LIMITE_CHARS_HISTORICO = 12000;
+    let linhasFinais = [];
+    let totalChars = 0;
+    for (let i = linhasFormatadas.length - 1; i >= 0; i--) {
+      const linha = linhasFormatadas[i];
+      const charsLinha = linha.length + 1; // +1 para o \n
+      // Se adicionar esta linha ultrapassa o limite E já temos pelo menos 1 linha, parar
+      if (totalChars + charsLinha > LIMITE_CHARS_HISTORICO && linhasFinais.length > 0) {
+        break;
+      }
+      totalChars += charsLinha;
+      linhasFinais.unshift(linha); // adiciona no início para manter ordem cronológica
+    }
+    const historico = linhasFinais.join('\n');
 
     // ── Contexto de resposta (mensagem sendo respondida) ──────
     const contextoResposta = respondendoTexto
@@ -226,10 +243,14 @@ Retorne APENAS o JSON no formato especificado. Não inclua markdown, explicaçõ
       return Response.json({ error: 'A IA não retornou uma sugestão válida. Tente novamente.' }, { status: 500 });
     }
 
-    // Remover possível assinatura se a IA incluiu por engano
+    // Remover assinatura apenas em padrões claros no início ou fim da mensagem.
+    // A assinatura oficial da VOXX usa o formato: "— Nome | Voxx" (com travessão/em-dash).
+    // Não remove a palavra "VOXX" no meio do texto, nomes de colaboradores ou trechos legítimos.
     let sugestaoLimpa = resultado.mensagem_sugerida
-      .replace(/\n*— [^\n]+\| Voxx\n*$/i, '')
-      .replace(/^\s*[^\n]+\| Voxx\s*\n+/i, '')
+      // Padrão no final: "\n— Nome | Voxx" (com ou sem espaços/newlines ao redor)
+      .replace(/\s*—\s+[^\n]{1,60}\|\s*Voxx\s*$/i, '')
+      // Padrão no início: "— Nome | Voxx\n" (assinatura isolada na primeira linha)
+      .replace(/^—\s+[^\n]{1,60}\|\s*Voxx\s*\n+/i, '')
       .trim();
 
     return Response.json({
