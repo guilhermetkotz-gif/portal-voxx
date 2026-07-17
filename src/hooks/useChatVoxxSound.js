@@ -4,7 +4,7 @@
  * - Respeita bloqueios de autoplay
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'voxx_chat_som_ativado';
 
@@ -59,29 +59,6 @@ export function useChatVoxxSound() {
       return true;
     }
   });
-
-  const desbloqueadoRef = useRef(false);
-
-  // Desbloqueia AudioContext na primeira interação
-  useEffect(() => {
-    const desbloquear = () => {
-      if (desbloqueadoRef.current) return;
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioCtx();
-        ctx.resume().then(() => {
-          desbloqueadoRef.current = true;
-          ctx.close();
-        });
-      } catch (_) {}
-    };
-    document.addEventListener('click', desbloquear, { once: true });
-    document.addEventListener('keydown', desbloquear, { once: true });
-    return () => {
-      document.removeEventListener('click', desbloquear);
-      document.removeEventListener('keydown', desbloquear);
-    };
-  }, []);
 
   const toggleSom = useCallback(() => {
     setSomAtivado(prev => {
