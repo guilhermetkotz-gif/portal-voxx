@@ -89,8 +89,12 @@ export function useAlertaSomRadar(gruposEnriquecidos) {
     gruposEnriquecidos.forEach(g => {
       if (!g.alertaNivel) return;
 
+      // Só dispara som para mensagens genuinamente recebidas (não enviadas pelo portal VOXX)
+      const ultimaMsg = g.ultimaClienteValida;
+      if (!ultimaMsg || ultimaMsg.from_me === true || ultimaMsg.origem === 'enviada') return;
+
       // Chave única: grupo + nível + timestamp da última msg do cliente
-      const tsCliente = g.ultimaClienteValida?.received_at || g.ultimaCliente?.received_at || '';
+      const tsCliente = ultimaMsg.received_at || '';
       const chave = `${g.grupo_id}|${g.alertaNivel}|${tsCliente}`;
 
       if (disparadosRef.current.has(chave)) return;
