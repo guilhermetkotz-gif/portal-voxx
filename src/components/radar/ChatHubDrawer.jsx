@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, ChevronDown } from 'lucide-react';
+import { X, Send, Paperclip, Mic, MicOff, Search, Plus, Users, User, Loader2, Download, FileText, MessageCircle, Phone, Building2, Image, Video, FileAudio, Bell, AlertTriangle, Zap, Smile, SmilePlus, Sticker, Trash2, Sun, Moon, Check, CheckCheck, Reply, Star, Pin, Forward, Copy, ChevronDown, Sparkles, RefreshCw } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
 import AudioTranscription from '@/components/radar/AudioTranscription';
 import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
+import { useCopilot } from '@/hooks/useCopilot';
 import GrupoDetalheDrawer from '@/components/radar/GrupoDetalheDrawer';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 import moment from 'moment';
@@ -188,6 +189,9 @@ export default function ChatHubDrawer({ onClose, user }) {
   const [grupoDetalheData, setGrupoDetalheData] = useState(null);
   const [loadingGrupoDetalhe, setLoadingGrupoDetalhe] = useState(false);
   const [lastViewedAt, setLastViewedAt] = useState({}); // { [chatId]: ISO timestamp }
+
+  // ── Copilot ──────────────────────────────────────────────
+  const copilot = useCopilot({ selectedChat, mensagem, setMensagem, respondendoA, user });
 
   const handleOpenGrupoDetalhe = async () => {
     if (!selectedChat?.isGroup || !selectedChat?.id) return;
@@ -1437,6 +1441,52 @@ export default function ChatHubDrawer({ onClose, user }) {
                     </button>
                   </div>
                 )}
+                {/* Copilot: banner de revisão e gerar novamente */}
+                {copilot.resultado && !copilot.loading && (
+                  <div className={`flex items-center gap-2 px-3 py-2 mb-2 rounded-lg border ${
+                    copilot.resultado.necessidade_revisao
+                      ? 'bg-amber-500/10 border-amber-500/30'
+                      : 'bg-violet-500/10 border-violet-500/30'
+                  }`}>
+                    {copilot.resultado.necessidade_revisao ? (
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    ) : (
+                      <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs font-medium ${copilot.resultado.necessidade_revisao ? 'text-amber-600' : 'text-violet-600'}`}>
+                        {copilot.resultado.necessidade_revisao
+                          ? 'Atenção: revise esta mensagem antes de enviar.'
+                          : `Sugestão inserida · ${copilot.resultado.assunto_identificado || ''}`}
+                      </p>
+                      {copilot.resultado.alerta_risco && (
+                        <p className="text-[11px] text-amber-600/80 mt-0.5 truncate">{copilot.resultado.alerta_risco}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={copilot.handleGerarNovamente}
+                      disabled={copilot.loading}
+                      className={`text-xs px-2 py-1 rounded-md whitespace-nowrap ${
+                        copilot.resultado.necessidade_revisao
+                          ? 'bg-amber-500/20 text-amber-600 hover:bg-amber-500/30'
+                          : 'bg-violet-500/20 text-violet-600 hover:bg-violet-500/30'
+                      } disabled:opacity-50 transition-colors shrink-0`}
+                    >
+                      Gerar novamente
+                    </button>
+                    <button
+                      onClick={copilot.dismissResultado}
+                      className={`p-1 rounded-full ${
+                        copilot.resultado.necessidade_revisao
+                          ? 'hover:bg-amber-500/20'
+                          : 'hover:bg-violet-500/20'
+                      } transition-colors shrink-0`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2">
                   {/* Anexo + menu */}
                   <Popover>
@@ -1527,6 +1577,25 @@ export default function ChatHubDrawer({ onClose, user }) {
                     </Popover>
                   </div>
 
+                  {/* Copilot */}
+                  <button
+                    onClick={copilot.handleCopilotClick}
+                    disabled={copilot.loading || enviando}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 h-10 rounded-full text-xs font-medium transition-colors ${
+                      copilot.loading
+                        ? 'bg-violet-500/20 text-violet-500 cursor-wait'
+                        : 'bg-violet-500/10 text-violet-600 hover:bg-violet-500/20'
+                    } disabled:opacity-50`}
+                    title="Gerar sugestão com IA"
+                  >
+                    {copilot.loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="w-4 h-4" />
+                    )}
+                    {copilot.loading ? 'Analisando...' : 'Copilot'}
+                  </button>
+
                   {/* Microfone ou Enviar */}
                   {gravando ? (
                     <button className="w-10 h-10 flex items-center justify-center rounded-full text-red-500 hover:bg-red-50 shrink-0" onClick={stopRecording}>
@@ -1613,6 +1682,52 @@ export default function ChatHubDrawer({ onClose, user }) {
                 <Button onClick={handleNovaConversa} className="bg-emerald-600 hover:bg-emerald-500">
                   <Phone className="w-4 h-4 mr-2" /> Iniciar Chat
                 </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Modal: Copilot (conflito de texto) ── */}
+        {copilot.showModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/50" onClick={() => copilot.handleModalChoice('cancelar')} />
+            <div className={`relative ${t.popoverBg} border ${t.popoverBorder} rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl`}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-violet-500/20 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-violet-500" />
+                </div>
+                <div>
+                  <h3 className={`text-base font-bold ${t.textName}`}>Texto já digitado</h3>
+                  <p className={`text-xs ${t.textSecondary}`}>Como deseja proceder?</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <button
+                  onClick={() => copilot.handleModalChoice('melhorar')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${t.popoverHover} border ${t.borderLight} transition-colors`}
+                >
+                  <Sparkles className="w-4 h-4 text-violet-500" />
+                  <div className="text-left">
+                    <p className={t.textName}>Melhorar texto digitado</p>
+                    <p className={`text-[11px] ${t.textSecondary}`}>Aprimora o texto mantendo as informações</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => copilot.handleModalChoice('substituir')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${t.popoverHover} border ${t.borderLight} transition-colors`}
+                >
+                  <RefreshCw className="w-4 h-4 text-blue-500" />
+                  <div className="text-left">
+                    <p className={t.textName}>Substituir pelo Copilot</p>
+                    <p className={`text-[11px] ${t.textSecondary}`}>Gera uma nova sugestão do zero</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => copilot.handleModalChoice('cancelar')}
+                  className={`w-full px-4 py-2.5 rounded-xl text-sm ${t.textSecondary} hover:bg-black/5 transition-colors`}
+                >
+                  Cancelar
+                </button>
               </div>
             </div>
           </div>
