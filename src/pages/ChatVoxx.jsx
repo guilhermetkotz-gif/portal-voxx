@@ -134,8 +134,11 @@ function ChatVoxxInner({ user }) {
   useEffect(() => {
     if (!user?.id) return;
     const unsubscribe = base44.entities.ChatVoxxMensagem.subscribe((event) => {
-      if (event.type === 'create' && event.data?.remetente_id !== user.id) {
+      if (event.data?.remetente_id === user.id) return;
+      if (event.type === 'create') {
         queryClient.invalidateQueries({ queryKey: ['chatVoxxConversas'] });
+        queryClient.invalidateQueries({ queryKey: ['chatVoxxUnread'] });
+      } else if (event.type === 'delete') {
         queryClient.invalidateQueries({ queryKey: ['chatVoxxUnread'] });
       }
     });

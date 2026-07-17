@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Check, CheckCheck, Download, FileText, Play, Smile, Reply } from 'lucide-react';
+import { Check, CheckCheck, Download, FileText, Play, Smile, Reply, Pencil, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { base44 } from '@/api/base44Client';
 
@@ -22,16 +22,20 @@ function renderTextWithLinks(text) {
 
 export default function MessageBubble({ message, isMine, isGroup, currentUserId, onReply }) {
   const [showReactions, setShowReactions] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(message.conteudo || '');
+
   const time = (() => {
     if (!message.created_date) return '';
     try {
-      const d = new Date(message.created_date);
-      if (isNaN(d.getTime())) return '';
-      return new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+      return moment.tz(message.created_date, 'America/Sao_Paulo').format('HH:mm');
     } catch {
       return '';
     }
   })();
+
+  const canEdit = isMine && message.tipo_mensagem === 'texto' && !message.resposta_id;
+  const canDelete = isMine;
 
   const handleReact = async (emoji) => {
     setShowReactions(false);
@@ -48,6 +52,30 @@ export default function MessageBubble({ message, isMine, isGroup, currentUserId,
       await base44.entities.ChatVoxxMensagem.update(message.id, { reacoes: newReacoes });
     } catch (err) {
       console.error('Erro ao reagir:', err);
+    }
+  };
+
+  const handleEditSave = async () => {
+    const trimmed = editText.trim();
+    if (!trimmed || trimmed === message.conteudo) {
+      setIsEditing(false);
+      setEditText(message.conteudo || '');
+      return;
+    }
+    try {
+      await base44.entities.ChatVoxxMensagem.update(message.id, { conteudo: trimmed });
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Erro ao editar:', err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Tem certeza que deseja apagar esta mensagem?')) return;
+    try {
+      await base44.entities.ChatVoxxMensagem.delete(message.id);
+    } catch (err) {
+      console.error('Erro ao apagar:', err);
     }
   };
 
@@ -111,17 +139,53 @@ export default function MessageBubble({ message, isMine, isGroup, currentUserId,
             : "bg-white border border-slate-200 text-slate-900 rounded-bl-sm"
         )}>
           {hasMedia && renderMedia()}
-          {message.conteudo && message.tipo_mensagem !== 'sticker' && (
-            <p className={cn("text-sm whitespace-pre-wrap break-words", hasMedia && "px-2 py-1")}>
-              {renderTextWithLinks(message.conteudo)}
-            </p>
-          )}
 
-          {message.tipo_mensagem !== 'sticker' && (
-            <div className={cn("flex items-center gap-1 mt-0.5", isMine ? "justify-end" : "justify-start")}>
-              <span className={cn("text-xs", isMine ? "text-violet-200" : "text-slate-400")}>{time}</span>
-              {isMine && (message.lida ? <CheckCheck className="w-3.5 h-3.5 text-violet-200" /> : <Check className="w-3.5 h-3.5 text-violet-200" />)}
+          {isEditing ? (
+            <div className="min-w-[220px]">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                autoFocus
+                rows={2}
+                className={cn(
+                  "w-full text-sm rounded-lg px-2 py-1.5 resize-none outline-none border",
+                  isMine ? "bg-violet-700 border-violet-400 text-white placeholder-violet-300" : "bg-white border-slate-300 text-slate-900"
+                )}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleEditSave(); }
+                  if (e.key === 'Escape') { setIsEditing(false); setEditText(message.conteudo || ''); }
+                }}
+              />
+              <div className="flex items-center justify-end gap-1 mt-1">
+                <button
+                  onClick={() => { setIsEditing(false); setEditText(message.conteudo || ''); }}
+                  className={cn("p-1 rounded-full", isMine ? "hover:bg-violet-700 text-violet-200" : "hover:bg-slate-100 text-slate-500")}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleEditSave}
+                  className={cn("p-1 rounded-full", isMine ? "hover:bg-violet-700 text-white" : "hover:bg-slate-100 text-violet-600")}
+                >
+                  <Check className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
+          ) : (
+            <>
+              {message.conteudo && message.tipo_mensagem !== 'sticker' && (
+                <p className={cn("text-sm whitespace-pre-wrap break-words", hasMedia && "px-2 py-1")}>
+                  {renderTextWithLinks(message.conteudo)}
+                </p>
+              )}
+
+              {message.tipo_mensagem !== 'sticker' && (
+                <div className={cn("flex items-center gap-1 mt-0.5", isMine ? "justify-end" : "justify-start")}>
+                  <span className={cn("text-xs", isMine ? "text-violet-200" : "text-slate-400")}>{time}</span>
+                  {isMine && (message.lida ? <CheckCheck className="w-3.5 h-3.5 text-violet-200" /> : <Check className="w-3.5 h-3.5 text-violet-200" />)}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -142,25 +206,37 @@ export default function MessageBubble({ message, isMine, isGroup, currentUserId,
         )}
 
         {/* Hover actions */}
-        <div className={cn("absolute -top-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-white border border-slate-200 rounded-full shadow-sm px-1 py-0.5", isMine ? "left-0" : "right-0")}>
-          <Popover open={showReactions} onOpenChange={setShowReactions}>
-            <PopoverTrigger asChild>
-              <button className="p-1 hover:bg-slate-100 rounded-full"><Smile className="w-3.5 h-3.5 text-slate-500" /></button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-1" align="center">
-              <div className="flex gap-0.5">
-                {REACTION_EMOJIS.map(emoji => (
-                  <button key={emoji} onClick={() => handleReact(emoji)} className="text-lg hover:scale-125 transition-transform p-0.5">
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <button onClick={() => onReply?.(message)} className="p-1 hover:bg-slate-100 rounded-full">
-            <Reply className="w-3.5 h-3.5 text-slate-500" />
-          </button>
-        </div>
+        {!isEditing && (
+          <div className={cn("absolute -top-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-white border border-slate-200 rounded-full shadow-sm px-1 py-0.5", isMine ? "left-0" : "right-0")}>
+            <Popover open={showReactions} onOpenChange={setShowReactions}>
+              <PopoverTrigger asChild>
+                <button className="p-1 hover:bg-slate-100 rounded-full"><Smile className="w-3.5 h-3.5 text-slate-500" /></button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-1" align="center">
+                <div className="flex gap-0.5">
+                  {REACTION_EMOJIS.map(emoji => (
+                    <button key={emoji} onClick={() => handleReact(emoji)} className="text-lg hover:scale-125 transition-transform p-0.5">
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <button onClick={() => onReply?.(message)} className="p-1 hover:bg-slate-100 rounded-full">
+              <Reply className="w-3.5 h-3.5 text-slate-500" />
+            </button>
+            {canEdit && (
+              <button onClick={() => { setEditText(message.conteudo || ''); setIsEditing(true); }} className="p-1 hover:bg-slate-100 rounded-full">
+                <Pencil className="w-3.5 h-3.5 text-slate-500" />
+              </button>
+            )}
+            {canDelete && (
+              <button onClick={handleDelete} className="p-1 hover:bg-red-50 rounded-full">
+                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

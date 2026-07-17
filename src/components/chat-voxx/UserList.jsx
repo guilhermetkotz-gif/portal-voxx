@@ -3,7 +3,7 @@ import { Search, Users, MessageSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 export default function UserList({ users, groups, currentUserId, selectedConversationId, onSelectUser, onSelectGroup, getUserPreview, onCreateGroup, unreadByUserId = {}, unreadByGroupId = {} }) {
   const [search, setSearch] = useState('');
@@ -71,9 +71,10 @@ export default function UserList({ users, groups, currentUserId, selectedConvers
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
-    const m = moment(timestamp);
-    if (m.isSame(moment(), 'day')) return m.format('HH:mm');
-    if (m.isSame(moment().subtract(1, 'day'), 'day')) return 'Ontem';
+    const m = moment.tz(timestamp, 'America/Sao_Paulo');
+    const now = moment.tz('America/Sao_Paulo');
+    if (m.isSame(now, 'day')) return m.format('HH:mm');
+    if (m.isSame(now.clone().subtract(1, 'day'), 'day')) return 'Ontem';
     return m.format('DD/MM');
   };
 
