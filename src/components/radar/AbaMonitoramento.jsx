@@ -48,7 +48,7 @@ function DataHora({ ts }) {
   return <span className="text-slate-500">{m.format('DD/MM')}</span>;
 }
 
-export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading, kpis }) {
+export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading, kpis, user }) {
   const [busca, setBusca] = useState('');
   const [filtroVinculo, setFiltroVinculo] = useState('todos');
   const [filtroAlerta, setFiltroAlerta] = useState('todos');
@@ -341,6 +341,7 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
           clienteId={chatAberto.clienteId}
           clienteNome={chatAberto.clienteNome}
           isGroup={chatAberto.isGroup}
+          user={user}
           onClose={() => setChatAberto(null)}
         />
       )}

@@ -345,7 +345,7 @@ export default function RadarWhatsApp({ user }) {
         </TabsList>
 
         <TabsContent value="monitoramento">
-          <AbaMonitoramento gruposEnriquecidos={gruposEnriquecidos} clientes={clientes} loading={loading} kpis={kpis} />
+          <AbaMonitoramento gruposEnriquecidos={gruposEnriquecidos} clientes={clientes} loading={loading} kpis={kpis} user={user} />
         </TabsContent>
 
         <TabsContent value="grupos">
