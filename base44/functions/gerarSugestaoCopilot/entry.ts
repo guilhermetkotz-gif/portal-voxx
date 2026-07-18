@@ -45,28 +45,29 @@ const TERMOS_SENSIVEIS_UNIVERSAIS = [
 ];
 
 // ════════════════════════════════════════════════════════════
-//  DETECÇÃO DE RELATÓRIO/ALINHAMENTO DE LEADS
+//  DETECÇÃO E ANÁLISE DE RELATÓRIO/ALINHAMENTO DE LEADS
 // ════════════════════════════════════════════════════════════
 
 const TERMOS_RELATORIO_LEADS = [
   'relatorio de leads', 'relatório de leads', 'alinhamento de leads', 'alinhamento',
   'total de leads', 'leads do dia', 'leads da semana', 'leads de hoje',
   'leads recebidos', 'leads gerados', 'leads captados', 'quantidade de leads',
+  'leads novos', 'total processado',
   'agendamentos', 'agendamento', 'agendou', 'agendar',
   'compareceu', 'faltou', 'desmarcou', 'reagendou',
   'sem contato', 'sem_contato', 'sem resposta', 'sem retorno',
   'kanban', 'duplicidades', 'duplicidade', 'duplicado', 'duplicada',
-  'distancia', 'distância', 'longe', 'muito longe',
-  'orcamento', 'orçamento', 'poder aquisitivo', 'sem poder aquisitivo',
-  'qualidade dos contatos', 'qualidade dos leads', 'perfil dos contatos', 'perfil dos leads',
-  'tratamento', 'implante', 'protese', 'prótese', 'ortodontia', 'lentes',
+  'distancia', 'distância', 'longe',
+  'orcamento', 'orçamento', 'poder aquisitivo',
+  'qualidade dos contatos', 'qualidade dos leads',
   'conversao', 'conversão', 'taxa de conversao', 'taxa de conversão',
-  'perda', 'perdeu', 'fechou em outro', 'sem interesse',
-  'leads meta', 'leads google', 'leads facebook', 'leads instagram',
+  'perda', 'perdeu', 'perderam', 'fechou em outro', 'sem interesse',
+  'fechamento semanal', 'fechamento mensal', 'fechamento da semana',
+  'acumulado do mes', 'acumulado',
+  'marcou para', 'marcaram para', 'proxima semana', 'próxima semana',
 ];
 
 function detectarRelatorioLeads(mensagensUteis) {
-  // Analisa as últimas mensagens (cliente + VOXX) para detectar relatório/alinhamento de leads
   const recentes = mensagensUteis.slice(-8);
   const texto = recentes.map(m => {
     if (m.tipo_mensagem === 'audio') return m.transcricao_audio || '';
@@ -77,34 +78,23 @@ function detectarRelatorioLeads(mensagensUteis) {
   let matches = 0;
   const termosEncontrados = [];
   for (const termo of TERMOS_RELATORIO_LEADS) {
-    if (termoPresente(norm, termo)) {
-      matches++;
-      termosEncontrados.push(termo);
-    }
+    if (termoPresente(norm, termo)) { matches++; termosEncontrados.push(termo); }
   }
-
-  // Pelo menos 2 termos distintos OU 1 termo muito específico
-  const termosEspecificos = ['relatorio de leads', 'relatório de leads', 'alinhamento de leads', 'total de leads', 'kanban'];
+  const termosEspecificos = ['relatorio de leads', 'relatório de leads', 'alinhamento de leads', 'total de leads', 'kanban', 'fechamento semanal', 'fechamento mensal'];
   const temEspecifico = termosEspecificos.some(t => termoPresente(norm, t));
-
   const detectado = matches >= 2 || (temEspecifico && matches >= 1);
   return { detectado, matches, termos: termosEncontrados };
 }
 
 async function recuperarRelatoriosHistoricos(sdk, chatId, idsJaNoContexto) {
-  // Buscar volume maior para cobrir ~14 dias de conversa ativa
   const todasMsgs = await sdk.entities.WhatsappMensagem.filter(
-    { grupo_id: chatId },
-    '-received_at',
-    200
+    { grupo_id: chatId }, '-received_at', 200
   );
-
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 14);
-
   const idsSet = new Set(idsJaNoContexto);
 
-  const relatorios = (todasMsgs || [])
+  return (todasMsgs || [])
     .filter(m => !m.deletado)
     .filter(m => !['sistema', 'atividade', 'sem_conteudo', 'reacao'].includes(m.tipo_mensagem))
     .filter(m => {
@@ -112,28 +102,148 @@ async function recuperarRelatoriosHistoricos(sdk, chatId, idsJaNoContexto) {
       if (!ts) return false;
       return new Date(ts) >= cutoff;
     })
-    .filter(m => !idsSet.has(m.id)) // excluir mensagens já no contexto atual
+    .filter(m => !idsSet.has(m.id))
     .filter(m => {
-      const texto = m.tipo_mensagem === 'audio'
-        ? (m.transcricao_audio || '')
-        : (m.mensagem || '');
+      const texto = m.tipo_mensagem === 'audio' ? (m.transcricao_audio || '') : (m.mensagem || '');
       if (!texto || !texto.trim()) return false;
       const norm = normalizarTexto(texto);
       return TERMOS_RELATORIO_LEADS.some(termo => termoPresente(norm, termo));
     })
     .slice(0, 10);
-
-  return relatorios;
 }
 
-function extrairMetricasLeads(texto) {
+// --- Consolidação de mensagens consecutivas ---
+
+function ehInicioNovoRelatorio(texto) {
+  if (!texto) return false;
+  const norm = normalizarTexto(texto);
+  const marcadores = ['relatorio de leads', 'relatório de leads', 'alinhamento de leads',
+                       'fechamento semanal', 'fechamento mensal', 'fechamento da semana', 'acumulado do mes'];
+  return marcadores.some(m => termoPresente(norm, m));
+}
+
+function consolidarMensagensConsecutivas(mensagens) {
+  if (!mensagens || mensagens.length === 0) return [];
+  const grupos = [];
+  let grupoAtual = null;
+
+  for (const msg of mensagens) {
+    const ts = msg.received_at || msg.timestamp_mensagem;
+    const texto = msg.tipo_mensagem === 'audio' ? (msg.transcricao_audio || '') : (msg.mensagem || '');
+    const remetente = msg.remetente_telefone || msg.remetente_nome || msg.usuario_id || '';
+    const ehNovoRelatorio = ehInicioNovoRelatorio(texto);
+
+    if (grupoAtual && grupoAtual.remetente === remetente && !ehNovoRelatorio) {
+      const ultimaMsg = grupoAtual.mensagens[grupoAtual.mensagens.length - 1];
+      const tsUltima = new Date(ultimaMsg.received_at || ultimaMsg.timestamp_mensagem || 0).getTime();
+      const tsAtual = new Date(ts || 0).getTime();
+      const diffMin = Math.abs(tsAtual - tsUltima) / 60000;
+      if (diffMin <= 10) {
+        grupoAtual.mensagens.push(msg);
+        grupoAtual.texto_completado = (grupoAtual.texto_completado + ' ' + texto).trim();
+        if (ts) grupoAtual.data_ultima = ts;
+        grupoAtual.ids.push(msg.id);
+        continue;
+      }
+    }
+    if (grupoAtual) grupos.push(grupoAtual);
+    grupoAtual = {
+      mensagens: [msg], texto_completado: texto, remetente,
+      remetente_nome: msg.remetente_nome, remetente_tipo: msg.remetente_tipo,
+      data_primeira: ts, data_ultima: ts, ids: [msg.id], tipo_mensagem: msg.tipo_mensagem,
+    };
+  }
+  if (grupoAtual) grupos.push(grupoAtual);
+  return grupos;
+}
+
+// --- Data de referência ---
+
+function normalizarDataBR(str) {
+  const parts = str.split('/');
+  if (parts.length < 2) return null;
+  let dia = parseInt(parts[0]), mes = parseInt(parts[1]);
+  let ano = parts[2] ? parseInt(parts[2]) : new Date().getFullYear();
+  if (ano < 100) ano += 2000;
+  if (dia < 1 || dia > 31 || mes < 1 || mes > 12) return null;
+  return `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+}
+
+function extrairDataReferencia(texto, dataRecebimento) {
+  if (!texto) return null;
+  const norm = normalizarTexto(texto);
+  const baseDate = dataRecebimento ? new Date(dataRecebimento) : new Date();
+
+  if (termoPresente(norm, 'fechamento semanal') || termoPresente(norm, 'fechamento da semana'))
+    return { tipo: 'semana', inicio: null, fim: null };
+  if (termoPresente(norm, 'acumulado do mes') || termoPresente(norm, 'fechamento mensal'))
+    return { tipo: 'mes', inicio: null, fim: null };
+
+  let m = norm.match(/de\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:a|ate|ate)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
+  if (m) return { tipo: 'range', inicio: normalizarDataBR(m[1]), fim: normalizarDataBR(m[2]) };
+
+  m = norm.match(/(?:dia|referente\s+ao\s+dia)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
+  if (m) { const d = normalizarDataBR(m[1]); return { tipo: 'ponto', inicio: d, fim: d }; }
+
+  if (termoPresente(norm, 'de hoje') || termoPresente(norm, 'leads de hoje')) {
+    const hoje = baseDate.toISOString().split('T')[0];
+    return { tipo: 'ponto', inicio: hoje, fim: hoje };
+  }
+  if (termoPresente(norm, 'de ontem')) {
+    const o = new Date(baseDate); o.setDate(o.getDate() - 1);
+    const d = o.toISOString().split('T')[0];
+    return { tipo: 'ponto', inicio: d, fim: d };
+  }
+
+  m = norm.match(/(?:^|[^\d\/])(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:[^\d]|$)/);
+  if (m) {
+    const d = normalizarDataBR(`${m[1]}/${m[2]}${m[3] ? '/' + m[3] : ''}`);
+    if (d) return { tipo: 'ponto', inicio: d, fim: d };
+  }
+  return null;
+}
+
+function detectarPeriodicidade(texto, dataRef) {
+  const norm = normalizarTexto(texto);
+  if (termoPresente(norm, 'fechamento semanal') || termoPresente(norm, 'fechamento da semana') || (dataRef && dataRef.tipo === 'semana'))
+    return { periodicidade: 'semanal', confianca: 'alta' };
+  if (termoPresente(norm, 'fechamento mensal') || termoPresente(norm, 'acumulado do mes') || (dataRef && dataRef.tipo === 'mes'))
+    return { periodicidade: 'mensal', confianca: 'alta' };
+  if (termoPresente(norm, 'acumulado'))
+    return { periodicidade: 'acumulado', confianca: 'media' };
+  if (dataRef && dataRef.tipo === 'range')
+    return { periodicidade: 'periodo_personalizado', confianca: 'alta' };
+  if (termoPresente(norm, 'de hoje') || termoPresente(norm, 'de ontem') ||
+      termoPresente(norm, 'do dia') || termoPresente(norm, 'leads de hoje') ||
+      (dataRef && dataRef.tipo === 'ponto'))
+    return { periodicidade: 'diario', confianca: 'media' };
+  return { periodicidade: 'desconhecido', confianca: 'baixa' };
+}
+
+// --- Extração de métricas V2 ---
+
+function extrairMetricasLeadsV2(texto) {
   if (!texto) return {};
   const norm = normalizarTexto(texto);
   const metricas = {};
   let m;
 
-  m = norm.match(/(?:total\s+de\s+)?(\d+)\s+leads?/) || norm.match(/leads?\s*[:\-]\s*(\d+)/);
-  if (m) metricas.total_leads = parseInt(m[1]);
+  m = norm.match(/(\d+)\s+leads?\s+novos?/);
+  if (m) metricas.leads_novos = parseInt(m[1]);
+
+  m = norm.match(/(\d+)\s+(?:ja\s+estavam|ja\s+estava)\s+(?:no|na)\s+kanban/);
+  if (m) metricas.leads_anteriores_kanban = parseInt(m[1]);
+
+  m = norm.match(/(\d+)\s+duplicidades?/) || norm.match(/(\d+)\s+duplicad[ao]s?/);
+  if (m) metricas.leads_duplicados = parseInt(m[1]);
+
+  m = norm.match(/total\s+processado[:\s]*(\d+)/);
+  if (m) metricas.total_processado = parseInt(m[1]);
+
+  if (metricas.leads_novos === undefined) {
+    m = norm.match(/(?:total\s+de\s+)?(\d+)\s+leads?/) || norm.match(/leads?\s*[:\-]\s*(\d+)/);
+    if (m) metricas.total_leads = parseInt(m[1]);
+  }
 
   m = norm.match(/(\d+)\s+agendamentos?/) || norm.match(/agendaram\s+(\d+)/);
   if (m) metricas.agendamentos = parseInt(m[1]);
@@ -147,52 +257,191 @@ function extrairMetricasLeads(texto) {
   m = norm.match(/(\d+)\s+desmarcou/);
   if (m) metricas.desmarcou = parseInt(m[1]);
 
-  m = norm.match(/(\d+)\s+sem\s+contato/) || norm.match(/(\d+)\s+sem\s+resposta/) || norm.match(/(\d+)\s+sem\s+retorno/);
+  m = norm.match(/(\d+)\s+reagendou/);
+  if (m) metricas.reagendou = parseInt(m[1]);
+
+  m = norm.match(/(\d+)\s+sem\s+contato/);
   if (m) metricas.sem_contato = parseInt(m[1]);
 
-  m = norm.match(/(\d+)\s+duplicidades?/) || norm.match(/(\d+)\s+duplicad[ao]s?/);
-  if (m) metricas.duplicidades = parseInt(m[1]);
+  m = norm.match(/(\d+)\s+sem\s+resposta/);
+  if (m) metricas.sem_resposta = parseInt(m[1]);
 
-  m = norm.match(/(\d+)\s+perderam/) || norm.match(/(\d+)\s+perdas?/);
-  if (m) metricas.perdas = parseInt(m[1]);
+  // Perdas — extrair TODAS as ocorrências com motivo
+  const regexPerdas = /(\d+)\s+(?:perdeu|perderam)\s+por\s+([a-z\s]+?)(?=\s*\d|\s*$|\.|,|;)/g;
+  let match;
+  const perdasDetalhadas = [];
+  while ((match = regexPerdas.exec(norm)) !== null) {
+    perdasDetalhadas.push({ qtd: parseInt(match[1]), motivo: match[2].trim() });
+  }
 
-  const motivos = [];
-  if (termoPresente(norm, 'distancia') || termoPresente(norm, 'longe')) motivos.push('distância');
-  if (termoPresente(norm, 'poder aquisitivo') || termoPresente(norm, 'orcamento')) motivos.push('orçamento');
-  if (termoPresente(norm, 'sem interesse')) motivos.push('sem interesse');
-  if (termoPresente(norm, 'fechou em outro')) motivos.push('concorrência');
-  if (motivos.length > 0) metricas.motivos_perda = motivos;
+  if (perdasDetalhadas.length > 0) {
+    let totalPerdas = 0;
+    const motivos = [];
+    for (const p of perdasDetalhadas) {
+      totalPerdas += p.qtd;
+      if (termoPresente(p.motivo, 'distancia') || termoPresente(p.motivo, 'longe')) {
+        motivos.push('distância');
+        metricas.perdas_distancia = (metricas.perdas_distancia || 0) + p.qtd;
+      } else if (termoPresente(p.motivo, 'orcamento') || termoPresente(p.motivo, 'poder aquisitivo')) {
+        motivos.push('orçamento');
+        metricas.perdas_orcamento = (metricas.perdas_orcamento || 0) + p.qtd;
+      } else if (termoPresente(p.motivo, 'sem interesse')) {
+        motivos.push('sem interesse');
+        metricas.perdas_sem_interesse = (metricas.perdas_sem_interesse || 0) + p.qtd;
+      } else if (termoPresente(p.motivo, 'fechou em outro') || termoPresente(p.motivo, 'concorrencia')) {
+        motivos.push('concorrência');
+        metricas.perdas_concorrencia = (metricas.perdas_concorrencia || 0) + p.qtd;
+      }
+    }
+    metricas.perdas_total = totalPerdas;
+    metricas.motivos_perda = motivos;
+  } else {
+    m = norm.match(/(\d+)\s+perdas?/);
+    if (m) metricas.perdas_total = parseInt(m[1]);
+  }
+
+  // Agendamento futuro confirmado
+  m = norm.match(/(\d+)\s+(?:marcou|marcaram)\s+para\s+(?:proxima\s+semana|pr[oó]xima\s+semana|\d{1,2}\/\d{1,2})/);
+  if (m) {
+    metricas.agendamento_futuro_confirmado = parseInt(m[1]);
+  } else if (norm.match(/marcou\s+para\s+\d{1,2}\/\d{1,2}/) || norm.match(/marcaram\s+para\s+\d{1,2}\/\d{1,2}/)) {
+    metricas.agendamento_futuro_confirmado = 1;
+  }
+
+  // Oportunidade futura sem agendamento
+  if (norm.match(/s[oó]\s+estar[aá]?\s+(?:na\s+)?cidade/) || norm.match(/dispon[ií]vel\s+(?:em|no|na)\s+/)) {
+    metricas.oportunidade_futura_sem_agendamento = 1;
+  }
 
   return metricas;
 }
 
-function construirBlocoAnaliseLeads(relatoriosContexto, relatoriosHistoricos) {
-  const todos = [
-    ...(relatoriosHistoricos || []),
-    ...(relatoriosContexto || []),
-  ].map(msg => {
-    const texto = msg.tipo_mensagem === 'audio'
-      ? (msg.transcricao_audio || '')
-      : (msg.mensagem || '');
-    const metricas = extrairMetricasLeads(texto);
-    return { data: msg.received_at || msg.timestamp_mensagem, metricas };
-  }).sort((a, b) => {
-    const ta = new Date(a.data || 0).getTime();
-    const tb = new Date(b.data || 0).getTime();
+// --- Verificação de comparabilidade (fail-closed) ---
+
+function verificarComparabilidade(relatorios) {
+  if (relatorios.length < 2) {
+    return { comparaveis: [], naoComparaveis: relatorios, motivos: [], confianca: 'baixa' };
+  }
+
+  const porPeriodicidade = {};
+  for (const r of relatorios) {
+    const p = r.periodicidade;
+    if (!porPeriodicidade[p]) porPeriodicidade[p] = [];
+    porPeriodicidade[p].push(r);
+  }
+
+  const motivosNaoComp = [];
+  const naoComparaveis = [];
+
+  // Periodicidade desconhecida → não comparável
+  if (porPeriodicidade['desconhecido']) {
+    for (const r of porPeriodicidade['desconhecido']) {
+      naoComparaveis.push(r);
+      motivosNaoComp.push({ motivo: 'periodicidade_desconhecida' });
+    }
+    delete porPeriodicidade['desconhecido'];
+  }
+
+  // Agrupar periodicidades diferentes → não comparáveis entre si
+  const periodicidadesPresentes = Object.keys(porPeriodicidade);
+  if (periodicidadesPresentes.length > 1) {
+    for (const p of periodicidadesPresentes) {
+      for (const r of porPeriodicidade[p]) {
+        naoComparaveis.push(r);
+        motivosNaoComp.push({ motivo: `periodicidade_incompativel:${p}` });
+      }
+    }
+    return { comparaveis: [], naoComparaveis, motivos: motivosNaoComp, confianca: 'baixa' };
+  }
+
+  // Se nenhuma periodicidade conhecida restou (todas eram desconhecidas)
+  if (periodicidadesPresentes.length === 0) {
+    return { comparaveis: [], naoComparaveis, motivos: motivosNaoComp, confianca: 'baixa' };
+  }
+
+  // Mesma periodicidade — verificar sobreposição
+  const periodicidade = periodicidadesPresentes[0];
+  const grupo = porPeriodicidade[periodicidade];
+  grupo.sort((a, b) => {
+    const ta = a.data_ref?.inicio ? new Date(a.data_ref.inicio).getTime() : new Date(a.data_recebimento || 0).getTime();
+    const tb = b.data_ref?.inicio ? new Date(b.data_ref.inicio).getTime() : new Date(b.data_recebimento || 0).getTime();
     return ta - tb;
   });
 
-  const comMetricas = todos.filter(r => Object.keys(r.metricas).length > 0);
+  const comparaveis = [];
+  for (let i = 0; i < grupo.length; i++) {
+    let sobreposto = false;
+    if (i > 0) {
+      const prev = grupo[i - 1], curr = grupo[i];
+      if (prev.data_ref?.inicio && prev.data_ref?.fim && curr.data_ref?.inicio && curr.data_ref?.fim) {
+        const overlap = !(new Date(prev.data_ref.fim) < new Date(curr.data_ref.inicio) ||
+                         new Date(curr.data_ref.fim) < new Date(prev.data_ref.inicio));
+        if (overlap) {
+          naoComparaveis.push(curr);
+          motivosNaoComp.push({ motivo: 'periodos_sobrepostos' });
+          sobreposto = true;
+        }
+      }
+    }
+    if (!sobreposto) comparaveis.push(grupo[i]);
+  }
 
+  if (comparaveis.length < 2) {
+    naoComparaveis.push(...comparaveis);
+    motivosNaoComp.push({ motivo: 'sem_par_comparavel_na_mesma_periodicidade' });
+    return { comparaveis: [], naoComparaveis, motivos: motivosNaoComp, confianca: 'baixa' };
+  }
+
+  return { comparaveis, naoComparaveis, motivos: motivosNaoComp, confianca: 'media' };
+}
+
+// --- Construção do bloco de análise ---
+
+function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
+  const todosRelatorios = [];
+
+  for (const grupo of [...(gruposHistoricos || []), ...(gruposContexto || [])]) {
+    const texto = grupo.texto_completado || (grupo.tipo_mensagem === 'audio'
+      ? (grupo.transcricao_audio || '') : (grupo.mensagem || ''));
+    if (!texto || !texto.trim()) continue;
+
+    const dataRecebimento = grupo.data_primeira || grupo.received_at || grupo.timestamp_mensagem;
+    const dataRef = extrairDataReferencia(texto, dataRecebimento);
+    const { periodicidade, confianca: confiancaPeriod } = detectarPeriodicidade(texto, dataRef);
+    const metricas = extrairMetricasLeadsV2(texto);
+
+    todosRelatorios.push({
+      texto, data_recebimento: dataRecebimento, data_ref: dataRef,
+      periodicidade, confianca_periodicidade: confiancaPeriod,
+      metricas, ids: grupo.ids || [grupo.id],
+      remetente_nome: grupo.remetente_nome, remetente_tipo: grupo.remetente_tipo,
+      mensagens_consolidadas: (grupo.ids || []).length,
+    });
+  }
+
+  // Ordenar por data de referência (fallback para recebimento)
+  todosRelatorios.sort((a, b) => {
+    const ta = a.data_ref?.inicio ? new Date(a.data_ref.inicio).getTime() : (a.data_recebimento ? new Date(a.data_recebimento).getTime() : 0);
+    const tb = b.data_ref?.inicio ? new Date(b.data_ref.inicio).getTime() : (b.data_recebimento ? new Date(b.data_recebimento).getTime() : 0);
+    return ta - tb;
+  });
+
+  const comMetricas = todosRelatorios.filter(r => Object.keys(r.metricas).length > 0);
+  const { comparaveis, naoComparaveis, motivos, confianca } = verificarComparabilidade(todosRelatorios);
+
+  // Tendências APENAS entre comparáveis com métricas
   let tendencias = null;
-  if (comMetricas.length >= 2) {
+  const comparaveisComMetricas = comparaveis.filter(r => Object.keys(r.metricas).length > 0);
+
+  if (comparaveisComMetricas.length >= 2) {
     tendencias = {};
-    const campos = ['total_leads', 'agendamentos', 'comparecimentos', 'faltas', 'desmarcou', 'sem_contato', 'duplicidades', 'perdas'];
+    const campos = ['leads_novos', 'total_leads', 'total_processado', 'agendamentos',
+                    'comparecimentos', 'faltas', 'desmarcou', 'reagendou',
+                    'sem_contato', 'sem_resposta', 'leads_duplicados', 'perdas_total'];
     for (const campo of campos) {
-      const valores = comMetricas.map(r => r.metricas[campo]).filter(v => v !== undefined && v !== null);
+      const valores = comparaveisComMetricas.map(r => r.metricas[campo]).filter(v => v !== undefined && v !== null && v !== '');
       if (valores.length < 2) continue;
-      const primeiro = valores[0];
-      const ultimo = valores[valores.length - 1];
+      const primeiro = valores[0], ultimo = valores[valores.length - 1];
       const diff = ultimo - primeiro;
       const pct = primeiro > 0 ? Math.round((diff / primeiro) * 100) : null;
       let direcao = 'estavel';
@@ -204,34 +453,40 @@ function construirBlocoAnaliseLeads(relatoriosContexto, relatoriosHistoricos) {
       }
       tendencias[campo] = { primeiro, ultimo, diff, pct, direcao };
     }
+    if (Object.keys(tendencias).length === 0) tendencias = null;
   }
 
   const nomesMetricas = {
-    total_leads: 'Leads', agendamentos: 'Agend.', comparecimentos: 'Comp.',
-    faltas: 'Faltas', desmarcou: 'Desm.', sem_contato: 'S/contato',
-    duplicidades: 'Dupl.', perdas: 'Perdas',
+    leads_novos: 'Leads novos', total_leads: 'Total leads', total_processado: 'Total proc.',
+    leads_anteriores_kanban: 'Kanban ant.', leads_duplicados: 'Dupl.',
+    agendamentos: 'Agend.', comparecimentos: 'Comp.',
+    faltas: 'Faltas', desmarcou: 'Desm.', reagendou: 'Reag.',
+    sem_contato: 'S/contato', sem_resposta: 'S/resposta',
+    perdas_total: 'Perdas', agendamento_futuro_confirmado: 'Agend. futuro',
+    oportunidade_futura_sem_agendamento: 'Oport. futura',
   };
 
   const linhasTimeline = comMetricas.map(r => {
-    const data = r.data
-      ? new Date(r.data).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' })
-      : 'Sem data';
+    const dataRef = r.data_ref?.inicio
+      ? new Date(r.data_ref.inicio + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+      : (r.data_recebimento ? new Date(r.data_recebimento).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }) : 'Sem data');
     const partes = Object.entries(nomesMetricas)
       .map(([k, label]) => r.metricas[k] !== undefined ? `${label}: ${r.metricas[k]}` : null)
       .filter(Boolean);
-    if (r.metricas.motivos_perda && r.metricas.motivos_perda.length > 0) {
-      partes.push(`Motivos perda: ${r.metricas.motivos_perda.join(', ')}`);
-    }
-    return `[${data}] ${partes.join(' | ')}`;
+    if (r.metricas.motivos_perda && r.metricas.motivos_perda.length > 0)
+      partes.push(`Motivos: ${r.metricas.motivos_perda.join(', ')}`);
+    return `[${dataRef}] [${r.periodicidade}] ${partes.join(' | ')}`;
   });
 
   const nomesTendencias = {
-    total_leads: 'Volume de leads', agendamentos: 'Agendamentos',
-    comparecimentos: 'Comparecimentos', faltas: 'Faltas', desmarcou: 'Desmarcações',
-    sem_contato: 'Sem contato', duplicidades: 'Duplicidades', perdas: 'Perdas',
+    leads_novos: 'Leads novos', total_leads: 'Volume de leads', total_processado: 'Total processado',
+    agendamentos: 'Agendamentos', comparecimentos: 'Comparecimentos', faltas: 'Faltas',
+    desmarcou: 'Desmarcações', reagendou: 'Reagendamentos',
+    sem_contato: 'Sem contato', sem_resposta: 'Sem resposta',
+    leads_duplicados: 'Duplicidades', perdas_total: 'Perdas',
   };
 
-  const linhasTendencias = tendencias && Object.keys(tendencias).length > 0
+  const linhasTendencias = tendencias
     ? Object.entries(tendencias).map(([campo, t]) => {
         const nome = nomesTendencias[campo] || campo;
         const pctStr = t.pct !== null ? ` (${t.pct > 0 ? '+' : ''}${t.pct}%)` : '';
@@ -239,38 +494,39 @@ function construirBlocoAnaliseLeads(relatoriosContexto, relatoriosHistoricos) {
       })
     : [];
 
-  const linhasRaw = (relatoriosHistoricos || []).map(m => {
-    const ts = m.received_at || m.timestamp_mensagem;
-    const horario = ts
-      ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-      : 'Sem data';
-    const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada' || m.from_me;
-    const autor = isVoxx ? 'VOXX' : 'Cliente';
-    const nome = m.remetente_nome || 'Desconhecido';
-    let texto = '';
-    if (m.tipo_mensagem === 'audio') {
-      texto = m.transcricao_audio ? `[Áudio] ${m.transcricao_audio}` : '[Áudio sem transcrição]';
-    } else if (m.tipo_mensagem === 'imagem') {
-      texto = m.mensagem && m.mensagem.trim() ? `[Imagem] ${m.mensagem}` : '[Imagem sem legenda]';
-    } else {
-      texto = (m.mensagem || '').replace(/\n*— [^\n]+ \| Voxx\n*$/, '').trim();
-    }
-    if (texto.length > 600) texto = texto.substring(0, 600) + '...';
-    return `[${horario}] [${autor}] ${nome}: ${texto}`;
-  });
+  const linhasNaoComp = motivos.length > 0 ? motivos.map(m => `- ${m.motivo}`).join('\n') : '';
+  const periodosUnicos = [...new Set(todosRelatorios.map(r => r.periodicidade))];
+
+  const periodoInicio = todosRelatorios.length > 0
+    ? (todosRelatorios[0].data_ref?.inicio || todosRelatorios[0].data_recebimento || null) : null;
+  const periodoFim = todosRelatorios.length > 0
+    ? (todosRelatorios[todosRelatorios.length - 1].data_ref?.fim || todosRelatorios[todosRelatorios.length - 1].data_ref?.inicio || todosRelatorios[todosRelatorios.length - 1].data_recebimento || null) : null;
 
   let bloco = `## ANÁLISE ESTRUTURADA DE RELATÓRIO DE LEADS\n`;
   bloco += `\n### Linha do tempo de métricas extraídas:\n`;
-  bloco += linhasTimeline.length > 0
-    ? linhasTimeline.join('\n')
-    : 'Não foi possível extrair métricas estruturadas dos relatórios.';
+  bloco += linhasTimeline.length > 0 ? linhasTimeline.join('\n') : 'Não foi possível extrair métricas estruturadas dos relatórios.';
 
   if (linhasTendencias.length > 0) {
-    bloco += `\n\n### Tendências identificadas (comparação entre relatórios):\n${linhasTendencias.join('\n')}`;
-  } else if (comMetricas.length < 2) {
-    bloco += `\n\n### Tendências: dados insuficientes para comparação (apenas ${comMetricas.length} relatório com métricas extraídas).`;
+    bloco += `\n\n### Tendências identificadas (comparação entre relatórios comparáveis):\n${linhasTendencias.join('\n')}`;
+  } else if (comparaveisComMetricas.length < 2) {
+    if (todosRelatorios.length >= 2 && (naoComparaveis.length > 0 || motivos.length > 0)) {
+      bloco += `\n\n### Tendências: NÃO CALCULADAS — os relatórios recuperados NÃO são comparáveis.`;
+      if (linhasNaoComp) bloco += `\nMotivos: ${linhasNaoComp}`;
+    } else if (comMetricas.length < 2) {
+      bloco += `\n\n### Tendências: dados insuficientes para comparação (apenas ${comMetricas.length} relatório com métricas extraídas).`;
+    }
   }
 
+  const linhasRaw = (gruposHistoricos || []).map(g => {
+    const ts = g.data_primeira || g.received_at;
+    const horario = ts ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Sem data';
+    const isVoxx = g.remetente_tipo === 'voxx';
+    const autor = isVoxx ? 'VOXX' : 'Cliente';
+    const nome = g.remetente_nome || 'Desconhecido';
+    let texto = (g.texto_completado || '').replace(/\n*— [^\n]+ \| Voxx\n*$/, '').trim();
+    if (texto.length > 600) texto = texto.substring(0, 600) + '...';
+    return `[${horario}] [${autor}] ${nome}: ${texto}`;
+  });
   if (linhasRaw.length > 0) {
     bloco += `\n\n### Relatórios anteriores (texto original):\n${linhasRaw.join('\n')}`;
   }
@@ -278,19 +534,39 @@ function construirBlocoAnaliseLeads(relatoriosContexto, relatoriosHistoricos) {
   bloco += `
 
 ### Instruções para análise de relatório de leads:
-- Diferencie corretamente os status do funil de leads: Leads recebidos → Agendamentos → Comparecimentos → Faltas/Perdas.
-- Leads recebidos e agendamentos refletem volume e atração (topo do funil).
-- Comparecimentos, faltas e perdas refletem qualificação e operação (fundo do funil).
-- Apresente tendências SOMENTE quando houver dados comparáveis entre 2 ou mais relatórios na linha do tempo acima.
+- Apresente tendências SOMENTE quando houver 2 ou mais relatórios comparáveis indicados acima.
+- Se os relatórios NÃO forem comparáveis (periodicidades diferentes, períodos sobrepostos, etc.), informe naturalmente que os registros representam períodos diferentes e não permitem comparação direta. Trabalhe apenas com o relatório atual.
 - NÃO invente percentuais, metas ou comparações não presentes nos dados extraídos.
-- NÃO diga apenas "vamos acompanhar" quando o histórico já permitir uma análise concreta.
-- NÃO sugira alteração de campanha (orçamento, segmentação, criativos) sem relacioná-la a uma tendência observada nos dados.
-- Se a variação negativa estiver em comparecimentos ou faltas (fundo do funil), o problema é operacional, não de campanha — NÃO sugira ajuste de tráfego.
-- Se a variação negativa estiver em volume de leads (topo do funil), aí pode ser relevante sugerir revisão de campanha.
-- Distinga perdas por distância/orçamento (qualificação do lead) de perdas por concorrência ou falta de interesse (criativo/mensagem).
-- Quando os dados forem insuficientes ou não comparáveis entre relatórios, indique isso explicitamente na resposta.`;
+- NÃO use "vamos acompanhar os próximos relatórios" quando já existir histórico comparável.
+- Diferencie o funil: Leads novos/recebidos → Agendamentos → Comparecimentos → Faltas/Perdas.
+- Leads novos e agendamentos = volume e atração (topo do funil).
+- Comparecimentos, faltas e perdas = qualificação e operação (fundo do funil).
+- NÃO sugira alteração de campanha (orçamento, segmentação, criativos) quando a variação negativa estiver em comparecimentos, faltas, sem contato, sem resposta, agendamento ou operação da unidade.
+- SOMENTE sugira possível ajuste de campanha quando os dados de topo do funil (volume de leads novos) sustentarem essa hipótese.
+- Distinga perdas por distância/orçamento (qualificação) de perdas por concorrência/falta de interesse (criativo/mensagem).
+- Não classifique agendamentos futuros ou oportunidades futuras como perdas.
+- Métricas não informadas NÃO devem ser tratadas como zero.`;
 
-  return { bloco, totalTendencias: linhasTendencias.length, totalComMetricas: comMetricas.length };
+  const meta = {
+    relatorios_detectados: todosRelatorios.length,
+    relatorios_consolidados: todosRelatorios.filter(r => r.mensagens_consolidadas > 1).length,
+    relatorios_com_metricas: comMetricas.length,
+    relatorios_comparaveis: comparaveis.length,
+    relatorios_nao_comparaveis: naoComparaveis.length,
+    motivos_nao_comparabilidade: motivos.map(m => m.motivo),
+    periodo_analisado_inicio: periodoInicio,
+    periodo_analisado_fim: periodoFim,
+    periodicidades_identificadas: periodosUnicos,
+    tendencias_identificadas: linhasTendencias.length,
+    utilizou_historico_especializado: (gruposHistoricos || []).length > 0,
+    confianca_comparacao: confianca,
+    fallback: comMetricas.length === 0,
+    motivo_fallback: comMetricas.length === 0 ? 'nenhum_relatorio_com_metricas_extraidas' : '',
+    mensagens_consolidadas: todosRelatorios.reduce((sum, r) => sum + r.mensagens_consolidadas, 0),
+    alertas_extracao: [],
+  };
+
+  return { bloco, meta };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -743,25 +1019,24 @@ Deno.serve(async (req) => {
     let relatoriosHistoricos = [];
     let blocoRelatorios = '';
     let relatorioLeadsAtivo = false;
-
-    let totalTendencias = 0;
-    let totalRelatoriosComMetricas = 0;
+    let metaRelatorios = {};
 
     try {
       deteccaoRelatorioLeads = detectarRelatorioLeads(mensagensUteis);
       if (deteccaoRelatorioLeads.detectado) {
-        const relatoriosContexto = mensagensUteis.filter(m => {
-          const texto = m.tipo_mensagem === 'audio' ? (m.transcricao_audio || '') : (m.mensagem || '');
-          if (!texto || !texto.trim()) return false;
-          const norm = normalizarTexto(texto);
+        const gruposContexto = consolidarMensagensConsecutivas(mensagensUteis);
+        const relatoriosContextoConsolidados = gruposContexto.filter(g => {
+          const norm = normalizarTexto(g.texto_completado || '');
           return TERMOS_RELATORIO_LEADS.some(termo => termoPresente(norm, termo));
         });
+
         const idsAtuais = mensagensUteis.map(m => m.id);
         relatoriosHistoricos = await recuperarRelatoriosHistoricos(sdk, chatId, idsAtuais);
-        const analise = construirBlocoAnaliseLeads(relatoriosContexto, relatoriosHistoricos);
+        const gruposHistoricos = consolidarMensagensConsecutivas(relatoriosHistoricos);
+
+        const analise = construirBlocoAnaliseLeads(relatoriosContextoConsolidados, gruposHistoricos);
         blocoRelatorios = analise.bloco;
-        totalTendencias = analise.totalTendencias;
-        totalRelatoriosComMetricas = analise.totalComMetricas;
+        metaRelatorios = analise.meta;
         relatorioLeadsAtivo = true;
       }
     } catch (e) {
@@ -972,13 +1247,26 @@ Retorne APENAS o JSON no formato especificado. Não inclua markdown, explicaçõ
         sensivel: classificacao.sensivel,
         orientacoes_utilizadas: conhecimento.ids_utilizados,
         conhecimento_usado: conhecimentoUsado,
-        fallback: conhecimento.fallback,
+        kb_fallback: conhecimento.fallback,
         conflito_detectado: (conhecimento.conflitos_detectados || []).length > 0,
         relatorio_leads_detectado: deteccaoRelatorioLeads.detectado,
-        relatorios_historicos_recuperados: relatoriosHistoricos.length,
         relatorio_leads_ativo: relatorioLeadsAtivo,
-        relatorios_com_metricas: totalRelatoriosComMetricas,
-        tendencias_identificadas: totalTendencias
+        relatorios_detectados: metaRelatorios.relatorios_detectados || 0,
+        relatorios_consolidados: metaRelatorios.relatorios_consolidados || 0,
+        relatorios_com_metricas: metaRelatorios.relatorios_com_metricas || 0,
+        relatorios_comparaveis: metaRelatorios.relatorios_comparaveis || 0,
+        relatorios_nao_comparaveis: metaRelatorios.relatorios_nao_comparaveis || 0,
+        motivos_nao_comparabilidade: metaRelatorios.motivos_nao_comparabilidade || [],
+        periodo_analisado_inicio: metaRelatorios.periodo_analisado_inicio,
+        periodo_analisado_fim: metaRelatorios.periodo_analisado_fim,
+        periodicidades_identificadas: metaRelatorios.periodicidades_identificadas || [],
+        tendencias_identificadas: metaRelatorios.tendencias_identificadas || 0,
+        utilizou_historico_especializado: metaRelatorios.utilizou_historico_especializado || false,
+        confianca_comparacao: metaRelatorios.confianca_comparacao || 'baixa',
+        fallback: metaRelatorios.fallback || false,
+        motivo_fallback: metaRelatorios.motivo_fallback || '',
+        mensagens_consolidadas: metaRelatorios.mensagens_consolidadas || 0,
+        alertas_extracao: metaRelatorios.alertas_extracao || [],
       }
     });
   } catch (error) {
