@@ -393,57 +393,145 @@ function detectarPeriodicidade(texto, dataRef) {
   return { periodicidade: 'desconhecido', confianca: 'baixa' };
 }
 
-// --- Extração de métricas V2 ---
+// --- Extração de métricas V2 (com agregação de detalhamento e origem) ---
 
 function extrairMetricasLeadsV2(texto) {
-  if (!texto) return {};
+  if (!texto) return { metricas: {}, metricas_origem: {} };
   const norm = normalizarTexto(texto);
   const metricas = {};
-  let m;
+  const metricas_origem = {};
 
-  m = norm.match(/(\d+)\s+leads?\s+novos?/);
-  if (m) metricas.leads_novos = parseInt(m[1]);
+  // Helper: extrai métrica com origem (total_principal ou derivado_detalhamento)
+  // totalPatterns = padrões com marcador explícito de total
+  // occurrencePattern = padrão genérico para ocorrências individuais
+  function extrairComOrigem(campo, totalPatterns, occurrencePattern) {
+    // 1. Tentar padrões de total principal (com marcador explícito)
+    let valorPrincipal = null;
+    for (const pat of totalPatterns) {
+      const m = norm.match(pat);
+      if (m) { valorPrincipal = parseInt(m[1]); break; }
+    }
 
-  m = norm.match(/\*?(\d+)\*?\s+leads?\s+(?:que\s+)?ja\s+estavam\s+(?:no|na)\s+kanban/)
-    || norm.match(/(\d+)\s+(?:ja\s+estavam|ja\s+estava)\s+(?:no|na)\s+kanban/);
-  if (m) metricas.leads_anteriores_kanban = parseInt(m[1]);
+    // 2. Encontrar TODAS as ocorrências do padrão de detalhe
+    const ocorrencias = [];
+    const regex = new RegExp(occurrencePattern.source, 'g');
+    let match;
+    while ((match = regex.exec(norm)) !== null) {
+      ocorrencias.push({ qtd: parseInt(match[1]), contexto: match[0].trim() });
+    }
 
-  m = norm.match(/(\d+)\s+duplicidades?/) || norm.match(/(\d+)\s+duplicad[ao]s?/);
-  if (m) metricas.leads_duplicados = parseInt(m[1]);
+    // 3. Determinar valor e origem
+    if (valorPrincipal !== null) {
+      // Total principal presente — usar, validar contra detalhe
+      const somaDetalhe = ocorrencias.reduce((s, o) => s + o.qtd, 0);
+      metricas[campo] = valorPrincipal;
+      metricas_origem[campo] = {
+        origem: 'total_principal',
+        confianca: 'alta',
+        fontes: [],
+        divergencia: ocorrencias.length > 0 && somaDetalhe !== valorPrincipal
+          ? `total=${valorPrincipal} vs detalhe=${somaDetalhe}` : null,
+      };
+      return;
+    }
 
-  m = norm.match(/total\s+processado[:\s]*(\d+)/);
-  if (m) metricas.total_processado = parseInt(m[1]);
+    if (ocorrencias.length === 0) return;
 
-  if (metricas.leads_novos === undefined) {
-    // Priorizar "Total de Leads pelo WhatsApp *9*" (número APÓS o rótulo)
-    m = norm.match(/total\s+de\s+leads?\s+(?:pelo\s+)?(?:whatsapp|wpp|wa)\s*\*?(\d+)\*?/)
-      || norm.match(/leads?\s*[:\-]\s*(\d+)/)
-      || norm.match(/(\d+)\s+leads?\s+(?:recebidos|gerados|captados|novos)/);
-    if (m) metricas.total_leads = parseInt(m[1]);
+    if (ocorrencias.length === 1) {
+      // Ocorrência única — é o total
+      metricas[campo] = ocorrencias[0].qtd;
+      metricas_origem[campo] = {
+        origem: 'total_principal',
+        confianca: 'alta',
+        fontes: [],
+        divergencia: null,
+      };
+      return;
+    }
+
+    // Múltiplas ocorrências sem total explícito — agregar
+    const soma = ocorrencias.reduce((s, o) => s + o.qtd, 0);
+    metricas[campo] = soma;
+    metricas_origem[campo] = {
+      origem: 'derivado_detalhamento',
+      confianca: 'alta',
+      fontes: ocorrencias.map(o => o.contexto),
+      divergencia: null,
+    };
   }
 
-  m = norm.match(/(\d+)\s+agendamentos?/) || norm.match(/agendaram\s+(\d+)/)
-    || norm.match(/\*?(\d+)\*?\s+total\s+de\s+leads?\s+agendados/);
-  if (m) metricas.agendamentos = parseInt(m[1]);
+  // leads_novos
+  extrairComOrigem('leads_novos',
+    [/total\s+(?:de\s+)?leads?\s+novos?\s*\*?(\d+)\*?/],
+    /(\d+)\s+leads?\s+novos?\b/);
 
-  m = norm.match(/(\d+)\s+compareceram/) || norm.match(/compareceu\s+(\d+)/);
-  if (m) metricas.comparecimentos = parseInt(m[1]);
+  // leads_anteriores_kanban
+  extrairComOrigem('leads_anteriores_kanban',
+    [/\*?(\d+)\*?\s+leads?\s+(?:que\s+)?ja\s+estavam\s+(?:no|na)\s+kanban/,
+     /total\s+(?:de\s+)?(?:leads?\s+)?ja\s+(?:estavam|estava)\s+(?:no|na)\s+kanban\s*\*?(\d+)\*?/],
+    /(\d+)\s+(?:ja\s+estavam|ja\s+estava)\s+(?:no|na)\s+kanban\b/);
 
-  m = norm.match(/(\d+)\s+faltaram/) || norm.match(/faltou\s+(\d+)/);
-  if (m) metricas.faltas = parseInt(m[1]);
+  // leads_duplicados
+  extrairComOrigem('leads_duplicados',
+    [/total\s+(?:de\s+)?duplicidades?\s*\*?(\d+)\*?/],
+    /(\d+)\s+duplicad[ao]s?\b/);
 
-  m = norm.match(/(\d+)\s+desmarcou/);
-  if (m) metricas.desmarcou = parseInt(m[1]);
+  // total_processado
+  extrairComOrigem('total_processado',
+    [/total\s+processado[:\s]*\*?(\d+)\*?/],
+    /(\d+)\s+processado\b/);
 
-  m = norm.match(/(\d+)\s+reagendou/);
-  if (m) metricas.reagendou = parseInt(m[1]);
+  // total_leads (apenas se leads_novos não foi extraído)
+  if (metricas.leads_novos === undefined) {
+    extrairComOrigem('total_leads',
+      [/total\s+de\s+leads?\s+(?:pelo\s+)?(?:whatsapp|wpp|wa)\s*\*?(\d+)\*?/,
+       /total\s+de\s+leads?\s*\*?(\d+)\*?/,
+       /leads?\s*[:\-]\s*(\d+)/,
+       /(\d+)\s+leads?\s+(?:recebidos|gerados|captados|novos)/],
+      /(\d+)\s+leads?\s+(?:recebidos|gerados|captados|novos)\b/);
+  }
 
-  m = norm.match(/(\d+)\s+sem\s+contato/)
-    || norm.match(/\*?(\d+)\*?\s+leads?\s+que\s+nao\s+consegui\s+contato/);
-  if (m) metricas.sem_contato = parseInt(m[1]);
+  // agendamentos — total usa "agendamentos" (substantivo plural) ou "Total de leads agendados *N*"
+  // detalhe usa "agendado" (adjetivo singular — "agendado\b" não corresponde a "agendados")
+  extrairComOrigem('agendamentos',
+    [/(\d+)\s+agendamentos\b/,
+     /agendaram\s+(\d+)/,
+     /\*?(\d+)\*?\s+total\s+de\s+leads?\s+agendados/,
+     /total\s+de\s+leads?\s+agendados?\s*\*?(\d+)\*?/],
+    /(\d+)\s+agendado\b/);
 
-  m = norm.match(/(\d+)\s+sem\s+resposta/);
-  if (m) metricas.sem_resposta = parseInt(m[1]);
+  // comparecimentos
+  extrairComOrigem('comparecimentos',
+    [/total\s+(?:de\s+)?comparecimentos?\s*\*?(\d+)\*?/,
+     /compareceu\s+(\d+)/],
+    /(\d+)\s+compareceram\b/);
+
+  // faltas
+  extrairComOrigem('faltas',
+    [/total\s+(?:de\s+)?faltas?\s*\*?(\d+)\*?/,
+     /faltou\s+(\d+)/],
+    /(\d+)\s+faltaram\b/);
+
+  // desmarcou
+  extrairComOrigem('desmarcou',
+    [/total\s+(?:de\s+)?desmarcacoes?\s*\*?(\d+)\*?/],
+    /(\d+)\s+desmarcou\b/);
+
+  // reagendou
+  extrairComOrigem('reagendou',
+    [/total\s+(?:de\s+)?reagendamentos?\s*\*?(\d+)\*?/],
+    /(\d+)\s+reagendou\b/);
+
+  // sem_contato
+  extrairComOrigem('sem_contato',
+    [/total\s+(?:de\s+)?sem\s+contato\s*\*?(\d+)\*?/,
+     /\*?(\d+)\*?\s+leads?\s+que\s+nao\s+consegui\s+contato/],
+    /(\d+)\s+sem\s+contato\b/);
+
+  // sem_resposta
+  extrairComOrigem('sem_resposta',
+    [/total\s+(?:de\s+)?sem\s+resposta\s*\*?(\d+)\*?/],
+    /(\d+)\s+sem\s+resposta\b/);
 
   // Perdas — extrair TODAS as ocorrências com motivo
   const regexPerdas = /(\d+)\s+(?:perdeu|perderam)\s+por\s+([a-z\s]+?)(?=\s*\d|\s*$|\.|,|;)/g;
@@ -473,16 +561,24 @@ function extrairMetricasLeadsV2(texto) {
       }
     }
     metricas.perdas_total = totalPerdas;
+    metricas_origem.perdas_total = {
+      origem: perdasDetalhadas.length > 1 ? 'derivado_detalhamento' : 'total_principal',
+      confianca: 'alta',
+      fontes: perdasDetalhadas.map(p => `${p.qtd} perdeu por ${p.motivo}`),
+      divergencia: null,
+    };
     metricas.motivos_perda = motivos;
   } else {
-    m = norm.match(/(\d+)\s+perdas?/);
-    if (m) metricas.perdas_total = parseInt(m[1]);
+    extrairComOrigem('perdas_total',
+      [/total\s+(?:de\s+)?perdas?\s*\*?(\d+)\*?/,
+       /(\d+)\s+perdas?/],
+      /(\d+)\s+perdas?\b/);
   }
 
   // Agendamento futuro confirmado
-  m = norm.match(/(\d+)\s+(?:marcou|marcaram)\s+para\s+(?:proxima\s+semana|pr[oó]xima\s+semana|\d{1,2}\/\d{1,2})/);
-  if (m) {
-    metricas.agendamento_futuro_confirmado = parseInt(m[1]);
+  match = norm.match(/(\d+)\s+(?:marcou|marcaram)\s+para\s+(?:proxima\s+semana|pr[oó]xima\s+semana|\d{1,2}\/\d{1,2})/);
+  if (match) {
+    metricas.agendamento_futuro_confirmado = parseInt(match[1]);
   } else if (norm.match(/marcou\s+para\s+\d{1,2}\/\d{1,2}/) || norm.match(/marcaram\s+para\s+\d{1,2}\/\d{1,2}/)) {
     metricas.agendamento_futuro_confirmado = 1;
   }
@@ -492,7 +588,7 @@ function extrairMetricasLeadsV2(texto) {
     metricas.oportunidade_futura_sem_agendamento = 1;
   }
 
-  return metricas;
+  return { metricas, metricas_origem };
 }
 
 // --- Verificação de comparabilidade (fail-closed) ---
@@ -617,6 +713,11 @@ function classificarTendencia(valores, isLowerBetter) {
   const net = valores[valores.length - 1] - valores[0];
   if (hasDownBeforeUp && !hasUpBeforeDown && Math.abs(net) > threshold) return 'recuperacao';
   if (hasUpBeforeDown && !hasDownBeforeUp && Math.abs(net) > threshold) return 'reversao_negativa';
+  // Oscilação com recuperação recente: ambos direções presentes e último delta é positivo
+  if (hasDown && hasUp) {
+    const lastDir = directions[directions.length - 1];
+    if (lastDir === 'up') return 'oscilacao_com_recuperacao_recente';
+  }
   return 'oscilacao';
 }
 
@@ -643,7 +744,11 @@ function calcularComparacaoImediata(comparaveis) {
     let direcao = 'estavel';
     if (pct !== null) { if (pct > 10) direcao = 'aumentou'; else if (pct < -10) direcao = 'diminuiu'; }
     else if (diff !== 0) direcao = diff > 0 ? 'aumentou' : 'diminuiu';
-    metricas[campo] = { anterior: vAnt, atual: vAt, diferenca_absoluta: diff, variacao_percentual: pct, direcao };
+    metricas[campo] = {
+      anterior: vAnt, atual: vAt, diferenca_absoluta: diff, variacao_percentual: pct, direcao,
+      origem_anterior: anterior.metricas_origem?.[campo] || null,
+      origem_atual: atual.metricas_origem?.[campo] || null,
+    };
   }
   return {
     data_anterior: anterior.data_ref?.inicio || null,
@@ -658,7 +763,7 @@ function calcularTendenciaHistorica(comparaveis) {
   const janela = sorted.slice(-5);
   const metricas = {};
   for (const campo of CAMPOS_TENDENCIA) {
-    const pontos = janela.map(r => ({ valor: r.metricas[campo], data: r.data_ref?.inicio || null }))
+    const pontos = janela.map(r => ({ valor: r.metricas[campo], data: r.data_ref?.inicio || null, origem: r.metricas_origem?.[campo]?.origem || null }))
       .filter(p => p.valor !== undefined && p.valor !== null);
     if (pontos.length < 3) continue;
     const valores = pontos.map(p => p.valor);
@@ -668,7 +773,7 @@ function calcularTendenciaHistorica(comparaveis) {
     const primeiro = valores[0], ultimo = valores[valores.length - 1];
     const diff = ultimo - primeiro;
     const pct = primeiro > 0 ? Math.round((diff / primeiro) * 100) : null;
-    metricas[campo] = { valores, datas, quantidade_observacoes: valores.length, classificacao, primeiro, ultimo, diff, pct, is_lower_better: isLowerBetter };
+    metricas[campo] = { valores, datas, origens: pontos.map(p => p.origem), quantidade_observacoes: valores.length, classificacao, primeiro, ultimo, diff, pct, is_lower_better: isLowerBetter };
   }
   if (Object.keys(metricas).length === 0) return null;
   return {
@@ -692,12 +797,12 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
     const dataRecebimento = grupo.data_primeira || grupo.received_at || grupo.timestamp_mensagem;
     const dataRef = extrairDataReferencia(texto, dataRecebimento);
     const { periodicidade, confianca: confiancaPeriod } = detectarPeriodicidade(texto, dataRef);
-    const metricas = extrairMetricasLeadsV2(texto);
+    const { metricas, metricas_origem } = extrairMetricasLeadsV2(texto);
 
     todosRelatorios.push({
       texto, data_recebimento: dataRecebimento, data_ref: dataRef,
       periodicidade, confianca_periodicidade: confiancaPeriod,
-      metricas, ids: grupo.ids || [grupo.id],
+      metricas, metricas_origem, ids: grupo.ids || [grupo.id],
       remetente_nome: grupo.remetente_nome, remetente_tipo: grupo.remetente_tipo,
       mensagens_consolidadas: (grupo.ids || []).length,
     });
@@ -734,7 +839,12 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
       ? new Date(r.data_ref.inicio + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
       : (r.data_recebimento ? new Date(r.data_recebimento).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit' }) : 'Sem data');
     const partes = Object.entries(nomesMetricas)
-      .map(([k, label]) => r.metricas[k] !== undefined ? `${label}: ${r.metricas[k]}` : null)
+      .map(([k, label]) => {
+        if (r.metricas[k] === undefined) return null;
+        const origem = r.metricas_origem?.[k]?.origem;
+        const tag = origem === 'derivado_detalhamento' ? ' (derivado)' : '';
+        return `${label}: ${r.metricas[k]}${tag}`;
+      })
       .filter(Boolean);
     if (r.metricas.motivos_perda && r.metricas.motivos_perda.length > 0)
       partes.push(`Motivos: ${r.metricas.motivos_perda.join(', ')}`);
@@ -816,7 +926,8 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
 **NÍVEL 2 — TENDÊNCIA HISTÓRICA** (responde: "Essa mudança confirma um padrão, representa recuperação ou é apenas uma oscilação?"):
 - Use EXCLUSIVAMENTE a seção "NÍVEL 2 — TENDÊNCIA HISTÓRICA" acima.
 - NÃO misture com a comparação imediata.
-- Classificações: melhora_consistente = movimento favorável em ≥2 intervalos consecutivos; piora_consistente = desfavorável em ≥2 consecutivos; recuperacao = caiu e depois voltou a subir; reversao_negativa = subiu e depois voltou a cair; estavel = sem variação; oscilacao = alterna sem padrão; estavel_apos_reducao/aumento = variou e depois estabilizou; dados_insuficientes = menos de 3 observações.
+- Classificações: melhora_consistente = movimento favorável em ≥2 intervalos consecutivos; piora_consistente = desfavorável em ≥2 consecutivos; recuperacao = caiu e depois voltou a subir; reversao_negativa = subiu e depois voltou a cair; estavel = sem variação; oscilacao = alterna sem padrão; oscilacao_com_recuperacao_recente = oscilou ao longo do período mas o último relatório mostra recuperação após a queda mais recente; estavel_apos_reducao/aumento = variou e depois estabilizou; dados_insuficientes = menos de 3 observações.
+- Para oscilacao_com_recuperacao_recente, NÃO use "crescimento consistente" ou "crescendo". Descreva como "oscilaram, com recuperação no relatório mais recente após a queda registrada anteriormente".
 - NÃO chame uma recuperação de "crescimento consistente" ou "crescendo".
 - Exemplo correto: "Os agendamentos apresentaram recuperação em relação ao dia anterior, passando de 1 para 4, ficando próximos dos 5 registrados no relatório anterior à queda."
 - Exemplo incorreto: "Os agendamentos vêm crescendo."
@@ -901,11 +1012,11 @@ function validarRespostaLLM(resposta, comparacaoImediata, tendenciaHistorica) {
   if (/\bhoje\b/.test(norm) || /\bontem\b/.test(norm)) erros.push('usou_hoje_ou_ontem');
   if (tendenciaHistorica) {
     for (const [campo, t] of Object.entries(tendenciaHistorica.metricas)) {
-      if (t.classificacao === 'recuperacao') {
+      if (t.classificacao === 'recuperacao' || t.classificacao === 'oscilacao_com_recuperacao_recente') {
         if (norm.includes('crescimento consistente') || norm.includes('vem crescendo') || norm.includes('crescendo'))
-          erros.push(`classificou_recuperacao_como_crescimento:${campo}`);
+          erros.push(`classificou_${t.classificacao}_como_crescimento:${campo}`);
       }
-      if (t.classificacao === 'oscilacao' || t.classificacao === 'recuperacao') {
+      if (t.classificacao === 'oscilacao' || t.classificacao === 'recuperacao' || t.classificacao === 'oscilacao_com_recuperacao_recente') {
         if (norm.includes('melhora consistente') || norm.includes('piora consistente'))
           erros.push(`classificou_${t.classificacao}_como_consistente:${campo}`);
       }
@@ -936,6 +1047,7 @@ function gerarFallbackDeterministico(comparacaoImediata, tendenciaHistorica) {
       else if (t.classificacao === 'piora_consistente') tendParts.push(`${label} apresentaram piora consistente ao longo do período`);
       else if (t.classificacao === 'estavel_apos_reducao') tendParts.push(`${label} estabilizaram após redução`);
       else if (t.classificacao === 'estavel_apos_aumento') tendParts.push(`${label} estabilizaram após aumento`);
+      else if (t.classificacao === 'oscilacao_com_recuperacao_recente') tendParts.push(`${label} oscilaram ao longo do período, com recuperação no relatório mais recente após a queda registrada anteriormente`);
       else if (t.classificacao === 'oscilacao') tendParts.push(`${label} apresentaram oscilação sem padrão definido`);
       else if (t.classificacao === 'reversao_negativa') tendParts.push(`${label} apresentaram reversão negativa após alta`);
       else if (t.classificacao === 'estavel') tendParts.push(`${label} se mantiveram estáveis`);
