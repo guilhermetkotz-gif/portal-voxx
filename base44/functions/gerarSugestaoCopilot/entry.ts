@@ -48,6 +48,23 @@ const TERMOS_SENSIVEIS_UNIVERSAIS = [
 //  DETECÇÃO E ANÁLISE DE RELATÓRIO/ALINHAMENTO DE LEADS
 // ════════════════════════════════════════════════════════════
 
+// Expressões que indicam que uma data DD/MM é a data de referência do relatório
+const EXPRESSOES_DATA_REFERENCIA = [
+  'relatorio do dia', 'alinhamento do dia', 'referente ao dia',
+  'dados de', 'fechamento de', 'fechamento da semana', 'periodo de',
+  'relatorio de leads de', 'relatorio de', 'alinhamento de',
+  'de hoje', 'de ontem', 'do dia'
+];
+
+// Expressões que indicam que uma data DD/MM é data de evento individual (NÃO é data de referência)
+const EXPRESSOES_DATA_EVENTO = [
+  'marcou para', 'marcaram para', 'agendado para', 'agendada para',
+  'avaliacao para', 'retorna em', 'retorno dia', 'retorna dia',
+  'estara na cidade', 'vem no dia', 'disponivel em', 'disponivel dia',
+  'comparecera em', 'comparecera dia', 'inicio de', 'proxima semana',
+  'proximo mes', 'mes que vem'
+];
+
 const TERMOS_RELATORIO_LEADS = [
   'relatorio de leads', 'relatório de leads', 'alinhamento de leads', 'alinhamento',
   'total de leads', 'leads do dia', 'leads da semana', 'leads de hoje',
@@ -67,6 +84,29 @@ const TERMOS_RELATORIO_LEADS = [
   'marcou para', 'marcaram para', 'proxima semana', 'próxima semana',
 ];
 
+function detectarMetricasQuantitativas(texto) {
+  if (!texto) return { count: 0, termos: [] };
+  const norm = normalizarTexto(texto);
+  const termosFunil = [
+    'leads', 'contatos', 'pacientes', 'agendamentos', 'agendamento',
+    'comparecimentos', 'compareceu', 'compareceram', 'faltas', 'faltaram', 'faltou',
+    'sem contato', 'sem resposta', 'perdas', 'perda', 'perdeu', 'perderam',
+    'duplicidades', 'duplicidade', 'duplicado', 'duplicada', 'kanban',
+    'reagendou', 'reagendamentos', 'desmarcou', 'desmarcacoes'
+  ];
+  let count = 0;
+  const encontrados = [];
+  for (const termo of termosFunil) {
+    const escaped = termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(\\d+)\\s+${escaped}`, 'i');
+    if (regex.test(norm)) {
+      count++;
+      encontrados.push(termo);
+    }
+  }
+  return { count, termos: encontrados };
+}
+
 function detectarRelatorioLeads(mensagensUteis) {
   const recentes = mensagensUteis.slice(-8);
   const texto = recentes.map(m => {
@@ -82,8 +122,13 @@ function detectarRelatorioLeads(mensagensUteis) {
   }
   const termosEspecificos = ['relatorio de leads', 'relatório de leads', 'alinhamento de leads', 'total de leads', 'kanban', 'fechamento semanal', 'fechamento mensal'];
   const temEspecifico = termosEspecificos.some(t => termoPresente(norm, t));
-  const detectado = matches >= 2 || (temEspecifico && matches >= 1);
-  return { detectado, matches, termos: termosEncontrados };
+
+  // Detecção informal: 2+ métricas quantitativas do funil
+  const metricasQuant = detectarMetricasQuantitativas(texto);
+  const temMetricasInformais = metricasQuant.count >= 2;
+
+  const detectado = matches >= 2 || (temEspecifico && matches >= 1) || temMetricasInformais;
+  return { detectado, matches, termos: termosEncontrados, metricas_informais: metricasQuant.count, metricas_informais_termos: metricasQuant.termos };
 }
 
 async function recuperarRelatoriosHistoricos(sdk, chatId, idsJaNoContexto) {
@@ -107,7 +152,9 @@ async function recuperarRelatoriosHistoricos(sdk, chatId, idsJaNoContexto) {
       const texto = m.tipo_mensagem === 'audio' ? (m.transcricao_audio || '') : (m.mensagem || '');
       if (!texto || !texto.trim()) return false;
       const norm = normalizarTexto(texto);
-      return TERMOS_RELATORIO_LEADS.some(termo => termoPresente(norm, termo));
+      if (TERMOS_RELATORIO_LEADS.some(termo => termoPresente(norm, termo))) return true;
+      // Detecção informal: 2+ métricas quantitativas
+      return detectarMetricasQuantitativas(texto).count >= 2;
     })
     .slice(0, 10);
 }
@@ -174,33 +221,149 @@ function extrairDataReferencia(texto, dataRecebimento) {
   const norm = normalizarTexto(texto);
   const baseDate = dataRecebimento ? new Date(dataRecebimento) : new Date();
 
-  if (termoPresente(norm, 'fechamento semanal') || termoPresente(norm, 'fechamento da semana'))
-    return { tipo: 'semana', inicio: null, fim: null };
-  if (termoPresente(norm, 'acumulado do mes') || termoPresente(norm, 'fechamento mensal'))
-    return { tipo: 'mes', inicio: null, fim: null };
+  const datasAgendamentos = [];
+  const datasOportunidades = [];
+  const outrasDatas = [];
+  let dataRefInicio = null;
+  let dataRefFim = null;
+  let confiancaDataRef = 'baixa';
 
-  let m = norm.match(/de\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:a|ate|ate)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
-  if (m) return { tipo: 'range', inicio: normalizarDataBR(m[1]), fim: normalizarDataBR(m[2]) };
-
-  m = norm.match(/(?:dia|referente\s+ao\s+dia)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
-  if (m) { const d = normalizarDataBR(m[1]); return { tipo: 'ponto', inicio: d, fim: d }; }
-
-  if (termoPresente(norm, 'de hoje') || termoPresente(norm, 'leads de hoje')) {
-    const hoje = baseDate.toISOString().split('T')[0];
-    return { tipo: 'ponto', inicio: hoje, fim: hoje };
+  // 1. Fechamento semanal
+  if (termoPresente(norm, 'fechamento semanal') || termoPresente(norm, 'fechamento da semana')) {
+    let m = norm.match(/(?:de\s+)?(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:a|ate)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
+    if (m) {
+      dataRefInicio = normalizarDataBR(m[1]);
+      dataRefFim = normalizarDataBR(m[2]);
+      confiancaDataRef = 'alta';
+    }
+    return { tipo: 'semana', inicio: dataRefInicio, fim: dataRefFim,
+             datas_agendamentos_futuros: datasAgendamentos, datas_oportunidades_futuras: datasOportunidades,
+             outras_datas_identificadas: outrasDatas, confianca_data_referencia: confiancaDataRef };
   }
-  if (termoPresente(norm, 'de ontem')) {
+
+  // 2. Fechamento mensal / acumulado
+  if (termoPresente(norm, 'acumulado do mes') || termoPresente(norm, 'fechamento mensal')) {
+    return { tipo: 'mes', inicio: null, fim: null,
+             datas_agendamentos_futuros: datasAgendamentos, datas_oportunidades_futuras: datasOportunidades,
+             outras_datas_identificadas: outrasDatas, confianca_data_referencia: 'alta' };
+  }
+
+  // 3. Range explícito: "de DD/MM a DD/MM" ou "periodo de DD/MM a DD/MM"
+  let m = norm.match(/(?:periodo\s+de\s+)?de\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:a|ate)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
+  if (m) {
+    dataRefInicio = normalizarDataBR(m[1]);
+    dataRefFim = normalizarDataBR(m[2]);
+    confiancaDataRef = 'alta';
+  }
+
+  // 4. "referente ao dia DD/MM" ou "relatorio do dia DD/MM" ou "alinhamento do dia DD/MM" ou "dados de DD/MM"
+  if (!dataRefInicio) {
+    m = norm.match(/(?:referente\s+ao\s+dia|relatorio\s+do\s+dia|alinhamento\s+do\s+dia|dados\s+de)\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
+    if (m) {
+      const d = normalizarDataBR(m[1]);
+      dataRefInicio = d; dataRefFim = d;
+      confiancaDataRef = 'alta';
+    }
+  }
+
+  // 5. "relatorio de leads de DD/MM"
+  if (!dataRefInicio) {
+    m = norm.match(/relatorio\s+de\s+leads\s+de\s+(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)/);
+    if (m) {
+      const d = normalizarDataBR(m[1]);
+      dataRefInicio = d; dataRefFim = d;
+      confiancaDataRef = 'alta';
+    }
+  }
+
+  // 6. "hoje"
+  if (!dataRefInicio && (termoPresente(norm, 'de hoje') || termoPresente(norm, 'leads de hoje'))) {
+    const hoje = baseDate.toISOString().split('T')[0];
+    dataRefInicio = hoje; dataRefFim = hoje;
+    confiancaDataRef = 'media';
+  }
+
+  // 7. "ontem"
+  if (!dataRefInicio && termoPresente(norm, 'de ontem')) {
     const o = new Date(baseDate); o.setDate(o.getDate() - 1);
     const d = o.toISOString().split('T')[0];
-    return { tipo: 'ponto', inicio: d, fim: d };
+    dataRefInicio = d; dataRefFim = d;
+    confiancaDataRef = 'media';
   }
 
-  m = norm.match(/(?:^|[^\d\/])(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?(?:[^\d]|$)/);
-  if (m) {
-    const d = normalizarDataBR(`${m[1]}/${m[2]}${m[3] ? '/' + m[3] : ''}`);
-    if (d) return { tipo: 'ponto', inicio: d, fim: d };
+  // 8. Dias da semana com data: "nesta segunda DD/MM" ou "segunda DD/MM"
+  if (!dataRefInicio) {
+    const diasSemana = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    for (const dia of diasSemana) {
+      if (termoPresente(norm, dia)) {
+        m = norm.match(new RegExp(dia + '\\s+(\\d{1,2}\\/\\d{1,2}(?:\\/\\d{2,4})?)'));
+        if (m) {
+          const d = normalizarDataBR(m[1]);
+          dataRefInicio = d; dataRefFim = d;
+          confiancaDataRef = 'media';
+          break;
+        }
+      }
+    }
   }
-  return null;
+
+  // 9. Classificar TODAS as datas DD/MM encontradas no texto
+  const regexTodasDatas = /(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/g;
+  let matchData;
+  while ((matchData = regexTodasDatas.exec(norm)) !== null) {
+    const dataStr = normalizarDataBR(`${matchData[1]}/${matchData[2]}${matchData[3] ? '/' + matchData[3] : ''}`);
+    if (!dataStr) continue;
+
+    // Obter contexto ao redor (40 chars antes)
+    const start = Math.max(0, matchData.index - 40);
+    const contextoAntes = norm.substring(start, matchData.index);
+
+    // Encontrar a expressão de evento MAIS PRÓXIMA da data (não qualquer uma)
+    let closestEvento = null;
+    let closestEventoPos = -1;
+    for (const expr of EXPRESSOES_DATA_EVENTO) {
+      const pos = contextoAntes.lastIndexOf(expr);
+      if (pos !== -1 && pos > closestEventoPos) {
+        closestEvento = expr;
+        closestEventoPos = pos;
+      }
+    }
+
+    // Encontrar a expressão de referência MAIS PRÓXIMA da data
+    let closestReferencia = null;
+    let closestReferenciaPos = -1;
+    for (const expr of EXPRESSOES_DATA_REFERENCIA) {
+      const pos = contextoAntes.lastIndexOf(expr);
+      if (pos !== -1 && pos > closestReferenciaPos) {
+        closestReferencia = expr;
+        closestReferenciaPos = pos;
+      }
+    }
+
+    // A classificação é determinada pela expressão mais próxima (evento vs referência)
+    const isEvento = closestEvento !== null && (closestReferencia === null || closestEventoPos > closestReferenciaPos);
+    const isReferencia = closestReferencia !== null && (closestEvento === null || closestReferenciaPos > closestEventoPos);
+
+    if (isEvento) {
+      if (closestEvento === 'marcou para' || closestEvento === 'marcaram para' ||
+          closestEvento === 'agendado para' || closestEvento === 'agendada para') {
+        datasAgendamentos.push(dataStr);
+      } else {
+        datasOportunidades.push(dataStr);
+      }
+    } else if (!isReferencia && dataStr !== dataRefInicio && dataStr !== dataRefFim) {
+      outrasDatas.push(dataStr);
+    }
+  }
+
+  const tipo = dataRefInicio ? (dataRefInicio === dataRefFim ? 'ponto' : 'range') : null;
+  return {
+    tipo, inicio: dataRefInicio, fim: dataRefFim,
+    datas_agendamentos_futuros: datasAgendamentos,
+    datas_oportunidades_futuras: datasOportunidades,
+    outras_datas_identificadas: outrasDatas,
+    confianca_data_referencia: confiancaDataRef
+  };
 }
 
 function detectarPeriodicidade(texto, dataRef) {
@@ -531,6 +694,20 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
     bloco += `\n\n### Relatórios anteriores (texto original):\n${linhasRaw.join('\n')}`;
   }
 
+  // Seção de datas classificadas
+  const linhasDatas = comMetricas.map(r => {
+    const dataRef = r.data_ref?.inicio
+      ? new Date(r.data_ref.inicio + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+      : 'Não identificada';
+    const agendamentos = (r.data_ref?.datas_agendamentos_futuros || []).join(', ') || '—';
+    const oportunidades = (r.data_ref?.datas_oportunidades_futuras || []).join(', ') || '—';
+    const outras = (r.data_ref?.outras_datas_identificadas || []).join(', ') || '—';
+    return `- Data de referência: ${dataRef} (confiança: ${r.data_ref?.confianca_data_referencia || 'baixa'}) | Agendamentos futuros: ${agendamentos} | Oportunidades: ${oportunidades} | Outras: ${outras}`;
+  });
+  if (linhasDatas.length > 0) {
+    bloco += `\n\n### Datas identificadas e classificadas:\n${linhasDatas.join('\n')}`;
+  }
+
   bloco += `
 
 ### Instruções para análise de relatório de leads:
@@ -545,7 +722,20 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
 - SOMENTE sugira possível ajuste de campanha quando os dados de topo do funil (volume de leads novos) sustentarem essa hipótese.
 - Distinga perdas por distância/orçamento (qualificação) de perdas por concorrência/falta de interesse (criativo/mensagem).
 - Não classifique agendamentos futuros ou oportunidades futuras como perdas.
-- Métricas não informadas NÃO devem ser tratadas como zero.`;
+- Métricas não informadas NÃO devem ser tratadas como zero.
+- A data exibida no timestamp de cada mensagem é a data de ENVIO da mensagem, NÃO a data de referência do relatório.
+- NUNCA afirme que um relatório é de determinada data quando essa data não estiver identificada como "Data de referência" na seção acima.
+- Se a data de referência for "Não identificada", diga apenas que o período não pôde ser determinado. NÃO use a data de envio como substituta.
+- Datas de agendamento futuro NÃO devem ser usadas como data do relatório.`;
+
+  // Coletar todas as datas de eventos de todos os relatórios
+  const todasDatasAgendamentos = todosRelatorios.flatMap(r => r.data_ref?.datas_agendamentos_futuros || []);
+  const todasDatasOportunidades = todosRelatorios.flatMap(r => r.data_ref?.datas_oportunidades_futuras || []);
+  const todasOutrasDatas = todosRelatorios.flatMap(r => r.data_ref?.outras_datas_identificadas || []);
+  const confiancaDataRefMedia = todosRelatorios.length > 0
+    ? todosRelatorios.map(r => r.data_ref?.confianca_data_referencia || 'baixa')
+        .reduce((acc, c) => acc === 'alta' || c === 'alta' ? 'alta' : acc === 'media' || c === 'media' ? 'media' : 'baixa', 'baixa')
+    : 'baixa';
 
   const meta = {
     relatorios_detectados: todosRelatorios.length,
@@ -564,6 +754,12 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
     motivo_fallback: comMetricas.length === 0 ? 'nenhum_relatorio_com_metricas_extraidas' : '',
     mensagens_consolidadas: todosRelatorios.reduce((sum, r) => sum + r.mensagens_consolidadas, 0),
     alertas_extracao: [],
+    data_referencia_inicio: todosRelatorios.length > 0 ? (todosRelatorios[0].data_ref?.inicio || null) : null,
+    data_referencia_fim: todosRelatorios.length > 0 ? (todosRelatorios[todosRelatorios.length - 1].data_ref?.fim || todosRelatorios[todosRelatorios.length - 1].data_ref?.inicio || null) : null,
+    datas_agendamentos_futuros: [...new Set(todasDatasAgendamentos)],
+    datas_oportunidades_futuras: [...new Set(todasDatasOportunidades)],
+    outras_datas_identificadas: [...new Set(todasOutrasDatas)],
+    confianca_data_referencia: confiancaDataRefMedia,
   };
 
   return { bloco, meta };
@@ -1015,7 +1211,7 @@ Deno.serve(async (req) => {
     }
 
     // ── 5b. Detectar relatório/alinhamento de leads e recuperar histórico ──
-    let deteccaoRelatorioLeads = { detectado: false, matches: 0, termos: [] };
+    let deteccaoRelatorioLeads = { detectado: false, matches: 0, termos: [], metricas_informais: 0, metricas_informais_termos: [] };
     let relatoriosHistoricos = [];
     let blocoRelatorios = '';
     let relatorioLeadsAtivo = false;
@@ -1026,8 +1222,10 @@ Deno.serve(async (req) => {
       if (deteccaoRelatorioLeads.detectado) {
         const gruposContexto = consolidarMensagensConsecutivas(mensagensUteis);
         const relatoriosContextoConsolidados = gruposContexto.filter(g => {
-          const norm = normalizarTexto(g.texto_completado || '');
-          return TERMOS_RELATORIO_LEADS.some(termo => termoPresente(norm, termo));
+          const texto = g.texto_completado || '';
+          const norm = normalizarTexto(texto);
+          if (TERMOS_RELATORIO_LEADS.some(termo => termoPresente(norm, termo))) return true;
+          return detectarMetricasQuantitativas(texto).count >= 2;
         });
 
         const idsAtuais = mensagensUteis.map(m => m.id);
@@ -1267,6 +1465,13 @@ Retorne APENAS o JSON no formato especificado. Não inclua markdown, explicaçõ
         motivo_fallback: metaRelatorios.motivo_fallback || '',
         mensagens_consolidadas: metaRelatorios.mensagens_consolidadas || 0,
         alertas_extracao: metaRelatorios.alertas_extracao || [],
+        data_referencia_inicio: metaRelatorios.data_referencia_inicio || null,
+        data_referencia_fim: metaRelatorios.data_referencia_fim || null,
+        datas_agendamentos_futuros: metaRelatorios.datas_agendamentos_futuros || [],
+        datas_oportunidades_futuras: metaRelatorios.datas_oportunidades_futuras || [],
+        outras_datas_identificadas: metaRelatorios.outras_datas_identificadas || [],
+        confianca_data_referencia: metaRelatorios.confianca_data_referencia || 'baixa',
+        metricas_informais_detectadas: deteccaoRelatorioLeads.metricas_informais || 0,
       }
     });
   } catch (error) {
