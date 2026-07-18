@@ -404,8 +404,8 @@ function extrairMetricasLeadsV2(texto) {
   m = norm.match(/(\d+)\s+leads?\s+novos?/);
   if (m) metricas.leads_novos = parseInt(m[1]);
 
-  m = norm.match(/(\d+)\s+(?:ja\s+estavam|ja\s+estava)\s+(?:no|na)\s+kanban/)
-    || norm.match(/\*?(\d+)\*?\s+leads?\s+(?:que\s+)?ja\s+estavam\s+(?:no|na)\s+kanban/);
+  m = norm.match(/\*?(\d+)\*?\s+leads?\s+(?:que\s+)?ja\s+estavam\s+(?:no|na)\s+kanban/)
+    || norm.match(/(\d+)\s+(?:ja\s+estavam|ja\s+estava)\s+(?:no|na)\s+kanban/);
   if (m) metricas.leads_anteriores_kanban = parseInt(m[1]);
 
   m = norm.match(/(\d+)\s+duplicidades?/) || norm.match(/(\d+)\s+duplicad[ao]s?/);
@@ -711,7 +711,7 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
   });
 
   const comMetricas = todosRelatorios.filter(r => Object.keys(r.metricas).length > 0);
-  const { comparaveis, naoComparaveis, motivos, confianca } = verificarComparabilidade(todosRelatorios);
+  const { comparaveis, naoComparaveis, motivos, confianca } = verificarComparabilidade(comMetricas);
 
   // --- Nível 1: Comparação imediata (último vs anterior) ---
   const comparacaoImediata = calcularComparacaoImediata(comparaveis);
