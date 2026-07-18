@@ -17,6 +17,7 @@ import AudioTranscription from '@/components/radar/AudioTranscription';
 import ModalReativacaoGrupo from '@/components/radar/ModalReativacaoGrupo';
 import GrupoDetalheDrawer from '@/components/radar/GrupoDetalheDrawer';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
+import { useTextareaAutoHeight } from '@/hooks/useTextareaAutoHeight';
 import { calcularHorasUteisSemFimDeSemana } from '@/lib/minutosUteis';
 
 const TZ = 'America/Sao_Paulo';
@@ -107,6 +108,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
   const [showGrupoDetalhe, setShowGrupoDetalhe] = useState(false);
   const [grupoDetalheData, setGrupoDetalheData] = useState(null);
   const [loadingGrupoDetalhe, setLoadingGrupoDetalhe] = useState(false);
+
+  const { ref: mensagemTextareaRef, adjustHeight: adjustMensagemHeight } = useTextareaAutoHeight(mensagem);
 
   const handleOpenGrupoDetalhe = async () => {
     if (!isGroup || !chatId) return;
@@ -1191,18 +1194,17 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
             {/* Campo de texto com emoji dentro */}
             <div className={`flex-1 flex items-center rounded-2xl ${t.bgCampoInput} border ${t.inputFieldBorder} shadow-sm`}>
               <Textarea
+                ref={mensagemTextareaRef}
                 value={mensagem}
                 onChange={(e) => {
                   setMensagem(e.target.value);
-                  const el = e.target;
-                  el.style.height = 'auto';
-                  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+                  adjustMensagemHeight();
                 }}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
                 placeholder="Mensagem"
                 rows={1}
-                className={`flex-1 border-0 bg-transparent ${t.textInput} ${t.textPlaceholder} text-sm min-h-[40px] max-h-[120px] px-4 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-2xl resize-none`}
+                className={`flex-1 border-0 bg-transparent ${t.textInput} ${t.textPlaceholder} text-sm min-h-[40px] max-h-[160px] px-4 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-2xl resize-none`}
                 disabled={enviando}
               />
               <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>

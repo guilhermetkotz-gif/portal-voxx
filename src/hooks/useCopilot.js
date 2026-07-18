@@ -1,26 +1,37 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+
+function gerarSugestaoId() {
+  return 'cp-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+}
 
 /**
  * Hook do Copilot para o Radar WhatsApp.
  *
  * Garante:
  * - Identificador único por solicitação (respostas fora de ordem são descartadas)
- * - Sugestão vinculada à conversa original (troca de grupo descarta inserção)
+ * - sugestao_id único por geração (para vincular feedback)
+ * - Rastreio de texto original, regenerações e edição
  * - Preservação de texto digitado manualmente durante a geração
  * - Estado isolado por usuário (não afeta o campo de outro colaborador)
  * - Nenhum envio automático
  */
 export function useCopilot({ selectedChat, mensagem, setMensagem, respondendoA, user }) {
   const [loading, setLoading] = useState(false);
-  const [resultado, setResultado] = useState(null); // { mensagem_sugerida, assunto_identificado, necessidade_revisao, alerta_risco, informacoes_ausentes }
+  const [resultado, setResultado] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  // Rastreio da sugestão atual
+  const [sugestaoId, setSugestaoId] = useState(null);
+  const [textoOriginalGerado, setTextoOriginalGerado] = useState('');
+  const [quantidadeRegeneracoes, setQuantidadeRegeneracoes] = useState(0);
+
   // Refs para rastrear estado no momento da geração
-  const requestIdRef = useRef(0);       // incrementa a cada nova solicitação
-  const chatIdRef = useRef(null);        // chatId que originou a geração
-  const textoOriginalRef = useRef('');   // texto no momento em que a geração iniciou
+  const requestIdRef = useRef(0);
+  const chatIdRef = useRef(null);
+  const textoOriginalRef = useRef('');
+  const regeneracoesCountRef = useRef(0);
 
   // Refs atualizadas a cada render para acessar valores atuais em callbacks async
   const selectedChatRef = useRef(selectedChat);
@@ -28,7 +39,16 @@ export function useCopilot({ selectedChat, mensagem, setMensagem, respondendoA, 
   selectedChatRef.current = selectedChat;
   mensagemRef.current = mensagem;
 
-  const startGeneration = async (acao) => {
+  // Resetar estado ao trocar de conversa
+  useEffect(() => {
+    setResultado(null);
+    setSugestaoId(null);
+    setTextoOriginalGerado('');
+    setQuantidadeRegeneracoes(0);
+    regeneracoesCountRef.current = 0;
+  }, [selectedChat?.id]);
+
+  const startGeneration = async (acao, isRegeneracao = false) => {
     if (!selectedChat) return;
 
     const currentRequestId = ++requestIdRef.current;
@@ -78,8 +98,14 @@ export function useCopilot({ selectedChat, mensagem, setMensagem, respondendoA, 
       }
 
       // Todas as verificações passaram — inserir a sugestão
+      const novoSugestaoId = gerarSugestaoId();
+      const regeneracoes = isRegeneracao ? regeneracoesCountRef.current : 0;
+
       setMensagem(data.mensagem_sugerida || '');
       setResultado(data);
+      setSugestaoId(novoSugestaoId);
+      setTextoOriginalGerado(data.mensagem_sugerida || '');
+      setQuantidadeRegeneracoes(regeneracoes);
     } catch (e) {
       // Verificar se ainda é a solicitação mais recente
       if (currentRequestId !== requestIdRef.current) return;
@@ -99,6 +125,9 @@ export function useCopilot({ selectedChat, mensagem, setMensagem, respondendoA, 
   const handleCopilotClick = () => {
     if (!selectedChat || loading) return;
 
+    // Nova sessão — resetar contador de regenerações
+    regeneracoesCountRef.current = 0;
+
     // Se já existe texto digitado, mostrar opções antes de gerar
     if (mensagem.trim()) {
       setShowModal(true);
@@ -106,15 +135,17 @@ export function useCopilot({ selectedChat, mensagem, setMensagem, respondendoA, 
     }
 
     // Campo vazio — prosseguir diretamente
-    startGeneration('gerar');
+    startGeneration('gerar', false);
   };
 
   const handleModalChoice = (choice) => {
     setShowModal(false);
     if (choice === 'melhorar') {
-      startGeneration('melhorar');
+      regeneracoesCountRef.current = 0;
+      startGeneration('melhorar', false);
     } else if (choice === 'substituir') {
-      startGeneration('gerar');
+      regeneracoesCountRef.current = 0;
+      startGeneration('gerar', false);
     }
     // 'cancelar' não faz nada
   };
@@ -122,18 +153,66 @@ export function useCopilot({ selectedChat, mensagem, setMensagem, respondendoA, 
   const handleGerarNovamente = () => {
     if (loading) return;
     // "Gerar novamente" sempre gera do zero, sem mostrar modal de conflito
-    startGeneration('gerar');
+    regeneracoesCountRef.current += 1;
+    startGeneration('gerar', true);
   };
 
-  const dismissResultado = () => setResultado(null);
+  const dismissResultado = () => {
+    setResultado(null);
+    setSugestaoId(null);
+    setTextoOriginalGerado('');
+    setQuantidadeRegeneracoes(0);
+    regeneracoesCountRef.current = 0;
+  };
+
+  /**
+   * Marca a sugestão atual como enviada.
+   * Atualiza o registro de feedback existente ou cria um novo.
+   */
+  const marcarComoEnviada = useCallback(async (textoEnviado) => {
+    if (!sugestaoId || !user?.id) return;
+    const foiEditada = (textoOriginalGerado || '').trim() !== (textoEnviado || '').trim();
+    try {
+      const existing = await base44.entities.CopilotFeedback.filter({
+        sugestao_id: sugestaoId,
+        usuario_id: user.id,
+      });
+      if (existing && existing.length > 0) {
+        await base44.entities.CopilotFeedback.update(existing[0].id, {
+          foi_enviada: true,
+          texto_enviado: textoEnviado || '',
+          foi_editada_antes_da_avaliacao: foiEditada,
+        });
+      } else {
+        await base44.entities.CopilotFeedback.create({
+          sugestao_id: sugestaoId,
+          grupo_id: selectedChat?.id || '',
+          cliente_id: selectedChat?.clienteId || '',
+          usuario_id: user.id,
+          avaliacao: null,
+          texto_original_gerado: textoOriginalGerado || '',
+          texto_enviado: textoEnviado || '',
+          foi_enviada: true,
+          foi_editada_antes_da_avaliacao: foiEditada,
+          quantidade_regeneracoes: quantidadeRegeneracoes || 0,
+          modelo_utilizado: 'automatic',
+        });
+      }
+    } catch (_) { /* silencioso — não bloqueia envio */ }
+  }, [sugestaoId, user, textoOriginalGerado, quantidadeRegeneracoes, selectedChat]);
 
   return {
     loading,
     resultado,
     showModal,
+    sugestaoId,
+    textoOriginalGerado,
+    quantidadeRegeneracoes,
+    modeloUtilizado: 'automatic',
     handleCopilotClick,
     handleModalChoice,
     handleGerarNovamente,
     dismissResultado,
+    marcarComoEnviada,
   };
 }

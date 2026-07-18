@@ -1,0 +1,101 @@
+{
+  "name": "CopilotFeedback",
+  "type": "object",
+  "properties": {
+    "sugestao_id": {
+      "type": "string",
+      "description": "ID \u00fanico da sugest\u00e3o gerada pelo Copilot"
+    },
+    "grupo_id": {
+      "type": "string",
+      "description": "ID do grupo/conversa onde a sugest\u00e3o foi gerada"
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente vinculado"
+    },
+    "usuario_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio Base44 que gerou/avaliou a sugest\u00e3o"
+    },
+    "avaliacao": {
+      "type": "string",
+      "enum": [
+        "positiva",
+        "negativa"
+      ],
+      "description": "Tipo de avalia\u00e7\u00e3o recebida"
+    },
+    "motivos": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "numeros_datas_incorretos",
+          "historico_nao_considerado",
+          "resposta_generica",
+          "tom_inadequado",
+          "informacao_inventada",
+          "conclusao_incorreta",
+          "mensagem_muito_longa",
+          "mensagem_muito_curta",
+          "outro"
+        ]
+      },
+      "default": [],
+      "description": "Motivos selecionados em avalia\u00e7\u00f5es negativas"
+    },
+    "comentario": {
+      "type": "string",
+      "description": "Coment\u00e1rio livre do usu\u00e1rio (quando 'outro' for selecionado)"
+    },
+    "texto_original_gerado": {
+      "type": "string",
+      "description": "Texto originalmente gerado pelo Copilot"
+    },
+    "texto_no_momento_da_avaliacao": {
+      "type": "string",
+      "description": "Texto presente no campo no momento da avalia\u00e7\u00e3o"
+    },
+    "texto_enviado": {
+      "type": "string",
+      "description": "Texto efetivamente enviado ao cliente"
+    },
+    "data_avaliacao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da avalia\u00e7\u00e3o"
+    },
+    "modelo_utilizado": {
+      "type": "string",
+      "description": "Modelo LLM utilizado na gera\u00e7\u00e3o"
+    },
+    "versao_prompt": {
+      "type": "string",
+      "description": "Vers\u00e3o do prompt utilizado"
+    },
+    "versao_base_conhecimento": {
+      "type": "string",
+      "description": "Vers\u00e3o/identificador da base de conhecimento aplicada"
+    },
+    "quantidade_regeneracoes": {
+      "type": "number",
+      "default": 0,
+      "description": "Quantas vezes o usu\u00e1rio clicou 'Gerar novamente' antes desta sugest\u00e3o"
+    },
+    "foi_editada_antes_da_avaliacao": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se o texto foi editado entre a gera\u00e7\u00e3o e a avalia\u00e7\u00e3o"
+    },
+    "foi_enviada": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se a sugest\u00e3o foi enviada ao cliente"
+    }
+  },
+  "required": [
+    "sugestao_id",
+    "usuario_id"
+  ]
+}

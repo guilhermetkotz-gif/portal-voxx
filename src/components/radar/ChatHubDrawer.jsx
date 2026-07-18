@@ -14,6 +14,8 @@ import EmojiPicker from 'emoji-picker-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import TagLembreteButton from '@/components/radar/TagLembreteButton';
 import { useCopilot } from '@/hooks/useCopilot';
+import { useTextareaAutoHeight } from '@/hooks/useTextareaAutoHeight';
+import CopilotFeedbackBar from '@/components/radar/CopilotFeedbackBar';
 import GrupoDetalheDrawer from '@/components/radar/GrupoDetalheDrawer';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 import moment from 'moment';
@@ -192,6 +194,7 @@ export default function ChatHubDrawer({ onClose, user }) {
 
   // ── Copilot ──────────────────────────────────────────────
   const copilot = useCopilot({ selectedChat, mensagem, setMensagem, respondendoA, user });
+  const { ref: mensagemTextareaRef, adjustHeight: adjustMensagemHeight } = useTextareaAutoHeight(mensagem);
 
   const handleOpenGrupoDetalhe = async () => {
     if (!selectedChat?.isGroup || !selectedChat?.id) return;
@@ -594,6 +597,10 @@ export default function ChatHubDrawer({ onClose, user }) {
         queryClient.invalidateQueries({ queryKey: ['radarMensagens'] });
         queryClient.invalidateQueries({ queryKey: ['chatHubUltimaMsgPorChat'] });
         concluirTagsAtivas();
+        // Marcar sugestão do Copilot como enviada
+        if (copilot.sugestaoId) {
+          copilot.marcarComoEnviada(texto);
+        }
       }
     } catch (e) {
       toast.error('Erro ao enviar: ' + (e.message || 'Desconhecido'));
@@ -1441,49 +1448,66 @@ export default function ChatHubDrawer({ onClose, user }) {
                     </button>
                   </div>
                 )}
-                {/* Copilot: banner de revisão e gerar novamente */}
+                {/* Copilot: banner de revisão, feedback e gerar novamente */}
                 {copilot.resultado && !copilot.loading && (
-                  <div className={`flex items-center gap-2 px-3 py-2 mb-2 rounded-lg border ${
+                  <div className={`px-3 py-2 mb-2 rounded-lg border ${
                     copilot.resultado.necessidade_revisao
                       ? 'bg-amber-500/10 border-amber-500/30'
                       : 'bg-violet-500/10 border-violet-500/30'
                   }`}>
-                    {copilot.resultado.necessidade_revisao ? (
-                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-medium ${copilot.resultado.necessidade_revisao ? 'text-amber-600' : 'text-violet-600'}`}>
-                        {copilot.resultado.necessidade_revisao
-                          ? 'Atenção: revise esta mensagem antes de enviar.'
-                          : `Sugestão inserida · ${copilot.resultado.assunto_identificado || ''}`}
-                      </p>
-                      {copilot.resultado.alerta_risco && (
-                        <p className="text-[11px] text-amber-600/80 mt-0.5 truncate">{copilot.resultado.alerta_risco}</p>
+                    <div className="flex items-center gap-2">
+                      {copilot.resultado.necessidade_revisao ? (
+                        <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
                       )}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-medium ${copilot.resultado.necessidade_revisao ? 'text-amber-600' : 'text-violet-600'}`}>
+                          {copilot.resultado.necessidade_revisao
+                            ? 'Atenção: revise esta mensagem antes de enviar.'
+                            : `Sugestão inserida · ${copilot.resultado.assunto_identificado || ''}`}
+                        </p>
+                        {copilot.resultado.alerta_risco && (
+                          <p className="text-[11px] text-amber-600/80 mt-0.5 truncate">{copilot.resultado.alerta_risco}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={copilot.handleGerarNovamente}
+                        disabled={copilot.loading}
+                        className={`text-xs px-2 py-1 rounded-md whitespace-nowrap ${
+                          copilot.resultado.necessidade_revisao
+                            ? 'bg-amber-500/20 text-amber-600 hover:bg-amber-500/30'
+                            : 'bg-violet-500/20 text-violet-600 hover:bg-violet-500/30'
+                        } disabled:opacity-50 transition-colors shrink-0`}
+                      >
+                        Gerar novamente
+                      </button>
+                      <button
+                        onClick={copilot.dismissResultado}
+                        className={`p-1 rounded-full ${
+                          copilot.resultado.necessidade_revisao
+                            ? 'hover:bg-amber-500/20'
+                            : 'hover:bg-violet-500/20'
+                        } transition-colors shrink-0`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <button
-                      onClick={copilot.handleGerarNovamente}
-                      disabled={copilot.loading}
-                      className={`text-xs px-2 py-1 rounded-md whitespace-nowrap ${
-                        copilot.resultado.necessidade_revisao
-                          ? 'bg-amber-500/20 text-amber-600 hover:bg-amber-500/30'
-                          : 'bg-violet-500/20 text-violet-600 hover:bg-violet-500/30'
-                      } disabled:opacity-50 transition-colors shrink-0`}
-                    >
-                      Gerar novamente
-                    </button>
-                    <button
-                      onClick={copilot.dismissResultado}
-                      className={`p-1 rounded-full ${
-                        copilot.resultado.necessidade_revisao
-                          ? 'hover:bg-amber-500/20'
-                          : 'hover:bg-violet-500/20'
-                      } transition-colors shrink-0`}
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    {copilot.sugestaoId && (
+                      <div className="mt-1.5 pt-1.5 border-t border-black/10">
+                        <CopilotFeedbackBar
+                          sugestaoId={copilot.sugestaoId}
+                          grupoId={selectedChat?.id}
+                          clienteId={selectedChat?.clienteId}
+                          usuarioId={user?.id}
+                          textoOriginalGerado={copilot.textoOriginalGerado}
+                          textoAtual={mensagem}
+                          quantidadeRegeneracoes={copilot.quantidadeRegeneracoes}
+                          modeloUtilizado={copilot.modeloUtilizado}
+                          themeStyles={t}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1543,18 +1567,17 @@ export default function ChatHubDrawer({ onClose, user }) {
                   {/* Campo de texto com emoji dentro */}
                   <div className={`flex-1 flex items-center rounded-2xl ${t.bgCampoInput} border ${t.inputFieldBorder} shadow-sm`}>
                     <Textarea
+                      ref={mensagemTextareaRef}
                       value={mensagem}
                       onChange={(e) => {
                         setMensagem(e.target.value);
-                        const el = e.target;
-                        el.style.height = 'auto';
-                        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+                        adjustMensagemHeight();
                       }}
                       onKeyDown={handleKeyDown}
                       onPaste={handlePaste}
                       placeholder="Mensagem"
                       rows={1}
-                      className={`flex-1 border-0 bg-transparent ${t.textInput} ${t.textPlaceholder} text-sm min-h-[40px] max-h-[120px] px-4 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-2xl resize-none`}
+                      className={`flex-1 border-0 bg-transparent ${t.textInput} ${t.textPlaceholder} text-sm min-h-[40px] max-h-[160px] px-4 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-2xl resize-none`}
                       disabled={enviando}
                     />
                     <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
