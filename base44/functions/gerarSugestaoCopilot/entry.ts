@@ -45,6 +45,127 @@ const TERMOS_SENSIVEIS_UNIVERSAIS = [
 ];
 
 // ════════════════════════════════════════════════════════════
+//  DETECÇÃO DE RELATÓRIO/ALINHAMENTO DE LEADS
+// ════════════════════════════════════════════════════════════
+
+const TERMOS_RELATORIO_LEADS = [
+  'relatorio de leads', 'relatório de leads', 'alinhamento de leads', 'alinhamento',
+  'total de leads', 'leads do dia', 'leads da semana', 'leads de hoje',
+  'leads recebidos', 'leads gerados', 'leads captados', 'quantidade de leads',
+  'agendamentos', 'agendamento', 'agendou', 'agendar',
+  'compareceu', 'faltou', 'desmarcou', 'reagendou',
+  'sem contato', 'sem_contato', 'sem resposta', 'sem retorno',
+  'kanban', 'duplicidades', 'duplicidade', 'duplicado', 'duplicada',
+  'distancia', 'distância', 'longe', 'muito longe',
+  'orcamento', 'orçamento', 'poder aquisitivo', 'sem poder aquisitivo',
+  'qualidade dos contatos', 'qualidade dos leads', 'perfil dos contatos', 'perfil dos leads',
+  'tratamento', 'implante', 'protese', 'prótese', 'ortodontia', 'lentes',
+  'conversao', 'conversão', 'taxa de conversao', 'taxa de conversão',
+  'perda', 'perdeu', 'fechou em outro', 'sem interesse',
+  'leads meta', 'leads google', 'leads facebook', 'leads instagram',
+];
+
+function detectarRelatorioLeads(mensagensUteis) {
+  // Analisa as últimas mensagens (cliente + VOXX) para detectar relatório/alinhamento de leads
+  const recentes = mensagensUteis.slice(-8);
+  const texto = recentes.map(m => {
+    if (m.tipo_mensagem === 'audio') return m.transcricao_audio || '';
+    return m.mensagem || '';
+  }).join(' ');
+  const norm = normalizarTexto(texto);
+
+  let matches = 0;
+  const termosEncontrados = [];
+  for (const termo of TERMOS_RELATORIO_LEADS) {
+    if (termoPresente(norm, termo)) {
+      matches++;
+      termosEncontrados.push(termo);
+    }
+  }
+
+  // Pelo menos 2 termos distintos OU 1 termo muito específico
+  const termosEspecificos = ['relatorio de leads', 'relatório de leads', 'alinhamento de leads', 'total de leads', 'kanban'];
+  const temEspecifico = termosEspecificos.some(t => termoPresente(norm, t));
+
+  const detectado = matches >= 2 || (temEspecifico && matches >= 1);
+  return { detectado, matches, termos: termosEncontrados };
+}
+
+async function recuperarRelatoriosHistoricos(sdk, chatId, idsJaNoContexto) {
+  // Buscar volume maior para cobrir ~14 dias de conversa ativa
+  const todasMsgs = await sdk.entities.WhatsappMensagem.filter(
+    { grupo_id: chatId },
+    '-received_at',
+    200
+  );
+
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 14);
+
+  const idsSet = new Set(idsJaNoContexto);
+
+  const relatorios = (todasMsgs || [])
+    .filter(m => !m.deletado)
+    .filter(m => !['sistema', 'atividade', 'sem_conteudo', 'reacao'].includes(m.tipo_mensagem))
+    .filter(m => {
+      const ts = m.received_at || m.timestamp_mensagem;
+      if (!ts) return false;
+      return new Date(ts) >= cutoff;
+    })
+    .filter(m => !idsSet.has(m.id)) // excluir mensagens já no contexto atual
+    .filter(m => {
+      const texto = m.tipo_mensagem === 'audio'
+        ? (m.transcricao_audio || '')
+        : (m.mensagem || '');
+      if (!texto || !texto.trim()) return false;
+      const norm = normalizarTexto(texto);
+      return TERMOS_RELATORIO_LEADS.some(termo => termoPresente(norm, termo));
+    })
+    .slice(0, 10);
+
+  return relatorios;
+}
+
+function formatarRelatoriosHistoricos(relatorios) {
+  if (!relatorios || relatorios.length === 0) return '';
+
+  const linhas = relatorios.map(m => {
+    const ts = m.received_at || m.timestamp_mensagem;
+    const horario = ts
+      ? new Date(ts).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+      : 'Sem data';
+    const isVoxx = m.remetente_tipo === 'voxx' || m.origem === 'enviada' || m.from_me;
+    const autor = isVoxx ? 'VOXX' : 'Cliente';
+    const nome = m.remetente_nome || 'Desconhecido';
+    let texto = '';
+    if (m.tipo_mensagem === 'audio') {
+      texto = m.transcricao_audio ? `[Áudio] ${m.transcricao_audio}` : '[Áudio sem transcrição]';
+    } else if (m.tipo_mensagem === 'imagem') {
+      texto = m.mensagem && m.mensagem.trim() ? `[Imagem] ${m.mensagem}` : '[Imagem sem legenda]';
+    } else {
+      texto = (m.mensagem || '').replace(/\n*— [^\n]+ \| Voxx\n*$/, '').trim();
+    }
+    if (texto.length > 600) texto = texto.substring(0, 600) + '...';
+    return `[${horario}] [${autor}] ${nome}: ${texto}`;
+  });
+
+  return `## RELATÓRIOS ANTERIORES DE LEADS (mesma conversa)
+
+Os registros abaixo são relatórios/alinhamentos anteriores de leads nesta conversa. Use-os APENAS para análise comparativa com o relatório atual:
+
+${linhas.join('\n')}
+
+### Instruções para análise de relatório de leads:
+- Compare o volume de leads e agendamentos entre o relatório atual e os anteriores quando os dados permitirem.
+- Identifique recorrência de: distância, limitação financeira/orçamentária, duplicidade e falta de contato.
+- Indique melhora, piora ou estabilidade SOMENTE quando os dados históricos sustentarem essa leitura.
+- NÃO invente percentuais, metas ou comparações não presentes nos dados fornecidos.
+- NÃO diga apenas "vamos acompanhar" quando o histórico já permitir uma análise concreta.
+- NÃO sugira ajuste de campanha sem relacioná-lo a uma tendência observada nos dados.
+- Se os dados forem insuficientes ou não comparáveis entre relatórios, indique isso explicitamente na resposta.`;
+}
+
+// ════════════════════════════════════════════════════════════
 //  HELPERS DE CLASSIFICAÇÃO
 // ════════════════════════════════════════════════════════════
 
@@ -489,6 +610,29 @@ Deno.serve(async (req) => {
       // Erro na classificação não impede o fluxo
     }
 
+    // ── 5b. Detectar relatório/alinhamento de leads e recuperar histórico ──
+    let deteccaoRelatorioLeads = { detectado: false, matches: 0, termos: [] };
+    let relatoriosHistoricos = [];
+    let blocoRelatorios = '';
+    let relatorioLeadsAtivo = false;
+
+    try {
+      deteccaoRelatorioLeads = detectarRelatorioLeads(mensagensUteis);
+      if (deteccaoRelatorioLeads.detectado) {
+        const idsAtuais = mensagensUteis.map(m => m.id);
+        relatoriosHistoricos = await recuperarRelatoriosHistoricos(sdk, chatId, idsAtuais);
+        if (relatoriosHistoricos.length > 0) {
+          blocoRelatorios = formatarRelatoriosHistoricos(relatoriosHistoricos);
+          relatorioLeadsAtivo = true;
+        }
+      }
+    } catch (e) {
+      // Falha na recuperação de relatórios não impede o fluxo principal
+      relatoriosHistoricos = [];
+      blocoRelatorios = '';
+      relatorioLeadsAtivo = false;
+    }
+
     // ── 6. Selecionar orientações da base de conhecimento ────
     let conhecimento = { orientacoes: [], ids_utilizados: [], fallback: true, conflitos_detectados: [] };
     let blocoConhecimento = '';
@@ -565,6 +709,7 @@ Deno.serve(async (req) => {
 
     // ── 10. Montar prompt com bloco de conhecimento ──────────
     const blocoKB = conhecimentoUsado ? `\n${blocoConhecimento}\n` : '';
+    const blocoRelatoriosPrompt = relatorioLeadsAtivo && blocoRelatorios ? `\n${blocoRelatorios}\n` : '';
 
     const prompt = `Você é o Copilot de atendimento da VOXX Marketing dentro do Radar WhatsApp.
 
@@ -611,7 +756,7 @@ Marque necessidade_revisao como true quando a conversa envolver:
 - Informações insuficientes para uma resposta segura
 
 Nestas situações, a resposta deve ser cuidadosa e o alerta_risco deve explicar o motivo.
-${blocoKB}
+${blocoKB}${blocoRelatoriosPrompt}
 ## CONTEXTO DO CLIENTE
 
 ${contextoCliente}
@@ -690,7 +835,10 @@ Retorne APENAS o JSON no formato especificado. Não inclua markdown, explicaçõ
         orientacoes_utilizadas: conhecimento.ids_utilizados,
         conhecimento_usado: conhecimentoUsado,
         fallback: conhecimento.fallback,
-        conflito_detectado: (conhecimento.conflitos_detectados || []).length > 0
+        conflito_detectado: (conhecimento.conflitos_detectados || []).length > 0,
+        relatorio_leads_detectado: deteccaoRelatorioLeads.detectado,
+        relatorios_historicos_recuperados: relatoriosHistoricos.length,
+        relatorio_leads_ativo: relatorioLeadsAtivo
       }
     });
   } catch (error) {
