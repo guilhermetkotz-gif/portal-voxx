@@ -415,8 +415,10 @@ function extrairMetricasLeadsV2(texto) {
   if (m) metricas.total_processado = parseInt(m[1]);
 
   if (metricas.leads_novos === undefined) {
-    m = norm.match(/(?:total\s+de\s+)?(\d+)\s+leads?/) || norm.match(/leads?\s*[:\-]\s*(\d+)/)
-      || norm.match(/total\s+de\s+leads?\s+(?:pelo\s+)?(?:whatsapp|wpp|wa)?\s*\*?(\d+)\*?/);
+    // Priorizar "Total de Leads pelo WhatsApp *9*" (número APÓS o rótulo)
+    m = norm.match(/total\s+de\s+leads?\s+(?:pelo\s+)?(?:whatsapp|wpp|wa)\s*\*?(\d+)\*?/)
+      || norm.match(/leads?\s*[:\-]\s*(\d+)/)
+      || norm.match(/(\d+)\s+leads?\s+(?:recebidos|gerados|captados|novos)/);
     if (m) metricas.total_leads = parseInt(m[1]);
   }
 
@@ -572,6 +574,111 @@ function verificarComparabilidade(relatorios) {
   return { comparaveis, naoComparaveis, motivos: motivosNaoComp, confianca: 'media' };
 }
 
+// --- Dois níveis independentes: comparação imediata + tendência histórica ---
+
+const METRICAS_LOWER_BETTER = new Set([
+  'sem_contato', 'sem_resposta', 'leads_duplicados',
+  'perdas_total', 'faltas', 'desmarcou', 'leads_anteriores_kanban'
+]);
+
+const CAMPOS_TENDENCIA = [
+  'leads_novos', 'total_leads', 'total_processado', 'agendamentos',
+  'comparecimentos', 'faltas', 'desmarcou', 'reagendou',
+  'sem_contato', 'sem_resposta', 'leads_duplicados', 'perdas_total',
+  'leads_anteriores_kanban'
+];
+
+function classificarTendencia(valores, isLowerBetter) {
+  if (!valores || valores.length < 3) return 'dados_insuficientes';
+  const maxVal = Math.max(...valores.filter(v => v > 0));
+  const threshold = Math.max(1, Math.round(0.1 * (maxVal || 1)));
+  const deltas = [];
+  for (let i = 1; i < valores.length; i++) deltas.push(valores[i] - valores[i - 1]);
+  const directions = deltas.map(d => Math.abs(d) <= threshold ? 'stable' : (d > 0 ? 'up' : 'down'));
+  const nonStable = directions.filter(d => d !== 'stable');
+  if (nonStable.length === 0) return 'estavel';
+  if (nonStable.length >= 2 && nonStable.every(d => d === nonStable[0])) {
+    if (nonStable[0] === 'up') return isLowerBetter ? 'piora_consistente' : 'melhora_consistente';
+    return isLowerBetter ? 'melhora_consistente' : 'piora_consistente';
+  }
+  if (valores.length === 3) {
+    const [v1, v2, v3] = valores;
+    if (v2 < v1 - threshold && v2 < v3 - threshold) return 'recuperacao';
+    if (v2 > v1 + threshold && v2 > v3 + threshold) return 'reversao_negativa';
+  }
+  if (directions[0] !== 'stable' && directions.slice(1).every(d => d === 'stable')) {
+    return directions[0] === 'down' ? 'estavel_apos_reducao' : 'estavel_apos_aumento';
+  }
+  let hasDown = false, hasUp = false, hasDownBeforeUp = false, hasUpBeforeDown = false;
+  for (const dir of directions) {
+    if (dir === 'down') { hasDown = true; if (hasUp) hasUpBeforeDown = true; }
+    else if (dir === 'up') { hasUp = true; if (hasDown) hasDownBeforeUp = true; }
+  }
+  const net = valores[valores.length - 1] - valores[0];
+  if (hasDownBeforeUp && !hasUpBeforeDown && Math.abs(net) > threshold) return 'recuperacao';
+  if (hasUpBeforeDown && !hasDownBeforeUp && Math.abs(net) > threshold) return 'reversao_negativa';
+  return 'oscilacao';
+}
+
+function ordenarRelatoriosPorData(rels) {
+  return [...rels].sort((a, b) => {
+    const ta = a.data_ref?.inicio ? new Date(a.data_ref.inicio).getTime() : (a.data_recebimento ? new Date(a.data_recebimento).getTime() : 0);
+    const tb = b.data_ref?.inicio ? new Date(b.data_ref.inicio).getTime() : (b.data_recebimento ? new Date(b.data_recebimento).getTime() : 0);
+    return ta - tb;
+  });
+}
+
+function calcularComparacaoImediata(comparaveis) {
+  if (!comparaveis || comparaveis.length < 2) return null;
+  const sorted = ordenarRelatoriosPorData(comparaveis);
+  const anterior = sorted[sorted.length - 2];
+  const atual = sorted[sorted.length - 1];
+  const metricas = {};
+  for (const campo of CAMPOS_TENDENCIA) {
+    const vAnt = anterior.metricas[campo];
+    const vAt = atual.metricas[campo];
+    if (vAnt === undefined || vAt === undefined) continue;
+    const diff = vAt - vAnt;
+    const pct = vAnt > 0 ? Math.round((diff / vAnt) * 100) : null;
+    let direcao = 'estavel';
+    if (pct !== null) { if (pct > 10) direcao = 'aumentou'; else if (pct < -10) direcao = 'diminuiu'; }
+    else if (diff !== 0) direcao = diff > 0 ? 'aumentou' : 'diminuiu';
+    metricas[campo] = { anterior: vAnt, atual: vAt, diferenca_absoluta: diff, variacao_percentual: pct, direcao };
+  }
+  return {
+    data_anterior: anterior.data_ref?.inicio || null,
+    data_atual: atual.data_ref?.inicio || null,
+    metricas
+  };
+}
+
+function calcularTendenciaHistorica(comparaveis) {
+  if (!comparaveis || comparaveis.length < 3) return null;
+  const sorted = ordenarRelatoriosPorData(comparaveis);
+  const janela = sorted.slice(-5);
+  const metricas = {};
+  for (const campo of CAMPOS_TENDENCIA) {
+    const pontos = janela.map(r => ({ valor: r.metricas[campo], data: r.data_ref?.inicio || null }))
+      .filter(p => p.valor !== undefined && p.valor !== null);
+    if (pontos.length < 3) continue;
+    const valores = pontos.map(p => p.valor);
+    const datas = pontos.map(p => p.data);
+    const isLowerBetter = METRICAS_LOWER_BETTER.has(campo);
+    const classificacao = classificarTendencia(valores, isLowerBetter);
+    const primeiro = valores[0], ultimo = valores[valores.length - 1];
+    const diff = ultimo - primeiro;
+    const pct = primeiro > 0 ? Math.round((diff / primeiro) * 100) : null;
+    metricas[campo] = { valores, datas, quantidade_observacoes: valores.length, classificacao, primeiro, ultimo, diff, pct, is_lower_better: isLowerBetter };
+  }
+  if (Object.keys(metricas).length === 0) return null;
+  return {
+    periodo_inicio: janela[0].data_ref?.inicio || null,
+    periodo_fim: janela[janela.length - 1].data_ref?.fim || janela[janela.length - 1].data_ref?.inicio || null,
+    quantidade_relatorios: janela.length,
+    metricas
+  };
+}
+
 // --- Construção do bloco de análise ---
 
 function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
@@ -606,33 +713,11 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
   const comMetricas = todosRelatorios.filter(r => Object.keys(r.metricas).length > 0);
   const { comparaveis, naoComparaveis, motivos, confianca } = verificarComparabilidade(todosRelatorios);
 
-  // Tendências APENAS entre comparáveis com métricas
-  let tendencias = null;
-  const comparaveisComMetricas = comparaveis.filter(r => Object.keys(r.metricas).length > 0);
+  // --- Nível 1: Comparação imediata (último vs anterior) ---
+  const comparacaoImediata = calcularComparacaoImediata(comparaveis);
 
-  if (comparaveisComMetricas.length >= 2) {
-    tendencias = {};
-    const campos = ['leads_novos', 'total_leads', 'total_processado', 'agendamentos',
-                    'comparecimentos', 'faltas', 'desmarcou', 'reagendou',
-                    'sem_contato', 'sem_resposta', 'leads_duplicados', 'perdas_total',
-                    'leads_anteriores_kanban'];
-    for (const campo of campos) {
-      const valores = comparaveisComMetricas.map(r => r.metricas[campo]).filter(v => v !== undefined && v !== null && v !== '');
-      if (valores.length < 2) continue;
-      const primeiro = valores[0], ultimo = valores[valores.length - 1];
-      const diff = ultimo - primeiro;
-      const pct = primeiro > 0 ? Math.round((diff / primeiro) * 100) : null;
-      let direcao = 'estavel';
-      if (pct !== null) {
-        if (pct > 10) direcao = 'aumentou';
-        else if (pct < -10) direcao = 'diminuiu';
-      } else if (diff !== 0) {
-        direcao = diff > 0 ? 'aumentou' : 'diminuiu';
-      }
-      tendencias[campo] = { primeiro, ultimo, diff, pct, direcao };
-    }
-    if (Object.keys(tendencias).length === 0) tendencias = null;
-  }
+  // --- Nível 2: Tendência histórica (3-5 relatórios) ---
+  const tendenciaHistorica = calcularTendenciaHistorica(comparaveis);
 
   const nomesMetricas = {
     leads_novos: 'Leads novos', total_leads: 'Total leads', total_processado: 'Total proc.',
@@ -656,24 +741,6 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
     return `[${dataRef}] [${r.periodicidade}] ${partes.join(' | ')}`;
   });
 
-  const nomesTendencias = {
-    leads_novos: 'Leads novos', total_leads: 'Volume de leads', total_processado: 'Total processado',
-    agendamentos: 'Agendamentos', comparecimentos: 'Comparecimentos', faltas: 'Faltas',
-    desmarcou: 'Desmarcações', reagendou: 'Reagendamentos',
-    sem_contato: 'Sem contato', sem_resposta: 'Sem resposta',
-    leads_duplicados: 'Duplicidades', perdas_total: 'Perdas',
-    leads_anteriores_kanban: 'Leads já no Kanban',
-  };
-
-  const linhasTendencias = tendencias
-    ? Object.entries(tendencias).map(([campo, t]) => {
-        const nome = nomesTendencias[campo] || campo;
-        const pctStr = t.pct !== null ? ` (${t.pct > 0 ? '+' : ''}${t.pct}%)` : '';
-        return `- ${nome}: ${t.direcao}${pctStr} (${t.primeiro} → ${t.ultimo})`;
-      })
-    : [];
-
-  const linhasNaoComp = motivos.length > 0 ? motivos.map(m => `- ${m.motivo}`).join('\n') : '';
   const periodosUnicos = [...new Set(todosRelatorios.map(r => r.periodicidade))];
 
   const periodoInicio = todosRelatorios.length > 0
@@ -685,15 +752,27 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
   bloco += `\n### Linha do tempo de métricas extraídas:\n`;
   bloco += linhasTimeline.length > 0 ? linhasTimeline.join('\n') : 'Não foi possível extrair métricas estruturadas dos relatórios.';
 
-  if (linhasTendencias.length > 0) {
-    bloco += `\n\n### Tendências identificadas (comparação entre relatórios comparáveis):\n${linhasTendencias.join('\n')}`;
-  } else if (comparaveisComMetricas.length < 2) {
-    if (todosRelatorios.length >= 2 && (naoComparaveis.length > 0 || motivos.length > 0)) {
-      bloco += `\n\n### Tendências: NÃO CALCULADAS — os relatórios recuperados NÃO são comparáveis.`;
-      if (linhasNaoComp) bloco += `\nMotivos: ${linhasNaoComp}`;
-    } else if (comMetricas.length < 2) {
-      bloco += `\n\n### Tendências: dados insuficientes para comparação (apenas ${comMetricas.length} relatório com métricas extraídas).`;
-    }
+  // --- Nível 1: COMPARAÇÃO IMEDIATA ---
+  if (comparacaoImediata) {
+    const linhasComp = Object.entries(comparacaoImediata.metricas).map(([campo, m]) => {
+      const label = nomesMetricas[campo] || campo;
+      const pctStr = m.variacao_percentual !== null ? ` (${m.variacao_percentual > 0 ? '+' : ''}${m.variacao_percentual}%)` : '';
+      return `- ${label}: ${m.anterior} → ${m.atual} — ${m.direcao}${pctStr}`;
+    });
+    bloco += `\n\n### NÍVEL 1 — COMPARAÇÃO IMEDIATA (atual vs anterior)\nData anterior: ${comparacaoImediata.data_anterior || 'N/I'} | Data atual: ${comparacaoImediata.data_atual || 'N/I'}\n${linhasComp.join('\n')}`;
+  } else if (comparaveis.length < 2) {
+    bloco += `\n\n### NÍVEL 1 — COMPARAÇÃO IMEDIATA: dados insuficientes (apenas ${comparaveis.length} relatório comparável).`;
+  }
+
+  // --- Nível 2: TENDÊNCIA HISTÓRICA ---
+  if (tendenciaHistorica) {
+    const linhasTend = Object.entries(tendenciaHistorica.metricas).map(([campo, t]) => {
+      const label = nomesMetricas[campo] || campo;
+      return `- ${label}: [${t.valores.join(' → ')}] — ${t.classificacao} (observações: ${t.quantidade_observacoes})`;
+    });
+    bloco += `\n\n### NÍVEL 2 — TENDÊNCIA HISTÓRICA (últimos ${tendenciaHistorica.quantidade_relatorios} relatórios)\nPeríodo: ${tendenciaHistorica.periodo_inicio || 'N/I'} a ${tendenciaHistorica.periodo_fim || 'N/I'}\n${linhasTend.join('\n')}`;
+  } else if (comparaveis.length < 3) {
+    bloco += `\n\n### NÍVEL 2 — TENDÊNCIA HISTÓRICA: dados insuficientes para tendência (mínimo 3 relatórios comparáveis, encontrado ${comparaveis.length}).`;
   }
 
   const linhasRaw = (gruposHistoricos || []).map(g => {
@@ -726,31 +805,45 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
 
   bloco += `
 
-### Instruções para análise de relatório de leads:
-- Apresente tendências SOMENTE quando houver 2 ou mais relatórios comparáveis indicados acima.
-- Se os relatórios NÃO forem comparáveis (periodicidades diferentes, períodos sobrepostos, etc.), informe naturalmente que os registros representam períodos diferentes e não permitem comparação direta. Trabalhe apenas com o relatório atual.
-- NÃO invente percentuais, metas ou comparações não presentes nos dados extraídos.
-- NÃO use "vamos acompanhar os próximos relatórios" quando já existir histórico comparável.
-- Diferencie o funil: Leads novos/recebidos → Agendamentos → Comparecimentos → Faltas/Perdas.
-- Leads novos e agendamentos = volume e atração (topo do funil).
-- Comparecimentos, faltas e perdas = qualificação e operação (fundo do funil).
-- NÃO sugira alteração de campanha (orçamento, segmentação, criativos) quando a variação negativa estiver em comparecimentos, faltas, sem contato, sem resposta, agendamento ou operação da unidade.
-- SOMENTE sugira possível ajuste de campanha quando os dados de topo do funil (volume de leads novos) sustentarem essa hipótese.
-- Distinga perdas por distância/orçamento (qualificação) de perdas por concorrência/falta de interesse (criativo/mensagem).
-- Não classifique agendamentos futuros ou oportunidades futuras como perdas.
-- Métricas não informadas NÃO devem ser tratadas como zero.
-- A data exibida no timestamp de cada mensagem é a data de ENVIO da mensagem, NÃO a data de referência do relatório.
-- NUNCA afirme que um relatório é de determinada data quando essa data não estiver identificada como "Data de referência" na seção acima.
-- Se a data de referência for "Não identificada", diga apenas que o período não pôde ser determinado. NÃO use a data de envio como substituta.
-- Datas de agendamento futuro NÃO devem ser usadas como data do relatório.
-- Quando houver 2+ relatórios comparáveis com tendências identificadas, a resposta DEVE apresentar ao menos uma comparação histórica objetiva (ex: "o volume de leads passou de X para Y" ou "agendamentos cresceram Z%").
-- Priorize as tendências mais relevantes (maior variação percentual ou maior impacto operacional). NÃO liste todas as tendências mecanicamente.
-- NÃO use "vamos acompanhar", "vamos analisar", "seguimos monitorando" ou similares quando os dados já permitem uma leitura conclusiva. Apresente a leitura.
-- Considere ações recentes registradas na conversa. Se uma ação (ex: ajuste de segmentação, pausa de anúncio) já foi executada e comunicada, NÃO sugira executá-la novamente.
-- NÃO atribua automaticamente uma melhora observada a uma alteração recente sem um período suficiente para confirmação.
-- Leads com agendamento futuro ou oportunidade futura NÃO devem ser tratados como perda.
-- NÃO agrupe genericamente status diferentes como "os demais não avançaram". Diferencie: sem contato, perda por distância, perda por orçamento, perda por concorrência, etc.
-- Métricas ausentes (sem valor numérico no relatório) NÃO devem ser inferidas a partir de informações secundárias. Permanecem como não informadas.`;
+### Instruções para análise de relatório de leads — DOIS NÍVEIS INDEPENDENTES:
+
+**NÍVEL 1 — COMPARAÇÃO IMEDIATA** (responde: "O que mudou desde o último relatório?"):
+- Use EXCLUSIVAMENTE a seção "NÍVEL 1 — COMPARAÇÃO IMEDIATA" acima.
+- A expressão "em relação ao relatório anterior" / "em relação ao dia anterior" somente pode utilizar essa estrutura.
+- Para cada métrica: direcao=aumentou → use apenas "aumentou/subiu/cresceu"; direcao=diminuiu → use apenas "diminuiu/caiu/reduziu"; direcao=estavel → use apenas "permaneceu estável/se manteve".
+- NÃO use "relatório anterior" para comparar o primeiro e o último registro da janela histórica.
+
+**NÍVEL 2 — TENDÊNCIA HISTÓRICA** (responde: "Essa mudança confirma um padrão, representa recuperação ou é apenas uma oscilação?"):
+- Use EXCLUSIVAMENTE a seção "NÍVEL 2 — TENDÊNCIA HISTÓRICA" acima.
+- NÃO misture com a comparação imediata.
+- Classificações: melhora_consistente = movimento favorável em ≥2 intervalos consecutivos; piora_consistente = desfavorável em ≥2 consecutivos; recuperacao = caiu e depois voltou a subir; reversao_negativa = subiu e depois voltou a cair; estavel = sem variação; oscilacao = alterna sem padrão; estavel_apos_reducao/aumento = variou e depois estabilizou; dados_insuficientes = menos de 3 observações.
+- NÃO chame uma recuperação de "crescimento consistente" ou "crescendo".
+- Exemplo correto: "Os agendamentos apresentaram recuperação em relação ao dia anterior, passando de 1 para 4, ficando próximos dos 5 registrados no relatório anterior à queda."
+- Exemplo incorreto: "Os agendamentos vêm crescendo."
+- Quando mencionar a janela histórica, informe o período analisado.
+
+**HIERARQUIA DA RESPOSTA (siga esta ordem):**
+1. Identificar o relatório atual pela data de referência (NÃO usar "hoje" ou "ontem").
+2. Apresentar a comparação entre o atual e o imediatamente anterior (Nível 1).
+3. Contextualizar essa movimentação com a tendência dos últimos relatórios (Nível 2, se houver ≥3 relatórios).
+4. Apontar padrões recorrentes de motivos, cidades e etapas do funil.
+5. Considerar ações recentes já realizadas pela VOXX (não sugerir novamente).
+6. Informar limitações quando ainda não houver dados suficientes.
+
+**REGRAS SEMÂNTICAS:**
+- NÃO misturar comparação imediata com tendência histórica.
+- Com apenas 2 relatórios, apresentar comparação, mas NÃO afirmar tendência.
+- NÃO inferir leads_novos quando essa métrica não estiver explicitamente informada.
+- NÃO substituir total_leads por leads_novos.
+- Métricas ausentes permanecem nulas (não tratar como zero, não inferir de informações secundárias).
+- Leads futuros não são perdas. Agendamento não comprova automaticamente boa qualificação.
+- Não atribuir variações a uma mudança recente de campanha sem período suficiente.
+- Não sugerir novamente uma ação que já foi executada no grupo.
+- NÃO utilizar "hoje" ou "ontem" na resposta final. Utilizar a data de referência.
+- NÃO use "vamos acompanhar", "vamos analisar", "seguimos monitorando" quando os dados já permitem uma leitura conclusiva.
+- Diferencie: sem contato, perda por distância, perda por orçamento, perda por concorrência.
+- A data exibida no timestamp de cada mensagem é a data de ENVIO, NÃO a data de referência do relatório.
+- Datas de agendamento futuro NÃO devem ser usadas como data do relatório.`;
 
   // Coletar todas as datas de eventos de todos os relatórios
   const todasDatasAgendamentos = todosRelatorios.flatMap(r => r.data_ref?.datas_agendamentos_futuros || []);
@@ -771,7 +864,9 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
     periodo_analisado_inicio: periodoInicio,
     periodo_analisado_fim: periodoFim,
     periodicidades_identificadas: periodosUnicos,
-    tendencias_identificadas: linhasTendencias.length,
+    comparacao_ultimo_vs_anterior: comparacaoImediata,
+    tendencia_historica: tendenciaHistorica,
+    tendencias_identificadas: tendenciaHistorica ? Object.keys(tendenciaHistorica.metricas).length : 0,
     utilizou_historico_especializado: (gruposHistoricos || []).length > 0,
     confianca_comparacao: confianca,
     fallback: comMetricas.length === 0,
@@ -786,7 +881,69 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
     confianca_data_referencia: confiancaDataRefMedia,
   };
 
-  return { bloco, meta };
+  return { bloco, meta, comparacaoImediata, tendenciaHistorica };
+}
+
+// --- Validação pós-geração e fallback determinístico ---
+
+const NOMES_METRICAS_FULL = {
+  leads_novos: 'Leads novos', total_leads: 'Total de leads', total_processado: 'Total processado',
+  leads_anteriores_kanban: 'contatos já existentes no Kanban', leads_duplicados: 'duplicidades',
+  agendamentos: 'agendamentos', comparecimentos: 'comparecimentos',
+  faltas: 'faltas', desmarcou: 'desmarcações', reagendou: 'reagendamentos',
+  sem_contato: 'casos sem contato', sem_resposta: 'casos sem resposta',
+  perdas_total: 'perdas',
+};
+
+function validarRespostaLLM(resposta, comparacaoImediata, tendenciaHistorica) {
+  const erros = [];
+  const norm = resposta.toLowerCase();
+  if (/\bhoje\b/.test(norm) || /\bontem\b/.test(norm)) erros.push('usou_hoje_ou_ontem');
+  if (tendenciaHistorica) {
+    for (const [campo, t] of Object.entries(tendenciaHistorica.metricas)) {
+      if (t.classificacao === 'recuperacao') {
+        if (norm.includes('crescimento consistente') || norm.includes('vem crescendo') || norm.includes('crescendo'))
+          erros.push(`classificou_recuperacao_como_crescimento:${campo}`);
+      }
+      if (t.classificacao === 'oscilacao' || t.classificacao === 'recuperacao') {
+        if (norm.includes('melhora consistente') || norm.includes('piora consistente'))
+          erros.push(`classificou_${t.classificacao}_como_consistente:${campo}`);
+      }
+    }
+  }
+  return { valido: erros.length === 0, erros };
+}
+
+function gerarFallbackDeterministico(comparacaoImediata, tendenciaHistorica) {
+  if (!comparacaoImediata) return 'Não há relatórios comparáveis suficientes para análise estruturada.';
+  const dataAtual = comparacaoImediata.data_atual
+    ? new Date(comparacaoImediata.data_atual + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' })
+    : 'data não identificada';
+  const partes = [];
+  for (const [campo, m] of Object.entries(comparacaoImediata.metricas)) {
+    const label = NOMES_METRICAS_FULL[campo] || campo;
+    if (m.direcao === 'estavel') partes.push(`${label} permaneceu em ${m.atual}`);
+    else if (m.direcao === 'aumentou') partes.push(`${label} passaram de ${m.anterior} para ${m.atual}`);
+    else partes.push(`${label} reduziram de ${m.anterior} para ${m.atual}`);
+  }
+  let resposta = `Recebemos o alinhamento de ${dataAtual}. Em relação ao dia anterior, ${partes.join('.')}.`;
+  if (tendenciaHistorica) {
+    const tendParts = [];
+    for (const [campo, t] of Object.entries(tendenciaHistorica.metricas)) {
+      const label = NOMES_METRICAS_FULL[campo] || campo;
+      if (t.classificacao === 'recuperacao') tendParts.push(`${label} apresentaram recuperação após a queda registrada anteriormente`);
+      else if (t.classificacao === 'melhora_consistente') tendParts.push(`${label} apresentaram melhora consistente ao longo do período`);
+      else if (t.classificacao === 'piora_consistente') tendParts.push(`${label} apresentaram piora consistente ao longo do período`);
+      else if (t.classificacao === 'estavel_apos_reducao') tendParts.push(`${label} estabilizaram após redução`);
+      else if (t.classificacao === 'estavel_apos_aumento') tendParts.push(`${label} estabilizaram após aumento`);
+      else if (t.classificacao === 'oscilacao') tendParts.push(`${label} apresentaram oscilação sem padrão definido`);
+      else if (t.classificacao === 'reversao_negativa') tendParts.push(`${label} apresentaram reversão negativa após alta`);
+      else if (t.classificacao === 'estavel') tendParts.push(`${label} se mantiveram estáveis`);
+    }
+    if (tendParts.length > 0)
+      resposta += ` Considerando os últimos ${tendenciaHistorica.quantidade_relatorios} alinhamentos (período de ${tendenciaHistorica.periodo_inicio} a ${tendenciaHistorica.periodo_fim}), ${tendParts.join('.')}.`;
+  }
+  return resposta;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1240,6 +1397,8 @@ Deno.serve(async (req) => {
     let blocoRelatorios = '';
     let relatorioLeadsAtivo = false;
     let metaRelatorios = {};
+    let comparacaoImediata = null;
+    let tendenciaHistorica = null;
 
     try {
       deteccaoRelatorioLeads = detectarRelatorioLeads(mensagensUteis);
@@ -1259,6 +1418,8 @@ Deno.serve(async (req) => {
         const analise = construirBlocoAnaliseLeads(relatoriosContextoConsolidados, gruposHistoricos);
         blocoRelatorios = analise.bloco;
         metaRelatorios = analise.meta;
+        comparacaoImediata = analise.comparacaoImediata;
+        tendenciaHistorica = analise.tendenciaHistorica;
         relatorioLeadsAtivo = true;
       }
     } catch (e) {
@@ -1413,24 +1574,47 @@ Produza uma resposta humana, clara, segura e útil. A mensagem deve parecer escr
 
 Retorne APENAS o JSON no formato especificado. Não inclua markdown, explicações ou texto adicional.`;
 
-    // ── 11. Invocar LLM ───────────────────────────────────────
+    // ── 11. Invocar LLM (primeira tentativa) ────────────────
+    const llmSchema = {
+      type: 'object',
+      properties: {
+        mensagem_sugerida: { type: 'string', description: 'Texto sugerido para o colaborador enviar ao cliente. Sem assinatura.' },
+        assunto_identificado: { type: 'string', description: 'Assunto principal identificado na solicitação do cliente' },
+        necessidade_revisao: { type: 'boolean', description: 'Se a resposta exige revisão humana obrigatória' },
+        alerta_risco: { type: 'string', description: 'Motivo do risco ou alerta, quando aplicável. Vazio se não houver.' },
+        informacoes_ausentes: { type: 'string', description: 'Informações essenciais que estão faltando, quando aplicável. Vazio se não houver.' },
+      },
+      required: ['mensagem_sugerida', 'assunto_identificado', 'necessidade_revisao'],
+    };
+
     let resultado;
+    let tentativaRegeneracao = false;
+    let errosValidacao = [];
     try {
-      resultado = await base44.integrations.Core.InvokeLLM({
-        prompt,
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            mensagem_sugerida: { type: 'string', description: 'Texto sugerido para o colaborador enviar ao cliente. Sem assinatura.' },
-            assunto_identificado: { type: 'string', description: 'Assunto principal identificado na solicitação do cliente' },
-            necessidade_revisao: { type: 'boolean', description: 'Se a resposta exige revisão humana obrigatória' },
-            alerta_risco: { type: 'string', description: 'Motivo do risco ou alerta, quando aplicável. Vazio se não houver.' },
-            informacoes_ausentes: { type: 'string', description: 'Informações essenciais que estão faltando, quando aplicável. Vazio se não houver.' },
-          },
-          required: ['mensagem_sugerida', 'assunto_identificado', 'necessidade_revisao'],
-        },
-        model: 'automatic',
-      });
+      resultado = await base44.integrations.Core.InvokeLLM({ prompt, response_json_schema: llmSchema, model: 'automatic' });
+
+      // ── 11b. Validação pós-geração ──
+      if (resultado && resultado.mensagem_sugerida && relatorioLeadsAtivo) {
+        const validacao = validarRespostaLLM(resultado.mensagem_sugerida, comparacaoImediata, tendenciaHistorica);
+        if (!validacao.valido) {
+          errosValidacao = validacao.erros;
+          // Regenerar com instrução corretiva
+          const promptCorretivo = prompt + `\n\n## CORREÇÃO OBRIGATÓRIA\nA resposta anterior foi rejeitada pelos seguintes erros: ${validacao.erros.join(', ')}.\nRegenere a resposta corrigindo estes erros. NÃO use "hoje" ou "ontem" — use a data de referência. NÃO chame recuperação de crescimento consistente. Siga rigorosamente a hierarquia: Nível 1 (comparação imediata) depois Nível 2 (tendência histórica).`;
+          try {
+            const resultado2 = await base44.integrations.Core.InvokeLLM({ prompt: promptCorretivo, response_json_schema: llmSchema, model: 'automatic' });
+            if (resultado2 && resultado2.mensagem_sugerida) {
+              const validacao2 = validarRespostaLLM(resultado2.mensagem_sugerida, comparacaoImediata, tendenciaHistorica);
+              if (validacao2.valido) {
+                resultado = resultado2;
+                errosValidacao = [];
+              } else {
+                tentativaRegeneracao = true;
+                errosValidacao = validacao2.erros;
+              }
+            }
+          } catch (_) { tentativaRegeneracao = true; }
+        }
+      }
     } catch (e) {
       return Response.json({ error: 'Erro ao processar a análise. Tente novamente.' }, { status: 500 });
     }
@@ -1440,8 +1624,19 @@ Retorne APENAS o JSON no formato especificado. Não inclua markdown, explicaçõ
       return Response.json({ error: 'A IA não retornou uma sugestão válida. Tente novamente.' }, { status: 500 });
     }
 
+    // ── 12b. Fallback determinístico se regeneração falhou ──
+    let respostaFinal = resultado.mensagem_sugerida;
+    let usouFallback = false;
+    if (errosValidacao.length > 0 && relatorioLeadsAtivo && comparacaoImediata) {
+      const fb = gerarFallbackDeterministico(comparacaoImediata, tendenciaHistorica);
+      if (fb && fb.trim()) {
+        respostaFinal = fb;
+        usouFallback = true;
+      }
+    }
+
     // Remover assinatura
-    let sugestaoLimpa = resultado.mensagem_sugerida
+    let sugestaoLimpa = respostaFinal
       .replace(/\s*—\s+[^\n]{1,60}\|\s*Voxx\s*$/i, '')
       .replace(/^—\s+[^\n]{1,60}\|\s*Voxx\s*\n+/i, '')
       .trim();
@@ -1479,6 +1674,8 @@ Retorne APENAS o JSON no formato especificado. Não inclua markdown, explicaçõ
         relatorios_comparaveis: metaRelatorios.relatorios_comparaveis || 0,
         relatorios_nao_comparaveis: metaRelatorios.relatorios_nao_comparaveis || 0,
         motivos_nao_comparabilidade: metaRelatorios.motivos_nao_comparabilidade || [],
+        comparacao_ultimo_vs_anterior: metaRelatorios.comparacao_ultimo_vs_anterior || null,
+        tendencia_historica: metaRelatorios.tendencia_historica || null,
         periodo_analisado_inicio: metaRelatorios.periodo_analisado_inicio,
         periodo_analisado_fim: metaRelatorios.periodo_analisado_fim,
         periodicidades_identificadas: metaRelatorios.periodicidades_identificadas || [],
@@ -1496,6 +1693,12 @@ Retorne APENAS o JSON no formato especificado. Não inclua markdown, explicaçõ
         outras_datas_identificadas: metaRelatorios.outras_datas_identificadas || [],
         confianca_data_referencia: metaRelatorios.confianca_data_referencia || 'baixa',
         metricas_informais_detectadas: deteccaoRelatorioLeads.metricas_informais || 0,
+        validacao_pos_geracao: {
+          erros_primeira_geracao: errosValidacao,
+          tentou_regeneracao: tentativaRegeneracao,
+          usou_fallback_deterministico: usouFallback,
+          resposta_livre: !usouFallback,
+        },
       }
     });
   } catch (error) {
