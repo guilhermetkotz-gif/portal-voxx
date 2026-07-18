@@ -108,7 +108,7 @@ function detectarMetricasQuantitativas(texto) {
 }
 
 function detectarRelatorioLeads(mensagensUteis) {
-  const recentes = mensagensUteis.slice(-8);
+  const recentes = mensagensUteis.slice(-15);
   const texto = recentes.map(m => {
     if (m.tipo_mensagem === 'audio') return m.transcricao_audio || '';
     return m.mensagem || '';
@@ -276,6 +276,16 @@ function extrairDataReferencia(texto, dataRecebimento) {
     }
   }
 
+  // 5b. "alinhamento dos leads ... DD/MM/YY" (cabeçalho de relatório com data embutida)
+  if (!dataRefInicio) {
+    m = norm.match(/alinhamento\s+dos?\s+leads?\s+\*?[a-z\s]{0,30}?(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\*?/);
+    if (m) {
+      const d = normalizarDataBR(m[1]);
+      dataRefInicio = d; dataRefFim = d;
+      confiancaDataRef = 'alta';
+    }
+  }
+
   // 6. "hoje"
   if (!dataRefInicio && (termoPresente(norm, 'de hoje') || termoPresente(norm, 'leads de hoje'))) {
     const hoje = baseDate.toISOString().split('T')[0];
@@ -394,7 +404,8 @@ function extrairMetricasLeadsV2(texto) {
   m = norm.match(/(\d+)\s+leads?\s+novos?/);
   if (m) metricas.leads_novos = parseInt(m[1]);
 
-  m = norm.match(/(\d+)\s+(?:ja\s+estavam|ja\s+estava)\s+(?:no|na)\s+kanban/);
+  m = norm.match(/(\d+)\s+(?:ja\s+estavam|ja\s+estava)\s+(?:no|na)\s+kanban/)
+    || norm.match(/\*?(\d+)\*?\s+leads?\s+(?:que\s+)?ja\s+estavam\s+(?:no|na)\s+kanban/);
   if (m) metricas.leads_anteriores_kanban = parseInt(m[1]);
 
   m = norm.match(/(\d+)\s+duplicidades?/) || norm.match(/(\d+)\s+duplicad[ao]s?/);
@@ -404,11 +415,13 @@ function extrairMetricasLeadsV2(texto) {
   if (m) metricas.total_processado = parseInt(m[1]);
 
   if (metricas.leads_novos === undefined) {
-    m = norm.match(/(?:total\s+de\s+)?(\d+)\s+leads?/) || norm.match(/leads?\s*[:\-]\s*(\d+)/);
+    m = norm.match(/(?:total\s+de\s+)?(\d+)\s+leads?/) || norm.match(/leads?\s*[:\-]\s*(\d+)/)
+      || norm.match(/total\s+de\s+leads?\s+(?:pelo\s+)?(?:whatsapp|wpp|wa)?\s*\*?(\d+)\*?/);
     if (m) metricas.total_leads = parseInt(m[1]);
   }
 
-  m = norm.match(/(\d+)\s+agendamentos?/) || norm.match(/agendaram\s+(\d+)/);
+  m = norm.match(/(\d+)\s+agendamentos?/) || norm.match(/agendaram\s+(\d+)/)
+    || norm.match(/\*?(\d+)\*?\s+total\s+de\s+leads?\s+agendados/);
   if (m) metricas.agendamentos = parseInt(m[1]);
 
   m = norm.match(/(\d+)\s+compareceram/) || norm.match(/compareceu\s+(\d+)/);
@@ -423,7 +436,8 @@ function extrairMetricasLeadsV2(texto) {
   m = norm.match(/(\d+)\s+reagendou/);
   if (m) metricas.reagendou = parseInt(m[1]);
 
-  m = norm.match(/(\d+)\s+sem\s+contato/);
+  m = norm.match(/(\d+)\s+sem\s+contato/)
+    || norm.match(/\*?(\d+)\*?\s+leads?\s+que\s+nao\s+consegui\s+contato/);
   if (m) metricas.sem_contato = parseInt(m[1]);
 
   m = norm.match(/(\d+)\s+sem\s+resposta/);
@@ -600,7 +614,8 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
     tendencias = {};
     const campos = ['leads_novos', 'total_leads', 'total_processado', 'agendamentos',
                     'comparecimentos', 'faltas', 'desmarcou', 'reagendou',
-                    'sem_contato', 'sem_resposta', 'leads_duplicados', 'perdas_total'];
+                    'sem_contato', 'sem_resposta', 'leads_duplicados', 'perdas_total',
+                    'leads_anteriores_kanban'];
     for (const campo of campos) {
       const valores = comparaveisComMetricas.map(r => r.metricas[campo]).filter(v => v !== undefined && v !== null && v !== '');
       if (valores.length < 2) continue;
@@ -647,6 +662,7 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
     desmarcou: 'Desmarcações', reagendou: 'Reagendamentos',
     sem_contato: 'Sem contato', sem_resposta: 'Sem resposta',
     leads_duplicados: 'Duplicidades', perdas_total: 'Perdas',
+    leads_anteriores_kanban: 'Leads já no Kanban',
   };
 
   const linhasTendencias = tendencias
@@ -726,7 +742,15 @@ function construirBlocoAnaliseLeads(gruposContexto, gruposHistoricos) {
 - A data exibida no timestamp de cada mensagem é a data de ENVIO da mensagem, NÃO a data de referência do relatório.
 - NUNCA afirme que um relatório é de determinada data quando essa data não estiver identificada como "Data de referência" na seção acima.
 - Se a data de referência for "Não identificada", diga apenas que o período não pôde ser determinado. NÃO use a data de envio como substituta.
-- Datas de agendamento futuro NÃO devem ser usadas como data do relatório.`;
+- Datas de agendamento futuro NÃO devem ser usadas como data do relatório.
+- Quando houver 2+ relatórios comparáveis com tendências identificadas, a resposta DEVE apresentar ao menos uma comparação histórica objetiva (ex: "o volume de leads passou de X para Y" ou "agendamentos cresceram Z%").
+- Priorize as tendências mais relevantes (maior variação percentual ou maior impacto operacional). NÃO liste todas as tendências mecanicamente.
+- NÃO use "vamos acompanhar", "vamos analisar", "seguimos monitorando" ou similares quando os dados já permitem uma leitura conclusiva. Apresente a leitura.
+- Considere ações recentes registradas na conversa. Se uma ação (ex: ajuste de segmentação, pausa de anúncio) já foi executada e comunicada, NÃO sugira executá-la novamente.
+- NÃO atribua automaticamente uma melhora observada a uma alteração recente sem um período suficiente para confirmação.
+- Leads com agendamento futuro ou oportunidade futura NÃO devem ser tratados como perda.
+- NÃO agrupe genericamente status diferentes como "os demais não avançaram". Diferencie: sem contato, perda por distância, perda por orçamento, perda por concorrência, etc.
+- Métricas ausentes (sem valor numérico no relatório) NÃO devem ser inferidas a partir de informações secundárias. Permanecem como não informadas.`;
 
   // Coletar todas as datas de eventos de todos os relatórios
   const todasDatasAgendamentos = todosRelatorios.flatMap(r => r.data_ref?.datas_agendamentos_futuros || []);
