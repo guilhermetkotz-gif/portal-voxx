@@ -4,11 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, ChevronUp, ChevronDown, Ban, Loader2, ListChecks, Layers } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronUp, ChevronDown, Ban, Loader2, ListChecks, Layers, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import moment from 'moment';
 import ItemDemandaFormModal from './ItemDemandaFormModal';
+import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
 
 const STATUS_PROD_LABELS = {
   nao_iniciado: { label: 'Não iniciado', color: 'bg-slate-200 text-slate-700' },
@@ -26,19 +27,28 @@ const STATUS_FINAL_LABELS = {
 
 /**
  * Seção de gestão de itens de uma demanda composta.
- * Permite criar, editar, reordenar, cancelar e excluir itens.
- * Fase 1: sem ações de aprovação, publicação ou entrega por item.
+ * Cancelamento é operação padrão; exclusão física restrita a admins com justificativa.
+ * Todas as operações passam pela função backend gerenciarItemDemanda.
  */
 export default function ItensDemandaSection({ demanda, user }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const isVoxxAdmin = user?.role === 'admin' || user?.tipo_usuario === 'voxx_admin' || user?.tipo_acesso === 'voxx_admin';
 
   const { data: itens = [], isLoading } = useQuery({
     queryKey: ['itensDemanda', demanda.id],
-    queryFn: () => base44.entities.ItemDemanda.filter({ demanda_id: demanda.id }, 'ordem', 100),
-    enabled: !!demanda?.id,
-    refetchInterval: 15000,
+    queryFn: async () => {
+      const res = await base44.functions.invoke('gerenciarItemDemanda', {
+        action: 'list_items',
+        demanda_id: demanda.id,
+      });
+      return res.data?.items || [];
+    },
+    enabled: !!demanda?.id && isFeatureEnabled(FEATURES.ITENS_DEMANDA),
+    refetchInterval: false, // Sem polling — só refaz ao invalidar
   });
 
   const nextOrdem = useMemo(() => {
@@ -46,29 +56,42 @@ export default function ItensDemandaSection({ demanda, user }) {
     return Math.max(...itens.map(i => i.ordem ?? 0)) + 1;
   }, [itens]);
 
-  const deleteMutation = useMutation({
-    mutationFn: (itemId) => base44.entities.ItemDemanda.delete(itemId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['itensDemanda', demanda.id] });
-      queryClient.invalidateQueries({ queryKey: ['itensDemandaKanban'] });
-      toast.success('Item excluído.');
-    },
-    onError: (error) => toast.error('Erro ao excluir: ' + error.message),
-  });
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['itensDemanda', demanda.id] });
+    queryClient.invalidateQueries({ queryKey: ['itensDemandaKanban'] });
+  };
 
+  // Cancelar (operação padrão — preserva histórico)
   const cancelMutation = useMutation({
     mutationFn: ({ itemId, cancelar }) =>
-      base44.entities.ItemDemanda.update(itemId, {
-        status_finalizacao: cancelar ? 'cancelado' : 'ativo',
+      base44.functions.invoke('gerenciarItemDemanda', {
+        action: cancelar ? 'cancel_item' : 'reactivate_item',
+        item_id: itemId,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['itensDemanda', demanda.id] });
-      queryClient.invalidateQueries({ queryKey: ['itensDemandaKanban'] });
+      invalidateAll();
       toast.success('Item atualizado.');
     },
-    onError: (error) => toast.error('Erro: ' + error.message),
+    onError: (error) => toast.error('Erro: ' + (error?.response?.data?.error || error.message)),
   });
 
+  // Exclusão física (admin only, com justificativa)
+  const deleteMutation = useMutation({
+    mutationFn: ({ itemId, justificativa }) =>
+      base44.functions.invoke('gerenciarItemDemanda', {
+        action: 'delete_item',
+        item_id: itemId,
+        justificativa,
+      }),
+    onSuccess: () => {
+      invalidateAll();
+      toast.success('Item excluído definitivamente.');
+      setDeleteTarget(null);
+    },
+    onError: (error) => toast.error('Erro: ' + (error?.response?.data?.error || error.message)),
+  });
+
+  // Reordenação via backend (valida mesma demanda, impede duplicatas)
   const reorderMutation = useMutation({
     mutationFn: async ({ item, direction }) => {
       const sorted = [...itens].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
@@ -77,27 +100,32 @@ export default function ItensDemandaSection({ demanda, user }) {
       const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
       if (targetIdx < 0 || targetIdx >= sorted.length) return;
 
-      const current = sorted[idx];
-      const target = sorted[targetIdx];
-      await base44.entities.ItemDemanda.bulkUpdate([
-        { id: current.id, ordem: target.ordem },
-        { id: target.id, ordem: current.ordem },
-      ]);
+      const reordered = [...sorted];
+      [reordered[idx], reordered[targetIdx]] = [reordered[targetIdx], reordered[idx]];
+
+      await base44.functions.invoke('gerenciarItemDemanda', {
+        action: 'reorder_items',
+        demanda_id: demanda.id,
+        ordered_item_ids: reordered.map(i => i.id),
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['itensDemanda', demanda.id] });
+      invalidateAll();
     },
-    onError: (error) => toast.error('Erro ao reordenar: ' + error.message),
+    onError: (error) => toast.error('Erro ao reordenar: ' + (error?.response?.data?.error || error.message)),
   });
 
   const handleStatusProducaoChange = async (item, newStatus) => {
     try {
-      await base44.entities.ItemDemanda.update(item.id, { status_producao: newStatus });
-      queryClient.invalidateQueries({ queryKey: ['itensDemanda', demanda.id] });
-      queryClient.invalidateQueries({ queryKey: ['itensDemandaKanban'] });
+      await base44.functions.invoke('gerenciarItemDemanda', {
+        action: 'update_item',
+        item_id: item.id,
+        updates: { status_producao: newStatus },
+      });
+      invalidateAll();
       toast.success('Status de produção atualizado.');
     } catch (error) {
-      toast.error('Erro: ' + error.message);
+      toast.error('Erro: ' + (error?.response?.data?.error || error.message));
     }
   };
 
@@ -184,7 +212,7 @@ export default function ItensDemandaSection({ demanda, user }) {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        disabled={idx === 0}
+                        disabled={idx === 0 || isCancelado}
                         onClick={() => reorderMutation.mutate({ item, direction: 'up' })}
                       >
                         <ChevronUp className="h-3 w-3" />
@@ -193,7 +221,7 @@ export default function ItensDemandaSection({ demanda, user }) {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        disabled={idx === arr.length - 1}
+                        disabled={idx === arr.length - 1 || isCancelado}
                         onClick={() => reorderMutation.mutate({ item, direction: 'down' })}
                       >
                         <ChevronDown className="h-3 w-3" />
@@ -202,22 +230,21 @@ export default function ItensDemandaSection({ demanda, user }) {
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
+                        disabled={isCancelado}
                         onClick={() => { setEditingItem(item); setShowForm(true); }}
                       >
                         <Edit className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-red-500"
-                        onClick={() => {
-                          if (confirm(`Excluir o item "${item.titulo}"?`)) {
-                            deleteMutation.mutate(item.id);
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {isVoxxAdmin && !isCancelado && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-red-500"
+                          onClick={() => setDeleteTarget(item)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -262,7 +289,21 @@ export default function ItensDemandaSection({ demanda, user }) {
                         onClick={() => cancelMutation.mutate({ itemId: item.id, cancelar: !isCancelado })}
                       >
                         <Ban className="w-3 h-3 mr-1" />
-                        {isCancelado ? 'Reativar' : 'Cancelar'}
+                        Cancelar
+                      </Button>
+                    </div>
+                  )}
+
+                  {isCancelado && (
+                    <div className="flex items-center gap-2 pt-1 border-t border-red-200">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-green-600 hover:text-green-700"
+                        onClick={() => cancelMutation.mutate({ itemId: item.id, cancelar: false })}
+                      >
+                        <RotateCcw className="w-3 h-3 mr-1" />
+                        Reativar
                       </Button>
                     </div>
                   )}
@@ -279,6 +320,42 @@ export default function ItensDemandaSection({ demanda, user }) {
         item={editingItem}
         nextOrdem={nextOrdem}
       />
+
+      {/* Dialog de exclusão física com justificativa (admin only) */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setDeleteTarget(null); }}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold flex items-center gap-2 mb-2 text-red-600">
+              <Trash2 className="h-5 w-5" />
+              Exclusão Definitiva
+            </h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Você está prestes a excluir definitivamente o item <strong>"{deleteTarget.titulo}"</strong>.
+              Esta ação não pode ser desfeita. Itens com atividade registrada não podem ser excluídos.
+            </p>
+            <textarea
+              className="w-full min-h-[80px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring mb-4"
+              placeholder="Justifique a exclusão definitiva (obrigatório)..."
+              id="delete-justificativa"
+            />
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+              <Button
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => {
+                  const just = document.getElementById('delete-justificativa').value;
+                  deleteMutation.mutate({ itemId: deleteTarget.id, justificativa: just });
+                }}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Excluir Definitivamente
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

@@ -419,7 +419,9 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       comunicar_cliente: comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
       anexos_cliente: anexosClienteFinal,
-      estrutura_demanda: 'unitaria',
+      // Formulário genérico pode receber qualquer setor — não forçar unitaria.
+      // Legada por ambiguidade: o usuário não escolhe estrutura neste fluxo.
+      estrutura_demanda: 'legada',
     };
 
     if (demandaId) {

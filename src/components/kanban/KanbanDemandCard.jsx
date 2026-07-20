@@ -10,6 +10,7 @@ import ActiveTimerIndicator from './ActiveTimerIndicator';
 import TagManagerPopover from './TagManagerPopover';
 import AlteracaoManualPopover from './AlteracaoManualPopover';
 import { ListChecks } from 'lucide-react';
+import { getEstruturaDemanda } from '@/lib/estruturaDemanda';
 
 // Calcula horas úteis decorridas desde uma data (Seg-Sex, 9h-18h, fuso Brasília)
 function calcBusinessHours(fromDate) {
@@ -224,7 +225,7 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
             <Badge className={cn(statusColors[status], 'text-white text-xs')}>
               {status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.replace(/_/g, ' ').slice(1)}
             </Badge>
-            {itensResumo && (
+            {itensResumo && getEstruturaDemanda(demanda) === 'composta' && (
               <Badge variant="outline" className="text-xs bg-violet-50 border-violet-300 text-violet-700 flex items-center gap-1">
                 <ListChecks className="w-3 h-3" />
                 {itensResumo.total} {itensResumo.total === 1 ? 'item' : 'itens'}

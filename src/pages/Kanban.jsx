@@ -175,45 +175,32 @@ const Kanban = ({ user, selectedClienteId }) => {
     refetchInterval: 15000,
   });
 
-  // Busca itens das demandas compostas para exibir resumo no card do Kanban (Fase 1 — Modelo Híbrido)
-  const { data: todosItens = [] } = useQuery({
-    queryKey: ['itensDemandaKanban', demandas?.length],
-    queryFn: () => base44.entities.ItemDemanda.list('-updated_date', 2000),
-    enabled: !!user && isFeatureEnabled(FEATURES.ITENS_DEMANDA) && !!demandas && demandas.length > 0,
-    refetchInterval: 15000,
+  // Estratégia performática: consulta apenas resumo agregado das demandas visíveis
+  // via backend function. NÃO faz list global de 2000 itens.
+  // queryKey inclui os IDs reais das demandas visíveis (não apenas a quantidade).
+  const visibleDemandaIds = React.useMemo(() => {
+    if (!demandas) return [];
+    return demandas.map(d => d.id);
+  }, [demandas]);
+
+  const { data: itensResumoData } = useQuery({
+    queryKey: ['itensDemandaKanban', visibleDemandaIds.join(',') || 'none'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('gerenciarItemDemanda', {
+        action: 'resumo_itens',
+        demanda_ids: visibleDemandaIds,
+      });
+      return res.data?.resumo_map || {};
+    },
+    enabled: !!user && isFeatureEnabled(FEATURES.ITENS_DEMANDA) && visibleDemandaIds.length > 0,
+    refetchInterval: 30000, // 30s (menos frequente que antes — era 15s)
   });
 
-  // Mapeia demanda_id → resumo quantitativo de itens
+  // Mapeia demanda_id → resumo quantitativo de itens (do backend)
   const itensResumoMap = React.useMemo(() => {
-    if (!isFeatureEnabled(FEATURES.ITENS_DEMANDA) || !todosItens) return {};
-    const map = {};
-    todosItens.forEach(item => {
-      if (!item.demanda_id) return;
-      if (!map[item.demanda_id]) {
-        map[item.demanda_id] = {
-          total: 0,
-          ativos: 0,
-          concluidos: 0,
-          em_dev: 0,
-          nao_iniciado: 0,
-          em_fila: 0,
-          cancelados: 0,
-        };
-      }
-      const r = map[item.demanda_id];
-      r.total++;
-      if (item.status_finalizacao === 'cancelado') {
-        r.cancelados++;
-      } else {
-        r.ativos++;
-        if (item.status_producao === 'concluido') r.concluidos++;
-        else if (item.status_producao === 'em_desenvolvimento') r.em_dev++;
-        else if (item.status_producao === 'em_fila') r.em_fila++;
-        else if (item.status_producao === 'nao_iniciado') r.nao_iniciado++;
-      }
-    });
-    return map;
-  }, [todosItens]);
+    if (!isFeatureEnabled(FEATURES.ITENS_DEMANDA) || !itensResumoData) return {};
+    return itensResumoData;
+  }, [itensResumoData]);
 
   // Mapeia demanda_id → status de aprovação mais crítico
   const aprovacaoStatusMap = React.useMemo(() => {

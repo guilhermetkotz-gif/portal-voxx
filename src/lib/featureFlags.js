@@ -2,23 +2,37 @@
  * Feature flags do Portal VOXX.
  * Permite ativar/desativar funcionalidades sem deploy.
  *
- * Uso:
- *   import { isFeatureEnabled } from '@/lib/featureFlags';
- *   if (isFeatureEnabled('itensDemanda')) { ... }
+ * Estratégia de ativação centralizada (camada 1 — ambiente):
+ *  - Produção: feature DESATIVADA por padrão.
+ *  - Homologação/staging/localhost: feature ATIVADA por padrão.
  *
- * Para ativar via URL: ?feature_itens_demanda=true
- * Para desativar via URL: ?feature_itens_demanda=false
- * O valor é persistido em localStorage.
+ * Camada 2 — URL (override explícito):
+ *  - ?feature_itens_demanda=true  → ativa e persiste
+ *  - ?feature_itens_demanda=false → desativa e persiste
+ *
+ * Camada 3 — localStorage (memória persistente do override):
+ *  - Após um override via URL, a escolha persiste entre sessões.
+ *
+ * Quando desativada, NENHUMA consulta a ItemDemanda deve ser executada.
+ * A desativação não exclui dados já criados — apenas esconde a UI e bloqueia queries.
  */
 const STORAGE_PREFIX = 'voxx_feature_';
 
+const HOMOLOGATION_HOSTS = ['localhost', '127.0.0.1', 'homolog', 'staging', 'dev.'];
+
+const isHomologationEnv = () => {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  return HOMOLOGATION_HOSTS.some(h => host.includes(h));
+};
+
 const FEATURE_DEFAULTS = {
   // Fase 1 — Modelo Híbrido de Demandas Compostas
-  itensDemanda: true,
+  // Ativado apenas em homologação; em produção, requer override via URL.
+  itensDemanda: isHomologationEnv(),
 };
 
 const normalizeKey = (key) => {
-  // Converte camelCase para snake_case lower
   return key.replace(/([A-Z])/g, '_$1').toLowerCase();
 };
 

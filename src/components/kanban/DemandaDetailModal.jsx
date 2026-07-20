@@ -44,6 +44,7 @@ import MoverCardSection from '@/components/kanban/MoverCardSection';
 import AlteracaoManualSection from '@/components/kanban/AlteracaoManualSection';
 import ItensDemandaSection from '@/components/kanban/ItensDemandaSection';
 import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
+import { getEstruturaDemanda } from '@/lib/estruturaDemanda';
 
 const DemandaDetailModal = ({ demanda, open, onClose, kanbanColumns = [] }) => {
   const queryClient = useQueryClient();
@@ -949,7 +950,7 @@ ${statusValidacao}`.trim();
             ) : (
               <>
                 {/* Itens da Demanda Composta (Fase 1 — Modelo Híbrido) */}
-                {isFeatureEnabled(FEATURES.ITENS_DEMANDA) && currentDemanda.estrutura_demanda === 'composta' && (
+                {isFeatureEnabled(FEATURES.ITENS_DEMANDA) && getEstruturaDemanda(currentDemanda) === 'composta' && (
                   <ItensDemandaSection demanda={currentDemanda} user={user} />
                 )}
 

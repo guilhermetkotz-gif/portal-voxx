@@ -65,7 +65,7 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
         previsao_entrega: previsao_entrega || null,
         campos_adicionais: camposAdicionais,
         anexos: anexos || [],
-        estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estruturaDemanda : 'unitaria',
+        estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estruturaDemanda : 'legada',
       });
 
       await base44.entities.TimelineEvent.create({

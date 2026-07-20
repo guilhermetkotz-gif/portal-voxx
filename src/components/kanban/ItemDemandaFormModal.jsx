@@ -20,11 +20,23 @@ const STATUS_PRODUCAO = [
 
 /**
  * Modal de criação/edição de um ItemDemanda.
- * Recebe demanda_id e opcionalmente um item para edição.
+ * Responsável deve ser selecionado entre usuários reais (sem "manual").
+ * Todas as operações passam pela função backend gerenciarItemDemanda.
  */
 export default function ItemDemandaFormModal({ open, onClose, demandaId, item = null, nextOrdem = 0 }) {
   const queryClient = useQueryClient();
   const isEdit = !!item;
+
+  // Busca usuários VOXX reais para seleção de responsável
+  const { data: voxxUsers = [] } = useQuery({
+    queryKey: ['voxxUsersForItems'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('listVoxxUsers', {});
+      return res.data?.users || res.data || [];
+    },
+    enabled: open,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -35,7 +47,6 @@ export default function ItemDemandaFormModal({ open, onClose, demandaId, item = 
     data_prevista: '',
     prazo_data: '',
     responsavel_id: '',
-    responsavel_nome: '',
     status_producao: 'nao_iniciado',
   });
 
@@ -50,7 +61,6 @@ export default function ItemDemandaFormModal({ open, onClose, demandaId, item = 
         data_prevista: item.data_prevista ? item.data_prevista.slice(0, 16) : '',
         prazo_data: item.prazo_data ? item.prazo_data.slice(0, 16) : '',
         responsavel_id: item.responsavel_id || '',
-        responsavel_nome: item.responsavel_nome || '',
         status_producao: item.status_producao || 'nao_iniciado',
       });
     } else {
@@ -63,7 +73,6 @@ export default function ItemDemandaFormModal({ open, onClose, demandaId, item = 
         data_prevista: '',
         prazo_data: '',
         responsavel_id: '',
-        responsavel_nome: '',
         status_producao: 'nao_iniciado',
       });
     }
@@ -71,8 +80,16 @@ export default function ItemDemandaFormModal({ open, onClose, demandaId, item = 
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      // Responsável real ou null (nunca "manual")
+      let responsavel_id = null;
+      let responsavel_nome = null;
+      if (data.responsavel_id) {
+        const selectedUser = voxxUsers.find(u => u.id === data.responsavel_id);
+        responsavel_id = data.responsavel_id;
+        responsavel_nome = selectedUser?.full_name || selectedUser?.email || null;
+      }
+
       const payload = {
-        demanda_id: demandaId,
         titulo: data.titulo.trim(),
         descricao: data.descricao || null,
         tipo_material: data.tipo_material || null,
@@ -80,16 +97,23 @@ export default function ItemDemandaFormModal({ open, onClose, demandaId, item = 
         canal: data.canal || null,
         data_prevista: data.data_prevista ? new Date(data.data_prevista).toISOString() : null,
         prazo_data: data.prazo_data ? new Date(data.prazo_data).toISOString() : null,
-        responsavel_id: data.responsavel_id || null,
-        responsavel_nome: data.responsavel_nome || null,
+        responsavel_id,
+        responsavel_nome,
         status_producao: data.status_producao,
-        ordem: isEdit ? item.ordem : nextOrdem,
       };
 
       if (isEdit) {
-        return base44.entities.ItemDemanda.update(item.id, payload);
+        return base44.functions.invoke('gerenciarItemDemanda', {
+          action: 'update_item',
+          item_id: item.id,
+          updates: payload,
+        });
       }
-      return base44.entities.ItemDemanda.create(payload);
+      return base44.functions.invoke('gerenciarItemDemanda', {
+        action: 'create_item',
+        demanda_id: demandaId,
+        ...payload,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['itensDemanda', demandaId] });
@@ -98,7 +122,8 @@ export default function ItemDemandaFormModal({ open, onClose, demandaId, item = 
       onClose();
     },
     onError: (error) => {
-      toast.error('Erro ao salvar item: ' + error.message);
+      const msg = error?.response?.data?.error || error.message;
+      toast.error('Erro ao salvar item: ' + msg);
     },
   });
 
@@ -208,12 +233,20 @@ export default function ItemDemandaFormModal({ open, onClose, demandaId, item = 
             </div>
           </div>
           <div>
-            <Label>Responsável (Nome)</Label>
-            <Input
-              value={formData.responsavel_nome}
-              onChange={(e) => setFormData({ ...formData, responsavel_nome: e.target.value, responsavel_id: e.target.value ? 'manual' : '' })}
-              placeholder="Nome do responsável"
-            />
+            <Label>Responsável</Label>
+            <select
+              value={formData.responsavel_id}
+              onChange={(e) => setFormData({ ...formData, responsavel_id: e.target.value })}
+              className={inputClass}
+            >
+              <option value="">— Sem responsável —</option>
+              {voxxUsers.map(u => (
+                <option key={u.id} value={u.id}>
+                  {u.full_name || u.email}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400 mt-1">Selecione um usuário da equipe. Quando vazio, o campo fica nulo.</p>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
