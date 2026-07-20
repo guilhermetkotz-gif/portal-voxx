@@ -58,6 +58,11 @@ export default function EntregaItemModal({ mode, item, demanda, entregaAtual, us
   const saveMutation = useMutation({
     mutationFn: async () => {
       const action = isNovaVersao ? 'criar_nova_versao' : 'criar_entrega_item';
+      const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).substring(2)}`;
+      // Fase 2A: modelo entidade_versao ativo apenas para "Cronograma de testes Fase 2"
+      const isTesteFase2 = demanda?.titulo === 'Cronograma de testes Fase 2';
       const payload = {
         action,
         item_id: item.id,
@@ -69,6 +74,8 @@ export default function EntregaItemModal({ mode, item, demanda, entregaAtual, us
         link_externo: form.link_externo || null,
         observacao_interna: form.observacao_interna || null,
         observacao_voxx: form.observacao_voxx || null,
+        idempotency_key: idempotencyKey,
+        ...(isTesteFase2 ? { modelo_versionamento: 'entidade_versao' } : {}),
       };
       if (exigeConfirmacao && confirmarReabertura) {
         payload.confirmar_reabertura = true;

@@ -1,4 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import {
+  determinarVersaoCanonica,
+  verificarOperacaoExistente,
+  hashPayload,
+  gerarUUID,
+  gerarTokenPublico,
+  versaoStatusToItemStatus,
+  versaoStatusToEntregaStatus,
+} from '../../shared/versaoCanonica.ts';
 
 /**
  * Fase 2 — Entregas, versões e aprovação individual por ItemDemanda.
@@ -95,6 +104,389 @@ Deno.serve(async (req) => {
 
     const agora = new Date().toISOString();
     const usuarioNome = user.full_name || user.email;
+
+    // ── V2 HELPERS (modelo entidade_versao) ──
+    const iniciarOperacao = async (params) => {
+      const operacaoId = gerarUUID();
+      await sdk.entities.OperacaoEntrega.create({
+        operacao_id: operacaoId,
+        idempotency_key: params.idempotency_key || null,
+        entrega_id: params.entrega_id || null,
+        item_demanda_id: params.item_demanda_id || null,
+        tipo_operacao: params.tipo_operacao,
+        payload_hash: params.payload_hash || null,
+        status_operacao: 'em_execucao',
+        etapa_atual: 'operacao_criada',
+        iniciada_em: new Date().toISOString(),
+        iniciada_por: usuarioNome,
+        iniciada_por_id: user.id,
+        falhas: [],
+      });
+      return operacaoId;
+    };
+
+    const concluirOperacao = async (operacaoId, versaoUid, etapa) => {
+      const ops = await sdk.entities.OperacaoEntrega.filter({ operacao_id: operacaoId });
+      if (ops[0]) {
+        await sdk.entities.OperacaoEntrega.update(ops[0].id, {
+          status_operacao: 'concluida',
+          etapa_atual: etapa || 'concluida',
+          versao_uid: versaoUid || null,
+          concluida_em: new Date().toISOString(),
+        });
+      }
+    };
+
+    const atualizarCachesEntrega = async (entregaId, versaoCanonica) => {
+      const numeroVersao = versaoCanonica.numero_exibicao_calculado || versaoCanonica.numero_exibicao || 1;
+      const statusCache = versaoStatusToEntregaStatus(versaoCanonica.status);
+      await sdk.entities.EntregaDemanda.update(entregaId, {
+        versao_atual_uid_cache: versaoCanonica.versao_uid,
+        numero_versao_atual_cache: numeroVersao,
+        status_entrega_cache: statusCache,
+        token_publico_cache: versaoCanonica.token_publico,
+        ultima_sincronizacao_em: new Date().toISOString(),
+      });
+    };
+
+    const cachearResultado = async (operacaoId, resultado) => {
+      const ops = await sdk.entities.OperacaoEntrega.filter({ operacao_id: operacaoId });
+      if (ops[0]) {
+        await sdk.entities.OperacaoEntrega.update(ops[0].id, { resultado });
+      }
+    };
+
+    // ─────────────────────────────────────────────────────────
+    // V2 ROUTING (modelo entidade_versao — Fase 2A)
+    // Tenta handler V2 primeiro. Se retornar Response, retorna-o.
+    // Se retornar null, cai para lógica embutida existente (não alterada).
+    // ─────────────────────────────────────────────────────────
+    const handleV2 = async (action, body) => {
+
+      // ── listar_entregas_item V2 ──
+      if (action === 'listar_entregas_item') {
+        const { item_id, demanda_id } = body;
+        if (!item_id || !demanda_id) return null;
+        const v = await validateItemComposta(item_id, demanda_id);
+        if (!v.ok) return null;
+
+        const v2Entregas = await sdk.entities.EntregaDemanda.filter(
+          { item_demanda_id: item_id, modelo_versionamento: 'entidade_versao' },
+          '-created_date', 5
+        );
+        if (v2Entregas.length === 0) return null;
+
+        const entregaAgrupadora = v2Entregas[0];
+        const canonico = await determinarVersaoCanonica(sdk, entregaAgrupadora.id);
+        const vc = canonico.versao_canonica;
+
+        const versoesAnteriores = canonico.versoes_validas
+          .filter(ver => ver.versao_uid !== vc?.versao_uid)
+          .map(ver => ({
+            id: ver.id, versao_uid: ver.versao_uid,
+            numero_versao_atual: ver.numero_exibicao_calculado,
+            nome_entrega: ver.nome_entrega,
+            status_entrega: ver.status,
+            data_envio: ver.enviada_em,
+          }));
+
+        return Response.json({
+          entregas: [{
+            id: entregaAgrupadora.id,
+            demanda_id: entregaAgrupadora.demanda_id,
+            item_demanda_id: entregaAgrupadora.item_demanda_id,
+            item_titulo: entregaAgrupadora.item_titulo,
+            cliente_id: entregaAgrupadora.cliente_id,
+            cliente_nome: entregaAgrupadora.cliente_nome,
+            nome_entrega: vc?.nome_entrega || entregaAgrupadora.nome_entrega,
+            descricao: vc?.descricao || entregaAgrupadora.descricao,
+            tipo_entrega: vc?.tipo_entrega || entregaAgrupadora.tipo_entrega,
+            status_entrega: vc ? versaoStatusToEntregaStatus(vc.status) : 'rascunho',
+            arquivos: vc?.arquivos || [],
+            link_externo: vc?.link_externo || null,
+            observacao_voxx: vc?.observacao_voxx || null,
+            observacao_cliente: null,
+            observacao_interna: vc?.observacao_interna || null,
+            versao_ativa: true,
+            numero_versao_atual: canonico.numero_versao_canonica || 1,
+            token_publico: vc?.token_publico || null,
+            link_publico_aprovacao: vc?.token_publico
+              ? `${req.headers.get('origin') || ''}/aprovacao/${vc.token_publico}` : null,
+            link_ativo: vc?.status === 'em_aprovacao' || vc?.status === 'reenviado',
+            data_envio: vc?.enviada_em || null,
+            usuario_envio_nome: vc?.criada_por || null,
+            historico_aprovacoes: [],
+            modelo_versionamento: 'entidade_versao',
+            versao_uid: vc?.versao_uid || null,
+            tem_concorrencia: canonico.tem_concorrencia,
+            versoes_anteriores: versoesAnteriores,
+          }],
+        });
+      }
+
+      // ── criar_entrega_item V2 ──
+      if (action === 'criar_entrega_item' && body.modelo_versionamento === 'entidade_versao') {
+        const { item_id, demanda_id, nome_entrega, descricao, tipo_entrega, arquivos, link_externo, observacao_interna, observacao_voxx } = body;
+        if (!item_id || !demanda_id || !nome_entrega?.trim() || !tipo_entrega || !arquivos || arquivos.length === 0) return null;
+
+        const v = await validateItemComposta(item_id, demanda_id);
+        if (!v.ok) return null;
+        const { item, demanda } = v;
+
+        const idempotencyKey = body.idempotency_key || gerarUUID();
+        const payloadHash = hashPayload({ nome_entrega, arquivos, link_externo, tipo_entrega });
+        const existente = await verificarOperacaoExistente(sdk, idempotencyKey);
+        if (existente.existe && existente.status === 'concluida' && existente.resultado) return Response.json(existente.resultado);
+        if (existente.existe && ['iniciada', 'em_execucao'].includes(existente.status)) return Response.json({ error: 'Operação em andamento.', code: 'OPERACAO_EM_ANDAMENTO' }, { status: 409 });
+
+        const existentesV2 = await sdk.entities.EntregaDemanda.filter({ item_demanda_id: item_id, modelo_versionamento: 'entidade_versao' }, '-created_date', 5);
+        if (existentesV2.length > 0) return Response.json({ error: 'Já existe uma entrega para este item. Use criar_nova_versao.', code: 'ENTREGA_EXISTENTE' }, { status: 409 });
+
+        const operacaoId = await iniciarOperacao({ idempotency_key: idempotencyKey, item_demanda_id: item_id, tipo_operacao: 'criar_entrega', payload_hash: payloadHash });
+        const versaoUid = gerarUUID();
+        const token = gerarTokenPublico();
+
+        const novaEntrega = await sdk.entities.EntregaDemanda.create({
+          demanda_id, demanda_titulo: demanda.titulo, item_demanda_id: item_id, item_titulo: item.titulo,
+          cliente_id: demanda.cliente_id, cliente_nome: demanda.cliente_nome,
+          nome_entrega: nome_entrega.trim(), descricao: descricao || null, tipo_entrega,
+          status_entrega: 'rascunho', arquivos: arquivos || [], link_externo: link_externo || null,
+          observacao_interna: observacao_interna || null, observacao_voxx: observacao_voxx || null,
+          modelo_versionamento: 'entidade_versao', versao_atual_uid_cache: versaoUid,
+          numero_versao_atual_cache: 1, status_entrega_cache: 'rascunho', token_publico_cache: token,
+          tem_conflito_versao: false, ultima_sincronizacao_em: agora, retorno_cliente_tratado: true,
+          usuario_envio_id: user.id, usuario_envio: user.email, usuario_envio_nome: usuarioNome,
+        });
+
+        const novaVersao = await sdk.entities.VersaoEntregaDemanda.create({
+          versao_uid: versaoUid, entrega_demanda_id: novaEntrega.id, item_demanda_id: item_id, demanda_id,
+          cliente_id: demanda.cliente_id, operacao_id: operacaoId, idempotency_key: idempotencyKey,
+          payload_hash: payloadHash, numero_exibicao: 1, nome_entrega: nome_entrega.trim(),
+          descricao: descricao || null, tipo_entrega, arquivos: arquivos || [], link_externo: link_externo || null,
+          observacao_voxx: observacao_voxx || null, observacao_interna: observacao_interna || null,
+          token_publico: token, criada_em: agora, criada_por: usuarioNome, criada_por_id: user.id,
+          status: 'rascunho', status_canonico: 'ativa',
+        });
+
+        await concluirOperacao(operacaoId, versaoUid, 'versao_criada');
+
+        if (item.status_aprovacao && item.status_aprovacao !== 'nao_enviado') {
+          await sdk.entities.ItemDemanda.update(item_id, { status_aprovacao: 'nao_enviado' });
+        }
+
+        await timeline(demanda.id, demanda.cliente_id, 'entrega_criada',
+          `📦 Entrega criada para "${item.titulo}": ${nome_entrega.trim()} (v1) [entidade_versao]`,
+          usuarioNome, 'voxx', item_id, novaEntrega.id, { versao_uid: versaoUid });
+
+        const resultado = { entrega: { ...novaEntrega, versao_uid: versaoUid, modelo_versionamento: 'entidade_versao' }, versao: novaVersao, operacao_id: operacaoId };
+        await cachearResultado(operacaoId, resultado);
+        return Response.json(resultado);
+      }
+
+      // ── criar_nova_versao V2 ──
+      if (action === 'criar_nova_versao') {
+        const { item_id, demanda_id } = body;
+        if (!item_id || !demanda_id) return null;
+        const v = await validateItemComposta(item_id, demanda_id);
+        if (!v.ok) return null;
+        const { item, demanda } = v;
+
+        const v2Entregas = await sdk.entities.EntregaDemanda.filter({ item_demanda_id: item_id, modelo_versionamento: 'entidade_versao' }, '-created_date', 5);
+        if (v2Entregas.length === 0) return null;
+
+        const entrega = v2Entregas[0];
+        const { nome_entrega, descricao, tipo_entrega, arquivos, link_externo, observacao_interna, observacao_voxx, confirmar_reabertura } = body;
+        if (!nome_entrega?.trim() || !tipo_entrega || !arquivos || arquivos.length === 0) return null;
+
+        const canonico = await determinarVersaoCanonica(sdk, entrega.id);
+        const versaoAtual = canonico.versao_canonica;
+        if (!versaoAtual) return Response.json({ error: 'Não existe versão ativa. Use criar_entrega_item.', code: 'SEM_VERSAO_ATIVA' }, { status: 400 });
+
+        if (versaoAtual.status === 'aprovado' && !confirmar_reabertura) {
+          return Response.json({ error: 'A versão atual está aprovada. Criar uma nova versão reabrirá a aprovação. Confirme com confirmar_reabertura=true.', code: 'REABERTURA_APROVADO_REQUER_CONFIRMACAO' }, { status: 409 });
+        }
+
+        const idempotencyKey = body.idempotency_key || gerarUUID();
+        const payloadHash = hashPayload({ nome_entrega, arquivos, link_externo, tipo_entrega });
+        const existente = await verificarOperacaoExistente(sdk, idempotencyKey);
+        if (existente.existe && existente.status === 'concluida' && existente.resultado) return Response.json(existente.resultado);
+        if (existente.existe && ['iniciada', 'em_execucao'].includes(existente.status)) return Response.json({ error: 'Operação em andamento.', code: 'OPERACAO_EM_ANDAMENTO' }, { status: 409 });
+
+        const operacaoId = await iniciarOperacao({ idempotency_key: idempotencyKey, entrega_id: entrega.id, item_demanda_id: item_id, tipo_operacao: 'criar_nova_versao', payload_hash: payloadHash });
+        const versaoUid = gerarUUID();
+        const token = gerarTokenPublico();
+        const novoNumero = (canonico.total_validas || 1) + 1;
+
+        const novaVersao = await sdk.entities.VersaoEntregaDemanda.create({
+          versao_uid: versaoUid, entrega_demanda_id: entrega.id, item_demanda_id: item_id, demanda_id,
+          cliente_id: demanda.cliente_id, operacao_id: operacaoId, idempotency_key: idempotencyKey,
+          payload_hash: payloadHash, numero_exibicao: novoNumero, nome_entrega: nome_entrega.trim(),
+          descricao: descricao || null, tipo_entrega, arquivos: arquivos || [], link_externo: link_externo || null,
+          observacao_voxx: observacao_voxx || null, observacao_interna: observacao_interna || null,
+          token_publico: token, criada_em: agora, criada_por: usuarioNome, criada_por_id: user.id,
+          status: 'reenviado', status_canonico: 'ativa',
+        });
+
+        await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, {
+          status_canonico: 'substituida', substituida_em: agora, substituida_por_versao_uid: versaoUid,
+        });
+
+        await atualizarCachesEntrega(entrega.id, { ...novaVersao, numero_exibicao_calculado: novoNumero });
+        await sdk.entities.ItemDemanda.update(item_id, { status_aprovacao: 'reenviado' });
+        await concluirOperacao(operacaoId, versaoUid, 'nova_versao_criada');
+
+        await timeline(demanda.id, demanda.cliente_id, 'nova_versao_enviada',
+          `🔄 Nova versão (v${novoNumero}) criada para "${item.titulo}" [entidade_versao]`,
+          usuarioNome, 'voxx', item_id, entrega.id, { versao_uid: versaoUid });
+
+        if (versaoAtual.status === 'aprovado') {
+          await timeline(demanda.id, demanda.cliente_id, 'item_reaberto',
+            `🔓 Item "${item.titulo}" reaberto — v${versaoAtual.numero_exibicao_calculado || versaoAtual.numero_exibicao} aprovada substituída por v${novoNumero}`,
+            usuarioNome, 'voxx', item_id, entrega.id, { versao_uid: versaoUid });
+        }
+
+        const resultado = { entrega: { ...entrega, versao_uid: versaoUid }, versao: novaVersao, operacao_id: operacaoId, versao_anterior_uid: versaoAtual.versao_uid };
+        await cachearResultado(operacaoId, resultado);
+        return Response.json(resultado);
+      }
+
+      // ── Actions que operam sobre entrega existente por entrega_id ──
+      if (['enviar_para_aprovacao', 'solicitar_ajustes', 'aprovar_item', 'reabrir_aprovado', 'excluir_rascunho'].includes(action)) {
+        const { entrega_id, item_id, demanda_id } = body;
+        if (!entrega_id || !item_id || !demanda_id) return null;
+
+        const v = await validateItemComposta(item_id, demanda_id);
+        if (!v.ok) return null;
+        const { item, demanda } = v;
+
+        const entregaArr = await sdk.entities.EntregaDemanda.filter({ id: entrega_id });
+        const entrega = entregaArr[0];
+        if (!entrega) return null;
+        if (entrega.modelo_versionamento !== 'entidade_versao') return null;
+        if (entrega.item_demanda_id !== item_id) return null;
+
+        const canonico = await determinarVersaoCanonica(sdk, entrega.id);
+        const versaoAtual = canonico.versao_canonica;
+
+        // ── enviar_para_aprovacao V2 ──
+        if (action === 'enviar_para_aprovacao') {
+          if (!versaoAtual) return Response.json({ error: 'Não existe versão ativa.', code: 'SEM_VERSAO_ATIVA' }, { status: 400 });
+          const statusPermitidos = ['rascunho', 'solicitacao_alteracao', 'reenviado'];
+          if (!statusPermitidos.includes(versaoAtual.status)) return Response.json({ error: `Status atual (${versaoAtual.status}) não permite envio.`, code: 'STATUS_NAO_PERMITE_ENVIO' }, { status: 400 });
+          if (!versaoAtual.arquivos?.length && !versaoAtual.link_externo) return Response.json({ error: 'Versão sem arquivos ou link.' }, { status: 400 });
+
+          const eraReenvio = versaoAtual.status === 'reenviado' || item.status_aprovacao === 'reenviado';
+          const operacaoId = await iniciarOperacao({ entrega_id: entrega.id, item_demanda_id: item_id, tipo_operacao: 'enviar_aprovacao', idempotency_key: body.idempotency_key });
+
+          await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, { status: 'em_aprovacao', enviada_em: agora });
+          const novoStatusItem = eraReenvio ? 'reenviado' : 'aguardando';
+          await sdk.entities.ItemDemanda.update(item_id, { status_aprovacao: novoStatusItem });
+          await atualizarCachesEntrega(entrega.id, { ...versaoAtual, status: 'em_aprovacao' });
+
+          await sdk.entities.NotificacaoAprovacao.updateMany({ entrega_id: entrega.id, lida: false }, { $set: { lida: true, visualizada_em: agora } }).catch(() => null);
+          await concluirOperacao(operacaoId, versaoAtual.versao_uid, 'enviada_aprovacao');
+
+          await timeline(demanda.id, demanda.cliente_id, 'aprovacao_solicitada',
+            `📤 ${usuarioNome} enviou "${item.titulo}" (v${canonico.numero_versao_canonica}) para aprovação [entidade_versao]`,
+            usuarioNome, 'voxx', item_id, entrega.id, { versao_uid: versaoAtual.versao_uid });
+
+          return Response.json({ success: true, entrega_id: entrega.id, status_entrega: 'em_aprovacao', status_aprovacao_item: novoStatusItem, link_publico: versaoAtual.token_publico ? `${req.headers.get('origin') || ''}/aprovacao/${versaoAtual.token_publico}` : null, versao_uid: versaoAtual.versao_uid });
+        }
+
+        // ── solicitar_ajustes V2 ──
+        if (action === 'solicitar_ajustes') {
+          const { comentario } = body;
+          if (!comentario?.trim()) return null;
+          if (!versaoAtual) return Response.json({ error: 'Sem versão ativa.' }, { status: 400 });
+
+          const operacaoId = await iniciarOperacao({ entrega_id: entrega.id, item_demanda_id: item_id, tipo_operacao: 'solicitar_ajustes', idempotency_key: body.idempotency_key });
+          await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, { status: 'solicitacao_alteracao' });
+          await sdk.entities.ItemDemanda.update(item_id, { status_aprovacao: 'ajustes_solicitados' });
+          await atualizarCachesEntrega(entrega.id, { ...versaoAtual, status: 'solicitacao_alteracao' });
+          await sdk.entities.EntregaDemanda.update(entrega.id, { observacao_cliente: comentario.trim(), retorno_cliente_tratado: false });
+          await concluirOperacao(operacaoId, versaoAtual.versao_uid, 'ajustes_solicitados');
+
+          await timeline(demanda.id, demanda.cliente_id, 'ajustes_solicitados',
+            `✏️ ${usuarioNome} solicitou ajustes em "${item.titulo}" (v${canonico.numero_versao_canonica}): "${comentario.trim()}" [entidade_versao]`,
+            usuarioNome, 'voxx', item_id, entrega.id, { versao_uid: versaoAtual.versao_uid });
+
+          return Response.json({ success: true, status_aprovacao_item: 'ajustes_solicitados', versao_uid: versaoAtual.versao_uid });
+        }
+
+        // ── aprovar_item V2 ──
+        if (action === 'aprovar_item') {
+          if (!versaoAtual) return Response.json({ error: 'Sem versão ativa.' }, { status: 400 });
+          if (versaoAtual.status === 'aprovado') return Response.json({ error: 'Este item já está aprovado.', code: 'JA_APROVADO' }, { status: 400 });
+          if (versaoAtual.status === 'rascunho') return Response.json({ error: 'Não é possível aprovar rascunho. Envie para aprovação primeiro.', code: 'STATUS_NAO_PERMITE_APROVACAO' }, { status: 400 });
+
+          const operacaoId = await iniciarOperacao({ entrega_id: entrega.id, item_demanda_id: item_id, tipo_operacao: 'aprovar', idempotency_key: body.idempotency_key });
+          await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, { status: 'aprovado', aprovada_em: agora, aprovada_por: usuarioNome });
+          await sdk.entities.ItemDemanda.update(item_id, { status_aprovacao: 'aprovado' });
+          await atualizarCachesEntrega(entrega.id, { ...versaoAtual, status: 'aprovado' });
+          await sdk.entities.EntregaDemanda.update(entrega.id, { data_aprovacao: agora, usuario_aprovacao: usuarioNome, retorno_cliente_tratado: true });
+          await concluirOperacao(operacaoId, versaoAtual.versao_uid, 'aprovado');
+
+          await timeline(demanda.id, demanda.cliente_id, 'versao_aprovada',
+            `✅ ${usuarioNome} aprovou "${item.titulo}" (v${canonico.numero_versao_canonica}) [entidade_versao]`,
+            usuarioNome, 'voxx', item_id, entrega.id, { versao_uid: versaoAtual.versao_uid });
+
+          return Response.json({ success: true, status_aprovacao_item: 'aprovado', versao_uid: versaoAtual.versao_uid });
+        }
+
+        // ── reabrir_aprovado V2 ──
+        if (action === 'reabrir_aprovado') {
+          if (body.confirmacao !== 'confirmo_reabertura') return null;
+          if (!versaoAtual) return Response.json({ error: 'Sem versão ativa.' }, { status: 400 });
+          if (versaoAtual.status !== 'aprovado') return Response.json({ error: 'Apenas itens aprovados podem ser reabertos.', code: 'NAO_APROVADO' }, { status: 400 });
+
+          const operacaoId = await iniciarOperacao({ entrega_id: entrega.id, item_demanda_id: item_id, tipo_operacao: 'reabrir_aprovado', idempotency_key: body.idempotency_key });
+          await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, { status: 'solicitacao_alteracao', aprovada_em: null, aprovada_por: null });
+          await sdk.entities.ItemDemanda.update(item_id, { status_aprovacao: 'ajustes_solicitados' });
+          await atualizarCachesEntrega(entrega.id, { ...versaoAtual, status: 'solicitacao_alteracao' });
+          await sdk.entities.EntregaDemanda.update(entrega.id, { data_aprovacao: null, usuario_aprovacao: null, retorno_cliente_tratado: false });
+          await concluirOperacao(operacaoId, versaoAtual.versao_uid, 'reaberto');
+
+          await timeline(demanda.id, demanda.cliente_id, 'item_reaberto',
+            `🔓 ${usuarioNome} reabriu "${item.titulo}" (v${canonico.numero_versao_canonica}) [entidade_versao]`,
+            usuarioNome, 'voxx', item_id, entrega.id, { versao_uid: versaoAtual.versao_uid });
+
+          return Response.json({ success: true, status_aprovacao_item: 'ajustes_solicitados', versao_uid: versaoAtual.versao_uid });
+        }
+
+        // ── excluir_rascunho V2 ──
+        if (action === 'excluir_rascunho') {
+          if (!versaoAtual) return Response.json({ error: 'Sem versão ativa.' }, { status: 400 });
+          if (versaoAtual.status !== 'rascunho') return Response.json({ error: 'Não é possível excluir versão enviada. Use criar_nova_versao.', code: 'TEM_HISTORICO' }, { status: 400 });
+
+          const respostas = await sdk.entities.RespostaAprovacaoEntrega.filter({ versao_entrega_demanda_id: versaoAtual.id }).catch(() => []);
+          if (respostas.length > 0) return Response.json({ error: 'Não é possível excluir versão com respostas de cliente.', code: 'TEM_HISTORICO' }, { status: 400 });
+
+          const operacaoId = await iniciarOperacao({ entrega_id: entrega.id, item_demanda_id: item_id, tipo_operacao: 'cancelar_envio', idempotency_key: body.idempotency_key });
+          await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, { status: 'cancelada', status_canonico: 'cancelada', cancelada_em: agora, motivo_cancelamento: 'Rascunho excluído por ' + usuarioNome });
+
+          const restantes = await sdk.entities.VersaoEntregaDemanda.filter({ entrega_demanda_id: entrega.id, status_canonico: 'ativa' }, 'created_date', 10);
+          if (restantes.length === 0) {
+            await sdk.entities.EntregaDemanda.update(entrega.id, { status_entrega: 'arquivado', status_entrega_cache: 'arquivado', versao_atual_uid_cache: null, token_publico_cache: null, ultima_sincronizacao_em: agora });
+          } else {
+            const novoCanonico = await determinarVersaoCanonica(sdk, entrega.id);
+            if (novoCanonico.versao_canonica) await atualizarCachesEntrega(entrega.id, novoCanonico.versao_canonica);
+          }
+
+          await concluirOperacao(operacaoId, versaoAtual.versao_uid, 'rascunho_excluido');
+          await timeline(demanda.id, demanda.cliente_id, 'versao_cancelada',
+            `🗑️ ${usuarioNome} excluiu o rascunho de "${item.titulo}" [entidade_versao]`,
+            usuarioNome, 'voxx', item_id, entrega.id, { versao_uid: versaoAtual.versao_uid });
+
+          return Response.json({ success: true, versao_uid: versaoAtual.versao_uid });
+        }
+      }
+
+      return null; // Não tratado por V2 — cai para lógica embutida
+    };
+
+    // Tenta V2 primeiro; se retornar Response, retorna-o.
+    const v2Response = await handleV2(action, body);
+    if (v2Response) return v2Response;
 
     // =====================================================
     // ACTION: listar_entregas_item

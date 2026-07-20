@@ -6,6 +6,14 @@
       "type": "string",
       "description": "ID da EntregaDemanda"
     },
+    "versao_entrega_demanda_id": {
+      "type": "string",
+      "description": "ID do registro VersaoEntregaDemanda respondido (modelo entidade_versao). null no modelo embutido."
+    },
+    "versao_uid": {
+      "type": "string",
+      "description": "UID da vers\u00e3o respondida (modelo entidade_versao). null no modelo embutido."
+    },
     "demanda_id": {
       "type": "string",
       "description": "ID da demanda"
@@ -38,6 +46,28 @@
       "type": "string",
       "description": "Observa\u00e7\u00e3o da altera\u00e7\u00e3o ou aprova\u00e7\u00e3o"
     },
+    "anexos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Anexos enviados pelo cliente"
+    },
+    "link_alteracao": {
+      "type": "string",
+      "description": "Link de refer\u00eancia para altera\u00e7\u00e3o"
+    },
     "data_resposta": {
       "type": "string",
       "format": "date-time"
@@ -49,6 +79,29 @@
     "user_agent": {
       "type": "string",
       "description": "User-Agent do navegador"
+    },
+    "operacao_id": {
+      "type": "string",
+      "description": "ID da OperacaoEntrega que processou esta resposta (modelo entidade_versao)"
+    },
+    "status_aplicacao": {
+      "type": "string",
+      "enum": [
+        "pendente_aplicacao",
+        "aplicada",
+        "erro_aplicacao"
+      ],
+      "default": "pendente_aplicacao",
+      "description": "Status da aplica\u00e7\u00e3o da resposta no sistema. 'pendente_aplicacao' = resposta registrada mas ainda n\u00e3o aplicada na vers\u00e3o. 'aplicada' = vers\u00e3o atualizada com sucesso. 'erro_aplicacao' = falha ao aplicar."
+    },
+    "aplicada_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que a resposta foi aplicada na vers\u00e3o"
+    },
+    "erro_aplicacao_detalhe": {
+      "type": "string",
+      "description": "Detalhe do erro quando status_aplicacao = erro_aplicacao"
     }
   },
   "required": [

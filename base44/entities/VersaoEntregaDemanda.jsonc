@@ -1,0 +1,178 @@
+{
+  "name": "VersaoEntregaDemanda",
+  "type": "object",
+  "description": "Registro imut\u00e1vel de uma vers\u00e3o de entrega (Fase 2A). Cada vers\u00e3o possui seus pr\u00f3prios arquivos, token p\u00fablico e ciclo de vida. A vers\u00e3o vigente \u00e9 determinada pela ordena\u00e7\u00e3o can\u00f4nica (created_date + versao_uid), N\u00c3O por numero_exibicao. O conte\u00fado (arquivos, link_externo, token_publico) \u00e9 imut\u00e1vel ap\u00f3s cria\u00e7\u00e3o; apenas o ciclo de vida (status, enviada_em, substituida_em) \u00e9 mut\u00e1vel.",
+  "properties": {
+    "versao_uid": {
+      "type": "string",
+      "description": "UUID v4 \u00fanico da vers\u00e3o \u2014 identidade real. Gerado pelo backend. Imut\u00e1vel."
+    },
+    "entrega_demanda_id": {
+      "type": "string",
+      "description": "ID do registro EntregaDemanda (agrupador). Imut\u00e1vel."
+    },
+    "item_demanda_id": {
+      "type": "string",
+      "description": "ID do ItemDemanda vinculado. Imut\u00e1vel."
+    },
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da Demanda pai (cache para queries diretas). Imut\u00e1vel."
+    },
+    "cliente_id": {
+      "type": "string",
+      "description": "ID do cliente (cache). Imut\u00e1vel."
+    },
+    "operacao_id": {
+      "type": "string",
+      "description": "ID da OperacaoEntrega que criou esta vers\u00e3o. Imut\u00e1vel."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Chave de idempot\u00eancia enviada pelo cliente (para detec\u00e7\u00e3o de duplica\u00e7\u00e3o). Imut\u00e1vel."
+    },
+    "payload_hash": {
+      "type": "string",
+      "description": "Hash do payload para detec\u00e7\u00e3o de duplica\u00e7\u00e3o de conte\u00fado. Imut\u00e1vel."
+    },
+    "numero_exibicao": {
+      "type": "number",
+      "description": "N\u00famero sequencial para exibi\u00e7\u00e3o (v1, v2, v3...). N\u00c3O \u00e9 fonte de verdade \u2014 \u00e9 derivado da posi\u00e7\u00e3o na ordena\u00e7\u00e3o can\u00f4nica. Pode estar desatualizado; o valor autoritativo \u00e9 calculado em runtime."
+    },
+    "nome_entrega": {
+      "type": "string",
+      "description": "Nome da entrega (imut\u00e1vel ap\u00f3s cria\u00e7\u00e3o)"
+    },
+    "descricao": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da vers\u00e3o (imut\u00e1vel)"
+    },
+    "tipo_entrega": {
+      "type": "string",
+      "enum": [
+        "Imagem",
+        "V\u00eddeo",
+        "Landing Page",
+        "Documento",
+        "PDF",
+        "Link",
+        "Relat\u00f3rio",
+        "Automa\u00e7\u00e3o",
+        "Outro"
+      ],
+      "description": "Tipo da entrega (imut\u00e1vel)"
+    },
+    "arquivos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Arquivos da vers\u00e3o (imut\u00e1veis ap\u00f3s cria\u00e7\u00e3o)"
+    },
+    "link_externo": {
+      "type": "string",
+      "description": "Link externo (imut\u00e1vel ap\u00f3s cria\u00e7\u00e3o)"
+    },
+    "observacao_voxx": {
+      "type": "string",
+      "description": "Mensagem vis\u00edvel ao cliente na p\u00e1gina p\u00fablica (imut\u00e1vel)"
+    },
+    "observacao_interna": {
+      "type": "string",
+      "description": "Observa\u00e7\u00e3o interna VOXX (imut\u00e1vel)"
+    },
+    "token_publico": {
+      "type": "string",
+      "description": "Token \u00fanico do link p\u00fablico desta vers\u00e3o (imut\u00e1vel)"
+    },
+    "criada_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora de cria\u00e7\u00e3o da vers\u00e3o"
+    },
+    "criada_por": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio que criou a vers\u00e3o"
+    },
+    "criada_por_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio Base44 que criou a vers\u00e3o"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "em_aprovacao",
+        "solicitacao_alteracao",
+        "reenviado",
+        "aprovado",
+        "cancelada"
+      ],
+      "description": "Status mut\u00e1vel do ciclo de vida da vers\u00e3o"
+    },
+    "status_canonico": {
+      "type": "string",
+      "enum": [
+        "ativa",
+        "substituida",
+        "duplicada",
+        "invalidada",
+        "cancelada"
+      ],
+      "default": "ativa",
+      "description": "Status can\u00f4nico determinado pela reconcilia\u00e7\u00e3o. 'ativa' = vers\u00e3o vigente ou candidata. Vers\u00f5es com status_canonico em [substituida, duplicada, invalidada, cancelada] n\u00e3o participam da escolha da vers\u00e3o vigente."
+    },
+    "enviada_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que a vers\u00e3o foi enviada para aprova\u00e7\u00e3o"
+    },
+    "aprovada_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que a vers\u00e3o foi aprovada"
+    },
+    "aprovada_por": {
+      "type": "string",
+      "description": "Nome de quem aprovou a vers\u00e3o"
+    },
+    "substituida_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora em que a vers\u00e3o foi substitu\u00edda por uma mais recente"
+    },
+    "substituida_por_versao_uid": {
+      "type": "string",
+      "description": "versao_uid da vers\u00e3o que substituiu esta"
+    },
+    "cancelada_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora de cancelamento"
+    },
+    "motivo_cancelamento": {
+      "type": "string",
+      "description": "Motivo do cancelamento"
+    }
+  },
+  "required": [
+    "versao_uid",
+    "entrega_demanda_id",
+    "operacao_id",
+    "nome_entrega",
+    "tipo_entrega",
+    "status",
+    "criada_em"
+  ]
+}

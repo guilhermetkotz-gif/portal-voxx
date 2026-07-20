@@ -214,6 +214,51 @@
           }
         }
       }
+    },
+    "modelo_versionamento": {
+      "type": "string",
+      "enum": [
+        "embutido",
+        "entidade_versao"
+      ],
+      "default": "embutido",
+      "description": "Modelo de versionamento desta entrega. 'embutido' = vers\u00f5es no array versoes[] (legado, demandas unit\u00e1rias/tradicionais). 'entidade_versao' = vers\u00f5es em VersaoEntregaDemanda separada (Fase 2A, demandas compostas novas). Definido na cria\u00e7\u00e3o; imut\u00e1vel ap\u00f3s."
+    },
+    "versao_atual_uid_cache": {
+      "type": "string",
+      "description": "Cache do versao_uid da vers\u00e3o vigente. N\u00c3O \u00e9 fonte de verdade \u2014 derivado de VersaoEntregaDemanda pela ordena\u00e7\u00e3o can\u00f4nica."
+    },
+    "numero_versao_atual_cache": {
+      "type": "number",
+      "description": "Cache do n\u00famero da vers\u00e3o vigente. N\u00c3O \u00e9 fonte de verdade."
+    },
+    "status_entrega_cache": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "enviado",
+        "em_aprovacao",
+        "aprovado",
+        "solicitacao_alteracao",
+        "reenviado",
+        "publicado",
+        "arquivado"
+      ],
+      "description": "Cache do status da vers\u00e3o vigente. N\u00c3O \u00e9 fonte de verdade."
+    },
+    "token_publico_cache": {
+      "type": "string",
+      "description": "Cache do token p\u00fablico da vers\u00e3o vigente. N\u00c3O \u00e9 fonte de verdade."
+    },
+    "tem_conflito_versao": {
+      "type": "boolean",
+      "default": false,
+      "description": "Cache indicando se h\u00e1 m\u00faltiplas vers\u00f5es candidatas concorrentes. Atualizado pela reconcilia\u00e7\u00e3o."
+    },
+    "ultima_sincronizacao_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da \u00faltima sincroniza\u00e7\u00e3o de caches com a vers\u00e3o can\u00f4nica."
     }
   },
   "required": [

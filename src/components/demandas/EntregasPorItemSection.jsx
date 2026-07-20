@@ -216,7 +216,10 @@ function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
   });
 
   const entregaAtiva = entregas.find(e => e.versao_ativa !== false) || entregas[0];
-  const versoesAnteriores = entregas.filter(e => e.versao_ativa === false);
+  // V2 (entidade_versao): versões anteriores vêm no campo versoes_anteriores da entrega agrupadora
+  const versoesAnteriores = entregaAtiva?.versoes_anteriores?.length > 0
+    ? entregaAtiva.versoes_anteriores
+    : entregas.filter(e => e.versao_ativa === false);
   const statusAprov = STATUS_APROV_LABELS[item.status_aprovacao] || STATUS_APROV_LABELS.nao_enviado;
 
   const invalidateAll = () => {
@@ -231,6 +234,7 @@ function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
       entrega_id: entregaAtiva.id,
       demanda_id: demanda.id,
       item_id: item.id,
+      idempotency_key: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-enviar`,
     }),
     onSuccess: () => {
       invalidateAll();
@@ -246,6 +250,7 @@ function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
       entrega_id: entregaAtiva.id,
       demanda_id: demanda.id,
       item_id: item.id,
+      idempotency_key: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-aprovar`,
     }),
     onSuccess: () => {
       invalidateAll();
@@ -262,6 +267,7 @@ function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
       demanda_id: demanda.id,
       item_id: item.id,
       confirmacao: 'confirmo_reabertura',
+      idempotency_key: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-reabrir`,
     }),
     onSuccess: () => {
       invalidateAll();
@@ -311,6 +317,13 @@ function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
               <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
             </div>
           ) : entregaAtiva ? (
+            <>
+            {entregaAtiva.tem_concorrencia && (
+              <div className="p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-700 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" />
+                Conflito de versões detectado. Execute a reconciliação para resolver.
+              </div>
+            )}
             <EntregaAtivaCard
               entrega={entregaAtiva}
               item={item}
@@ -324,6 +337,7 @@ function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
                 }
               }}
             />
+            </>
           ) : (
             <div className="text-center py-4">
               <Package className="w-8 h-8 mx-auto mb-2 text-slate-200" />
@@ -341,10 +355,10 @@ function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
                 Versões anteriores ({versoesAnteriores.length})
               </p>
               <div className="space-y-1">
-                {versoesAnteriores.map(v => {
-                  const vStatus = v.versoes?.find(vv => vv.numero === v.numero_versao_atual)?.status_versao || 'arquivada';
+                {versoesAnteriores.map((v, idx) => {
+                  const vStatus = v.versoes?.find(vv => vv.numero === v.numero_versao_atual)?.status_versao || v.status_canonico || 'arquivada';
                   return (
-                    <div key={v.id} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded text-[10px]">
+                    <div key={v.id || v.versao_uid || idx} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded text-[10px]">
                       <VersaoBadge numero={v.numero_versao_atual} />
                       <span className="text-slate-500">{v.nome_entrega}</span>
                       <span className="text-slate-400">· {vStatus}</span>

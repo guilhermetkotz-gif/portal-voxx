@@ -18,6 +18,10 @@
       "type": "string",
       "description": "ID da EntregaDemanda vinculada (eventos espec\u00edficos de vers\u00e3o/entrega). null em eventos gerais."
     },
+    "versao_uid": {
+      "type": "string",
+      "description": "UID da VersaoEntregaDemanda vinculada (modelo entidade_versao). null no modelo embutido."
+    },
     "tipo": {
       "type": "string",
       "enum": [
@@ -33,7 +37,10 @@
         "ajustes_solicitados",
         "nova_versao_enviada",
         "versao_aprovada",
-        "item_reaberto"
+        "item_reaberto",
+        "versao_cancelada",
+        "conflito_versao",
+        "reconciliacao"
       ],
       "description": "Tipo do evento"
     },

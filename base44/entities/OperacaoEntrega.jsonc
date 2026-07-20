@@ -1,0 +1,115 @@
+{
+  "name": "OperacaoEntrega",
+  "type": "object",
+  "description": "Registro de rastreabilidade e idempot\u00eancia para opera\u00e7\u00f5es de entrega (Fase 2A). A opera\u00e7\u00e3o can\u00f4nica para uma combina\u00e7\u00e3o (idempotency_key, tipo_operacao, entrega_id, payload_hash) \u00e9 a primeira por created_date ASC, operacao_id ASC. Opera\u00e7\u00f5es posteriores com a mesma combina\u00e7\u00e3o s\u00e3o marcadas como 'duplicada' e n\u00e3o participam da vers\u00e3o vigente. N\u00c3O h\u00e1 exclusividade at\u00f4mica \u2014 a canonidade \u00e9 determinada ap\u00f3s a cria\u00e7\u00e3o.",
+  "properties": {
+    "operacao_id": {
+      "type": "string",
+      "description": "UUID v4 gerado pelo backend no in\u00edcio da opera\u00e7\u00e3o"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Chave gerada no cliente, reutilizada em retries da mesma inten\u00e7\u00e3o"
+    },
+    "entrega_id": {
+      "type": "string",
+      "description": "ID da EntregaDemanda (agrupador)"
+    },
+    "item_demanda_id": {
+      "type": "string",
+      "description": "ID do ItemDemanda vinculado"
+    },
+    "versao_uid": {
+      "type": "string",
+      "description": "UID da VersaoEntregaDemanda criada/modificada (se aplic\u00e1vel)"
+    },
+    "tipo_operacao": {
+      "type": "string",
+      "enum": [
+        "criar_entrega",
+        "criar_nova_versao",
+        "enviar_aprovacao",
+        "solicitar_ajustes",
+        "aprovar",
+        "cancelar_envio",
+        "reabrir_aprovado",
+        "resposta_cliente"
+      ],
+      "description": "Tipo da opera\u00e7\u00e3o"
+    },
+    "payload_hash": {
+      "type": "string",
+      "description": "Hash do payload para detec\u00e7\u00e3o de duplica\u00e7\u00e3o de conte\u00fado"
+    },
+    "status_operacao": {
+      "type": "string",
+      "enum": [
+        "iniciada",
+        "em_execucao",
+        "concluida",
+        "parcial",
+        "falha",
+        "cancelada",
+        "duplicada"
+      ],
+      "default": "iniciada",
+      "description": "Status da opera\u00e7\u00e3o"
+    },
+    "etapa_atual": {
+      "type": "string",
+      "description": "Etapa atual do fluxo (ex: operacao_criada, versao_criada, item_sincronizado, resposta_registrada, caches_atualizados)"
+    },
+    "operacao_canonica_id": {
+      "type": "string",
+      "description": "ID (operacao_id) da opera\u00e7\u00e3o can\u00f4nica, se esta opera\u00e7\u00e3o for duplicada"
+    },
+    "resultado": {
+      "type": "object",
+      "description": "Resultado cacheado da opera\u00e7\u00e3o (para retorno em retries idempotentes)"
+    },
+    "falhas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "etapa": {
+            "type": "string"
+          },
+          "erro": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "default": [],
+      "description": "Lista de falhas registradas durante a execu\u00e7\u00e3o"
+    },
+    "iniciada_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora de in\u00edcio"
+    },
+    "concluida_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora de conclus\u00e3o"
+    },
+    "iniciada_por": {
+      "type": "string",
+      "description": "Nome do usu\u00e1rio que iniciou a opera\u00e7\u00e3o"
+    },
+    "iniciada_por_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio Base44 que iniciou"
+    }
+  },
+  "required": [
+    "operacao_id",
+    "tipo_operacao",
+    "status_operacao",
+    "iniciada_em"
+  ]
+}
