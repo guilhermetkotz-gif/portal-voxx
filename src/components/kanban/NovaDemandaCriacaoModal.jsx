@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
 import BriefingUniversalWizard from '@/components/demandas/BriefingUniversalWizard';
 import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
-import { createItensDemanda } from '@/lib/createItensDemanda';
 
 /**
  * Modal de criação de demanda de CRIAÇÃO (Artes & Peças) no Kanban.
@@ -57,7 +56,7 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
 
     setSalvando(true);
     try {
-      const demanda = await base44.entities.Demanda.create({
+      const baseData = {
         cliente_id: clienteSelecionado.id,
         cliente_nome: clienteSelecionado.nome,
         setor: 'CRIACAO',
@@ -70,32 +69,45 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
         campos_adicionais: camposAdicionais,
         anexos: anexos || [],
         estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estrutura : 'legada',
-      });
-
-      await base44.entities.TimelineEvent.create({
-        demanda_id: demanda.id,
-        cliente_id: clienteSelecionado.id,
-        tipo: 'criacao',
-        descricao: `Demanda criada via Briefing ${isOralSin(clienteSelecionado) ? 'Oral Sin' : 'Universal'}.`,
-        autor: 'Sistema',
-        autor_tipo: 'voxx'
-      });
+      };
 
       if (isComposta && wizardData.itens) {
-        const result = await createItensDemanda(demanda.id, wizardData.itens);
-        if (result.errors.length > 0) {
-          toast.warning(`Demanda criada, mas ${result.errors.length} de ${result.total} entregas falaram. Verifique o card no Kanban.`);
-        } else {
-          toast.success(`Demanda composta criada com ${result.created} entregas.`);
-        }
+        const res = await base44.functions.invoke('criarDemandaComItens', {
+          demanda: baseData,
+          itens: wizardData.itens,
+        });
+        const result = res.data || res;
+        if (!result.success) throw new Error(result.error || 'Falha na criação');
+
+        await base44.entities.TimelineEvent.create({
+          demanda_id: result.demanda_id,
+          cliente_id: clienteSelecionado.id,
+          tipo: 'criacao',
+          descricao: `Demanda composta criada via Briefing ${isOralSin(clienteSelecionado) ? 'Oral Sin' : 'Universal'} — ${result.itens_criados} entregas.`,
+          autor: 'Sistema',
+          autor_tipo: 'voxx'
+        });
+
+        toast.success(`Demanda composta criada com ${result.itens_criados} entregas.`);
       } else {
+        const demanda = await base44.entities.Demanda.create(baseData);
+
+        await base44.entities.TimelineEvent.create({
+          demanda_id: demanda.id,
+          cliente_id: clienteSelecionado.id,
+          tipo: 'criacao',
+          descricao: `Demanda criada via Briefing ${isOralSin(clienteSelecionado) ? 'Oral Sin' : 'Universal'}.`,
+          autor: 'Sistema',
+          autor_tipo: 'voxx'
+        });
+
         toast.success('Demanda criada com sucesso!');
       }
 
       queryClient.invalidateQueries(['demandasKanban']);
       handleClose();
     } catch (error) {
-      toast.error('Erro ao criar demanda: ' + error.message);
+      toast.error('Erro ao criar demanda: ' + (error.message || 'erro desconhecido'));
     } finally {
       setSalvando(false);
     }

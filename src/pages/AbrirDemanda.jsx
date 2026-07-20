@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+// navigate is assigned in the component body via useNavigate()
 import { 
   Loader2, 
   CheckCircle, 
@@ -28,10 +29,9 @@ import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
 import EdicaoVideoWizard from '@/components/demandas/EdicaoVideoWizard';
 import BriefingUniversalWizard from '@/components/demandas/BriefingUniversalWizard';
 import EstruturaDemandaSelector from '@/components/demandas/EstruturaDemandaSelector';
-import ItensDemandaInlineEditor from '@/components/demandas/ItensDemandaInlineEditor';
+import EntregasDemandaBuilder from '@/components/demandas/EntregasDemandaBuilder';
 import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
 import { toast } from 'sonner';
-import { createItensDemanda } from '@/lib/createItensDemanda';
 
 const setores = [
   { 
@@ -446,36 +446,18 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       if (demandaId) {
         await updateDemanda.mutateAsync(data);
         setSuccess(true);
+      } else if (isComposta) {
+        const validItems = itensDemanda.filter(i => i.titulo?.trim());
+        const res = await base44.functions.invoke('criarDemandaComItens', {
+          demanda: data,
+          itens: validItems,
+        });
+        const result = res.data || res;
+        if (!result.success) throw new Error(result.error || 'Falha na criação');
+        toast.success(`Demanda composta criada com ${result.itens_criados} entregas.`);
+        navigate(`/Kanban?demanda_id=${result.demanda_id}`);
       } else {
-        const createdDemanda = await createDemanda.mutateAsync(data);
-
-        // Criar itens da demanda composta via backend gerenciarItemDemanda
-        if (isComposta && createdDemanda) {
-          const validItems = itensDemanda.filter(i => i.titulo?.trim());
-          for (let i = 0; i < validItems.length; i++) {
-            const item = validItems[i];
-            try {
-              await base44.functions.invoke('gerenciarItemDemanda', {
-                action: 'create_item',
-                demanda_id: createdDemanda.id,
-                titulo: item.titulo.trim(),
-                descricao: item.descricao || null,
-                tipo_material: item.tipo_material || null,
-                formato: item.formato || null,
-                canal: item.canal || null,
-                data_prevista: item.data_prevista ? new Date(item.data_prevista).toISOString() : null,
-                prazo_data: item.prazo_data ? new Date(item.prazo_data).toISOString() : null,
-                responsavel_id: item.responsavel_id || null,
-                responsavel_nome: item.responsavel_nome || null,
-                ordem: i,
-              });
-            } catch (itemErr) {
-              const msg = itemErr?.response?.data?.error || itemErr.message || 'Erro desconhecido';
-              toast.error(`Erro ao criar entrega "${item.titulo}": ${msg}`);
-              return;
-            }
-          }
-        }
+        await createDemanda.mutateAsync(data);
         setSuccess(true);
       }
     } catch (err) {
@@ -486,7 +468,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
 
   const handleWizardUniversalComplete = async (wizardData) => {
     const estrutura = wizardData.estrutura_demanda || 'unitaria';
-    const data = {
+    const isComposta = isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estrutura === 'composta';
+    const baseData = {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
       setor: 'CRIACAO',
@@ -501,23 +484,25 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       anexos: wizardData.anexos || [],
       campos_adicionais: wizardData.camposAdicionais,
       comunicar_cliente: wizardData.comunicar_cliente ?? comunicarCliente,
-      resumo_entrega_cliente: resumoEntregaCliente || '',
+      resumo_entrega_cliente: wizardData.resumo_entrega_cliente || resumoEntregaCliente || '',
       anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
       estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estrutura : 'legada',
     };
 
     try {
-      const createdDemanda = await createDemanda.mutateAsync(data);
-
-      if (isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estrutura === 'composta' && wizardData.itens) {
-        const result = await createItensDemanda(createdDemanda.id, wizardData.itens);
-        if (result.errors.length > 0) {
-          toast.warning(`Demanda criada, mas ${result.errors.length} de ${result.total} entregas falaram. Verifique o card no Kanban.`);
-        } else {
-          toast.success(`Demanda composta criada com ${result.created} entregas.`);
-        }
+      if (isComposta && wizardData.itens) {
+        const res = await base44.functions.invoke('criarDemandaComItens', {
+          demanda: baseData,
+          itens: wizardData.itens,
+        });
+        const result = res.data || res;
+        if (!result.success) throw new Error(result.error || 'Falha na criação');
+        toast.success(`Demanda composta criada com ${result.itens_criados} entregas.`);
+        navigate(`/Kanban?demanda_id=${result.demanda_id}`);
+        return;
       }
 
+      await createDemanda.mutateAsync(baseData);
       setSuccess(true);
     } catch (err) {
       toast.error('Erro ao criar demanda: ' + (err.message || 'erro desconhecido'));
@@ -527,7 +512,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const handleWizardComplete = async (wizardData) => {
     const estrutura = wizardData.estrutura_demanda || 'unitaria';
     const isComposta = isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estrutura === 'composta';
-    const data = {
+    const baseData = {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
       setor: 'CRIACAO',
@@ -546,23 +531,25 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       anexos: wizardData.anexos,
       campos_adicionais: wizardData.camposAdicionais,
       comunicar_cliente: wizardData.comunicar_cliente ?? comunicarCliente,
-      resumo_entrega_cliente: resumoEntregaCliente || '',
+      resumo_entrega_cliente: wizardData.resumo_entrega_cliente || resumoEntregaCliente || '',
       anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
       estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estrutura : 'legada',
     };
 
     try {
-      const createdDemanda = await createDemanda.mutateAsync(data);
-
       if (isComposta && wizardData.itens) {
-        const result = await createItensDemanda(createdDemanda.id, wizardData.itens);
-        if (result.errors.length > 0) {
-          toast.warning(`Demanda criada, mas ${result.errors.length} de ${result.total} entregas falaram. Verifique o card no Kanban.`);
-        } else {
-          toast.success(`Demanda composta criada com ${result.created} entregas.`);
-        }
+        const res = await base44.functions.invoke('criarDemandaComItens', {
+          demanda: baseData,
+          itens: wizardData.itens,
+        });
+        const result = res.data || res;
+        if (!result.success) throw new Error(result.error || 'Falha na criação');
+        toast.success(`Demanda composta criada com ${result.itens_criados} entregas.`);
+        navigate(`/Kanban?demanda_id=${result.demanda_id}`);
+        return;
       }
 
+      await createDemanda.mutateAsync(baseData);
       setSuccess(true);
     } catch (err) {
       toast.error('Erro ao criar demanda: ' + (err.message || 'erro desconhecido'));
@@ -572,7 +559,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const handleWizardEdicaoComplete = async (wizardData) => {
     const estrutura = wizardData.estrutura_demanda || 'unitaria';
     const isComposta = isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estrutura === 'composta';
-    const data = {
+    const baseData = {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
       setor: 'EDICAO',
@@ -589,23 +576,25 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       anexos: wizardData.anexos,
       campos_adicionais: wizardData.camposAdicionais,
       comunicar_cliente: wizardData.comunicar_cliente ?? comunicarCliente,
-      resumo_entrega_cliente: resumoEntregaCliente || '',
+      resumo_entrega_cliente: wizardData.resumo_entrega_cliente || resumoEntregaCliente || '',
       anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
       estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estrutura : 'legada',
     };
 
     try {
-      const createdDemanda = await createDemanda.mutateAsync(data);
-
       if (isComposta && wizardData.itens) {
-        const result = await createItensDemanda(createdDemanda.id, wizardData.itens);
-        if (result.errors.length > 0) {
-          toast.warning(`Demanda criada, mas ${result.errors.length} de ${result.total} entregas falaram. Verifique o card no Kanban.`);
-        } else {
-          toast.success(`Demanda composta criada com ${result.created} entregas.`);
-        }
+        const res = await base44.functions.invoke('criarDemandaComItens', {
+          demanda: baseData,
+          itens: wizardData.itens,
+        });
+        const result = res.data || res;
+        if (!result.success) throw new Error(result.error || 'Falha na criação');
+        toast.success(`Demanda composta criada com ${result.itens_criados} entregas.`);
+        navigate(`/Kanban?demanda_id=${result.demanda_id}`);
+        return;
       }
 
+      await createDemanda.mutateAsync(baseData);
       setSuccess(true);
     } catch (err) {
       toast.error('Erro ao criar demanda: ' + (err.message || 'erro desconhecido'));
@@ -941,7 +930,11 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
               <EstruturaDemandaSelector value={estruturaDemanda} onChange={setEstruturaDemanda} />
               {estruturaDemanda === 'composta' && (
                 <div className="pt-2">
-                  <ItensDemandaInlineEditor items={itensDemanda} onChange={setItensDemanda} />
+                  <EntregasDemandaBuilder
+                    items={itensDemanda}
+                    onChange={setItensDemanda}
+                    showValidation
+                  />
                   <p className="text-xs text-slate-400 mt-2">
                     ℹ️ Carrosséis com vários slides e versões/arquivos da mesma peça não são entregas independentes.
                   </p>
@@ -1187,7 +1180,9 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           {/* Submit */}
           {isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estruturaDemanda === 'composta' && itensDemanda.filter(i => i.titulo?.trim()).length < 2 && (
             <p className="text-xs text-red-500 text-center">
-              Adicione no mínimo 2 entregas com título para enviar uma demanda composta.
+              {itensDemanda.filter(i => i.titulo?.trim()).length === 1
+                ? 'Esta solicitação possui apenas uma entrega. Altere para "Uma entrega" ou adicione outra entrega independente.'
+                : 'Adicione no mínimo 2 entregas com título para enviar uma demanda composta.'}
             </p>
           )}
           <Button 
