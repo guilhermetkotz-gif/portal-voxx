@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
       // 6. Retomar OperacaoEntrega parcial (há mais de 5 min)
       const cincoMinAtras = new Date(Date.now() - 5 * 60 * 1000).toISOString();
       const opsParciais = await sdk.entities.OperacaoEntrega.filter(
-        { entrega_id: entrega.id, status_operacao: { $in: ['iniciada', 'em_execucao', 'parcial'] } },
+        { entrega_id: entrega.id, status_operacao: { $in: ['iniciada', 'em_execucao', 'parcial', 'falha'] } },
         'created_date',
         20
       );
@@ -186,6 +186,83 @@ Deno.serve(async (req) => {
             });
             resultado.acoes.push(`operacao_${op.operacao_id.substring(0, 8)}_marcada_parcial`);
           }
+        }
+      }
+
+      // 6.5. Retomar RespostaAprovacaoEntrega pendente ou com falha
+      const respostasPendentes = await sdk.entities.RespostaAprovacaoEntrega.filter(
+        { entrega_id: entrega.id, status_aplicacao: { $in: ['pendente_aplicacao', 'falha_aplicacao'] } },
+        'created_date',
+        20
+      ).catch(() => []);
+
+      for (const resp of respostasPendentes) {
+        try {
+          // Buscar a versão respondida
+          let versaoResp = null;
+          if (resp.versao_entrega_demanda_id) {
+            const vArr = await sdk.entities.VersaoEntregaDemanda.filter({ id: resp.versao_entrega_demanda_id });
+            versaoResp = vArr[0];
+          }
+          if (!versaoResp) {
+            resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_versao_inexistente`);
+            continue;
+          }
+
+          // Verificar se a versão ainda é canônica
+          if (versaoResp.versao_uid !== versao_canonica.versao_uid) {
+            // Versão foi substituída — marcar resposta como duplicada
+            await sdk.entities.RespostaAprovacaoEntrega.update(resp.id, {
+              status_aplicacao: 'duplicada',
+              erro_aplicacao_detalhe: 'Versão respondida foi substituída por uma mais recente.',
+            });
+            resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_marcada_duplicada`);
+            continue;
+          }
+
+          // Aplicar resposta
+          const novoStatusVersao = resp.tipo_resposta === 'aprovado' ? 'aprovado' : 'solicitacao_alteracao';
+          await sdk.entities.VersaoEntregaDemanda.update(versaoResp.id, {
+            status: novoStatusVersao,
+            ...(resp.tipo_resposta === 'aprovado' ? { aprovada_em: resp.data_resposta, aprovada_por: resp.nome_responsavel } : {}),
+          });
+
+          // Sincronizar ItemDemanda
+          if (versaoResp.item_demanda_id) {
+            const novoStatusItem = versaoStatusToItemStatus(novoStatusVersao);
+            await sdk.entities.ItemDemanda.update(versaoResp.item_demanda_id, {
+              status_aprovacao: novoStatusItem,
+            });
+          }
+
+          // Atualizar caches
+          await sdk.entities.EntregaDemanda.update(entrega.id, {
+            status_entrega_cache: novoStatusVersao,
+            retorno_cliente_tratado: false,
+          });
+
+          // Marcar resposta como aplicada
+          await sdk.entities.RespostaAprovacaoEntrega.update(resp.id, {
+            status_aplicacao: 'aplicada',
+            aplicada_em: new Date().toISOString(),
+          });
+
+          // Concluir operação se existir
+          if (resp.operacao_id) {
+            const opsArr = await sdk.entities.OperacaoEntrega.filter({ operacao_id: resp.operacao_id });
+            if (opsArr[0]) {
+              await sdk.entities.OperacaoEntrega.update(opsArr[0].id, {
+                status_operacao: 'concluida',
+                etapa_atual: 'resposta_aplicada_reconciliacao',
+                versao_uid: versaoResp.versao_uid,
+                concluida_em: new Date().toISOString(),
+              });
+            }
+          }
+
+          resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_aplicada_reconciliacao`);
+        } catch (e) {
+          resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_erro_reconciliacao:${e.message}`);
         }
       }
 

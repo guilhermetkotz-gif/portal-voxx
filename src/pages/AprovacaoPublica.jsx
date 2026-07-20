@@ -156,6 +156,8 @@ export default function AprovacaoPublica() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null); // 'aprovado' | 'solicitacao_alteracao' | 'erro'
+  // idempotency_key gerada uma vez por intenção de resposta, preservada em retries
+  const [idempotencyKey, setIdempotencyKey] = useState(null);
 
   useEffect(() => {
     if (!token) { setError('link_invalido'); setLoading(false); return; }
@@ -218,12 +220,18 @@ export default function AprovacaoPublica() {
     if (!nome.trim()) return;
     if (acao === 'solicitar' && !observacao.trim() && anexos.length === 0 && !linkAlteracao.trim()) return;
     setEnviando(true);
+
+    // Gerar idempotency_key uma vez por intenção, preservar em retries
+    const key = idempotencyKey || (crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substring(2)}`);
+    if (!idempotencyKey) setIdempotencyKey(key);
+
     try {
       const action = acao === 'aprovar' ? 'aprovar' : 'solicitacao_alteracao';
       const res = await base44.functions.invoke('entregaPublica', {
         token, action, nome_responsavel: nome.trim(), observacao: observacao.trim(),
         anexos: anexos.length > 0 ? anexos : undefined,
-        link_alteracao: linkAlteracao.trim() || undefined
+        link_alteracao: linkAlteracao.trim() || undefined,
+        idempotency_key: key
       });
       if (res.data?.success) {
         setResultado(action);

@@ -87,6 +87,29 @@ Deno.serve(async (req) => {
         }, { status: 400 });
       }
 
+      // Idempotência: verificar se já existe resposta com a mesma idempotency_key
+      const idempotencyKey = body.idempotency_key || gerarUUID();
+      const respostasExistentes = await sdk.entities.RespostaAprovacaoEntrega.filter(
+        { idempotency_key: idempotencyKey, versao_entrega_demanda_id: versao.id },
+        'created_date', 5
+      ).catch(() => []);
+
+      if (respostasExistentes && respostasExistentes.length > 0) {
+        const existente = respostasExistentes[0];
+        if (existente.status_aplicacao === 'aplicada') {
+          return Response.json({
+            success: true,
+            action: existente.tipo_resposta === 'aprovado' ? 'aprovar' : 'solicitacao_alteracao',
+            status: existente.tipo_resposta,
+            versao_uid: versao.versao_uid,
+            duplicada: true,
+          });
+        }
+        if (existente.status_aplicacao === 'pendente_aplicacao') {
+          return Response.json({ error: 'Resposta em processamento.', code: 'RESPOSTA_EM_PROCESSAMENTO' }, { status: 409 });
+        }
+      }
+
       const agoraV2 = new Date().toISOString();
       const ipV2 = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'desconhecido';
       const userAgentV2 = req.headers.get('user-agent') || '';
@@ -95,6 +118,7 @@ Deno.serve(async (req) => {
       const operacaoId = gerarUUID();
       await sdk.entities.OperacaoEntrega.create({
         operacao_id: operacaoId,
+        idempotency_key: idempotencyKey,
         entrega_id: entregaV2.id,
         item_demanda_id: versao.item_demanda_id || null,
         tipo_operacao: 'resposta_cliente',
@@ -102,6 +126,7 @@ Deno.serve(async (req) => {
         etapa_atual: 'operacao_criada',
         iniciada_em: agoraV2,
         iniciada_por: nome_responsavel.trim(),
+        falhas: [],
       });
 
       // 2. Criar RespostaAprovacaoEntrega com status_aplicacao = pendente_aplicacao (ESSENCIAL)
@@ -122,98 +147,125 @@ Deno.serve(async (req) => {
         ip: ipV2,
         user_agent: userAgentV2,
         operacao_id: operacaoId,
+        idempotency_key: idempotencyKey,
         status_aplicacao: 'pendente_aplicacao',
       });
 
-      // 3. Atualizar status da VersaoEntregaDemanda (ESSENCIAL)
       const novoStatusVersao = action === 'aprovar' ? 'aprovado' : 'solicitacao_alteracao';
-      await sdk.entities.VersaoEntregaDemanda.update(versao.id, {
-        status: novoStatusVersao,
-        ...(action === 'aprovar' ? { aprovada_em: agoraV2, aprovada_por: nome_responsavel.trim() } : {}),
-      });
 
-      // 4. Marcar resposta como aplicada (ESSENCIAL)
-      await sdk.entities.RespostaAprovacaoEntrega.update(resposta.id, {
-        status_aplicacao: 'aplicada',
-        aplicada_em: new Date().toISOString(),
-      });
-
-      // 5. Atualizar caches da EntregaDemanda
-      await sdk.entities.EntregaDemanda.update(entregaV2.id, {
-        status_entrega_cache: novoStatusVersao,
-        retorno_cliente_tratado: false,
-        ...(action === 'aprovar' ? {
-          data_aprovacao: agoraV2,
-          usuario_aprovacao: nome_responsavel.trim(),
-        } : {
-          observacao_cliente: observacao || '',
-        }),
-      });
-
-      // 6. Sincronizar ItemDemanda (ESSENCIAL)
-      if (versao.item_demanda_id) {
-        const novoStatusItem = versaoStatusToItemStatus(novoStatusVersao);
-        await sdk.entities.ItemDemanda.update(versao.item_demanda_id, {
-          status_aprovacao: novoStatusItem,
-        }).catch(() => null);
-      }
-
-      // 7. Concluir OperacaoEntrega
-      const opsArr = await sdk.entities.OperacaoEntrega.filter({ operacao_id: operacaoId });
-      if (opsArr[0]) {
-        await sdk.entities.OperacaoEntrega.update(opsArr[0].id, {
-          status_operacao: 'concluida',
-          etapa_atual: 'resposta_aplicada',
-          versao_uid: versao.versao_uid,
-          concluida_em: new Date().toISOString(),
+      // 3-6. Aplicar resposta com tratamento de falha parcial
+      try {
+        // 3. Atualizar status da VersaoEntregaDemanda
+        await sdk.entities.VersaoEntregaDemanda.update(versao.id, {
+          status: novoStatusVersao,
+          ...(action === 'aprovar' ? { aprovada_em: agoraV2, aprovada_por: nome_responsavel.trim() } : {}),
         });
-      }
 
-      // 8. TimelineEvent (AUXILIAR)
-      const descEvento = action === 'aprovar'
-        ? `✅ ${nome_responsavel.trim()} aprovou a entrega: ${versao.nome_entrega} [entidade_versao]`
-        : `✏️ ${nome_responsavel.trim()} solicitou alteração em: ${versao.nome_entrega}${observacao ? ` — "${observacao}"` : ''} [entidade_versao]`;
+        // 4. Marcar resposta como aplicada
+        await sdk.entities.RespostaAprovacaoEntrega.update(resposta.id, {
+          status_aplicacao: 'aplicada',
+          aplicada_em: new Date().toISOString(),
+        });
 
-      await sdk.entities.TimelineEvent.create({
-        demanda_id: entregaV2.demanda_id,
-        cliente_id: entregaV2.cliente_id,
-        item_demanda_id: versao.item_demanda_id || null,
-        entrega_demanda_id: entregaV2.id,
-        versao_uid: versao.versao_uid,
-        tipo: action === 'aprovar' ? 'versao_aprovada' : 'ajustes_solicitados',
-        descricao: descEvento,
-        autor: nome_responsavel.trim(),
-        autor_tipo: 'cliente',
-      }).catch(() => null);
+        // 5. Atualizar caches da EntregaDemanda
+        await sdk.entities.EntregaDemanda.update(entregaV2.id, {
+          status_entrega_cache: novoStatusVersao,
+          retorno_cliente_tratado: false,
+          ...(action === 'aprovar' ? {
+            data_aprovacao: agoraV2,
+            usuario_aprovacao: nome_responsavel.trim(),
+          } : {
+            observacao_cliente: observacao || '',
+          }),
+        });
 
-      // 9. NotificacaoAprovacao (AUXILIAR)
-      const tipoNotif = action === 'aprovar' ? 'entrega_aprovada_cliente' : 'alteracao_solicitada_cliente';
-      const notifExistentes = await sdk.entities.NotificacaoAprovacao.filter({ resposta_aprovacao_id: resposta.id });
-      if (!notifExistentes || notifExistentes.length === 0) {
-        await sdk.entities.NotificacaoAprovacao.create({
-          tipo_notificacao: tipoNotif,
+        // 6. Sincronizar ItemDemanda
+        if (versao.item_demanda_id) {
+          const novoStatusItem = versaoStatusToItemStatus(novoStatusVersao);
+          await sdk.entities.ItemDemanda.update(versao.item_demanda_id, {
+            status_aprovacao: novoStatusItem,
+          });
+        }
+
+        // 7. Concluir OperacaoEntrega
+        const opsArr = await sdk.entities.OperacaoEntrega.filter({ operacao_id: operacaoId });
+        if (opsArr[0]) {
+          await sdk.entities.OperacaoEntrega.update(opsArr[0].id, {
+            status_operacao: 'concluida',
+            etapa_atual: 'resposta_aplicada',
+            versao_uid: versao.versao_uid,
+            concluida_em: new Date().toISOString(),
+          });
+        }
+
+        // 8. TimelineEvent com operacao_id
+        const descEvento = action === 'aprovar'
+          ? `✅ ${nome_responsavel.trim()} aprovou a entrega: ${versao.nome_entrega} [entidade_versao]`
+          : `✏️ ${nome_responsavel.trim()} solicitou alteração em: ${versao.nome_entrega}${observacao ? ` — "${observacao}"` : ''} [entidade_versao]`;
+
+        await sdk.entities.TimelineEvent.create({
+          demanda_id: entregaV2.demanda_id,
           cliente_id: entregaV2.cliente_id,
-          cliente_nome: entregaV2.cliente_nome,
-          demanda_id: entregaV2.demanda_id || null,
-          demanda_titulo: entregaV2.demanda_titulo || null,
-          entrega_id: entregaV2.id,
-          entrega_nome: versao.nome_entrega,
-          status_aprovacao: novoStatusVersao,
-          comentario_cliente: observacao || null,
-          anexos: anexos || [],
-          link_alteracao: link_alteracao || null,
-          lida: false,
-          data_resposta_cliente: agoraV2,
-          resposta_aprovacao_id: resposta.id,
+          item_demanda_id: versao.item_demanda_id || null,
+          entrega_demanda_id: entregaV2.id,
+          versao_uid: versao.versao_uid,
+          operacao_id: operacaoId,
+          tipo: action === 'aprovar' ? 'versao_aprovada' : 'ajustes_solicitados',
+          descricao: descEvento,
+          autor: nome_responsavel.trim(),
+          autor_tipo: 'cliente',
         }).catch(() => null);
-      }
 
-      return Response.json({
-        success: true,
-        action,
-        status: novoStatusVersao,
-        versao_uid: versao.versao_uid,
-      });
+        // 9. NotificacaoAprovacao com operacao_id
+        const tipoNotif = action === 'aprovar' ? 'entrega_aprovada_cliente' : 'alteracao_solicitada_cliente';
+        const notifExistentes = await sdk.entities.NotificacaoAprovacao.filter({ resposta_aprovacao_id: resposta.id });
+        if (!notifExistentes || notifExistentes.length === 0) {
+          await sdk.entities.NotificacaoAprovacao.create({
+            tipo_notificacao: tipoNotif,
+            cliente_id: entregaV2.cliente_id,
+            cliente_nome: entregaV2.cliente_nome,
+            demanda_id: entregaV2.demanda_id || null,
+            demanda_titulo: entregaV2.demanda_titulo || null,
+            entrega_id: entregaV2.id,
+            entrega_nome: versao.nome_entrega,
+            status_aprovacao: novoStatusVersao,
+            comentario_cliente: observacao || null,
+            anexos: anexos || [],
+            link_alteracao: link_alteracao || null,
+            lida: false,
+            data_resposta_cliente: agoraV2,
+            resposta_aprovacao_id: resposta.id,
+            operacao_id: operacaoId,
+          }).catch(() => null);
+        }
+
+        return Response.json({
+          success: true,
+          action,
+          status: novoStatusVersao,
+          versao_uid: versao.versao_uid,
+        });
+
+      } catch (applyError) {
+        // Falha parcial: marcar resposta como falha_aplicacao e registrar erro
+        await sdk.entities.RespostaAprovacaoEntrega.update(resposta.id, {
+          status_aplicacao: 'falha_aplicacao',
+          erro_aplicacao_detalhe: applyError.message || String(applyError),
+        }).catch(() => null);
+
+        const opsArr = await sdk.entities.OperacaoEntrega.filter({ operacao_id: operacaoId });
+        if (opsArr[0]) {
+          const falhasAtuais = opsArr[0].falhas || [];
+          falhasAtuais.push({ etapa: 'aplicacao_resposta', erro: applyError.message || String(applyError), timestamp: new Date().toISOString() });
+          await sdk.entities.OperacaoEntrega.update(opsArr[0].id, {
+            status_operacao: 'falha',
+            etapa_atual: 'falha_aplicacao',
+            falhas: falhasAtuais,
+          });
+        }
+
+        return Response.json({ error: 'falha_aplicacao', message: 'Erro ao aplicar resposta. A reconciliação retomará automaticamente.', operacao_id: operacaoId }, { status: 500 });
+      }
     }
 
     // ── FIM V2 — cai para lógica embutida existente ──

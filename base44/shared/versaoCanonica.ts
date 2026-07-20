@@ -34,27 +34,40 @@ export function gerarUUID() {
 
 /**
  * Gera um token público único para link de aprovação.
+ * Usa crypto.randomUUID() — criptograficamente seguro.
  */
 export function gerarTokenPublico() {
-  return (
-    Math.random().toString(36).substring(2, 10) +
-    Date.now().toString(36) +
-    Math.random().toString(36).substring(2, 8)
-  );
+  return crypto.randomUUID();
 }
 
 /**
- * Gera um hash simples do payload para detecção de duplicação (djb2).
- * Não é criptográfico — apenas para comparar payloads iguais.
+ * Ordena recursivamente as chaves de um objeto, preservando a ordem dos arrays.
  */
-export function hashPayload(payload) {
-  if (!payload) return 'empty';
-  const str = JSON.stringify(payload, Object.keys(payload).sort());
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash + str.charCodeAt(i)) & 0xffffffff;
+function sortObjectKeys(obj) {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(sortObjectKeys);
+  const sorted = {};
+  for (const key of Object.keys(obj).sort()) {
+    sorted[key] = sortObjectKeys(obj[key]);
   }
-  return hash.toString(16);
+  return sorted;
+}
+
+/**
+ * Gera um hash SHA-256 do payload para detecção de duplicação.
+ * - Ordenação recursiva de chaves de objetos
+ * - Preservação da ordem dos arrays
+ * - SHA-256 com crypto.subtle.digest
+ */
+export async function hashPayload(payload) {
+  if (!payload) return 'empty';
+  const sorted = sortObjectKeys(payload);
+  const str = JSON.stringify(sorted);
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -176,11 +189,16 @@ export async function determinarOperacaoCanonica(sdk, params) {
  * @param {string} idempotencyKey
  * @returns {Promise<{existe: boolean, operacao: object | null, resultado: object | null}>}
  */
-export async function verificarOperacaoExistente(sdk, idempotencyKey) {
+export async function verificarOperacaoExistente(sdk, idempotencyKey, tipoOperacao = null, entregaId = null, payloadHash = null) {
   if (!idempotencyKey) return { existe: false, operacao: null, resultado: null };
 
+  const filter = { idempotency_key: idempotencyKey };
+  if (tipoOperacao) filter.tipo_operacao = tipoOperacao;
+  if (entregaId) filter.entrega_id = entregaId;
+  if (payloadHash) filter.payload_hash = payloadHash;
+
   const existentes = await sdk.entities.OperacaoEntrega.filter(
-    { idempotency_key: idempotencyKey },
+    filter,
     'created_date',
     10
   );

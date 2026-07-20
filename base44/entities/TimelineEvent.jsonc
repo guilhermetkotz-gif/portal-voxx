@@ -22,6 +22,10 @@
       "type": "string",
       "description": "UID da VersaoEntregaDemanda vinculada (modelo entidade_versao). null no modelo embutido."
     },
+    "operacao_id": {
+      "type": "string",
+      "description": "ID da OperacaoEntrega que gerou este evento (rastreabilidade). null no modelo embutido."
+    },
     "tipo": {
       "type": "string",
       "enum": [

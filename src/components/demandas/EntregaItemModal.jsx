@@ -25,6 +25,13 @@ const TIPOS = ['Imagem', 'Vídeo', 'Landing Page', 'Documento', 'PDF', 'Link', '
 export default function EntregaItemModal({ mode, item, demanda, entregaAtual, user, onClose, onSaved }) {
   const isNovaVersao = mode === 'nova_versao';
 
+  // idempotency_key criada UMA VEZ e preservada em todos os retries
+  const [idempotencyKey] = useState(() =>
+    (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).substring(2)}`
+  );
+
   const [form, setForm] = useState({
     nome_entrega: isNovaVersao ? entregaAtual?.nome_entrega || '' : item?.titulo || '',
     descricao: isNovaVersao ? entregaAtual?.descricao || '' : '',
@@ -58,9 +65,7 @@ export default function EntregaItemModal({ mode, item, demanda, entregaAtual, us
   const saveMutation = useMutation({
     mutationFn: async () => {
       const action = isNovaVersao ? 'criar_nova_versao' : 'criar_entrega_item';
-      const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).substring(2)}`;
+      // idempotencyKey preservada entre retries (definida no useState)
       // Fase 2A: modelo entidade_versao ativo apenas para "Cronograma de testes Fase 2"
       const isTesteFase2 = demanda?.titulo === 'Cronograma de testes Fase 2';
       const payload = {

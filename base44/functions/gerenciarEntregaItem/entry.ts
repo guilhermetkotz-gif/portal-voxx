@@ -233,9 +233,18 @@ Deno.serve(async (req) => {
         if (!v.ok) return null;
         const { item, demanda } = v;
 
+        // Proteção de escopo: modelo entidade_versao autorizado apenas para demanda específica
+        const DEMANDA_AUTORIZADA_V2 = '6a5e51c1f77aa0ea68dd3e42';
+        if (demanda.id !== DEMANDA_AUTORIZADA_V2) {
+          return Response.json({
+            error: 'Modelo de versionamento entidade_versao não autorizado para esta demanda.',
+            code: 'MODELO_VERSIONAMENTO_NAO_AUTORIZADO',
+          }, { status: 403 });
+        }
+
         const idempotencyKey = body.idempotency_key || gerarUUID();
-        const payloadHash = hashPayload({ nome_entrega, arquivos, link_externo, tipo_entrega });
-        const existente = await verificarOperacaoExistente(sdk, idempotencyKey);
+        const payloadHash = await hashPayload({ nome_entrega, arquivos, link_externo, tipo_entrega, observacao_voxx });
+        const existente = await verificarOperacaoExistente(sdk, idempotencyKey, 'criar_entrega', null, payloadHash);
         if (existente.existe && existente.status === 'concluida' && existente.resultado) return Response.json(existente.resultado);
         if (existente.existe && ['iniciada', 'em_execucao'].includes(existente.status)) return Response.json({ error: 'Operação em andamento.', code: 'OPERACAO_EM_ANDAMENTO' }, { status: 409 });
 
@@ -307,8 +316,8 @@ Deno.serve(async (req) => {
         }
 
         const idempotencyKey = body.idempotency_key || gerarUUID();
-        const payloadHash = hashPayload({ nome_entrega, arquivos, link_externo, tipo_entrega });
-        const existente = await verificarOperacaoExistente(sdk, idempotencyKey);
+        const payloadHash = await hashPayload({ nome_entrega, arquivos, link_externo, tipo_entrega, observacao_voxx });
+        const existente = await verificarOperacaoExistente(sdk, idempotencyKey, 'criar_nova_versao', entrega.id, payloadHash);
         if (existente.existe && existente.status === 'concluida' && existente.resultado) return Response.json(existente.resultado);
         if (existente.existe && ['iniciada', 'em_execucao'].includes(existente.status)) return Response.json({ error: 'Operação em andamento.', code: 'OPERACAO_EM_ANDAMENTO' }, { status: 409 });
 
@@ -324,7 +333,7 @@ Deno.serve(async (req) => {
           descricao: descricao || null, tipo_entrega, arquivos: arquivos || [], link_externo: link_externo || null,
           observacao_voxx: observacao_voxx || null, observacao_interna: observacao_interna || null,
           token_publico: token, criada_em: agora, criada_por: usuarioNome, criada_por_id: user.id,
-          status: 'reenviado', status_canonico: 'ativa',
+          status: 'rascunho', status_canonico: 'ativa',
         });
 
         await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, {
@@ -332,7 +341,7 @@ Deno.serve(async (req) => {
         });
 
         await atualizarCachesEntrega(entrega.id, { ...novaVersao, numero_exibicao_calculado: novoNumero });
-        await sdk.entities.ItemDemanda.update(item_id, { status_aprovacao: 'reenviado' });
+        // Item permanece ajustes_solicitados — nova versão em rascunho não altera status do item
         await concluirOperacao(operacaoId, versaoUid, 'nova_versao_criada');
 
         await timeline(demanda.id, demanda.cliente_id, 'nova_versao_enviada',
@@ -371,7 +380,7 @@ Deno.serve(async (req) => {
         // ── enviar_para_aprovacao V2 ──
         if (action === 'enviar_para_aprovacao') {
           if (!versaoAtual) return Response.json({ error: 'Não existe versão ativa.', code: 'SEM_VERSAO_ATIVA' }, { status: 400 });
-          const statusPermitidos = ['rascunho', 'solicitacao_alteracao', 'reenviado'];
+          const statusPermitidos = ['rascunho', 'reenviado'];
           if (!statusPermitidos.includes(versaoAtual.status)) return Response.json({ error: `Status atual (${versaoAtual.status}) não permite envio.`, code: 'STATUS_NAO_PERMITE_ENVIO' }, { status: 400 });
           if (!versaoAtual.arquivos?.length && !versaoAtual.link_externo) return Response.json({ error: 'Versão sem arquivos ou link.' }, { status: 400 });
 
@@ -417,7 +426,7 @@ Deno.serve(async (req) => {
         if (action === 'aprovar_item') {
           if (!versaoAtual) return Response.json({ error: 'Sem versão ativa.' }, { status: 400 });
           if (versaoAtual.status === 'aprovado') return Response.json({ error: 'Este item já está aprovado.', code: 'JA_APROVADO' }, { status: 400 });
-          if (versaoAtual.status === 'rascunho') return Response.json({ error: 'Não é possível aprovar rascunho. Envie para aprovação primeiro.', code: 'STATUS_NAO_PERMITE_APROVACAO' }, { status: 400 });
+          if (!['em_aprovacao', 'reenviado'].includes(versaoAtual.status)) return Response.json({ error: `Status atual (${versaoAtual.status}) não permite aprovação. Apenas em_aprovacao ou reenviado.`, code: 'STATUS_NAO_PERMITE_APROVACAO' }, { status: 400 });
 
           const operacaoId = await iniciarOperacao({ entrega_id: entrega.id, item_demanda_id: item_id, tipo_operacao: 'aprovar', idempotency_key: body.idempotency_key });
           await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, { status: 'aprovado', aprovada_em: agora, aprovada_por: usuarioNome });
