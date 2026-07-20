@@ -145,13 +145,15 @@ Deno.serve(async (req) => {
       }
 
       // 4. Atualizar caches de EntregaDemanda
+      // Após os passos 2 e 3, todas as versões não-canônicas foram marcadas como
+      // duplicada/substituida — o conflito foi resolvido, então tem_conflito_versao = false.
       const novoStatusCache = versaoStatusToEntregaStatus(versao_canonica.status);
       await sdk.entities.EntregaDemanda.update(entrega.id, {
         versao_atual_uid_cache: versao_canonica.versao_uid,
         numero_versao_atual_cache: numero_versao_canonica,
         status_entrega_cache: novoStatusCache,
         token_publico_cache: versao_canonica.token_publico,
-        tem_conflito_versao: tem_concorrencia,
+        tem_conflito_versao: false,
         ultima_sincronizacao_em: agora,
       });
       resultado.acoes.push('caches_atualizados');
