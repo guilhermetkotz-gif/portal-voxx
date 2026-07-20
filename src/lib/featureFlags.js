@@ -30,6 +30,9 @@ const FEATURE_DEFAULTS = {
   // Fase 1 — Modelo Híbrido de Demandas Compostas
   // Ativado apenas em homologação; em produção, requer override via URL.
   itensDemanda: true,
+  // Fase 2 — Entregas, versões e aprovação individual por ItemDemanda
+  // Ativado apenas em homologação; em produção, requer override via URL.
+  entregasPorItem: true,
 };
 
 const normalizeKey = (key) => {
@@ -61,4 +64,5 @@ export const isFeatureEnabled = (flagName) => {
 
 export const FEATURES = {
   ITENS_DEMANDA: 'itensDemanda',
+  ENTREGAS_POR_ITEM: 'entregasPorItem',
 };

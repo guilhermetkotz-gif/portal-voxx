@@ -10,6 +10,14 @@
       "type": "string",
       "description": "T\u00edtulo da demanda (cache)"
     },
+    "item_demanda_id": {
+      "type": "string",
+      "description": "ID do ItemDemanda vinculado (obrigat\u00f3rio em demandas compostas; null em unit\u00e1rias/legadas). Imut\u00e1vel ap\u00f3s cria\u00e7\u00e3o."
+    },
+    "item_titulo": {
+      "type": "string",
+      "description": "T\u00edtulo do item (cache, para exibi\u00e7\u00e3o)"
+    },
     "cliente_id": {
       "type": "string",
       "description": "ID do cliente"
@@ -105,6 +113,10 @@
     "usuario_envio_nome": {
       "type": "string"
     },
+    "usuario_envio_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio Base44 que enviou a entrega/vers\u00e3o"
+    },
     "usuario_aprovacao": {
       "type": "string"
     },
@@ -125,6 +137,11 @@
       "type": "string",
       "format": "date-time",
       "description": "Expira\u00e7\u00e3o opcional do link"
+    },
+    "versao_ativa": {
+      "type": "boolean",
+      "default": true,
+      "description": "Se esta \u00e9 a vers\u00e3o ativa do item. false = vers\u00e3o arquivada/substitu\u00edda."
     },
     "numero_versao_atual": {
       "type": "number",
@@ -156,6 +173,17 @@
           },
           "observacao": {
             "type": "string"
+          },
+          "status_versao": {
+            "type": "string",
+            "enum": [
+              "substituida",
+              "arquivada",
+              "aprovada_anteriormente",
+              "reprovada",
+              "ativa"
+            ],
+            "description": "Estado da vers\u00e3o no hist\u00f3rico"
           }
         }
       }

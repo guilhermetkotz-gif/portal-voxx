@@ -10,6 +10,14 @@
       "type": "string",
       "description": "ID do cliente"
     },
+    "item_demanda_id": {
+      "type": "string",
+      "description": "ID do ItemDemanda vinculado (eventos espec\u00edficos de entrega/vers\u00e3o/aprova\u00e7\u00e3o de item). null em eventos gerais."
+    },
+    "entrega_demanda_id": {
+      "type": "string",
+      "description": "ID da EntregaDemanda vinculada (eventos espec\u00edficos de vers\u00e3o/entrega). null em eventos gerais."
+    },
     "tipo": {
       "type": "string",
       "enum": [
@@ -18,7 +26,14 @@
         "anexo",
         "criacao",
         "acao_voxx",
-        "alteracao_manual"
+        "alteracao_manual",
+        "entrega_criada",
+        "versao_enviada",
+        "aprovacao_solicitada",
+        "ajustes_solicitados",
+        "nova_versao_enviada",
+        "versao_aprovada",
+        "item_reaberto"
       ],
       "description": "Tipo do evento"
     },

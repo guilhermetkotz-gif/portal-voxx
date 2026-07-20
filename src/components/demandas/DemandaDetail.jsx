@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import StatusBadge from '@/components/ui/StatusBadge';
+import EntregasSection from '@/components/demandas/EntregasSection';
+import EntregasPorItemSection from '@/components/demandas/EntregasPorItemSection';
+import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
 import { 
   Clock, 
   Calendar, 
@@ -18,7 +21,9 @@ import {
   Loader2,
   Copy,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Package,
+  RotateCcw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -30,7 +35,14 @@ const eventIcons = {
   status_change: ArrowRight,
   comentario: MessageSquare,
   anexo: Paperclip,
-  acao_voxx: CheckCircle
+  acao_voxx: CheckCircle,
+  entrega_criada: Package,
+  versao_enviada: Send,
+  aprovacao_solicitada: Send,
+  ajustes_solicitados: AlertCircle,
+  nova_versao_enviada: RotateCcw,
+  versao_aprovada: CheckCircle,
+  item_reaberto: AlertTriangle,
 };
 
 const eventColors = {
@@ -38,7 +50,14 @@ const eventColors = {
   status_change: 'bg-blue-100 text-blue-600',
   comentario: 'bg-violet-100 text-violet-600',
   anexo: 'bg-amber-100 text-amber-600',
-  acao_voxx: 'bg-emerald-100 text-emerald-600'
+  acao_voxx: 'bg-emerald-100 text-emerald-600',
+  entrega_criada: 'bg-violet-100 text-violet-600',
+  versao_enviada: 'bg-blue-100 text-blue-600',
+  aprovacao_solicitada: 'bg-blue-100 text-blue-600',
+  ajustes_solicitados: 'bg-amber-100 text-amber-600',
+  nova_versao_enviada: 'bg-indigo-100 text-indigo-600',
+  versao_aprovada: 'bg-green-100 text-green-600',
+  item_reaberto: 'bg-orange-100 text-orange-600',
 };
 
 export default function DemandaDetail({ demanda, events = [], open, onClose, user }) {
@@ -69,6 +88,26 @@ export default function DemandaDetail({ demanda, events = [], open, onClose, use
     await addComentario.mutateAsync();
     setSending(false);
   };
+
+  const demandaId = demanda?.id;
+  const estruturaDemanda = demanda?.estrutura_demanda || 'legada';
+  const featureEntregasPorItem = isFeatureEnabled(FEATURES.ENTREGAS_POR_ITEM);
+  const isComposta = estruturaDemanda === 'composta';
+  const exibirEntregasPorItem = isComposta && featureEntregasPorItem;
+
+  // Buscar itens da demanda se for composta (para EntregasPorItemSection)
+  const { data: itensDemanda = [] } = useQuery({
+    queryKey: ['itensDemanda', demandaId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('gerenciarItemDemanda', {
+        action: 'list_items',
+        demanda_id: demandaId,
+      });
+      return res.data?.items || [];
+    },
+    enabled: exibirEntregasPorItem && !!demandaId,
+    refetchInterval: false,
+  });
 
   if (!demanda) return null;
 
@@ -707,6 +746,21 @@ ${statusValidacao}`.trim();
                   </a>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Entregas — por item (composta + feature flag) ou tradicional */}
+          {exibirEntregasPorItem ? (
+            <div className="pt-2 border-t">
+              <EntregasPorItemSection
+                demanda={demanda}
+                user={user}
+                itens={itensDemanda}
+              />
+            </div>
+          ) : (
+            <div className="pt-2 border-t">
+              <EntregasSection demanda={demanda} user={user} />
             </div>
           )}
 

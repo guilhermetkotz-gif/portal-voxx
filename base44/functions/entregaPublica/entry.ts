@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
           id: entrega.id,
           nome_entrega: entrega.nome_entrega,
           demanda_titulo: entrega.demanda_titulo || null,
+          item_titulo: entrega.item_titulo || null,
           descricao: entrega.descricao,
           tipo_entrega: entrega.tipo_entrega,
           status_entrega: entrega.status_entrega,
@@ -59,6 +60,30 @@ Deno.serve(async (req) => {
     }
     if (!nome_responsavel?.trim()) {
       return Response.json({ error: 'Nome obrigatório' }, { status: 400 });
+    }
+
+    // Impedir aprovação de versão arquivada/substituída
+    if (entrega.versao_ativa === false) {
+      return Response.json({
+        error: 'versao_substituida',
+        message: 'Esta versão foi substituída por uma mais recente. Acesse o link atualizado.',
+      }, { status: 403 });
+    }
+
+    // Impedir aprovação duplicada
+    if (entrega.status_entrega === 'aprovado' && action === 'aprovar') {
+      return Response.json({
+        error: 'ja_aprovado',
+        message: 'Esta entrega já foi aprovada.',
+      }, { status: 400 });
+    }
+
+    // Impedir pedido de ajustes após aprovação sem reabertura
+    if (entrega.status_entrega === 'aprovado' && action === 'solicitacao_alteracao') {
+      return Response.json({
+        error: 'aprovado_requer_reabertura',
+        message: 'Este item já está aprovado. A reabertura deve ser solicitada à equipe Voxx.',
+      }, { status: 400 });
     }
 
     const agora = new Date().toISOString();
@@ -111,7 +136,19 @@ Deno.serve(async (req) => {
 
     await sdk.entities.EntregaDemanda.update(entrega.id, updates);
 
-    // Criar evento na timeline
+    // ── FASE 2: Se a entrega tem item_demanda_id, sincronizar ItemDemanda.status_aprovacao ──
+    if (entrega.item_demanda_id) {
+      try {
+        const novoStatusItem = action === 'aprovar' ? 'aprovado' : 'ajustes_solicitados';
+        await sdk.entities.ItemDemanda.update(entrega.item_demanda_id, {
+          status_aprovacao: novoStatusItem,
+        });
+      } catch (e) {
+        console.error('Erro ao sincronizar ItemDemanda.status_aprovacao:', e.message);
+      }
+    }
+
+    // Criar evento na timeline (com vínculo de item/entrega)
     const descEvento = action === 'aprovar'
       ? `✅ ${nome_responsavel.trim()} aprovou a entrega: ${entrega.nome_entrega}`
       : `✏️ ${nome_responsavel.trim()} solicitou alteração em: ${entrega.nome_entrega}${observacao ? ` — "${observacao}"` : ''}`;
@@ -119,7 +156,9 @@ Deno.serve(async (req) => {
     await sdk.entities.TimelineEvent.create({
       demanda_id: entrega.demanda_id,
       cliente_id: entrega.cliente_id,
-      tipo: action === 'aprovar' ? 'aprovacao' : 'solicitacao_alteracao',
+      item_demanda_id: entrega.item_demanda_id || null,
+      entrega_demanda_id: entrega.id,
+      tipo: action === 'aprovar' ? 'versao_aprovada' : 'ajustes_solicitados',
       descricao: descEvento,
       autor: nome_responsavel.trim(),
       autor_tipo: 'cliente'
@@ -128,7 +167,6 @@ Deno.serve(async (req) => {
     // ── CRIAR NOTIFICAÇÃO (com dedup por resposta_aprovacao_id) ──
     const tipoNotif = action === 'aprovar' ? 'entrega_aprovada_cliente' : 'alteracao_solicitada_cliente';
 
-    // Verificar se já existe notificação para esta resposta (evitar duplicidade)
     const existentes = await sdk.entities.NotificacaoAprovacao.filter({
       resposta_aprovacao_id: resposta.id
     });
