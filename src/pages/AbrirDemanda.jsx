@@ -27,6 +27,10 @@ import {
 import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
 import EdicaoVideoWizard from '@/components/demandas/EdicaoVideoWizard';
 import BriefingUniversalWizard from '@/components/demandas/BriefingUniversalWizard';
+import EstruturaDemandaSelector from '@/components/demandas/EstruturaDemandaSelector';
+import ItensDemandaInlineEditor from '@/components/demandas/ItensDemandaInlineEditor';
+import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
+import { toast } from 'sonner';
 
 const setores = [
   { 
@@ -208,6 +212,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   const [mostrarWizardOralSin, setMostrarWizardOralSin] = useState(false);
   const [mostrarWizardEdicao, setMostrarWizardEdicao] = useState(false);
   const [demandaId, setDemandaId] = useState(null);
+  const [estruturaDemanda, setEstruturaDemanda] = useState('unitaria');
+  const [itensDemanda, setItensDemanda] = useState([]);
 
   // Check URL params for pre-fill or edit
   useEffect(() => {
@@ -251,6 +257,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     setAnexos(demandaExistente.anexos || []);
     setComunicarCliente(demandaExistente.comunicar_cliente ?? true);
     setResumoEntregaCliente(demandaExistente.resumo_entrega_cliente || '');
+    setEstruturaDemanda(demandaExistente.estrutura_demanda || 'unitaria');
   }, [demandaExistente]);
 
   const { data: user } = useQuery({
@@ -352,7 +359,6 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['demandas'] });
-      setSuccess(true);
     }
   });
 
@@ -393,8 +399,20 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!clienteId || !setor || !titulo) return;
+
+    const featureAtiva = isFeatureEnabled(FEATURES.ITENS_DEMANDA);
+    const isComposta = featureAtiva && estruturaDemanda === 'composta';
+
+    // Validação para demanda composta
+    if (isComposta) {
+      const validItems = itensDemanda.filter(i => i.titulo?.trim());
+      if (validItems.length < 2) {
+        toast.error('Demandas compostas exigem no mínimo 2 entregas com título preenchido.');
+        return;
+      }
+    }
 
     const subcategoriaFinal = mostrarNovaSubcategoria ? novaSubcategoria : subcategoria;
 
@@ -419,15 +437,48 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       comunicar_cliente: comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
       anexos_cliente: anexosClienteFinal,
-      // Formulário genérico pode receber qualquer setor — não forçar unitaria.
-      // Legada por ambiguidade: o usuário não escolhe estrutura neste fluxo.
-      estrutura_demanda: 'legada',
+      estrutura_demanda: featureAtiva ? estruturaDemanda : 'legada',
     };
 
-    if (demandaId) {
-      await updateDemanda.mutateAsync(data);
-    } else {
-      await createDemanda.mutateAsync(data);
+    try {
+      if (demandaId) {
+        await updateDemanda.mutateAsync(data);
+        setSuccess(true);
+      } else {
+        const createdDemanda = await createDemanda.mutateAsync(data);
+
+        // Criar itens da demanda composta via backend gerenciarItemDemanda
+        if (isComposta && createdDemanda) {
+          const validItems = itensDemanda.filter(i => i.titulo?.trim());
+          for (let i = 0; i < validItems.length; i++) {
+            const item = validItems[i];
+            try {
+              await base44.functions.invoke('gerenciarItemDemanda', {
+                action: 'create_item',
+                demanda_id: createdDemanda.id,
+                titulo: item.titulo.trim(),
+                descricao: item.descricao || null,
+                tipo_material: item.tipo_material || null,
+                formato: item.formato || null,
+                canal: item.canal || null,
+                data_prevista: item.data_prevista ? new Date(item.data_prevista).toISOString() : null,
+                prazo_data: item.prazo_data ? new Date(item.prazo_data).toISOString() : null,
+                responsavel_id: item.responsavel_id || null,
+                responsavel_nome: item.responsavel_nome || null,
+                ordem: i,
+              });
+            } catch (itemErr) {
+              const msg = itemErr?.response?.data?.error || itemErr.message || 'Erro desconhecido';
+              toast.error(`Erro ao criar entrega "${item.titulo}": ${msg}`);
+              return;
+            }
+          }
+        }
+        setSuccess(true);
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.error || err.message || 'Erro ao salvar demanda';
+      toast.error(msg);
     }
   };
 
@@ -548,6 +599,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
             setPrevisaoEntrega('');
             setCamposAdicionais({});
             setAnexos([]);
+            setEstruturaDemanda('unitaria');
+            setItensDemanda([]);
           }}>
             Abrir Nova Demanda
           </Button>
@@ -823,6 +876,21 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
             </div>
           )}
 
+          {/* Estrutura da Demanda (Modelo Híbrido) */}
+          {isFeatureEnabled(FEATURES.ITENS_DEMANDA) && setorSelecionado && (
+            <div className="space-y-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+              <EstruturaDemandaSelector value={estruturaDemanda} onChange={setEstruturaDemanda} />
+              {estruturaDemanda === 'composta' && (
+                <div className="pt-2">
+                  <ItensDemandaInlineEditor items={itensDemanda} onChange={setItensDemanda} />
+                  <p className="text-xs text-slate-400 mt-2">
+                    ℹ️ Carrosséis com vários slides e versões/arquivos da mesma peça não são entregas independentes.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Título */}
           <div className="space-y-2">
             <Label>Título da Demanda *</Label>
@@ -1058,10 +1126,15 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
           </div>
 
           {/* Submit */}
+          {isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estruturaDemanda === 'composta' && itensDemanda.filter(i => i.titulo?.trim()).length < 2 && (
+            <p className="text-xs text-red-500 text-center">
+              Adicione no mínimo 2 entregas com título para enviar uma demanda composta.
+            </p>
+          )}
           <Button 
             type="submit" 
             className="w-full bg-violet-600 hover:bg-violet-700"
-            disabled={!clienteId || !setor || !titulo || createDemanda.isPending || updateDemanda.isPending || (mostrarNovaSubcategoria && !novaSubcategoria)}
+            disabled={!clienteId || !setor || !titulo || createDemanda.isPending || updateDemanda.isPending || (mostrarNovaSubcategoria && !novaSubcategoria) || (isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estruturaDemanda === 'composta' && itensDemanda.filter(i => i.titulo?.trim()).length < 2)}
           >
             {(createDemanda.isPending || updateDemanda.isPending) ? (
               <>

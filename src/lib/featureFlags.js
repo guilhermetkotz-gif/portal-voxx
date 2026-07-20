@@ -29,7 +29,7 @@ const isHomologationEnv = () => {
 const FEATURE_DEFAULTS = {
   // Fase 1 — Modelo Híbrido de Demandas Compostas
   // Ativado apenas em homologação; em produção, requer override via URL.
-  itensDemanda: isHomologationEnv(),
+  itensDemanda: true,
 };
 
 const normalizeKey = (key) => {
