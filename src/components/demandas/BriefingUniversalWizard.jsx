@@ -8,6 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ChevronRight, ChevronLeft, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
+import EstruturaDemandaStep from '@/components/demandas/EstruturaDemandaStep';
+import CompostaDemandaFlow from '@/components/demandas/CompostaDemandaFlow';
 
 const ETAPAS = [
   { id: 1, titulo: "Formato", descricao: "Formato da peça e canal" },
@@ -31,6 +33,7 @@ const TIPOS_IMAGEM = ['Foto de produto', 'Foto de pessoa', 'Ilustração / Vetor
 const DESTINOS = ['WhatsApp', 'Site / Landing Page', 'Instagram', 'Formulário', 'Loja', 'Ligação'];
 
 export default function BriefingUniversalWizard({ cliente, onComplete, onCancel }) {
+  const [estrutura, setEstrutura] = useState(null);
   const [etapaAtual, setEtapaAtual] = useState(1);
   const [gerando, setGerando] = useState(false);
   const [mostrarAvancados, setMostrarAvancados] = useState(false);
@@ -57,6 +60,24 @@ export default function BriefingUniversalWizard({ cliente, onComplete, onCancel 
   });
 
   const set = (campo, valor) => setDados(prev => ({ ...prev, [campo]: valor }));
+
+  // Etapa 0: Estrutura da solicitação
+  if (estrutura === null) {
+    return <EstruturaDemandaStep onSelect={setEstrutura} onCancel={onCancel} accentColor="blue" />;
+  }
+
+  // Fluxo composta — substitui as etapas do wizard
+  if (estrutura === 'composta') {
+    return (
+      <CompostaDemandaFlow
+        cliente={cliente}
+        tipoWizard="universal"
+        accentColor="blue"
+        onComplete={(data) => onComplete({ ...data, estrutura_demanda: 'composta' })}
+        onCancel={() => setEstrutura(null)}
+      />
+    );
+  }
 
   const validarEtapa = (etapa) => {
     switch (etapa) {
@@ -173,7 +194,8 @@ Prazo: ${dados.prazo}${dados.urgente === 'Sim' ? ` (URGENTE: ${dados.motivo_urge
         descricao: descricaoAuto,
         titulo: `[Arte] ${dados.tema} - ${dados.formato} - ${cliente?.nome || ''}`,
         urgente: dados.urgente === 'Sim',
-        previsao_entrega: dados.prazo
+        previsao_entrega: dados.prazo,
+        estrutura_demanda: 'unitaria',
       });
     }
   };

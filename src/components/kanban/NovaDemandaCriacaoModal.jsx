@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import CriacaoOralSinWizard from '@/components/demandas/CriacaoOralSinWizard';
 import BriefingUniversalWizard from '@/components/demandas/BriefingUniversalWizard';
 import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
+import { createItensDemanda } from '@/lib/createItensDemanda';
 
 /**
  * Modal de criação de demanda de CRIAÇÃO (Artes & Peças) no Kanban.
@@ -23,7 +24,6 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
   const [clienteSelecionadoId, setClienteSelecionadoId] = useState('');
   const [fase, setFase] = useState('selecionar'); // 'selecionar' | 'wizard_oral_sin' | 'wizard_universal'
   const [salvando, setSalvando] = useState(false);
-  const [estruturaDemanda, setEstruturaDemanda] = useState('unitaria'); // 'unitaria' | 'composta'
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ['clientesNovaDemanda'],
@@ -50,7 +50,11 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
     }
   };
 
-  const handleConcluir = async ({ camposAdicionais, descricao, titulo, urgente, previsao_entrega, anexos }) => {
+  const handleConcluir = async (wizardData) => {
+    const { camposAdicionais, descricao, titulo, urgente, previsao_entrega, anexos, prioridade, comunicar_cliente } = wizardData;
+    const estrutura = wizardData.estrutura_demanda || 'unitaria';
+    const isComposta = isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estrutura === 'composta';
+
     setSalvando(true);
     try {
       const demanda = await base44.entities.Demanda.create({
@@ -60,12 +64,12 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
         titulo: titulo || 'Nova Arte',
         descricao: descricao || '',
         status: 'recebida',
-        prioridade: urgente ? 'alta' : 'media',
+        prioridade: prioridade || (urgente ? 'alta' : 'media'),
         urgente: urgente || false,
         previsao_entrega: previsao_entrega || null,
         campos_adicionais: camposAdicionais,
         anexos: anexos || [],
-        estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estruturaDemanda : 'legada',
+        estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estrutura : 'legada',
       });
 
       await base44.entities.TimelineEvent.create({
@@ -77,8 +81,18 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
         autor_tipo: 'voxx'
       });
 
+      if (isComposta && wizardData.itens) {
+        const result = await createItensDemanda(demanda.id, wizardData.itens);
+        if (result.errors.length > 0) {
+          toast.warning(`Demanda criada, mas ${result.errors.length} de ${result.total} entregas falaram. Verifique o card no Kanban.`);
+        } else {
+          toast.success(`Demanda composta criada com ${result.created} entregas.`);
+        }
+      } else {
+        toast.success('Demanda criada com sucesso!');
+      }
+
       queryClient.invalidateQueries(['demandasKanban']);
-      toast.success('Demanda criada com sucesso!');
       handleClose();
     } catch (error) {
       toast.error('Erro ao criar demanda: ' + error.message);
@@ -90,7 +104,6 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
   const handleClose = () => {
     setClienteSelecionadoId('');
     setFase('selecionar');
-    setEstruturaDemanda('unitaria');
     onClose();
   };
 
@@ -152,31 +165,11 @@ export default function NovaDemandaCriacaoModal({ open, onClose }) {
                 )}
 
                 {clienteSelecionado && isFeatureEnabled(FEATURES.ITENS_DEMANDA) && (
-                  <div className="space-y-2">
-                    <Label>Estrutura da Demanda</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEstruturaDemanda('unitaria')}
-                        className={`p-3 rounded-lg border text-left text-sm transition-colors ${estruturaDemanda === 'unitaria' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-300' : 'border-slate-200 hover:border-slate-300'}`}
-                      >
-                        <p className="font-medium text-slate-800">Unitária</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Uma única entrega (arte, vídeo, etc.)</p>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEstruturaDemanda('composta')}
-                        className={`p-3 rounded-lg border text-left text-sm transition-colors ${estruturaDemanda === 'composta' ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-300' : 'border-slate-200 hover:border-slate-300'}`}
-                      >
-                        <p className="font-medium text-slate-800">Composta</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Cronograma ou conjunto de materiais independentes</p>
-                      </button>
-                    </div>
-                    {estruturaDemanda === 'composta' && (
-                      <p className="text-xs text-violet-600 bg-violet-50 p-2 rounded">
-                        ℹ️ Os itens poderão ser adicionados e gerenciados após a criação do card, no detalhe da demanda.
-                      </p>
-                    )}
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                    <p className="text-xs text-slate-600">
+                      ℹ️ Após clicar em "Continuar", você escolherá a estrutura da demanda (uma entrega ou várias independentes)
+                      na primeira etapa do briefing.
+                    </p>
                   </div>
                 )}
 

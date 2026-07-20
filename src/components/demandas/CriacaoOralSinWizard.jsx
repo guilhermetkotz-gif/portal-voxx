@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
+import EstruturaDemandaStep from '@/components/demandas/EstruturaDemandaStep';
+import CompostaDemandaFlow from '@/components/demandas/CompostaDemandaFlow';
 
 const ETAPAS = [
   { id: 1, titulo: "Formato", descricao: "Formato da peça" },
@@ -28,6 +30,7 @@ const ETAPAS = [
 ];
 
 export default function CriacaoOralSinWizard({ cliente, onComplete, onCancel }) {
+  const [estrutura, setEstrutura] = useState(null);
   const [etapaAtual, setEtapaAtual] = useState(1);
   const [dados, setDados] = useState({
     formato_peca: '',
@@ -49,6 +52,24 @@ export default function CriacaoOralSinWizard({ cliente, onComplete, onCancel }) 
   const [anexos, setAnexos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [mostrarAvancados, setMostrarAvancados] = useState(false);
+
+  // Etapa 0: Estrutura da solicitação
+  if (estrutura === null) {
+    return <EstruturaDemandaStep onSelect={setEstrutura} onCancel={onCancel} accentColor="violet" />;
+  }
+
+  // Fluxo composta — substitui as etapas do wizard
+  if (estrutura === 'composta') {
+    return (
+      <CompostaDemandaFlow
+        cliente={cliente}
+        tipoWizard="oral_sin"
+        accentColor="violet"
+        onComplete={(data) => onComplete({ ...data, estrutura_demanda: 'composta' })}
+        onCancel={() => setEstrutura(null)}
+      />
+    );
+  }
 
   const handleFileUpload = async (e) => {
     const files = e.target.files;
@@ -132,7 +153,8 @@ Urgência: ${dados.urgencia_agenda}${dados.motivo_urgencia ? ` - ${dados.motivo_
         camposAdicionais,
         descricao: descricaoAuto,
         anexos,
-        titulo: `[Oral Sin] Arte ${temaFinal} - ${dados.formato_peca}`
+        titulo: `[Oral Sin] Arte ${temaFinal} - ${dados.formato_peca}`,
+        estrutura_demanda: 'unitaria',
       });
     }
   };

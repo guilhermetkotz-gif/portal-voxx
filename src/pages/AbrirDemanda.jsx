@@ -31,6 +31,7 @@ import EstruturaDemandaSelector from '@/components/demandas/EstruturaDemandaSele
 import ItensDemandaInlineEditor from '@/components/demandas/ItensDemandaInlineEditor';
 import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
 import { toast } from 'sonner';
+import { createItensDemanda } from '@/lib/createItensDemanda';
 
 const setores = [
   { 
@@ -357,8 +358,9 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       });
       return demanda;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['demandas'] });
+      if (data?.id) setDemandaId(data.id);
     }
   });
 
@@ -483,6 +485,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
   };
 
   const handleWizardUniversalComplete = async (wizardData) => {
+    const estrutura = wizardData.estrutura_demanda || 'unitaria';
     const data = {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
@@ -492,20 +495,38 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       titulo: wizardData.titulo,
       descricao: wizardData.descricao,
       status: 'recebida',
-      prioridade: wizardData.urgente ? 'alta' : 'media',
+      prioridade: wizardData.prioridade || (wizardData.urgente ? 'alta' : 'media'),
       urgente: wizardData.urgente || false,
       previsao_entrega: wizardData.previsao_entrega || null,
       anexos: wizardData.anexos || [],
       campos_adicionais: wizardData.camposAdicionais,
-      comunicar_cliente: comunicarCliente,
+      comunicar_cliente: wizardData.comunicar_cliente ?? comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
       anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
-      estrutura_demanda: 'unitaria',
+      estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estrutura : 'legada',
     };
-    await createDemanda.mutateAsync(data);
+
+    try {
+      const createdDemanda = await createDemanda.mutateAsync(data);
+
+      if (isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estrutura === 'composta' && wizardData.itens) {
+        const result = await createItensDemanda(createdDemanda.id, wizardData.itens);
+        if (result.errors.length > 0) {
+          toast.warning(`Demanda criada, mas ${result.errors.length} de ${result.total} entregas falaram. Verifique o card no Kanban.`);
+        } else {
+          toast.success(`Demanda composta criada com ${result.created} entregas.`);
+        }
+      }
+
+      setSuccess(true);
+    } catch (err) {
+      toast.error('Erro ao criar demanda: ' + (err.message || 'erro desconhecido'));
+    }
   };
 
   const handleWizardComplete = async (wizardData) => {
+    const estrutura = wizardData.estrutura_demanda || 'unitaria';
+    const isComposta = isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estrutura === 'composta';
     const data = {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
@@ -515,21 +536,42 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       titulo: wizardData.titulo,
       descricao: wizardData.descricao,
       status: 'recebida',
-      prioridade: wizardData.camposAdicionais.urgencia_agenda === 'Sim' ? 'alta' : 'media',
-      urgente: wizardData.camposAdicionais.urgencia_agenda === 'Sim',
-      previsao_entrega: wizardData.camposAdicionais.data_desejada || null,
+      prioridade: isComposta
+        ? (wizardData.prioridade || 'media')
+        : (wizardData.camposAdicionais?.urgencia_agenda === 'Sim' ? 'alta' : 'media'),
+      urgente: isComposta ? (wizardData.urgente || false) : (wizardData.camposAdicionais?.urgencia_agenda === 'Sim'),
+      previsao_entrega: isComposta
+        ? (wizardData.previsao_entrega || null)
+        : (wizardData.camposAdicionais?.data_desejada || null),
       anexos: wizardData.anexos,
       campos_adicionais: wizardData.camposAdicionais,
-      comunicar_cliente: comunicarCliente,
+      comunicar_cliente: wizardData.comunicar_cliente ?? comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
       anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
-      estrutura_demanda: 'unitaria',
+      estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estrutura : 'legada',
     };
 
-    await createDemanda.mutateAsync(data);
+    try {
+      const createdDemanda = await createDemanda.mutateAsync(data);
+
+      if (isComposta && wizardData.itens) {
+        const result = await createItensDemanda(createdDemanda.id, wizardData.itens);
+        if (result.errors.length > 0) {
+          toast.warning(`Demanda criada, mas ${result.errors.length} de ${result.total} entregas falaram. Verifique o card no Kanban.`);
+        } else {
+          toast.success(`Demanda composta criada com ${result.created} entregas.`);
+        }
+      }
+
+      setSuccess(true);
+    } catch (err) {
+      toast.error('Erro ao criar demanda: ' + (err.message || 'erro desconhecido'));
+    }
   };
 
   const handleWizardEdicaoComplete = async (wizardData) => {
+    const estrutura = wizardData.estrutura_demanda || 'unitaria';
+    const isComposta = isFeatureEnabled(FEATURES.ITENS_DEMANDA) && estrutura === 'composta';
     const data = {
       cliente_id: clienteId,
       cliente_nome: clienteSelecionado?.nome,
@@ -539,18 +581,35 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       titulo: wizardData.titulo,
       descricao: wizardData.descricao,
       status: 'recebida',
-      prioridade: wizardData.urgente ? 'alta' : 'media',
+      prioridade: isComposta ? (wizardData.prioridade || 'media') : (wizardData.urgente ? 'alta' : 'media'),
       urgente: wizardData.urgente,
-      previsao_entrega: wizardData.camposAdicionais.prazo_desejado || null,
+      previsao_entrega: isComposta
+        ? (wizardData.previsao_entrega || null)
+        : (wizardData.camposAdicionais?.prazo_desejado || null),
       anexos: wizardData.anexos,
       campos_adicionais: wizardData.camposAdicionais,
-      comunicar_cliente: comunicarCliente,
+      comunicar_cliente: wizardData.comunicar_cliente ?? comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
       anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
-      estrutura_demanda: 'unitaria',
+      estrutura_demanda: isFeatureEnabled(FEATURES.ITENS_DEMANDA) ? estrutura : 'legada',
     };
 
-    await createDemanda.mutateAsync(data);
+    try {
+      const createdDemanda = await createDemanda.mutateAsync(data);
+
+      if (isComposta && wizardData.itens) {
+        const result = await createItensDemanda(createdDemanda.id, wizardData.itens);
+        if (result.errors.length > 0) {
+          toast.warning(`Demanda criada, mas ${result.errors.length} de ${result.total} entregas falaram. Verifique o card no Kanban.`);
+        } else {
+          toast.success(`Demanda composta criada com ${result.created} entregas.`);
+        }
+      }
+
+      setSuccess(true);
+    } catch (err) {
+      toast.error('Erro ao criar demanda: ' + (err.message || 'erro desconhecido'));
+    }
   };
 
   const setorSelecionado = todosSetores.find(s => s.value === setor);

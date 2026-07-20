@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { base44 } from '@/api/base44Client';
+import EstruturaDemandaStep from '@/components/demandas/EstruturaDemandaStep';
+import CompostaDemandaFlow from '@/components/demandas/CompostaDemandaFlow';
 
 const ETAPAS = [
   { id: 0, titulo: "Tipo", descricao: "Tipo de edição" },
@@ -39,6 +41,7 @@ const SUBCATEGORIAS_EDICAO = [
 ];
 
 export default function EdicaoVideoWizard({ cliente, subcategoria: subcategoriaInicial, onComplete, onCancel }) {
+  const [estrutura, setEstrutura] = useState(null);
   const [etapaAtual, setEtapaAtual] = useState(0);
   const [subcategoria, setSubcategoria] = useState(subcategoriaInicial || '');
   const [dados, setDados] = useState({
@@ -95,6 +98,24 @@ export default function EdicaoVideoWizard({ cliente, subcategoria: subcategoriaI
   
   const [anexos, setAnexos] = useState([]);
   const [uploading, setUploading] = useState(false);
+
+  // Etapa 0: Estrutura da solicitação
+  if (estrutura === null) {
+    return <EstruturaDemandaStep onSelect={setEstrutura} onCancel={onCancel} accentColor="blue" />;
+  }
+
+  // Fluxo composta — substitui as etapas do wizard
+  if (estrutura === 'composta') {
+    return (
+      <CompostaDemandaFlow
+        cliente={cliente}
+        tipoWizard="edicao"
+        accentColor="blue"
+        onComplete={(data) => onComplete({ ...data, estrutura_demanda: 'composta' })}
+        onCancel={() => setEstrutura(null)}
+      />
+    );
+  }
 
   const handleFileUpload = async (e) => {
     const files = e.target.files;
@@ -210,7 +231,8 @@ ${dados.urgente ? `⚠️ URGENTE: ${dados.motivo_urgencia}` : ''}
         anexos,
         titulo: `[Edição] ${subcategoria} - ${dados.plataforma}`,
         urgente: dados.urgente,
-        subcategoria
+        subcategoria,
+        estrutura_demanda: 'unitaria',
       });
     }
   };
