@@ -73,6 +73,7 @@ export default function NovaDemandaPlanoModal({ open, onClose, clienteId, client
         cliente_id: clienteId,
         cliente_nome: clienteNome,
         status: 'recebida',
+        estrutura_demanda: 'unitaria',
         ...dadosDemanda,
       });
 

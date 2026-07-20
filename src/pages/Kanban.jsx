@@ -17,6 +17,7 @@ import NovaDemandaCriacaoModal from '@/components/kanban/NovaDemandaCriacaoModal
 import PendenciasAprovacaoDrawer from '@/components/kanban/PendenciasAprovacaoDrawer';
 import KanbanKPIs from '@/components/kanban/KanbanKPIs';
 import KanbanRetornoBanner from '@/components/kanban/KanbanRetornoBanner';
+import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
 
 const DEFAULT_COLUMN_ORDER = [
   'ATENDIMENTO',
@@ -173,6 +174,46 @@ const Kanban = ({ user, selectedClienteId }) => {
     enabled: !!user,
     refetchInterval: 15000,
   });
+
+  // Busca itens das demandas compostas para exibir resumo no card do Kanban (Fase 1 — Modelo Híbrido)
+  const { data: todosItens = [] } = useQuery({
+    queryKey: ['itensDemandaKanban', demandas?.length],
+    queryFn: () => base44.entities.ItemDemanda.list('-updated_date', 2000),
+    enabled: !!user && isFeatureEnabled(FEATURES.ITENS_DEMANDA) && !!demandas && demandas.length > 0,
+    refetchInterval: 15000,
+  });
+
+  // Mapeia demanda_id → resumo quantitativo de itens
+  const itensResumoMap = React.useMemo(() => {
+    if (!isFeatureEnabled(FEATURES.ITENS_DEMANDA) || !todosItens) return {};
+    const map = {};
+    todosItens.forEach(item => {
+      if (!item.demanda_id) return;
+      if (!map[item.demanda_id]) {
+        map[item.demanda_id] = {
+          total: 0,
+          ativos: 0,
+          concluidos: 0,
+          em_dev: 0,
+          nao_iniciado: 0,
+          em_fila: 0,
+          cancelados: 0,
+        };
+      }
+      const r = map[item.demanda_id];
+      r.total++;
+      if (item.status_finalizacao === 'cancelado') {
+        r.cancelados++;
+      } else {
+        r.ativos++;
+        if (item.status_producao === 'concluido') r.concluidos++;
+        else if (item.status_producao === 'em_desenvolvimento') r.em_dev++;
+        else if (item.status_producao === 'em_fila') r.em_fila++;
+        else if (item.status_producao === 'nao_iniciado') r.nao_iniciado++;
+      }
+    });
+    return map;
+  }, [todosItens]);
 
   // Mapeia demanda_id → status de aprovação mais crítico
   const aprovacaoStatusMap = React.useMemo(() => {
@@ -595,9 +636,9 @@ const Kanban = ({ user, selectedClienteId }) => {
                         ref={provided.innerRef}
                         {...provided.draggableProps}
                       >
-                        <KanbanColumn 
-                          id={columnId} 
-                          title={column.name} 
+                        <KanbanColumn
+                          id={columnId}
+                          title={column.name}
                           demands={column.items}
                           onCardClick={setSelectedDemanda}
                           dragHandleProps={provided.dragHandleProps}
@@ -605,6 +646,7 @@ const Kanban = ({ user, selectedClienteId }) => {
                           onToggleMinimize={() => toggleMinimize(columnId)}
                           allTags={allTags}
                           aprovacaoStatusMap={aprovacaoStatusMap}
+                          itensResumoMap={itensResumoMap}
                         />
                       </div>
                     )}

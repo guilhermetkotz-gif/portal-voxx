@@ -418,7 +418,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       campos_adicionais: camposAdicionais,
       comunicar_cliente: comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
-      anexos_cliente: anexosClienteFinal
+      anexos_cliente: anexosClienteFinal,
+      estrutura_demanda: 'unitaria',
     };
 
     if (demandaId) {
@@ -445,7 +446,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       campos_adicionais: wizardData.camposAdicionais,
       comunicar_cliente: comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
-      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true }))
+      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
+      estrutura_demanda: 'unitaria',
     };
     await createDemanda.mutateAsync(data);
   };
@@ -467,7 +469,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       campos_adicionais: wizardData.camposAdicionais,
       comunicar_cliente: comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
-      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true }))
+      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
+      estrutura_demanda: 'unitaria',
     };
 
     await createDemanda.mutateAsync(data);
@@ -490,7 +493,8 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
       campos_adicionais: wizardData.camposAdicionais,
       comunicar_cliente: comunicarCliente,
       resumo_entrega_cliente: resumoEntregaCliente || '',
-      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true }))
+      anexos_cliente: (wizardData.anexos || []).map(url => ({ url, nome: 'Anexo', tipo: 'documento', enviar_cliente: true })),
+      estrutura_demanda: 'unitaria',
     };
 
     await createDemanda.mutateAsync(data);

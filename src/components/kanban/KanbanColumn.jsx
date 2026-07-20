@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { GripVertical, Minimize2, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps, isMinimized, onToggleMinimize, allTags, aprovacaoStatusMap = {} }) => {
+const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps, isMinimized, onToggleMinimize, allTags, aprovacaoStatusMap = {}, itensResumoMap = {} }) => {
   const queryClient = useQueryClient();
 
   const handleUpdateTags = (demandaId, newTags) => {
@@ -65,13 +65,14 @@ const KanbanColumn = ({ title, demands, id, onCardClick, dragHandleProps, isMini
                     {...providedDraggable.dragHandleProps}
                     className={cn(snapshotDraggable.isDragging && "opacity-50")}
                   >
-                    <KanbanDemandCard 
-                      demanda={demanda} 
-                      onClick={onCardClick} 
+                    <KanbanDemandCard
+                      demanda={demanda}
+                      onClick={onCardClick}
                       isMinimized={isMinimized}
                       onUpdateTags={(tags) => handleUpdateTags(demanda.id, tags)}
                       allTags={allTags}
                       aprovacaoStatus={aprovacaoStatusMap[demanda.id]}
+                      itensResumo={itensResumoMap[demanda.id] || null}
                     />
                   </div>
                 )}

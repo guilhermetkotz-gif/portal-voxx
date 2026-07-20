@@ -42,6 +42,8 @@ import EntregasSection from '@/components/demandas/EntregasSection';
 import EnviarComentarioWhatsAppModal from '@/components/demandas/EnviarComentarioWhatsAppModal';
 import MoverCardSection from '@/components/kanban/MoverCardSection';
 import AlteracaoManualSection from '@/components/kanban/AlteracaoManualSection';
+import ItensDemandaSection from '@/components/kanban/ItensDemandaSection';
+import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
 
 const DemandaDetailModal = ({ demanda, open, onClose, kanbanColumns = [] }) => {
   const queryClient = useQueryClient();
@@ -946,6 +948,11 @@ ${statusValidacao}`.trim();
               </Card>
             ) : (
               <>
+                {/* Itens da Demanda Composta (Fase 1 — Modelo Híbrido) */}
+                {isFeatureEnabled(FEATURES.ITENS_DEMANDA) && currentDemanda.estrutura_demanda === 'composta' && (
+                  <ItensDemandaSection demanda={currentDemanda} user={user} />
+                )}
+
                 {/* Entregas e Aprovações */}
                 <EntregasSection demanda={currentDemanda} user={user} />
 

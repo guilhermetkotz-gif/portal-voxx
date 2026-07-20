@@ -249,6 +249,16 @@
       "type": "string",
       "format": "date-time",
       "description": "Data/hora em que o evento de comunica\u00e7\u00e3o foi gerado pela primeira vez"
+    },
+    "estrutura_demanda": {
+      "type": "string",
+      "enum": [
+        "unitaria",
+        "composta",
+        "legada"
+      ],
+      "default": "legada",
+      "description": "Classifica a estrutura da demanda: unitaria (uma entrega), composta (m\u00faltiplas entregas independentes com itens estruturados via ItemDemanda), legada (cards criados antes do modelo h\u00edbrido \u2014 funcionam sem altera\u00e7\u00e3o). Demandas existentes recebem 'legada' automaticamente. N\u00e3o \u00e9 poss\u00edvel converter composta para unitaria enquanto possuir itens."
     }
   },
   "required": [

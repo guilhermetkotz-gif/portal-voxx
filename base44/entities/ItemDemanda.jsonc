@@ -1,0 +1,119 @@
+{
+  "name": "ItemDemanda",
+  "type": "object",
+  "description": "Item estruturado de uma demanda composta. Cada item representa uma entrega independente dentro do card principal (cronograma, campanha, conjunto de materiais). Possui status pr\u00f3prios de produ\u00e7\u00e3o, aprova\u00e7\u00e3o, publica\u00e7\u00e3o e finaliza\u00e7\u00e3o.",
+  "properties": {
+    "demanda_id": {
+      "type": "string",
+      "description": "ID da Demanda pai (obrigat\u00f3rio). Nenhum item pode existir sem demanda_id v\u00e1lido."
+    },
+    "titulo": {
+      "type": "string",
+      "description": "T\u00edtulo do item (ex: 'Anivers\u00e1rio de Balne\u00e1rio Cambori\u00fa')"
+    },
+    "descricao": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada do item"
+    },
+    "tipo_material": {
+      "type": "string",
+      "description": "Tipo de material (ex: Arte, V\u00eddeo, Copy, Landing Page)"
+    },
+    "formato": {
+      "type": "string",
+      "description": "Formato (ex: Feed, Story, Reels, Carrossel)"
+    },
+    "canal": {
+      "type": "string",
+      "description": "Canal de publica\u00e7\u00e3o (ex: Instagram, Facebook, LinkedIn)"
+    },
+    "ordem": {
+      "type": "number",
+      "default": 0,
+      "description": "Ordem do item dentro da demanda. Ao criar, assumir a pr\u00f3xima posi\u00e7\u00e3o dispon\u00edvel."
+    },
+    "data_prevista": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data prevista para entrega do item"
+    },
+    "prazo_data": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Prazo final do item"
+    },
+    "responsavel_id": {
+      "type": "string",
+      "description": "ID do usu\u00e1rio respons\u00e1vel pelo item"
+    },
+    "responsavel_nome": {
+      "type": "string",
+      "description": "Nome do respons\u00e1vel (cache)"
+    },
+    "status_producao": {
+      "type": "string",
+      "enum": [
+        "nao_iniciado",
+        "em_fila",
+        "em_desenvolvimento",
+        "concluido"
+      ],
+      "default": "nao_iniciado",
+      "description": "Status de produ\u00e7\u00e3o do item"
+    },
+    "status_aprovacao": {
+      "type": "string",
+      "enum": [
+        "nao_enviado",
+        "aguardando",
+        "ajustes_solicitados",
+        "reenviado",
+        "aprovado"
+      ],
+      "default": "nao_enviado",
+      "description": "Status de aprova\u00e7\u00e3o do item"
+    },
+    "status_publicacao": {
+      "type": "string",
+      "enum": [
+        "nao_programada",
+        "programada",
+        "vencida_sem_confirmacao",
+        "publicada",
+        "cancelada"
+      ],
+      "default": "nao_programada",
+      "description": "Status de publica\u00e7\u00e3o do item"
+    },
+    "status_finalizacao": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "concluido",
+        "finalizado",
+        "cancelado"
+      ],
+      "default": "ativo",
+      "description": "Status de finaliza\u00e7\u00e3o do item"
+    },
+    "data_programada": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora programada para publica\u00e7\u00e3o"
+    },
+    "data_publicacao": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora efetiva da publica\u00e7\u00e3o"
+    },
+    "link_publicacao": {
+      "type": "string",
+      "description": "URL da publica\u00e7\u00e3o finalizada"
+    }
+  },
+  "required": [
+    "demanda_id",
+    "titulo",
+    "ordem"
+  ]
+}

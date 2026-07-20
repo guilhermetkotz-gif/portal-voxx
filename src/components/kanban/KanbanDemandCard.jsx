@@ -9,6 +9,7 @@ import moment from 'moment-timezone';
 import ActiveTimerIndicator from './ActiveTimerIndicator';
 import TagManagerPopover from './TagManagerPopover';
 import AlteracaoManualPopover from './AlteracaoManualPopover';
+import { ListChecks } from 'lucide-react';
 
 // Calcula horas úteis decorridas desde uma data (Seg-Sex, 9h-18h, fuso Brasília)
 function calcBusinessHours(fromDate) {
@@ -46,7 +47,7 @@ const aprovacaoCardStyle = {
 const ALTERACAO_TAG = 'ajuste-manual';
 const ajusteManualStyle = 'border-orange-500 bg-orange-100';
 
-const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags, aprovacaoStatus }) => {
+const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags, aprovacaoStatus, itensResumo = null }) => {
   const { titulo, cliente_nome, prioridade, previsao_entrega, status, urgente, created_by, tags = [] } = demanda;
   const aprovacaoStyle = aprovacaoStatus ? aprovacaoCardStyle[aprovacaoStatus] : null;
   const hasAjusteManual = (demanda.tags || []).includes(ALTERACAO_TAG);
@@ -223,6 +224,13 @@ const KanbanDemandCard = ({ demanda, onClick, isMinimized, onUpdateTags, allTags
             <Badge className={cn(statusColors[status], 'text-white text-xs')}>
               {status.replace(/_/g, ' ').charAt(0).toUpperCase() + status.replace(/_/g, ' ').slice(1)}
             </Badge>
+            {itensResumo && (
+              <Badge variant="outline" className="text-xs bg-violet-50 border-violet-300 text-violet-700 flex items-center gap-1">
+                <ListChecks className="w-3 h-3" />
+                {itensResumo.total} {itensResumo.total === 1 ? 'item' : 'itens'}
+                {itensResumo.concluidos > 0 && <span className="text-green-600">· {itensResumo.concluidos}✓</span>}
+              </Badge>
+            )}
           </div>
 
           {tags.length > 0 && (
