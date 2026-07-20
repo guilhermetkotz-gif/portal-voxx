@@ -266,6 +266,70 @@ Deno.serve(async (req) => {
         }
       }
 
+      // 6.6. Detectar e marcar RespostaAprovacaoEntrega duplicadas (race condition concorrente)
+      const todasRespostas = await sdk.entities.RespostaAprovacaoEntrega.filter(
+        { entrega_id: entrega.id },
+        'created_date',
+        50
+      ).catch(() => []);
+
+      const respostasPorIdempotencyKey = {};
+      for (const r of todasRespostas) {
+        if (!r.idempotency_key) continue;
+        if (!respostasPorIdempotencyKey[r.idempotency_key]) {
+          respostasPorIdempotencyKey[r.idempotency_key] = [];
+        }
+        respostasPorIdempotencyKey[r.idempotency_key].push(r);
+      }
+
+      for (const [key, respostasGroup] of Object.entries(respostasPorIdempotencyKey)) {
+        if (respostasGroup.length <= 1) continue;
+
+        // Ordenar por created_date ASC, id ASC
+        const ordenadas = [...respostasGroup].sort((a, b) => {
+          const cmp = (a.created_date || '').localeCompare(b.created_date || '');
+          if (cmp !== 0) return cmp;
+          return (a.id || '').localeCompare(b.id || '');
+        });
+
+        const respostaVencedora = ordenadas[0];
+        const operacaoCanonicaId = respostaVencedora.operacao_id;
+
+        // Marcar as outras como duplicada
+        for (let i = 1; i < ordenadas.length; i++) {
+          const r = ordenadas[i];
+          if (r.status_aplicacao !== 'duplicada') {
+            await sdk.entities.RespostaAprovacaoEntrega.update(r.id, {
+              status_aplicacao: 'duplicada',
+              erro_aplicacao_detalhe: `Resposta duplicada detectada na reconciliação. Operação canônica: ${operacaoCanonicaId || 'desconhecida'}.`,
+            }).catch(() => null);
+
+            // Marcar OperacaoEntrega correspondente como duplicada
+            if (r.operacao_id) {
+              const opsArr = await sdk.entities.OperacaoEntrega.filter({ operacao_id: r.operacao_id });
+              if (opsArr[0] && opsArr[0].status_operacao !== 'duplicada') {
+                await sdk.entities.OperacaoEntrega.update(opsArr[0].id, {
+                  status_operacao: 'duplicada',
+                  operacao_canonica_id: operacaoCanonicaId,
+                  concluida_em: agora,
+                });
+              }
+            }
+
+            // Remover NotificacaoAprovacao duplicada (manter apenas a da operação canônica)
+            const notifsDup = await sdk.entities.NotificacaoAprovacao.filter(
+              { operacao_id: r.operacao_id },
+              'created_date', 5
+            ).catch(() => []);
+            for (const nd of notifsDup) {
+              await sdk.entities.NotificacaoAprovacao.delete(nd.id).catch(() => null);
+            }
+
+            resultado.acoes.push(`resposta_${r.id.substring(0, 8)}_deduplicada`);
+          }
+        }
+      }
+
       // 7. TimelineEvent de conflito ou reconciliação
       if (tem_concorrencia) {
         await sdk.entities.TimelineEvent.create({

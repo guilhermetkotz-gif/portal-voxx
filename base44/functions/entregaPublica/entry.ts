@@ -216,9 +216,12 @@ Deno.serve(async (req) => {
           autor_tipo: 'cliente',
         }).catch(() => null);
 
-        // 9. NotificacaoAprovacao com operacao_id
+        // 9. NotificacaoAprovacao com operacao_id (deduplicação por entrega + versao + status)
         const tipoNotif = action === 'aprovar' ? 'entrega_aprovada_cliente' : 'alteracao_solicitada_cliente';
-        const notifExistentes = await sdk.entities.NotificacaoAprovacao.filter({ resposta_aprovacao_id: resposta.id });
+        const notifExistentes = await sdk.entities.NotificacaoAprovacao.filter(
+          { entrega_id: entregaV2.id, status_aprovacao: novoStatusVersao },
+          'created_date', 5
+        );
         if (!notifExistentes || notifExistentes.length === 0) {
           await sdk.entities.NotificacaoAprovacao.create({
             tipo_notificacao: tipoNotif,
