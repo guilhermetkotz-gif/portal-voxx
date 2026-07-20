@@ -10,7 +10,6 @@ import EntregasPorItemSection from '@/components/demandas/EntregasPorItemSection
 import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
 import { 
   Clock, 
-  Calendar, 
   Paperclip, 
   Send, 
   ExternalLink,
