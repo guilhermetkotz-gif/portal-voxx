@@ -200,7 +200,7 @@ function EntregaAtivaCard({ entrega, item, demanda, onNovaVersao, onEnviar, onAp
 }
 
 /** Bloco recolhível de um item com suas entregas/versões */
-function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
+export function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [modalMode, setModalMode] = useState(null); // 'criar' | 'nova_versao' | null

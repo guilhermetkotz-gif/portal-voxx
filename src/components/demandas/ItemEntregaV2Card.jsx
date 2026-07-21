@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import moment from 'moment';
 import 'moment-timezone';
 import EntregaItemModal from './EntregaItemModal';
+import { ItemEntregaBlock } from './EntregasPorItemSection';
 
 const STATUS_APROV_LABELS = {
   nao_enviado: { label: 'Não enviado', cls: 'bg-slate-100 text-slate-600' },
@@ -90,7 +91,7 @@ export default function ItemEntregaV2Card({ item, demanda, user }) {
     queryFn: async () => {
       if (!entrega?.versao_uid) return null;
       const respostas = await base44.entities.RespostaAprovacaoEntrega.filter(
-        { versao_uid: entrega.versao_uid, status_aplicacao: { $in: ['aplicada', 'pendente_aplicacao'] } },
+        { versao_uid: entrega.versao_uid, status_aplicacao: 'aplicada', tipo_resposta: 'solicitou_alteracao' },
         '-created_date', 1
       );
       return respostas[0] || null;
@@ -184,11 +185,13 @@ export default function ItemEntregaV2Card({ item, demanda, user }) {
                       <span className="text-[10px] px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded font-medium">
                         v{entrega.numero_versao_atual}
                       </span>
-                      <span className="text-[10px] text-slate-400">
-                        {entrega.data_envio
-                          ? `Enviado em ${moment(entrega.data_envio).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}`
-                          : `Criado em ${moment(entrega.criada_em || entrega.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}`}
-                      </span>
+                      {(entrega.data_envio || entrega.criada_em || entrega.created_date) && (
+                        <span className="text-[10px] text-slate-400">
+                          {entrega.data_envio
+                            ? `Enviado em ${moment(entrega.data_envio).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}`
+                            : `Criado em ${moment(entrega.criada_em || entrega.created_date).tz('America/Sao_Paulo').format('DD/MM/YYYY HH:mm')}`}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm font-semibold text-slate-800 truncate mt-1">{entrega.nome_entrega}</p>
                   </div>
@@ -228,7 +231,7 @@ export default function ItemEntregaV2Card({ item, demanda, user }) {
 
                 {/* Ações por status */}
                 <div className="flex flex-wrap gap-1.5 items-center pt-1 border-t border-slate-100">
-                  {status === 'nao_enviado' && (
+                  {status === 'nao_enviado' && !entrega && (
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
                       onClick={() => setModalMode('criar')}>
                       <Plus className="w-3 h-3" /> Adicionar entrega
@@ -292,9 +295,7 @@ export default function ItemEntregaV2Card({ item, demanda, user }) {
               )}
             </>
           ) : entrega && !isV2 ? (
-            <div className="p-3 bg-slate-50 rounded text-xs text-slate-500 text-center">
-              Este item usa o modelo de versionamento legado. A visualização V2 não está disponível.
-            </div>
+            <ItemEntregaBlock item={item} demanda={demanda} user={user} />
           ) : (
             <div className="text-center py-4">
               <Package className="w-8 h-8 mx-auto mb-2 text-slate-200" />
