@@ -13,6 +13,10 @@ import { cn } from '@/lib/utils';
 import moment from 'moment';
 import 'moment-timezone';
 import EntregaItemModal from './EntregaItemModal';
+import ItemEntregaV2Card from './ItemEntregaV2Card';
+import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
+
+const DEMANDA_PILOTO_V2 = '6a5e51c1f77aa0ea68dd3e42';
 
 const STATUS_APROV_LABELS = {
   nao_enviado: { label: 'Não enviado', cls: 'bg-slate-100 text-slate-600' },
@@ -397,6 +401,10 @@ function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
  * e a feature flag entregasPorItem está ativa.
  */
 export default function EntregasPorItemSection({ demanda, user, itens = [] }) {
+  const isPilotoV2 = demanda?.id === DEMANDA_PILOTO_V2
+    && demanda?.estrutura_demanda === 'composta'
+    && isFeatureEnabled(FEATURES.ENTREGAS_POR_ITEM);
+
   const itensAtivos = itens.filter(i => i.status_finalizacao !== 'cancelado');
   const aprovados = itensAtivos.filter(i => i.status_aprovacao === 'aprovado').length;
   const aguardando = itensAtivos.filter(i => i.status_aprovacao === 'aguardando').length;
@@ -427,12 +435,21 @@ export default function EntregasPorItemSection({ demanda, user, itens = [] }) {
           {itens
             .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
             .map(item => (
-              <ItemEntregaBlock
-                key={item.id}
-                item={item}
-                demanda={demanda}
-                user={user}
-              />
+              isPilotoV2 ? (
+                <ItemEntregaV2Card
+                  key={item.id}
+                  item={item}
+                  demanda={demanda}
+                  user={user}
+                />
+              ) : (
+                <ItemEntregaBlock
+                  key={item.id}
+                  item={item}
+                  demanda={demanda}
+                  user={user}
+                />
+              )
             ))}
         </div>
       )}
