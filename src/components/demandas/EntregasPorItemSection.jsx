@@ -147,8 +147,8 @@ function EntregaAtivaCard({ entrega, item, demanda, onNovaVersao, onEnviar, onAp
           </a>
         )}
 
-        {/* Nova versão — habilitado se ajustes solicitados ou reenviado */}
-        {['solicitacao_alteracao', 'reenviado', 'aprovado'].includes(entrega.status_entrega) && (
+        {/* Nova versão — habilitado se ajustes solicitados ou aprovado (não em avaliação pelo cliente) */}
+        {['solicitacao_alteracao', 'aprovado'].includes(entrega.status_entrega) && (
           <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onNovaVersao}>
             <RotateCcw className="w-3 h-3" /> Nova Versão
           </Button>
