@@ -161,6 +161,7 @@ export async function determinarOperacaoCanonica(sdk, params) {
   };
   if (params.entrega_id) filter.entrega_id = params.entrega_id;
   if (params.payload_hash) filter.payload_hash = params.payload_hash;
+  if (params.versao_uid) filter.versao_uid = params.versao_uid;
 
   const operacoes = await sdk.entities.OperacaoEntrega.filter(filter, 'created_date', 100);
 

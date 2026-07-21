@@ -378,19 +378,31 @@ Deno.serve(async (req) => {
         const versaoAtual = canonico.versao_canonica;
 
         // ── enviar_para_aprovacao V2 ──
+        // Aceita somente status rascunho. v1 → em_aprovacao; v2+ → reenviado.
         if (action === 'enviar_para_aprovacao') {
           if (!versaoAtual) return Response.json({ error: 'Não existe versão ativa.', code: 'SEM_VERSAO_ATIVA' }, { status: 400 });
-          const statusPermitidos = ['rascunho', 'reenviado'];
-          if (!statusPermitidos.includes(versaoAtual.status)) return Response.json({ error: `Status atual (${versaoAtual.status}) não permite envio.`, code: 'STATUS_NAO_PERMITE_ENVIO' }, { status: 400 });
+          if (versaoAtual.status === 'reenviado') return Response.json({ error: 'Uma versão reenviado já está em avaliação.', code: 'REENVIADO_JA_ESTA_EM_AVALIACAO' }, { status: 400 });
+          if (versaoAtual.status !== 'rascunho') return Response.json({ error: `Status atual (${versaoAtual.status}) não permite envio. Apenas rascunho é aceito.`, code: 'STATUS_NAO_PERMITE_ENVIO' }, { status: 400 });
           if (!versaoAtual.arquivos?.length && !versaoAtual.link_externo) return Response.json({ error: 'Versão sem arquivos ou link.' }, { status: 400 });
 
-          const eraReenvio = versaoAtual.status === 'reenviado' || item.status_aprovacao === 'reenviado';
+          // Listar todas as versões para determinar se é primeira versão ou reenvio
+          const todasVersoes = canonico.versoes_validas || [];
+          const temVersaoAnterior = todasVersoes.some(v => v.versao_uid !== versaoAtual.versao_uid);
+
           const operacaoId = await iniciarOperacao({ entrega_id: entrega.id, item_demanda_id: item_id, tipo_operacao: 'enviar_aprovacao', idempotency_key: body.idempotency_key });
 
-          await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, { status: 'em_aprovacao', enviada_em: agora });
-          const novoStatusItem = eraReenvio ? 'reenviado' : 'aguardando';
+          let novoStatusVersao, novoStatusItem;
+          if (!temVersaoAnterior) {
+            novoStatusVersao = 'em_aprovacao';
+            novoStatusItem = 'aguardando';
+          } else {
+            novoStatusVersao = 'reenviado';
+            novoStatusItem = 'reenviado';
+          }
+
+          await sdk.entities.VersaoEntregaDemanda.update(versaoAtual.id, { status: novoStatusVersao, enviada_em: agora });
           await sdk.entities.ItemDemanda.update(item_id, { status_aprovacao: novoStatusItem });
-          await atualizarCachesEntrega(entrega.id, { ...versaoAtual, status: 'em_aprovacao' });
+          await atualizarCachesEntrega(entrega.id, { ...versaoAtual, status: novoStatusVersao });
 
           await sdk.entities.NotificacaoAprovacao.updateMany({ entrega_id: entrega.id, lida: false }, { $set: { lida: true, visualizada_em: agora } }).catch(() => null);
           await concluirOperacao(operacaoId, versaoAtual.versao_uid, 'enviada_aprovacao');
@@ -399,7 +411,7 @@ Deno.serve(async (req) => {
             `📤 ${usuarioNome} enviou "${item.titulo}" (v${canonico.numero_versao_canonica}) para aprovação [entidade_versao]`,
             usuarioNome, 'voxx', item_id, entrega.id, { versao_uid: versaoAtual.versao_uid });
 
-          return Response.json({ success: true, entrega_id: entrega.id, status_entrega: 'em_aprovacao', status_aprovacao_item: novoStatusItem, link_publico: versaoAtual.token_publico ? `${req.headers.get('origin') || ''}/aprovacao/${versaoAtual.token_publico}` : null, versao_uid: versaoAtual.versao_uid });
+          return Response.json({ success: true, entrega_id: entrega.id, status_entrega: novoStatusVersao, status_aprovacao_item: novoStatusItem, link_publico: versaoAtual.token_publico ? `${req.headers.get('origin') || ''}/aprovacao/${versaoAtual.token_publico}` : null, versao_uid: versaoAtual.versao_uid });
         }
 
         // ── solicitar_ajustes V2 ──

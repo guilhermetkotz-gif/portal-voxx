@@ -1,6 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import {
   determinarVersaoCanonica,
+  determinarOperacaoCanonica,
+  hashPayload,
   gerarUUID,
   versaoStatusToItemStatus,
 } from '../../shared/versaoCanonica.ts';
@@ -92,7 +94,7 @@ Deno.serve(async (req) => {
       const respostasExistentes = await sdk.entities.RespostaAprovacaoEntrega.filter(
         { idempotency_key: idempotencyKey, versao_entrega_demanda_id: versao.id },
         'created_date', 5
-      ).catch(() => []);
+      );
 
       if (respostasExistentes && respostasExistentes.length > 0) {
         const existente = respostasExistentes[0];
@@ -114,14 +116,24 @@ Deno.serve(async (req) => {
       const ipV2 = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'desconhecido';
       const userAgentV2 = req.headers.get('user-agent') || '';
 
-      // 1. Criar OperacaoEntrega
+      // 1. Computar payload_hash (inclui versao_uid + tipo_resposta na assinatura)
+      const tipoResposta = action === 'aprovar' ? 'aprovado' : 'solicitou_alteracao';
+      const payloadHash = await hashPayload({
+        versao_uid: versao.versao_uid,
+        tipo_resposta: tipoResposta,
+        nome_responsavel: nome_responsavel.trim(),
+      });
+
+      // 2. Criar OperacaoEntrega (versao_uid + payload_hash definidos imediatamente)
       const operacaoId = gerarUUID();
-      await sdk.entities.OperacaoEntrega.create({
+      const opRecord = await sdk.entities.OperacaoEntrega.create({
         operacao_id: operacaoId,
         idempotency_key: idempotencyKey,
         entrega_id: entregaV2.id,
         item_demanda_id: versao.item_demanda_id || null,
+        versao_uid: versao.versao_uid,
         tipo_operacao: 'resposta_cliente',
+        payload_hash: payloadHash,
         status_operacao: 'em_execucao',
         etapa_atual: 'operacao_criada',
         iniciada_em: agoraV2,
@@ -129,7 +141,45 @@ Deno.serve(async (req) => {
         falhas: [],
       });
 
-      // 2. Criar RespostaAprovacaoEntrega com status_aplicacao = pendente_aplicacao (ESSENCIAL)
+      // 3. Canonizar: consultar TODAS as operações com a assinatura completa
+      const canonicaOp = await determinarOperacaoCanonica(sdk, {
+        idempotency_key: idempotencyKey,
+        tipo_operacao: 'resposta_cliente',
+        entrega_id: entregaV2.id,
+        payload_hash: payloadHash,
+        versao_uid: versao.versao_uid,
+      });
+
+      // 4. Se NÃO for canônica → marcar como duplicada e RETORNAR sem efeitos colaterais
+      if (canonicaOp.operacao_canonica && canonicaOp.operacao_canonica.operacao_id !== operacaoId) {
+        await sdk.entities.OperacaoEntrega.update(opRecord.id, {
+          status_operacao: 'duplicada',
+          operacao_canonica_id: canonicaOp.operacao_canonica.operacao_id,
+          etapa_atual: 'duplicada_nao_aplicada',
+          concluida_em: new Date().toISOString(),
+        });
+        // NÃO cria RespostaAprovacaoEntrega. NÃO altera versão, item, cache, timeline ou notificação.
+        return Response.json({
+          success: true,
+          duplicada: true,
+          operacao_canonica_id: canonicaOp.operacao_canonica.operacao_id,
+          message: 'Operação duplicada — a operação canônica já está processando esta resposta.',
+        });
+      }
+
+      // 5. Se for canônica → marcar duplicadas proativamente
+      for (const dup of canonicaOp.operacoes_duplicadas) {
+        if (dup.status_operacao !== 'duplicada') {
+          await sdk.entities.OperacaoEntrega.update(dup.id, {
+            status_operacao: 'duplicada',
+            operacao_canonica_id: operacaoId,
+            etapa_atual: 'duplicada_marcada_canonica',
+            concluida_em: new Date().toISOString(),
+          });
+        }
+      }
+
+      // 6. Criar RespostaAprovacaoEntrega com status_aplicacao = pendente_aplicacao
       const resposta = await sdk.entities.RespostaAprovacaoEntrega.create({
         entrega_id: entregaV2.id,
         versao_entrega_demanda_id: versao.id,
@@ -138,7 +188,7 @@ Deno.serve(async (req) => {
         cliente_id: entregaV2.cliente_id,
         token_publico: token,
         numero_versao: canonico.numero_versao_canonica || 1,
-        tipo_resposta: action === 'aprovar' ? 'aprovado' : 'solicitou_alteracao',
+        tipo_resposta: tipoResposta,
         nome_responsavel: nome_responsavel.trim(),
         observacao_cliente: observacao || '',
         anexos: anexos || [],
@@ -153,21 +203,21 @@ Deno.serve(async (req) => {
 
       const novoStatusVersao = action === 'aprovar' ? 'aprovado' : 'solicitacao_alteracao';
 
-      // 3-6. Aplicar resposta com tratamento de falha parcial
+      // 7. Aplicar resposta com tratamento de falha parcial
       try {
-        // 3. Atualizar status da VersaoEntregaDemanda
+        // 7a. Atualizar status da VersaoEntregaDemanda
         await sdk.entities.VersaoEntregaDemanda.update(versao.id, {
           status: novoStatusVersao,
           ...(action === 'aprovar' ? { aprovada_em: agoraV2, aprovada_por: nome_responsavel.trim() } : {}),
         });
 
-        // 4. Marcar resposta como aplicada
+        // 7b. Marcar resposta como aplicada
         await sdk.entities.RespostaAprovacaoEntrega.update(resposta.id, {
           status_aplicacao: 'aplicada',
           aplicada_em: new Date().toISOString(),
         });
 
-        // 5. Atualizar caches da EntregaDemanda
+        // 7c. Atualizar caches da EntregaDemanda
         await sdk.entities.EntregaDemanda.update(entregaV2.id, {
           status_entrega_cache: novoStatusVersao,
           retorno_cliente_tratado: false,
@@ -179,7 +229,7 @@ Deno.serve(async (req) => {
           }),
         });
 
-        // 6. Sincronizar ItemDemanda
+        // 7d. Sincronizar ItemDemanda
         if (versao.item_demanda_id) {
           const novoStatusItem = versaoStatusToItemStatus(novoStatusVersao);
           await sdk.entities.ItemDemanda.update(versao.item_demanda_id, {
@@ -187,18 +237,15 @@ Deno.serve(async (req) => {
           });
         }
 
-        // 7. Concluir OperacaoEntrega
-        const opsArr = await sdk.entities.OperacaoEntrega.filter({ operacao_id: operacaoId });
-        if (opsArr[0]) {
-          await sdk.entities.OperacaoEntrega.update(opsArr[0].id, {
-            status_operacao: 'concluida',
-            etapa_atual: 'resposta_aplicada',
-            versao_uid: versao.versao_uid,
-            concluida_em: new Date().toISOString(),
-          });
-        }
+        // 7e. Concluir OperacaoEntrega
+        await sdk.entities.OperacaoEntrega.update(opRecord.id, {
+          status_operacao: 'concluida',
+          etapa_atual: 'resposta_aplicada',
+          versao_uid: versao.versao_uid,
+          concluida_em: new Date().toISOString(),
+        });
 
-        // 8. TimelineEvent com operacao_id
+        // 7f. TimelineEvent (sem catch silencioso)
         const descEvento = action === 'aprovar'
           ? `✅ ${nome_responsavel.trim()} aprovou a entrega: ${versao.nome_entrega} [entidade_versao]`
           : `✏️ ${nome_responsavel.trim()} solicitou alteração em: ${versao.nome_entrega}${observacao ? ` — "${observacao}"` : ''} [entidade_versao]`;
@@ -214,12 +261,12 @@ Deno.serve(async (req) => {
           descricao: descEvento,
           autor: nome_responsavel.trim(),
           autor_tipo: 'cliente',
-        }).catch(() => null);
+        });
 
-        // 9. NotificacaoAprovacao com operacao_id (deduplicação por entrega + versao + status)
+        // 7g. NotificacaoAprovacao (deduplicação por entrega_id + versao_uid + status_aprovacao)
         const tipoNotif = action === 'aprovar' ? 'entrega_aprovada_cliente' : 'alteracao_solicitada_cliente';
         const notifExistentes = await sdk.entities.NotificacaoAprovacao.filter(
-          { entrega_id: entregaV2.id, status_aprovacao: novoStatusVersao },
+          { entrega_id: entregaV2.id, versao_uid: versao.versao_uid, status_aprovacao: novoStatusVersao },
           'created_date', 5
         );
         if (!notifExistentes || notifExistentes.length === 0) {
@@ -232,6 +279,7 @@ Deno.serve(async (req) => {
             entrega_id: entregaV2.id,
             entrega_nome: versao.nome_entrega,
             status_aprovacao: novoStatusVersao,
+            versao_uid: versao.versao_uid,
             comentario_cliente: observacao || null,
             anexos: anexos || [],
             link_alteracao: link_alteracao || null,
@@ -239,7 +287,7 @@ Deno.serve(async (req) => {
             data_resposta_cliente: agoraV2,
             resposta_aprovacao_id: resposta.id,
             operacao_id: operacaoId,
-          }).catch(() => null);
+          });
         }
 
         return Response.json({
@@ -254,18 +302,15 @@ Deno.serve(async (req) => {
         await sdk.entities.RespostaAprovacaoEntrega.update(resposta.id, {
           status_aplicacao: 'falha_aplicacao',
           erro_aplicacao_detalhe: applyError.message || String(applyError),
-        }).catch(() => null);
+        });
 
-        const opsArr = await sdk.entities.OperacaoEntrega.filter({ operacao_id: operacaoId });
-        if (opsArr[0]) {
-          const falhasAtuais = opsArr[0].falhas || [];
-          falhasAtuais.push({ etapa: 'aplicacao_resposta', erro: applyError.message || String(applyError), timestamp: new Date().toISOString() });
-          await sdk.entities.OperacaoEntrega.update(opsArr[0].id, {
-            status_operacao: 'falha',
-            etapa_atual: 'falha_aplicacao',
-            falhas: falhasAtuais,
-          });
-        }
+        const falhasAtuais = opRecord.falhas || [];
+        falhasAtuais.push({ etapa: 'aplicacao_resposta', erro: applyError.message || String(applyError), timestamp: new Date().toISOString() });
+        await sdk.entities.OperacaoEntrega.update(opRecord.id, {
+          status_operacao: 'falha',
+          etapa_atual: 'falha_aplicacao',
+          falhas: falhasAtuais,
+        });
 
         return Response.json({ error: 'falha_aplicacao', message: 'Erro ao aplicar resposta. A reconciliação retomará automaticamente.', operacao_id: operacaoId }, { status: 500 });
       }
