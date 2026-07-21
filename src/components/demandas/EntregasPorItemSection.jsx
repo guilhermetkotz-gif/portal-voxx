@@ -407,6 +407,7 @@ export default function EntregasPorItemSection({ demanda, user, itens = [] }) {
 
   const itensAtivos = itens.filter(i => i.status_finalizacao !== 'cancelado');
   const aprovados = itensAtivos.filter(i => i.status_aprovacao === 'aprovado').length;
+  const reenviadas = itensAtivos.filter(i => i.status_aprovacao === 'reenviado').length;
   const aguardando = itensAtivos.filter(i => i.status_aprovacao === 'aguardando').length;
   const ajustes = itensAtivos.filter(i => i.status_aprovacao === 'ajustes_solicitados').length;
   const naoEnviado = itensAtivos.filter(i => !i.status_aprovacao || i.status_aprovacao === 'nao_enviado').length;
@@ -419,7 +420,7 @@ export default function EntregasPorItemSection({ demanda, user, itens = [] }) {
           <span className="text-sm font-semibold">Entregas por item</span>
           {itens.length > 0 && (
             <span className="text-xs text-slate-500">
-              {itensAtivos.length} {itensAtivos.length === 1 ? 'entrega' : 'entregas'} · {aprovados} aprovada(s) · {aguardando} aguardando · {naoEnviado} não enviada(s)
+              {itensAtivos.length} {itensAtivos.length === 1 ? 'entrega' : 'entregas'} · {aprovados} aprovada(s) · {reenviadas} reenviada(s) · {aguardando} aguardando · {ajustes} ajuste(s) · {naoEnviado} não enviada(s)
             </span>
           )}
         </div>
