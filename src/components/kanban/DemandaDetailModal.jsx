@@ -43,6 +43,7 @@ import EnviarComentarioWhatsAppModal from '@/components/demandas/EnviarComentari
 import MoverCardSection from '@/components/kanban/MoverCardSection';
 import AlteracaoManualSection from '@/components/kanban/AlteracaoManualSection';
 import ItensDemandaSection from '@/components/kanban/ItensDemandaSection';
+import EntregasPorItemSection from '@/components/demandas/EntregasPorItemSection';
 import { isFeatureEnabled, FEATURES } from '@/lib/featureFlags';
 import { getEstruturaDemanda } from '@/lib/estruturaDemanda';
 
@@ -102,6 +103,18 @@ const DemandaDetailModal = ({ demanda, open, onClose, kanbanColumns = [] }) => {
   });
 
   const currentDemanda = demandaAtual || demanda;
+
+  // Fase 2B.1 — Piloto: EntregasPorItemSection apenas para a demanda piloto
+  const isPilotoEntregasPorItem =
+    currentDemanda?.id === '6a5e51c1f77aa0ea68dd3e42' &&
+    getEstruturaDemanda(currentDemanda) === 'composta' &&
+    isFeatureEnabled(FEATURES.ENTREGAS_POR_ITEM);
+
+  const { data: itensDemanda = [] } = useQuery({
+    queryKey: ['itensDemandaPiloto', currentDemanda?.id],
+    queryFn: () => base44.entities.ItemDemanda.filter({ demanda_id: currentDemanda.id }, 'ordem', 50),
+    enabled: !!currentDemanda?.id && isPilotoEntregasPorItem && open,
+  });
 
   const { data: timeline = [] } = useQuery({
     queryKey: ['timeline', demanda?.id],
@@ -954,8 +967,16 @@ ${statusValidacao}`.trim();
                   <ItensDemandaSection demanda={currentDemanda} user={user} />
                 )}
 
-                {/* Entregas e Aprovações */}
-                <EntregasSection demanda={currentDemanda} user={user} />
+                {/* Entregas e Aprovações — Fase 2B.1: piloto usa EntregasPorItemSection */}
+                {isPilotoEntregasPorItem ? (
+                  <EntregasPorItemSection
+                    demanda={currentDemanda}
+                    user={user}
+                    itens={itensDemanda}
+                  />
+                ) : (
+                  <EntregasSection demanda={currentDemanda} user={user} />
+                )}
 
                 {/* Tempo Total de Trabalho */}
                 {currentDemanda.tempo_trabalho_minutos > 0 && (
