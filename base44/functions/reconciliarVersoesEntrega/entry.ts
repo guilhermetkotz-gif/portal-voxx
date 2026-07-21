@@ -190,10 +190,22 @@ Deno.serve(async (req) => {
       } catch (e) { registrarFalha('retomar_operacoes_parciais', e); }
 
       // 6.5. Retomar RespostaAprovacaoEntrega pendente ou com falha
+      // PRECONDIÇÕES OBRIGATÓRIAS antes de aplicar:
+      //   a) versão respondida ainda é a versão canônica
+      //   b) status atual da versão canônica é em_aprovacao ou reenviado
+      //   c) não existe resposta canônica aplicada mais recente para a mesma versão
+      //   d) operação vinculada à resposta não foi marcada como duplicada
+      // Se qualquer precondição falhar: marcar resposta como duplicada (obsoleta),
+      //   NÃO alterar VersaoEntregaDemanda, ItemDemanda, caches, timeline ou notificação.
       try {
         const respostasPendentes = await sdk.entities.RespostaAprovacaoEntrega.filter(
           { entrega_id: entrega.id, status_aplicacao: { $in: ['pendente_aplicacao', 'falha_aplicacao'] } },
           'created_date', 20
+        );
+        // Buscar todas as respostas aplicadas da entrega para verificação de precedência
+        const respostasAplicadas = await sdk.entities.RespostaAprovacaoEntrega.filter(
+          { entrega_id: entrega.id, status_aplicacao: 'aplicada' },
+          'created_date', 50
         );
         for (const resp of respostasPendentes) {
           try {
@@ -206,14 +218,53 @@ Deno.serve(async (req) => {
               resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_versao_inexistente`);
               continue;
             }
+            // Precondição (a): versão respondida ainda é a canônica
             if (versaoResp.versao_uid !== versao_canonica.versao_uid) {
               await sdk.entities.RespostaAprovacaoEntrega.update(resp.id, {
                 status_aplicacao: 'duplicada',
                 erro_aplicacao_detalhe: 'Versão respondida foi substituída por uma mais recente.',
               });
-              resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_marcada_duplicada`);
+              resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_obsoleta_versao_substituida`);
               continue;
             }
+            // Precondição (b): status atual da versão canônica permite retomada
+            const statusPermiteRetomada = ['em_aprovacao', 'reenviado'].includes(versao_canonica.status);
+            if (!statusPermiteRetomada) {
+              await sdk.entities.RespostaAprovacaoEntrega.update(resp.id, {
+                status_aplicacao: 'duplicada',
+                erro_aplicacao_detalhe: `Versão canônica já está em estado terminal (${versao_canonica.status}). Resposta obsoleta — não aplicada por existir estado canônico mais recente.`,
+              });
+              resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_obsoleta_status_${versao_canonica.status}`);
+              continue;
+            }
+            // Precondição (c): não existe resposta aplicada mais recente para a mesma versão
+            const existeRespostaMaisRecente = respostasAplicadas.some(r =>
+              r.id !== resp.id &&
+              r.versao_uid === versaoResp.versao_uid &&
+              (r.created_date || '') >= (resp.created_date || '')
+            );
+            if (existeRespostaMaisRecente) {
+              await sdk.entities.RespostaAprovacaoEntrega.update(resp.id, {
+                status_aplicacao: 'duplicada',
+                erro_aplicacao_detalhe: 'Existe resposta canônica aplicada mais recente para esta versão. Resposta obsoleta — não aplicada.',
+              });
+              resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_obsoleta_resposta_mais_recente`);
+              continue;
+            }
+            // Precondição (d): operação vinculada não foi marcada como duplicada
+            if (resp.operacao_id) {
+              const opRespArr = await sdk.entities.OperacaoEntrega.filter({ operacao_id: resp.operacao_id });
+              const opResp = opRespArr[0];
+              if (opResp && opResp.status_operacao === 'duplicada') {
+                await sdk.entities.RespostaAprovacaoEntrega.update(resp.id, {
+                  status_aplicacao: 'duplicada',
+                  erro_aplicacao_detalhe: 'Operação vinculada foi marcada como duplicada. Resposta obsoleta — não aplicada.',
+                });
+                resultado.acoes.push(`resposta_${resp.id.substring(0, 8)}_obsoleta_operacao_duplicada`);
+                continue;
+              }
+            }
+            // Todas as precondições atendidas — aplicar resposta
             const novoStatusVersao = resp.tipo_resposta === 'aprovado' ? 'aprovado' : 'solicitacao_alteracao';
             await sdk.entities.VersaoEntregaDemanda.update(versaoResp.id, {
               status: novoStatusVersao,
