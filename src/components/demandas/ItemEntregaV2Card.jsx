@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 import moment from 'moment';
 import 'moment-timezone';
 import EntregaItemModal from './EntregaItemModal';
-import { ItemEntregaBlock } from './EntregasPorItemSection';
 
 const STATUS_APROV_LABELS = {
   nao_enviado: { label: 'Não enviado', cls: 'bg-slate-100 text-slate-600' },
@@ -62,7 +61,7 @@ function ArquivoIcon({ tipo, url }) {
  * Não realiza mutações diretamente — apenas abre o modal existente
  * (EntregaItemModal) e link actions (copiar/abrir link).
  */
-export default function ItemEntregaV2Card({ item, demanda, user }) {
+export default function ItemEntregaV2Card({ item, demanda, user, LegacyComponent }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [modalMode, setModalMode] = useState(null);
@@ -119,6 +118,11 @@ export default function ItemEntregaV2Card({ item, demanda, user }) {
   };
 
   const podeAdicionar = status === 'nao_enviado' && !entrega && item.status_finalizacao !== 'cancelado';
+
+  // Fallback para modelo legado: renderiza o card anterior sem nenhum contêiner V2
+  if (!isLoading && !queryError && entrega && !isV2 && LegacyComponent) {
+    return <LegacyComponent item={item} demanda={demanda} user={user} />;
+  }
 
   return (
     <div className={cn('rounded-lg border overflow-hidden transition-all',
@@ -295,7 +299,7 @@ export default function ItemEntregaV2Card({ item, demanda, user }) {
               )}
             </>
           ) : entrega && !isV2 ? (
-            <ItemEntregaBlock item={item} demanda={demanda} user={user} />
+            null
           ) : (
             <div className="text-center py-4">
               <Package className="w-8 h-8 mx-auto mb-2 text-slate-200" />

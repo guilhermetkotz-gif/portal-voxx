@@ -441,6 +441,7 @@ export default function EntregasPorItemSection({ demanda, user, itens = [] }) {
                   item={item}
                   demanda={demanda}
                   user={user}
+                  LegacyComponent={ItemEntregaBlock}
                 />
               ) : (
                 <ItemEntregaBlock
