@@ -97,11 +97,7 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
       if (filtroEspecial === 'cliente' && m.remetente_tipo !== 'cliente' && m.origem !== 'recebida') return false;
       if (filtroEspecial === 'aguard_retorno' && (!m.grupo_id || !tagGrupoIds?.has(m.grupo_id))) return false;
 
-      // Mensagens diretas (não-grupo) → só visíveis para o usuário associado
-      const ehMensagemPessoal = !m.is_group;
-      if (ehMensagemPessoal && usuarioIdAtual && m.usuario_id) {
-        if (m.usuario_id !== usuarioIdAtual) return false;
-      }
+
       if (busca) {
         const b = busca.toLowerCase();
         const match = m.cliente_nome?.toLowerCase().includes(b) ||

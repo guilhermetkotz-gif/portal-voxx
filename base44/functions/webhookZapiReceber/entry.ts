@@ -168,7 +168,10 @@ Deno.serve(async (req) => {
     // Para mensagens diretas (não-grupo), normalizar ID para formato @c.us
     let directChatId = null;
     if (!isGroupRaw && phoneRaw) {
-      const digits = String(phoneRaw).replace(/\D/g, '');
+      let digits = String(phoneRaw).replace(/\D/g, '');
+      if ((digits.length === 10 || digits.length === 11) && !digits.startsWith('55')) {
+        digits = '55' + digits;
+      }
       if (digits.length >= 8) {
         directChatId = `${digits}@c.us`;
       }

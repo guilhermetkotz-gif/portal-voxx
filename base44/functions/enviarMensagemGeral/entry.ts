@@ -34,9 +34,16 @@ Deno.serve(async (req) => {
     if (!chatIdRaw) return Response.json({ error: 'chatId é obrigatório' }, { status: 400 });
 
     // Normalizar chatId para mensagens diretas (não-grupo): formato @c.us
-    const chatId = (!String(chatIdRaw).includes('-group') && !String(chatIdRaw).includes('@g.us'))
+    let chatId = (!String(chatIdRaw).includes('-group') && !String(chatIdRaw).includes('@g.us'))
       ? `${String(chatIdRaw).replace(/\D/g, '')}@c.us`
       : chatIdRaw;
+    // Garantir código de país (55) para números brasileiros diretos
+    if (chatId.endsWith('@c.us')) {
+      const digits = chatId.replace('@c.us', '');
+      if ((digits.length === 10 || digits.length === 11) && !digits.startsWith('55')) {
+        chatId = `55${digits}@c.us`;
+      }
+    }
 
     const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
     if (!zapiInstanceId) return Response.json({ error: 'Z-API não configurada' }, { status: 503 });

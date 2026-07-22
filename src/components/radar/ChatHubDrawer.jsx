@@ -244,7 +244,7 @@ export default function ChatHubDrawer({ onClose, user }) {
         if (!m.grupo_id) return;
         if (m.tipo_mensagem === 'sem_conteudo') return;
         // Conversas diretas: apenas mensagens do usuário atual
-        if (!m.is_group && user?.id && m.usuario_id && m.usuario_id !== user.id) return;
+
         const tsMillis = getTimestampSeguro(m);
         if (tsMillis === null) return;
         const existing = mapa[m.grupo_id];
@@ -284,9 +284,6 @@ export default function ChatHubDrawer({ onClose, user }) {
     queryFn: async () => {
       const msgs = await base44.entities.WhatsappMensagem.filter({ grupo_id: selectedChat?.id }, '-received_at', 100);
       let filtered = msgs.filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo');
-      if (!selectedChat?.isGroup && user?.id) {
-        filtered = filtered.filter(m => !m.usuario_id || m.usuario_id === user.id);
-      }
       return filtered
         .sort((a, b) => {
           const ta = a.received_at || a.timestamp_mensagem || '';
@@ -325,9 +322,7 @@ export default function ChatHubDrawer({ onClose, user }) {
     // Mensagens diretas (não grupo) — filtrar por usuário atual
     const directMsgs = mensagensRecentes.filter(m => {
       if (m.is_group || !m.grupo_id) return false;
-      if (!user?.id) return true;
-      if (m.origem === 'enviada') return m.usuario_id === user.id;
-      return !m.usuario_id || m.usuario_id === user.id;
+      return true;
     });
     directMsgs.forEach(m => {
       const id = m.grupo_id;
@@ -380,11 +375,7 @@ export default function ChatHubDrawer({ onClose, user }) {
 
     // Calcular não lidas e ordenar (sem tsLabel — será computado no render)
     return Object.values(map).map(c => {
-      const msgs = mensagensRecentes.filter(m => {
-        if (m.grupo_id !== c.id) return false;
-        if (!c.isGroup && user?.id && m.usuario_id && m.usuario_id !== user.id) return false;
-        return true;
-      });
+      const msgs = mensagensRecentes.filter(m => m.grupo_id === c.id);
       const ultimaVoxx = msgs.filter(m => m.remetente_tipo === 'voxx' || m.origem === 'enviada')
         .sort((a, b) => (b.received_at || '').localeCompare(a.received_at || ''))[0];
       const viewedTs = lastViewedAt[c.id];
@@ -714,8 +705,11 @@ export default function ChatHubDrawer({ onClose, user }) {
 
   // ── Nova conversa direta ──────────────────────────────────
   const handleNovaConversa = () => {
-    const tel = novoTelefone.replace(/\D/g, '');
+    let tel = novoTelefone.replace(/\D/g, '');
     if (!tel || tel.length < 8) { toast.error('Telefone inválido'); return; }
+    if ((tel.length === 10 || tel.length === 11) && !tel.startsWith('55')) {
+      tel = '55' + tel;
+    }
     const chatId = tel.includes('@') ? tel : `${tel}@c.us`;
     const clienteSelecionado = clientes.find(c => c.id === novoClienteId);
     setSelectedChat({
