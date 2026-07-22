@@ -118,6 +118,7 @@ export default function ItemDemandaFormModal({ open, onClose, demandaId, item = 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['itensDemanda', demandaId] });
       queryClient.invalidateQueries({ queryKey: ['itensDemandaKanban'] });
+      queryClient.invalidateQueries({ queryKey: ['itensDemandaPiloto', demandaId] });
       toast.success(isEdit ? 'Item atualizado!' : 'Item criado!');
       onClose();
     },
