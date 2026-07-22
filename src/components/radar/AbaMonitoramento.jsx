@@ -101,6 +101,7 @@ export default function AbaMonitoramento({ gruposEnriquecidos, clientes, loading
       const getPriority = (g) => {
         if (g.alertaNivel && peso[g.alertaNivel] !== undefined) return peso[g.alertaNivel];
         if (g.inativo72h || g.status_vinculo === 'inativo') return 4;
+        if (g.status_vinculo === 'nao_vinculado') return 100;
         return 99;
       };
       return getPriority(a) - getPriority(b);

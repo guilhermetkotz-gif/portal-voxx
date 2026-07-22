@@ -50,6 +50,13 @@ export default function AbaGruposClientes({ grupos, clientes, onRefresh }) {
       if (!g.nome_grupo?.toLowerCase().includes(b) && !g.grupo_id?.toLowerCase().includes(b) && !g.cliente_nome?.toLowerCase().includes(b)) return false;
     }
     return true;
+  }).sort((a, b) => {
+    const aUlt = a.status_vinculo === 'nao_vinculado' ? 1 : 0;
+    const bUlt = b.status_vinculo === 'nao_vinculado' ? 1 : 0;
+    if (aUlt !== bUlt) return aUlt - bUlt;
+    const aDate = a.ultima_atividade ? new Date(a.ultima_atividade).getTime() : 0;
+    const bDate = b.ultima_atividade ? new Date(b.ultima_atividade).getTime() : 0;
+    return bDate - aDate;
   });
 
   const vincularMutation = useMutation({
