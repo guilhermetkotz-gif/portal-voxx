@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import moment from 'moment';
 import 'moment-timezone';
 import EntregaItemModal from './EntregaItemModal';
+import ItemInfoSection from './ItemInfoSection';
 
 const STATUS_APROV_LABELS = {
   nao_enviado: { label: 'Não enviado', cls: 'bg-slate-100 text-slate-600' },
@@ -215,6 +216,7 @@ export default function ItemEntregaV2Card({ item, demanda, user, LegacyComponent
       {/* Expanded content */}
       {expanded && (
         <div className="px-3 pb-3 space-y-2 border-t border-slate-100">
+          <ItemInfoSection item={item} />
           {isLoading ? (
             <div className="flex justify-center py-4">
               <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
