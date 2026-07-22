@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 
 const TIPOS = ['Imagem', 'Vídeo', 'Landing Page', 'Documento', 'PDF', 'Link', 'Relatório', 'Automação', 'Outro'];
 
+const DEMANDA_PILOTO_V2 = '6a5e51c1f77aa0ea68dd3e42';
+
 /**
  * Modal para criar primeira entrega de um item ou nova versão.
  * Toda a operação passa pelo backend gerenciarEntregaItem.
@@ -66,8 +68,8 @@ export default function EntregaItemModal({ mode, item, demanda, entregaAtual, us
     mutationFn: async () => {
       const action = isNovaVersao ? 'criar_nova_versao' : 'criar_entrega_item';
       // idempotencyKey preservada entre retries (definida no useState)
-      // Fase 2A: modelo entidade_versao ativo apenas para "Cronograma de testes Fase 2"
-      const isTesteFase2 = demanda?.titulo === 'Cronograma de testes Fase 2';
+      // Fase 2A: modelo entidade_versao ativo apenas para a demanda piloto V2
+      const isTesteFase2 = demanda?.id === DEMANDA_PILOTO_V2;
       const payload = {
         action,
         item_id: item.id,
@@ -107,6 +109,11 @@ export default function EntregaItemModal({ mode, item, demanda, entregaAtual, us
   const podeSalvar = form.nome_entrega?.trim() && form.tipo_entrega &&
     (arquivos.length > 0 || (isNovaVersao && (entregaAtual?.arquivos?.length > 0 || form.link_externo))) &&
     (!exigeConfirmacao || confirmarReabertura);
+
+  const handleSalvar = () => {
+    if (uploading || saveMutation.isPending || !podeSalvar) return;
+    saveMutation.mutate();
+  };
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
@@ -219,7 +226,7 @@ export default function EntregaItemModal({ mode, item, demanda, entregaAtual, us
           )}
 
           <div className="flex gap-2 pt-2">
-            <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !podeSalvar}
+            <Button onClick={handleSalvar} disabled={uploading || saveMutation.isPending || !podeSalvar}
               className="bg-violet-600 hover:bg-violet-700 flex-1">
               {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : isNovaVersao ? 'Criar Nova Versão' : 'Criar Entrega'}
             </Button>
