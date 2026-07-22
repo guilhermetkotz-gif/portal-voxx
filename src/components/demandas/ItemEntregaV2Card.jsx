@@ -115,6 +115,8 @@ export default function ItemEntregaV2Card({ item, demanda, user, LegacyComponent
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['entregasItemV2', item.id] });
     queryClient.invalidateQueries({ queryKey: ['itensDemanda', demanda.id] });
+    queryClient.invalidateQueries({ queryKey: ['itensDemandaPiloto', demanda.id] });
+    queryClient.invalidateQueries({ queryKey: ['timeline', demanda.id] });
   };
 
   const podeAdicionar = status === 'nao_enviado' && !entrega && item.status_finalizacao !== 'cancelado';
@@ -324,8 +326,8 @@ export default function ItemEntregaV2Card({ item, demanda, user, LegacyComponent
           user={user}
           onClose={() => setModalMode(null)}
           onSaved={() => {
-            setModalMode(null);
             invalidateAll();
+            setModalMode(null);
           }}
         />
       )}
