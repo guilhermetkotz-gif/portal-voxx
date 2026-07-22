@@ -503,6 +503,18 @@ Deno.serve(async (req) => {
 
     console.log('[webhook] ✅ WhatsappMensagem criada | cliente:', clienteNome || 'sem vínculo', '| grupo:', grupoNome, '| msg:', mensagem.substring(0, 60));
 
+    // PASSO 8b — Re-hostar mídia permanentemente (não-bloqueante)
+    if (midia?.midia_url) {
+      const novaMsg = await base44.asServiceRole.entities.WhatsappMensagem.filter(
+        { message_id: messageId || '' }, '-created_date', 1
+      ).catch(() => []);
+      const msgId = novaMsg[0]?.id;
+      if (msgId) {
+        base44.asServiceRole.functions.invoke('baixarMidiaPermanente', { mensagem_id: msgId })
+          .catch((e) => console.log('[webhook] re-host mídia falhou:', e?.message || 'erro'));
+      }
+    }
+
     // PASSO 9 — Marcar raw como processado
     if (rawId) {
       await base44.asServiceRole.entities.WhatsappWebhookRaw.update(rawId, {
