@@ -227,10 +227,14 @@ Deno.serve(async (req) => {
       // ── criar_entrega_item V2 ──
       if (action === 'criar_entrega_item' && body.modelo_versionamento === 'entidade_versao') {
         const { item_id, demanda_id, nome_entrega, descricao, tipo_entrega, arquivos, link_externo, observacao_interna, observacao_voxx } = body;
-        if (!item_id || !demanda_id || !nome_entrega?.trim() || !tipo_entrega || !arquivos || arquivos.length === 0) return null;
+        if (!item_id) return Response.json({ error: 'item_id é obrigatório para criar_entrega_item.', code: 'CAMPO_OBRIGATORIO' }, { status: 400 });
+        if (!demanda_id) return Response.json({ error: 'demanda_id é obrigatório para criar_entrega_item.', code: 'CAMPO_OBRIGATORIO' }, { status: 400 });
+        if (!nome_entrega?.trim()) return Response.json({ error: 'nome_entrega é obrigatório para criar_entrega_item.', code: 'CAMPO_OBRIGATORIO' }, { status: 400 });
+        if (!tipo_entrega) return Response.json({ error: 'tipo_entrega é obrigatório para criar_entrega_item.', code: 'CAMPO_OBRIGATORIO' }, { status: 400 });
+        if (!arquivos || arquivos.length === 0) return Response.json({ error: 'Pelo menos um arquivo é obrigatório para criar_entrega_item.', code: 'CAMPO_OBRIGATORIO' }, { status: 400 });
 
         const v = await validateItemComposta(item_id, demanda_id);
-        if (!v.ok) return null;
+        if (!v.ok) return Response.json({ error: v.error, code: 'VALIDACAO_ITEM_COMPOSTA' }, { status: v.status });
         const { item, demanda } = v;
 
         // Proteção de escopo: modelo entidade_versao autorizado apenas para demanda específica
@@ -534,6 +538,18 @@ Deno.serve(async (req) => {
     // ACTION: criar_entrega_item — primeira versão de um item
     // =====================================================
     if (action === 'criar_entrega_item') {
+      // Bloqueio de fallback: demanda piloto exige modelo entidade_versao.
+      // O V2 acima já tratou quando modelo_versionamento === 'entidade_versao'.
+      // Se a requisição chegou aqui para a demanda piloto sem esse modelo,
+      // é uma tentativa indevida de escrita no fluxo legado.
+      const DEMANDA_PILOTO_V2 = '6a5e51c1f77aa0ea68dd3e42';
+      if (body.demanda_id === DEMANDA_PILOTO_V2 && body.modelo_versionamento !== 'entidade_versao') {
+        return Response.json({
+          error: 'A demanda piloto exige o modelo de versionamento entidade_versao.',
+          code: 'MODELO_VERSIONAMENTO_OBRIGATORIO',
+        }, { status: 409 });
+      }
+
       const {
         item_id, demanda_id,
         nome_entrega, descricao, tipo_entrega,
