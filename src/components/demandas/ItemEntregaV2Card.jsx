@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   ChevronDown, ChevronRight, Package, Plus, ExternalLink, Copy,
   AlertCircle, Loader2, FileText, Image as ImageIcon, Video, History,
-  RotateCcw,
+  RotateCcw, Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -61,10 +61,15 @@ function ArquivoIcon({ tipo, url }) {
  * Não realiza mutações diretamente — apenas abre o modal existente
  * (EntregaItemModal) e link actions (copiar/abrir link).
  */
+const gerarIdempotencyKey = () =>
+  globalThis.crypto?.randomUUID?.()
+  || `send-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 export default function ItemEntregaV2Card({ item, demanda, user, LegacyComponent }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [modalMode, setModalMode] = useState(null);
+  const [sendIdempotencyKey, setSendIdempotencyKey] = useState(gerarIdempotencyKey);
 
   const { data: entregas = [], isLoading, error: queryError } = useQuery({
     queryKey: ['entregasItemV2', item.id],
@@ -118,6 +123,50 @@ export default function ItemEntregaV2Card({ item, demanda, user, LegacyComponent
     queryClient.invalidateQueries({ queryKey: ['itensDemandaPiloto', demanda.id] });
     queryClient.invalidateQueries({ queryKey: ['timeline', demanda.id] });
   };
+
+  const podeEnviarParaAprovacao =
+    entrega?.status_entrega === 'rascunho'
+    && item.status_finalizacao !== 'cancelado';
+
+  const possuiVersaoAnterior =
+    (entrega?.versoes_anteriores?.length || 0) > 0;
+
+  const textoEnviar =
+    possuiVersaoAnterior
+      ? 'Reenviar para aprovação'
+      : 'Enviar para aprovação';
+
+  const enviarAprovacaoMutation = useMutation({
+    mutationFn: async () => {
+      if (!entrega?.id) {
+        throw new Error('Entrega não encontrada.');
+      }
+
+      return base44.functions.invoke('gerenciarEntregaItem', {
+        action: 'enviar_para_aprovacao',
+        demanda_id: demanda.id,
+        item_id: item.id,
+        entrega_id: entrega.id,
+        idempotency_key: sendIdempotencyKey,
+      });
+    },
+    onSuccess: () => {
+      invalidateAll();
+      setSendIdempotencyKey(gerarIdempotencyKey());
+      toast.success(
+        possuiVersaoAnterior
+          ? 'Entrega reenviada para aprovação!'
+          : 'Entrega enviada para aprovação!'
+      );
+    },
+    onError: (error) => {
+      const mensagem =
+        error?.response?.data?.error
+        || error?.message
+        || 'Não foi possível enviar a entrega para aprovação.';
+      toast.error(mensagem);
+    },
+  });
 
   const podeAdicionar = status === 'nao_enviado' && !entrega && item.status_finalizacao !== 'cancelado';
 
@@ -191,6 +240,11 @@ export default function ItemEntregaV2Card({ item, demanda, user, LegacyComponent
                       <span className="text-[10px] px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded font-medium">
                         v{entrega.numero_versao_atual}
                       </span>
+                      {entrega.status_entrega === 'rascunho' && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-slate-50 text-slate-500 rounded font-medium border border-slate-200">
+                          Rascunho
+                        </span>
+                      )}
                       {(entrega.data_envio || entrega.criada_em || entrega.created_date) && (
                         <span className="text-[10px] text-slate-400">
                           {entrega.data_envio
@@ -241,6 +295,25 @@ export default function ItemEntregaV2Card({ item, demanda, user, LegacyComponent
                     <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
                       onClick={() => setModalMode('criar')}>
                       <Plus className="w-3 h-3" /> Adicionar entrega
+                    </Button>
+                  )}
+                  {podeEnviarParaAprovacao && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        enviarAprovacaoMutation.mutate();
+                      }}
+                      disabled={
+                        enviarAprovacaoMutation.isPending
+                        || item.status_finalizacao === 'cancelado'
+                      }
+                    >
+                      {enviarAprovacaoMutation.isPending
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Send className="w-3 h-3" />}
+                      {enviarAprovacaoMutation.isPending
+                        ? 'Enviando...'
+                        : textoEnviar}
                     </Button>
                   )}
                   {(status === 'aguardando' || status === 'reenviado') && publicUrl && (
