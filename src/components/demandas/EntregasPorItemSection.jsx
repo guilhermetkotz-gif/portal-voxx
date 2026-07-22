@@ -205,7 +205,13 @@ export function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
   const [expanded, setExpanded] = useState(false);
   const [modalMode, setModalMode] = useState(null); // 'criar' | 'nova_versao' | null
 
-  const { data: entregas = [], isLoading } = useQuery({
+  const {
+    data: entregas = [],
+    isLoading,
+    isFetched,
+    isFetching,
+    error: queryError,
+  } = useQuery({
     queryKey: ['entregasItem', item.id],
     queryFn: async () => {
       const res = await base44.functions.invoke('gerenciarEntregaItem', {
@@ -220,6 +226,13 @@ export function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
   });
 
   const entregaAtiva = entregas.find(e => e.versao_ativa !== false) || entregas[0];
+
+  const podeCriarEntrega =
+    item.status_finalizacao !== 'cancelado'
+    && isFetched
+    && !isFetching
+    && !queryError
+    && !entregaAtiva;
   // V2 (entidade_versao): versões anteriores vêm no campo versoes_anteriores da entrega agrupadora
   const versoesAnteriores = entregaAtiva?.versoes_anteriores?.length > 0
     ? entregaAtiva.versoes_anteriores
@@ -305,7 +318,7 @@ export function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
             {versoesAnteriores.length > 0 && <span>· {versoesAnteriores.length} versão(ões) anterior(es)</span>}
           </div>
         </div>
-        {item.status_finalizacao !== 'cancelado' && !entregaAtiva && (
+        {podeCriarEntrega && (
           <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
             onClick={(e) => { e.stopPropagation(); setModalMode('criar'); }}>
             <Plus className="w-3 h-3" /> Criar entrega
@@ -316,9 +329,14 @@ export function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
       {/* Conteúdo expandido */}
       {expanded && (
         <div className="px-3 pb-3 space-y-2 border-t border-slate-100">
-          {isLoading ? (
+          {(isLoading || isFetching) ? (
             <div className="flex justify-center py-4">
               <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+            </div>
+          ) : queryError ? (
+            <div className="text-center py-4">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-300" />
+              <p className="text-xs text-red-400">Erro ao carregar entregas deste item.</p>
             </div>
           ) : entregaAtiva ? (
             <>
@@ -346,9 +364,11 @@ export function ItemEntregaBlock({ item, demanda, user, resumoMutations }) {
             <div className="text-center py-4">
               <Package className="w-8 h-8 mx-auto mb-2 text-slate-200" />
               <p className="text-xs text-slate-400">Nenhuma entrega criada para este item.</p>
-              <Button size="sm" variant="outline" className="mt-2 h-7 text-xs gap-1" onClick={() => setModalMode('criar')}>
-                <Plus className="w-3 h-3" /> Criar primeira entrega
-              </Button>
+              {podeCriarEntrega && (
+                <Button size="sm" variant="outline" className="mt-2 h-7 text-xs gap-1" onClick={() => setModalMode('criar')}>
+                  <Plus className="w-3 h-3" /> Criar primeira entrega
+                </Button>
+              )}
             </div>
           )}
 
