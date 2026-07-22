@@ -163,8 +163,18 @@ Deno.serve(async (req) => {
   try {
     // PASSO 4 — Detectar grupo e extrair conteúdo completo
     const ids = normalizarGrupoId(phoneRaw);
-    const candidatos = [ids.raw, ids.hyphen, ids.atsign, ids.numeric].filter(Boolean);
     const isFromMe = body.fromMe === true;
+
+    // Para mensagens diretas (não-grupo), normalizar ID para formato @c.us
+    let directChatId = null;
+    if (!isGroupRaw && phoneRaw) {
+      const digits = String(phoneRaw).replace(/\D/g, '');
+      if (digits.length >= 8) {
+        directChatId = `${digits}@c.us`;
+      }
+    }
+
+    const candidatos = [ids.raw, ids.hyphen, ids.atsign, ids.numeric, directChatId].filter(Boolean);
     const { mensagem, tipo, dadosReacao } = extrairConteudo(body);
     const timestamp = body.momment
       ? new Date(body.momment * 1000).toISOString()
@@ -273,7 +283,7 @@ Deno.serve(async (req) => {
     let clienteId   = null;
     let clienteNome = null;
     let grupoNome   = chatName;
-    let grupoIdFinal = ids.hyphen; // padronizar para -group
+    let grupoIdFinal = isGroupRaw ? ids.hyphen : (directChatId || ids.hyphen); // grupos: -group, diretas: @c.us
     let grupoRecord  = null;
 
     // Busca em WhatsappGrupo pelos candidatos de ID
@@ -472,18 +482,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // PASSO 8a — Para mensagens diretas recebidas, associar com o último usuário VOXX que enviou
+    let usuarioIdAssociado = null;
+    let usuarioNomeAssociado = null;
+    if (!isGroupRaw && !isFromMe && directChatId) {
+      try {
+        const ultimasEnviadas = await base44.asServiceRole.entities.WhatsappMensagem.filter(
+          { grupo_id: directChatId, from_me: true, origem: 'enviada' },
+          '-received_at', 1
+        );
+        if (ultimasEnviadas.length > 0) {
+          usuarioIdAssociado = ultimasEnviadas[0].usuario_id || null;
+          usuarioNomeAssociado = ultimasEnviadas[0].usuario_nome || null;
+        }
+      } catch (e) {
+        console.log('[webhook] ⚠️ Erro ao buscar último remetente:', e.message);
+      }
+    }
+
     await base44.asServiceRole.entities.WhatsappMensagem.create({
       message_id:          messageId || null,
       raw_id:              rawId     || null,
       cliente_id:          clienteId || null,
       cliente_nome:        clienteNome || chatName || null,
       grupo_id:            grupoIdFinal || null,
-      grupo_id_normalizado: ids.hyphen  || null,
+      grupo_id_normalizado: isGroupRaw ? (ids.hyphen || null) : (directChatId || null),
       grupo_nome:          grupoNome   || chatName || null,
       is_group:            isGroupRaw,
       remetente_nome:      senderName,
       remetente_telefone:  participantPhone || null,
       remetente_tipo:      remetenteTipo,
+      usuario_id:          usuarioIdAssociado,
+      usuario_nome:        usuarioNomeAssociado,
       origem,
       mensagem,
       tipo_mensagem:       tipo,

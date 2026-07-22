@@ -97,10 +97,9 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
       if (filtroEspecial === 'cliente' && m.remetente_tipo !== 'cliente' && m.origem !== 'recebida') return false;
       if (filtroEspecial === 'aguard_retorno' && (!m.grupo_id || !tagGrupoIds?.has(m.grupo_id))) return false;
 
-      // Mensagens enviadas por VOXX para contato pessoal (não-grupo) → só visíveis para o remetente
-      const enviadaPorVoxx = m.origem === 'enviada' || m.remetente_tipo === 'voxx';
-      const ehMensagemPessoal = !m.is_group && !m.grupo_id;
-      if (enviadaPorVoxx && ehMensagemPessoal && usuarioIdAtual && m.usuario_id) {
+      // Mensagens diretas (não-grupo) → só visíveis para o usuário associado
+      const ehMensagemPessoal = !m.is_group;
+      if (ehMensagemPessoal && usuarioIdAtual && m.usuario_id) {
         if (m.usuario_id !== usuarioIdAtual) return false;
       }
       if (busca) {

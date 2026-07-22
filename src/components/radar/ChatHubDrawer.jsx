@@ -236,13 +236,15 @@ export default function ChatHubDrawer({ onClose, user }) {
 
   // ── Última mensagem por conversa (cobre TODAS, não só as 500 recentes) ──
   const { data: ultimaMsgPorChat = {} } = useQuery({
-    queryKey: ['chatHubUltimaMsgPorChat'],
+    queryKey: ['chatHubUltimaMsgPorChat', user?.id],
     queryFn: async () => {
       const todas = await base44.entities.WhatsappMensagem.list('-received_at', 2000);
       const mapa = {};
       todas.forEach(m => {
         if (!m.grupo_id) return;
         if (m.tipo_mensagem === 'sem_conteudo') return;
+        // Conversas diretas: apenas mensagens do usuário atual
+        if (!m.is_group && user?.id && m.usuario_id && m.usuario_id !== user.id) return;
         const tsMillis = getTimestampSeguro(m);
         if (tsMillis === null) return;
         const existing = mapa[m.grupo_id];
@@ -278,11 +280,14 @@ export default function ChatHubDrawer({ onClose, user }) {
 
   // ── Mensagens do chat selecionado ─────────────────────────
   const { data: msgsChat = [], isLoading: loadingMsgs } = useQuery({
-    queryKey: ['chatHubMsgs', selectedChat?.id],
+    queryKey: ['chatHubMsgs', selectedChat?.id, selectedChat?.isGroup, user?.id],
     queryFn: async () => {
       const msgs = await base44.entities.WhatsappMensagem.filter({ grupo_id: selectedChat?.id }, '-received_at', 100);
-      return msgs
-        .filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo')
+      let filtered = msgs.filter(m => !m.deletado && m.tipo_mensagem !== 'sem_conteudo');
+      if (!selectedChat?.isGroup && user?.id) {
+        filtered = filtered.filter(m => !m.usuario_id || m.usuario_id === user.id);
+      }
+      return filtered
         .sort((a, b) => {
           const ta = a.received_at || a.timestamp_mensagem || '';
           const tb = b.received_at || b.timestamp_mensagem || '';
@@ -317,8 +322,13 @@ export default function ChatHubDrawer({ onClose, user }) {
       };
     });
 
-    // Mensagens diretas (não grupo)
-    const directMsgs = mensagensRecentes.filter(m => !m.is_group && m.grupo_id);
+    // Mensagens diretas (não grupo) — filtrar por usuário atual
+    const directMsgs = mensagensRecentes.filter(m => {
+      if (m.is_group || !m.grupo_id) return false;
+      if (!user?.id) return true;
+      if (m.origem === 'enviada') return m.usuario_id === user.id;
+      return !m.usuario_id || m.usuario_id === user.id;
+    });
     directMsgs.forEach(m => {
       const id = m.grupo_id;
       if (map[id]) return; // já existe como grupo
@@ -345,6 +355,8 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (!cid || !map[cid]) return;
       // Ignorar mensagens enviadas pelo portal VOXX — não geram "notificação de nova mensagem"
       if (m.remetente_tipo !== 'cliente' && m.origem !== 'recebida') return;
+      // Conversas diretas: apenas mensagens do usuário atual
+      if (!m.is_group && user?.id && m.usuario_id && m.usuario_id !== user.id) return;
       const ts = m.received_at || m.timestamp_mensagem;
       if (ts && !map[cid]._temMensagem) {
         map[cid]._temMensagem = true;
@@ -368,7 +380,11 @@ export default function ChatHubDrawer({ onClose, user }) {
 
     // Calcular não lidas e ordenar (sem tsLabel — será computado no render)
     return Object.values(map).map(c => {
-      const msgs = mensagensRecentes.filter(m => m.grupo_id === c.id);
+      const msgs = mensagensRecentes.filter(m => {
+        if (m.grupo_id !== c.id) return false;
+        if (!c.isGroup && user?.id && m.usuario_id && m.usuario_id !== user.id) return false;
+        return true;
+      });
       const ultimaVoxx = msgs.filter(m => m.remetente_tipo === 'voxx' || m.origem === 'enviada')
         .sort((a, b) => (b.received_at || '').localeCompare(a.received_at || ''))[0];
       const viewedTs = lastViewedAt[c.id];
@@ -386,7 +402,7 @@ export default function ChatHubDrawer({ onClose, user }) {
       if (tsB === null) return -1;
       return tsB - tsA;
     });
-  }, [grupos, mensagensRecentes, ultimaMsgPorChat, lastViewedAt]);
+  }, [grupos, mensagensRecentes, ultimaMsgPorChat, lastViewedAt, user?.id]);
 
   // ── Filtrar conversas ─────────────────────────────────────
   const conversasFiltradas = useMemo(() => {
@@ -400,7 +416,11 @@ export default function ChatHubDrawer({ onClose, user }) {
     const agoraMin = moment().tz(TZ).subtract(24, 'hours');
     if (filtroTab === 'naolidas') {
       result = result.filter(c => {
-        const msgs = mensagensRecentes.filter(m => m.grupo_id === c.id);
+        const msgs = mensagensRecentes.filter(m => {
+          if (m.grupo_id !== c.id) return false;
+          if (!c.isGroup && user?.id && m.usuario_id && m.usuario_id !== user.id) return false;
+          return true;
+        });
         const ultimaCliente = msgs.filter(m => m.remetente_tipo === 'cliente' || m.origem === 'recebida')
           .sort((a, b) => (b.received_at > a.received_at ? 1 : -1))[0];
         const ultimaVoxx = msgs.filter(m => m.remetente_tipo === 'voxx' || m.origem === 'enviada')

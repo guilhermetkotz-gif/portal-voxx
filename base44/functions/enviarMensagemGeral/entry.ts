@@ -26,12 +26,17 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const {
-      chatId, mensagem, tipo = 'texto', midiaUrl, fileName,
+      chatId: chatIdRaw, mensagem, tipo = 'texto', midiaUrl, fileName,
       incluirAssinatura = true, clienteId, clienteNome, chatName,
       origem: origemEnvio = 'manual', demandaId, comentarioOriginal,
     } = body;
 
-    if (!chatId) return Response.json({ error: 'chatId é obrigatório' }, { status: 400 });
+    if (!chatIdRaw) return Response.json({ error: 'chatId é obrigatório' }, { status: 400 });
+
+    // Normalizar chatId para mensagens diretas (não-grupo): formato @c.us
+    const chatId = (!String(chatIdRaw).includes('-group') && !String(chatIdRaw).includes('@g.us'))
+      ? `${String(chatIdRaw).replace(/\D/g, '')}@c.us`
+      : chatIdRaw;
 
     const { zapiInstanceId, zapiToken, zapiClientToken } = await getZapiCredentials(base44);
     if (!zapiInstanceId) return Response.json({ error: 'Z-API não configurada' }, { status: 503 });
