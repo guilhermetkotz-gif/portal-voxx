@@ -34,9 +34,31 @@ Deno.serve(async (req) => {
       transcricao_status: 'processando'
     });
 
-    const transcricao = await base44.asServiceRole.integrations.Core.TranscribeAudio({
+    const transcricaoRaw = await base44.asServiceRole.integrations.Core.TranscribeAudio({
       audio_url: midiaUrl
     });
+
+    // Pós-processamento com LLM para garantir português do Brasil
+    let transcricao = transcricaoRaw;
+    if (transcricaoRaw && transcricaoRaw.trim().length > 0) {
+      try {
+        const correcao = await base44.asServiceRole.integrations.Core.InvokeLLM({
+          prompt: `O texto abaixo é a transcrição de um áudio de WhatsApp. Pode ter sido transcrito no idioma errado pelo Whisper (auto-detecção). Se o texto NÃO estiver em português do Brasil, traduza-o. Se já estiver em português do Brasil, apenas corrija pontuação, ortografia e formatação, mantendo o sentido original. Retorne APENAS o texto corrigido em português do Brasil, sem comentários.\n\nTranscrição original:\n${transcricaoRaw}`,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              transcricao_corrigida: { type: "string" }
+            },
+            required: ["transcricao_corrigida"]
+          }
+        });
+        if (correcao?.transcricao_corrigida && correcao.transcricao_corrigida.trim().length > 0) {
+          transcricao = correcao.transcricao_corrigida.trim();
+        }
+      } catch (e) {
+        console.log('[transcreverAudio] Aviso: pós-processamento LLM falhou, usando transcrição original:', e.message);
+      }
+    }
 
     await base44.asServiceRole.entities.WhatsappMensagem.update(mensagemId, {
       transcricao_audio: transcricao,
