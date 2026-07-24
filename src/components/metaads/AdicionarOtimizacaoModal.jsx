@@ -54,19 +54,26 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, ra
         const accountNorm = normalize(accountName);
 
         // 1. Match exato normalizado (nome, meta_ads_account_name, contas_anuncio)
-        const cliente = clientes.find(c =>
+        const exactMatches = clientes.filter(c =>
             normalize(c.nome) === accountNorm ||
             normalize(c.meta_ads_account_name) === accountNorm ||
             (Array.isArray(c.contas_anuncio) && c.contas_anuncio.some(ca => ca.plataforma === 'Meta' && normalize(ca.conta_nome) === accountNorm))
         );
-        if (cliente) return cliente;
+        if (exactMatches.length > 0) {
+            // Preferir cliente com grupo WhatsApp vinculado
+            return exactMatches.find(c => c.whatsapp_grupo_id) || exactMatches[0];
+        }
 
         // 2. Fallback: correspondência parcial — um nome contém o outro
-        return clientes.find(c => {
+        const partialMatches = clientes.filter(c => {
             const cNome = normalize(c.nome);
             if (cNome && accountNorm && (cNome.includes(accountNorm) || accountNorm.includes(cNome))) return true;
             return false;
-        }) || null;
+        });
+        if (partialMatches.length > 0) {
+            return partialMatches.find(c => c.whatsapp_grupo_id) || partialMatches[0];
+        }
+        return null;
     };
 
     const createMutation = useMutation({
