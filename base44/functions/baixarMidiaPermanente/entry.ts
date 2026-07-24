@@ -14,9 +14,36 @@ function isTempUrl(url) {
 }
 
 function getExtFromName(nome) {
-  if (!nome) return 'bin';
+  if (!nome) return '';
   const parts = nome.split('.');
-  return parts.length > 1 ? parts.pop().toLowerCase() : 'bin';
+  return parts.length > 1 ? parts.pop().toLowerCase() : '';
+}
+
+const MIME_MAP = {
+  imagem: 'image/jpeg',
+  video: 'video/mp4',
+  audio: 'audio/ogg',
+  documento: 'application/octet-stream',
+  sticker: 'image/webp',
+};
+
+const EXT_MAP = {
+  imagem: 'jpg',
+  video: 'mp4',
+  audio: 'ogg',
+  documento: 'pdf',
+  sticker: 'webp',
+};
+
+function inferMimeType(tipoMensagem, blobType) {
+  if (blobType && blobType !== 'application/octet-stream') return blobType;
+  return MIME_MAP[tipoMensagem] || 'application/octet-stream';
+}
+
+function inferExt(tipoMensagem, nomeArquivo) {
+  const extFromFile = getExtFromName(nomeArquivo);
+  if (extFromFile) return extFromFile;
+  return EXT_MAP[tipoMensagem] || 'bin';
 }
 
 Deno.serve(async (req) => {
@@ -90,10 +117,13 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Nome do arquivo
-        const ext = getExtFromName(msg.midia_nome);
-        const nomeArquivo = msg.midia_nome || `midia_${msg.id}.${ext}`;
-        const file = new File([blob], nomeArquivo, { type: blob.type || 'application/octet-stream' });
+        // Nome do arquivo com extensão e MIME type corretos
+        const ext = inferExt(msg.tipo_mensagem, msg.midia_nome);
+        const nomeBase = (msg.midia_nome && msg.midia_nome.includes('.'))
+          ? msg.midia_nome
+          : `midia_${msg.id}.${ext}`;
+        const mimeType = inferMimeType(msg.tipo_mensagem, blob.type);
+        const file = new File([blob], nomeBase, { type: mimeType });
 
         // Upload permanente
         const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file });
