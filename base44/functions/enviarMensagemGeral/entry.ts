@@ -177,10 +177,11 @@ Deno.serve(async (req) => {
       }
     } else if (tipo === 'documento' && midiaUrl) {
       const ext = (fileName || midiaUrl || '').split('.').pop()?.toLowerCase() || 'pdf';
+      const captionEnvio = mensagemWhatsApp || mensagemFinal || '';
       const resp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-document/${ext}`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileName || 'documento' }),
+        body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileName || 'documento', ...(captionEnvio.trim() ? { caption: captionEnvio } : {}) }),
       });
       resultadoApi = await resp.json().catch(() => null);
       const apiError = isZapiError(resultadoApi);
