@@ -49,7 +49,16 @@ function renderizarTextoComLinks(texto, className, telefoneParaNome) {
           break;
         }
       }
-      segments.push({ type: 'mention', display: nome || phoneDigits, raw: match[0] });
+      // Fallback: formatar como telefone legível se não encontrou o nome
+      let display = nome || phoneDigits;
+      if (!nome && phoneDigits.length >= 10) {
+        const ddi = phoneDigits.startsWith('55') && phoneDigits.length > 12 ? '55' : '';
+        const rest = ddi ? phoneDigits.slice(2) : phoneDigits;
+        const ddd = rest.slice(0, 2);
+        const resto = rest.slice(2);
+        display = `+${ddi || '55'} ${ddd} ${resto.slice(0, 5)}${resto.length > 5 ? '-' + resto.slice(5) : ''}`;
+      }
+      segments.push({ type: 'mention', display, raw: match[0] });
     }
     lastIndex = pattern.lastIndex;
   }
@@ -172,17 +181,37 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
     return horas >= 72;
   })();
 
+  // Buscar participantes do grupo para resolver menções de quem ainda não enviou mensagens
+  const { data: grupoParticipantes = [] } = useQuery({
+    queryKey: ['grupoParticipantes', chatId],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('gerenciarGrupoWhatsapp', { acao: 'info', grupoId: chatId });
+      return res?.group?.participants || [];
+    },
+    enabled: !!chatId && isGroup,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
   // Mapa telefone → nome para resolver menções (@phone)
   const telefoneParaNome = useMemo(() => {
     const map = {};
+    // 1) Dos remetentes das mensagens
     mensagens.forEach(m => {
       if (m.remetente_telefone && m.remetente_nome) {
         const telNorm = m.remetente_telefone.replace(/\D/g, '');
         if (telNorm) map[telNorm] = m.remetente_nome;
       }
     });
+    // 2) Dos participantes do grupo (Z-API)
+    grupoParticipantes.forEach(p => {
+      if (p.phone && p.name) {
+        const telNorm = p.phone.replace(/\D/g, '');
+        if (telNorm && !map[telNorm]) map[telNorm] = p.name;
+      }
+    });
     return map;
-  }, [mensagens]);
+  }, [mensagens, grupoParticipantes]);
 
   // Auto-scroll para baixo
   useEffect(() => {
