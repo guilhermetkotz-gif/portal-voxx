@@ -65,7 +65,7 @@ async function processCliente(cliente, accessToken, existingPhoneKeys, base44) {
     const sheetName = sheet.properties?.title;
     if (!sheetName) continue;
 
-    await sleep(300);
+    await sleep(1000);
 
     const dataRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`,
@@ -166,9 +166,14 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'No clients with Google Sheets URL configured', totalImported: 0 });
     }
 
-    // Pre-load existing leads for these specific clients only
+    // Pre-load existing leads for these specific clients only (last 3 days to reduce payload)
     const clienteIds = clientesComPlanilha.map(c => c.id);
-    const existingLeads = await base44.asServiceRole.entities.CrcLead.list('-created_date', 10000);
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    const existingLeads = await base44.asServiceRole.entities.CrcLead.filter(
+      { created_date: { $gte: threeDaysAgo } },
+      '-created_date',
+      5000
+    );
     const existingPhoneKeys = new Set(
       existingLeads
         .filter(l => clienteIds.includes(l.unidade_id))
@@ -183,7 +188,7 @@ Deno.serve(async (req) => {
       const result = await processCliente(cliente, accessToken, existingPhoneKeys, base44);
       results.push(result);
       totalImported += result.imported || 0;
-      await sleep(500);
+      await sleep(2000);
     }
 
     return Response.json({ success: true, totalImported, processedClients: clientesComPlanilha.length, results });
