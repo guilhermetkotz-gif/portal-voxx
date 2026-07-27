@@ -360,6 +360,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['demandas'] });
+      queryClient.invalidateQueries({ queryKey: ['demandasKanban'] });
       if (data?.id) setDemandaId(data.id);
     }
   });
@@ -378,6 +379,7 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['demandas'] });
+      queryClient.invalidateQueries({ queryKey: ['demandasKanban'] });
       queryClient.invalidateQueries({ queryKey: ['demandaEdit', demandaId] });
       setSuccess(true);
     }
