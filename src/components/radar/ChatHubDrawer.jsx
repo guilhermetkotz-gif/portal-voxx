@@ -249,7 +249,14 @@ export default function ChatHubDrawer({ onClose, user }) {
         if (tsMillis === null) return;
         const existing = mapa[m.grupo_id];
         if (!existing || tsMillis > existing.tsMillis) {
-          mapa[m.grupo_id] = { ts: getMensagemTs(m), tsMillis, preview: previewMensagem(m) };
+          const isVoxxMsg = m.remetente_tipo === 'voxx' || m.origem === 'enviada';
+        mapa[m.grupo_id] = {
+          ts: getMensagemTs(m),
+          tsMillis,
+          preview: previewMensagem(m),
+          remetenteNome: isVoxxMsg ? (m.usuario_nome || m.remetente_nome || '') : '',
+          isVoxx: isVoxxMsg,
+        };
         }
       });
       return mapa;
@@ -369,7 +376,30 @@ export default function ChatHubDrawer({ onClose, user }) {
     Object.entries(ultimaMsgPorChat).forEach(([cid, data]) => {
       if (map[cid] && !map[cid]._temMensagem && data.ts) {
         map[cid].lastMessageAt = data.ts;
-        map[cid].lastMessage = map[cid].lastMessage || data.preview || '';
+        if (data.isVoxx && data.remetenteNome) {
+          const preview = `${data.remetenteNome}: ${data.preview}`;
+          map[cid].lastMessage = map[cid].lastMessage || (preview.substring(0, 60) + (preview.length > 60 ? '...' : ''));
+        } else {
+          map[cid].lastMessage = map[cid].lastMessage || data.preview || '';
+        }
+      }
+    });
+
+    // Fallback em tempo real: se ainda não há preview, buscar última mensagem VOXX em mensagensRecentes
+    mensagensRecentes.forEach(m => {
+      const cid = m.grupo_id;
+      if (!cid || !map[cid]) return;
+      if (map[cid]._temMensagem) return;
+      if (m.remetente_tipo !== 'voxx' && m.origem !== 'enviada') return;
+      if (!map[cid].lastMessage) {
+        const nomeRemetente = m.usuario_nome || m.remetente_nome || '';
+        const previewTexto = m.tipo_mensagem === 'texto' ? (m.mensagem || '') :
+                        m.tipo_mensagem === 'imagem' ? '📷 Imagem' :
+                        m.tipo_mensagem === 'video' ? '🎬 Vídeo' :
+                        m.tipo_mensagem === 'audio' ? '🎤 Áudio' :
+                        m.tipo_mensagem === 'documento' ? '📎 Documento' : '';
+        const preview = nomeRemetente ? `${nomeRemetente}: ${previewTexto}` : previewTexto;
+        map[cid].lastMessage = preview.substring(0, 60) + (preview.length > 60 ? '...' : '');
       }
     });
 
