@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, Legend, ScatterChart, Scatter, ZAxis } from 'recharts';
 import ListaHistoricoOtimizacoes from '@/components/metaads/ListaHistoricoOtimizacoes';
 import EficaciaOtimizacoesTab from '@/components/metaads/EficaciaOtimizacoesTab';
+import LicoesAprendidasTab from '@/components/metaads/LicoesAprendidasTab';
 import AdicionarOtimizacaoModal from '@/components/metaads/AdicionarOtimizacaoModal';
 import PainelGamificacao from '@/components/gamificacao/PainelGamificacao';
 import GamificacaoRadarV2 from '@/components/gamificacao/GamificacaoRadarV2';
@@ -856,13 +857,14 @@ export default function MonitoramentoContas({ user }) {
 
             {/* Tabs */}
             <Tabs defaultValue="monitoramento" className="w-full" onValueChange={setActiveTab}>
-                <TabsList className="grid w-full max-w-5xl grid-cols-6">
-                    <TabsTrigger value="monitoramento">Monitoramento de Contas</TabsTrigger>
+                <TabsList className="grid w-full max-w-6xl grid-cols-7">
+                    <TabsTrigger value="monitoramento">Monitoramento</TabsTrigger>
                     <TabsTrigger value="radar">RADAR META</TabsTrigger>
                     <TabsTrigger value="gamificacao">Gamificação</TabsTrigger>
                     <TabsTrigger value="operadores">Contas/Operador</TabsTrigger>
-                    <TabsTrigger value="otimizacoes">Histórico de Otimizações</TabsTrigger>
+                    <TabsTrigger value="otimizacoes">Histórico Otim.</TabsTrigger>
                     <TabsTrigger value="eficacia">D&A Eficácia</TabsTrigger>
+                    <TabsTrigger value="licoes">Lições Aprendidas</TabsTrigger>
                 </TabsList>
 
                 {/* Tab: Monitoramento de Contas */}
@@ -1850,6 +1852,11 @@ export default function MonitoramentoContas({ user }) {
                 {/* Tab: D&A Eficácia */}
                 <TabsContent value="eficacia" className="mt-6">
                     <EficaciaOtimizacoesTab />
+                </TabsContent>
+
+                {/* Tab: Lições Aprendidas */}
+                <TabsContent value="licoes" className="mt-6">
+                    <LicoesAprendidasTab />
                 </TabsContent>
             </Tabs>
 
