@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -70,6 +71,7 @@ const severityLabels = {
 export default function AnaliseRadarPanel({ conta, radarRow, recommendations, onReanalyze }) {
     const [reanalyzing, setReanalyzing] = useState(false);
     const [localRecommendations, setLocalRecommendations] = useState(recommendations);
+    const queryClient = useQueryClient();
 
     const analysisDate = conta?.updated_date || conta?.created_date;
     const recs = localRecommendations?.recommendations || [];
@@ -85,6 +87,10 @@ export default function AnaliseRadarPanel({ conta, radarRow, recommendations, on
             const newRecs = response.data;
             setLocalRecommendations(newRecs);
             if (onReanalyze) onReanalyze(newRecs);
+            // Invalida caches de dados da conta para refletir atualizações em todas as páginas
+            await queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] });
+            await queryClient.invalidateQueries({ queryKey: ['radarMetaData'] });
+            await queryClient.invalidateQueries({ queryKey: ['radarGrupos'] });
             toast.success('Análise atualizada com sucesso!');
         } catch (error) {
             toast.error('Erro ao re-analisar: ' + error.message);

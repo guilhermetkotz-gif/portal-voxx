@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Play, CheckCircle2, AlertTriangle, Star, ShieldAlert, Target, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -24,20 +24,24 @@ function scoreColor(score) {
 
 export default function WhatsappAnalisePanel({ clienteNome, grupoId }) {
   const [reanalyzing, setReanalyzing] = useState(false);
+  const queryClient = useQueryClient();
 
   const queryFilter = grupoId
     ? { grupo_id: grupoId }
     : { cliente_nome: clienteNome };
 
+  const queryKey = ['whatsappAnaliseModal', grupoId || clienteNome];
+
   const { data: analises = [], isLoading } = useQuery({
-    queryKey: ['whatsappAnaliseModal', grupoId || clienteNome],
+    queryKey,
     queryFn: () => base44.entities.WhatsappAnaliseGrupo.filter(
       queryFilter,
       '-created_date',
       10
     ),
     enabled: !!(grupoId || clienteNome),
-    staleTime: 60 * 1000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const analise = analises && analises.length > 0 ? analises[0] : null;
@@ -58,6 +62,9 @@ export default function WhatsappAnalisePanel({ clienteNome, grupoId }) {
       } else {
         toast.success('Análise do WhatsApp atualizada!');
       }
+      // Invalida o cache para forçar refetch dos dados atualizados
+      await queryClient.invalidateQueries({ queryKey });
+      await queryClient.refetchQueries({ queryKey });
     } catch (error) {
       toast.error('Erro ao re-analisar: ' + (error.message || 'erro desconhecido'));
     } finally {
