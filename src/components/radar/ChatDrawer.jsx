@@ -378,8 +378,8 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       // Z-API não converte .webm — priorizar formatos suportados (mp4/m4a, ogg)
       const possibleFormats = [
-        { mimeType: 'audio/mp4', ext: 'm4a' },
         { mimeType: 'audio/ogg;codecs=opus', ext: 'ogg' },
+        { mimeType: 'audio/mp4', ext: 'm4a' },
         { mimeType: 'audio/webm;codecs=opus', ext: 'webm' },
       ];
       const selectedFormat = possibleFormats.find(f => MediaRecorder.isTypeSupported(f.mimeType)) || possibleFormats[2];

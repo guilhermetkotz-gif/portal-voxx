@@ -83,14 +83,26 @@ function extrairConteudo(body) {
   if (body.audio)   return { mensagem: '[Áudio]', tipo: 'audio' };
   if (body.image)   return { mensagem: body.image?.caption || body.caption || '[Imagem]', tipo: 'imagem' };
   if (body.video)   return { mensagem: body.video?.caption || body.caption || '[Vídeo]', tipo: 'video' };
-  if (body.document) return { mensagem: body.document?.caption || body.caption || (body.document?.fileName ? `[Documento: ${body.document.fileName}]` : '[Documento]'), tipo: 'documento' };
+  if (body.document) {
+    const docMime = body.document.mimeType || '';
+    if (docMime.startsWith('audio/')) return { mensagem: '[Áudio]', tipo: 'audio' };
+    if (docMime.startsWith('video/')) return { mensagem: body.document?.caption || '[Vídeo]', tipo: 'video' };
+    if (docMime.startsWith('image/')) return { mensagem: body.document?.caption || '[Imagem]', tipo: 'imagem' };
+    return { mensagem: body.document?.caption || body.caption || (body.document?.fileName ? `[Documento: ${body.document.fileName}]` : '[Documento]'), tipo: 'documento' };
+  }
   if (body.caption) return { mensagem: body.caption, tipo: 'texto' };
   if (body.sticker) return { mensagem: '[Sticker]', tipo: 'sticker' };
   // Mídia aninhada em body.message.* (formato alternativo usado em conversas diretas)
   if (body.message?.audio)   return { mensagem: '[Áudio]', tipo: 'audio' };
   if (body.message?.image)   return { mensagem: body.message.image?.caption || body.message?.caption || '[Imagem]', tipo: 'imagem' };
   if (body.message?.video)   return { mensagem: body.message.video?.caption || body.message?.caption || '[Vídeo]', tipo: 'video' };
-  if (body.message?.document) return { mensagem: body.message.document?.caption || body.message?.caption || (body.message.document?.fileName ? `[Documento: ${body.message.document.fileName}]` : '[Documento]'), tipo: 'documento' };
+  if (body.message?.document) {
+    const docMime = body.message.document.mimeType || '';
+    if (docMime.startsWith('audio/')) return { mensagem: '[Áudio]', tipo: 'audio' };
+    if (docMime.startsWith('video/')) return { mensagem: body.message.document?.caption || '[Vídeo]', tipo: 'video' };
+    if (docMime.startsWith('image/')) return { mensagem: body.message.document?.caption || '[Imagem]', tipo: 'imagem' };
+    return { mensagem: body.message.document?.caption || body.message?.caption || (body.message.document?.fileName ? `[Documento: ${body.message.document.fileName}]` : '[Documento]'), tipo: 'documento' };
+  }
   if (body.message?.caption) return { mensagem: body.message.caption, tipo: 'texto' };
   if (body.message?.sticker) return { mensagem: '[Sticker]', tipo: 'sticker' };
   if (body.mimetype || body.message?.mimetype) return { mensagem: `[Mídia: ${body.mimetype || body.message?.mimetype}]`, tipo: 'sem_conteudo' };

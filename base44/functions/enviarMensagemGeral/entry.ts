@@ -163,10 +163,12 @@ Deno.serve(async (req) => {
       } else {
         // Fallback: se send-audio falhar, enviar como documento
         const audioExt = (fileName || midiaUrl || '').split('.').pop()?.toLowerCase() || 'mp3';
+        // Strip extension from fileName — Z-API's send-document/{ext} appends it, causing doubled extensions (audio.m4a.m4a)
+        const fileNameSemExt = (fileName || 'audio').replace(/\.[^.]+$/, '');
         const fallbackResp = await fetch(`${ZAPI_BASE}/instances/${zapiInstanceId}/token/${zapiToken}/send-document/${audioExt}`, {
           method: 'POST',
           headers,
-          body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileName || 'audio.' + audioExt }),
+          body: JSON.stringify({ phone: chatId, document: midiaUrl, fileName: fileNameSemExt }),
         });
         resultadoApi = await fallbackResp.json().catch(() => null);
         const fallbackError = isZapiError(resultadoApi);

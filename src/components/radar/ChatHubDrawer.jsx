@@ -680,16 +680,22 @@ export default function ChatHubDrawer({ onClose, user }) {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      const possibleFormats = [
+        { mimeType: 'audio/ogg;codecs=opus', ext: 'ogg' },
+        { mimeType: 'audio/mp4', ext: 'm4a' },
+        { mimeType: 'audio/webm;codecs=opus', ext: 'webm' },
+      ];
+      const selectedFormat = possibleFormats.find(f => MediaRecorder.isTypeSupported(f.mimeType)) || possibleFormats[2];
+      const recorder = new MediaRecorder(stream, { mimeType: selectedFormat.mimeType });
       mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
         setGravando(false);
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(audioChunksRef.current, { type: selectedFormat.mimeType });
         if (blob.size < 100 || !selectedChat) return;
-        const audioFile = new File([blob], 'audio.webm', { type: 'audio/webm' });
+        const audioFile = new File([blob], `audio.${selectedFormat.ext}`, { type: selectedFormat.mimeType });
         setEnviando(true);
         try {
           const uploadRes = await base44.integrations.Core.UploadFile({ file: audioFile });
@@ -702,7 +708,7 @@ export default function ChatHubDrawer({ onClose, user }) {
             chatId: selectedChat.id,
             tipo: 'audio',
             midiaUrl: uploadRes.file_url,
-            fileName: 'audio.webm',
+            fileName: `audio.${selectedFormat.ext}`,
             incluirAssinatura: false,
             clienteId: selectedChat.clienteId || '',
             clienteNome: selectedChat.clienteNome || '',
