@@ -18,6 +18,21 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'otimizacao not found' });
     }
 
+    // Para otimizações vindas do Kanban, somente criar eficácia se a demanda
+    // foi aberta DIRETAMENTE para TRAFEGO_META (setor_responsavel_original).
+    // Demandas abertas em CRIACAO/EDICAO e movidas depois para TRAFEGO_META não contam.
+    if (otim.origem_registro === 'kanban' && otim.demanda_id) {
+      try {
+        const demandas = await base44.asServiceRole.entities.Demanda.filter({ id: otim.demanda_id });
+        const demanda = demandas[0];
+        if (demanda && demanda.setor_responsavel_original !== 'TRAFEGO_META') {
+          return Response.json({ skipped: true, reason: 'demanda kanban nao aberta diretamente para TRAFEGO_META' });
+        }
+      } catch (e) {
+        // Se não conseguir buscar a demanda, não bloqueia a criação
+      }
+    }
+
     // Verificar se já existe avaliação para esta otimização
     const existing = await base44.asServiceRole.entities.AvaliacaoEficaciaOtimizacao.filter({
       otimizacao_id: otimId

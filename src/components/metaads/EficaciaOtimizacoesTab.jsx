@@ -26,17 +26,62 @@ export default function EficaciaOtimizacoesTab() {
         staleTime: 60 * 1000
     });
 
+    // Buscar otimizações de origem kanban para verificar setor_responsavel_original da demanda
+    const { data: kanbanOtimizacoes = [] } = useQuery({
+        queryKey: ['kanbanOtimizacoesEficacia'],
+        queryFn: () => base44.entities.MetaAdsOtimizacao.filter({ origem_registro: 'kanban' }, '-data_acao', 500),
+        staleTime: 5 * 60 * 1000
+    });
+
+    // Buscar demandas vinculadas às otimizações kanban para verificar setor_responsavel_original
+    const { data: demandasKanban = [] } = useQuery({
+        queryKey: ['demandasKanbanEficacia', kanbanOtimizacoes.map(o => o.demanda_id).filter(Boolean).join(',')],
+        queryFn: async () => {
+            const demandaIds = [...new Set(kanbanOtimizacoes.map(o => o.demanda_id).filter(Boolean))];
+            if (demandaIds.length === 0) return [];
+            const demandas = [];
+            for (const id of demandaIds) {
+                try {
+                    const found = await base44.entities.Demanda.filter({ id });
+                    if (found[0]) demandas.push(found[0]);
+                } catch (e) { /* skip invalid id */ }
+            }
+            return demandas;
+        },
+        enabled: kanbanOtimizacoes.length > 0,
+        staleTime: 5 * 60 * 1000
+    });
+
+    // Set de otimizacao_ids a excluir (kanban + setor_responsavel_original !== TRAFEGO_META)
+    const otimizacaoIdsExcluir = useMemo(() => {
+        const demandaIdsNaoTrafego = new Set(
+            demandasKanban
+                .filter(d => d.setor_responsavel_original !== 'TRAFEGO_META')
+                .map(d => d.id)
+        );
+        return new Set(
+            kanbanOtimizacoes
+                .filter(o => o.demanda_id && demandaIdsNaoTrafego.has(o.demanda_id))
+                .map(o => o.id)
+        );
+    }, [kanbanOtimizacoes, demandasKanban]);
+
+    // Filtrar avaliações: remover kanban cuja demanda não foi aberta diretamente em TRAFEGO_META
+    const avaliacoesValidas = useMemo(() => {
+        return avaliacoes.filter(a => !otimizacaoIdsExcluir.has(a.otimizacao_id));
+    }, [avaliacoes, otimizacaoIdsExcluir]);
+
     const periodoDias = { '7d': 7, '30d': 30, '90d': 90, 'all': 9999 };
     const periodoCorte = useMemo(() => {
         return moment().tz(TZ).subtract(periodoDias[filtroPeriodo] || 30, 'days');
     }, [filtroPeriodo]);
 
     const avaliacoesPeriodo = useMemo(() => {
-        return avaliacoes.filter(a => {
+        return avaliacoesValidas.filter(a => {
             if (!a.data_otimizacao) return false;
             return moment(a.data_otimizacao).isAfter(periodoCorte);
         });
-    }, [avaliacoes, periodoCorte]);
+    }, [avaliacoesValidas, periodoCorte]);
 
     const concluidas = avaliacoesPeriodo.filter(a => a.status === 'concluida');
     const pendentes = avaliacoesPeriodo.filter(a => a.status === 'pendente');

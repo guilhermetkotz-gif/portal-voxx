@@ -53,11 +53,11 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'demanda nao encontrada' });
     }
 
-    // Check if setor (original or current) is TRAFEGO_META
+    // Somente demandas abertas DIRETAMENTE para TRAFEGO_META geram otimização/eficácia.
+    // Demandas abertas em CRIACAO/EDICAO e depois movidas para TRAFEGO_META NÃO contam.
     const setorOriginal = demanda.setor_responsavel_original;
-    const setorAtual = demanda.setor;
-    if (setorOriginal !== 'TRAFEGO_META' && setorAtual !== 'TRAFEGO_META') {
-      return Response.json({ skipped: true, reason: 'setor nao e TRAFEGO_META' });
+    if (setorOriginal !== 'TRAFEGO_META') {
+      return Response.json({ skipped: true, reason: 'demanda nao foi aberta diretamente para TRAFEGO_META' });
     }
 
     // Fetch the cliente to get meta_ads_account_name
