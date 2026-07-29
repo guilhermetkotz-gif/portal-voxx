@@ -143,11 +143,14 @@ const Kanban = ({ user, selectedClienteId }) => {
           return [];
         }
       }
-      // Filtrar por status no servidor para concluídas/finalizadas (evita perder demandas antigas)
+      // Filtrar por status no servidor para excluir concluídas/finalizadas na view 'ativas'.
+      // Sem isto, demandas ativas antigas somem quando o total de demandas ultrapassa o limite de fetch.
       if (viewMode === 'concluidas') {
         queryFilters.status = 'concluida';
       } else if (viewMode === 'finalizadas') {
         queryFilters.status = 'finalizada';
+      } else {
+        queryFilters.status = { $nin: ['concluida', 'finalizada'] };
       }
       const limit = (viewMode === 'concluidas' || viewMode === 'finalizadas') ? 2000 : 500;
       return base44.entities.Demanda.filter(queryFilters, '-created_date', limit);
