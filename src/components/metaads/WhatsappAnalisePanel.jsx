@@ -44,6 +44,7 @@ export default function WhatsappAnalisePanel({ clienteNome, grupoId, clienteId }
     ),
     enabled: !!(grupoId || clienteId || clienteNome),
     staleTime: 0,
+    gcTime: 0,
     refetchOnMount: 'always',
   });
 

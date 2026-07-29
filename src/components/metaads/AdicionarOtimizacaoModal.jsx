@@ -34,7 +34,7 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, ra
     });
 
     // Buscar clientes para vincular automaticamente
-    const { data: clientes = [] } = useQuery({
+    const { data: clientes = [], isLoading: isLoadingClientes } = useQuery({
         queryKey: ['clientesMetaAdsModal'],
         queryFn: () => base44.entities.Cliente.list('-updated_date', 500),
         staleTime: 5 * 60 * 1000
@@ -183,7 +183,14 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, ra
                 )}
 
                 {/* Análise IA do Radar WhatsApp */}
-                <WhatsappAnalisePanel clienteNome={clienteNomeWhatsApp} grupoId={grupoIdWhatsApp} clienteId={clienteVinculado?.id} />
+                {isLoadingClientes ? (
+                    <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 animate-spin text-violet-400" />
+                        <span className="text-slate-500 text-sm ml-2">Carregando análise do Radar WhatsApp...</span>
+                    </div>
+                ) : (
+                    <WhatsappAnalisePanel clienteNome={clienteNomeWhatsApp} grupoId={grupoIdWhatsApp} clienteId={clienteVinculado?.id} />
+                )}
 
                 <div className="border-t border-slate-200 pt-4">
                     <p className="text-sm font-semibold text-slate-700 mb-3">Detalhes da Otimização</p>
