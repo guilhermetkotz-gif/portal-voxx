@@ -183,7 +183,7 @@ export default function AdicionarOtimizacaoModal({ open, onOpenChange, conta, ra
                 )}
 
                 {/* Análise IA do Radar WhatsApp */}
-                <WhatsappAnalisePanel clienteNome={clienteNomeWhatsApp} grupoId={grupoIdWhatsApp} />
+                <WhatsappAnalisePanel clienteNome={clienteNomeWhatsApp} grupoId={grupoIdWhatsApp} clienteId={clienteVinculado?.id} />
 
                 <div className="border-t border-slate-200 pt-4">
                     <p className="text-sm font-semibold text-slate-700 mb-3">Detalhes da Otimização</p>

@@ -22,15 +22,18 @@ function scoreColor(score) {
   return 'text-red-400';
 }
 
-export default function WhatsappAnalisePanel({ clienteNome, grupoId }) {
+export default function WhatsappAnalisePanel({ clienteNome, grupoId, clienteId }) {
   const [reanalyzing, setReanalyzing] = useState(false);
   const queryClient = useQueryClient();
 
+  // Prioridade de filtro: grupo_id (mais confiável) > cliente_id > cliente_nome (menos confiável)
   const queryFilter = grupoId
     ? { grupo_id: grupoId }
+    : clienteId
+    ? { cliente_id: clienteId }
     : { cliente_nome: clienteNome };
 
-  const queryKey = ['whatsappAnaliseModal', grupoId || clienteNome];
+  const queryKey = ['whatsappAnaliseModal', grupoId || clienteId || clienteNome];
 
   const { data: analises = [], isLoading } = useQuery({
     queryKey,
@@ -39,7 +42,7 @@ export default function WhatsappAnalisePanel({ clienteNome, grupoId }) {
       '-created_date',
       10
     ),
-    enabled: !!(grupoId || clienteNome),
+    enabled: !!(grupoId || clienteId || clienteNome),
     staleTime: 0,
     refetchOnMount: 'always',
   });
@@ -57,13 +60,17 @@ export default function WhatsappAnalisePanel({ clienteNome, grupoId }) {
         grupo_id: analise.grupo_id,
         periodo_dias: 7,
       });
-      if (resp.data && resp.data.ok === false) {
+      // Verificar erro do backend ANTES de ok (resp.data.error indica falha)
+      if (resp.data?.error) {
+        toast.error('Erro ao re-analisar: ' + resp.data.error);
+      } else if (resp.data && resp.data.ok === false) {
         toast.info(resp.data.mensagem || 'Não foi possível gerar a análise.');
       } else {
         toast.success('Análise do WhatsApp atualizada!');
       }
-      // Invalida o cache para forçar refetch dos dados atualizados
-      await queryClient.invalidateQueries({ queryKey });
+      // Invalida ambos os caches para sincronizar Radar WhatsApp e Monitoramento Meta-Ads
+      await queryClient.invalidateQueries({ queryKey: ['whatsappAnaliseModal'] });
+      await queryClient.invalidateQueries({ queryKey: ['radarAnalises'] });
       await queryClient.refetchQueries({ queryKey });
     } catch (error) {
       toast.error('Erro ao re-analisar: ' + (error.message || 'erro desconhecido'));

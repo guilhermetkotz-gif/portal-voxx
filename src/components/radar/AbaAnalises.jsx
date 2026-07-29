@@ -137,11 +137,14 @@ export default function AbaAnalises({ gruposEnriquecidos, clientes }) {
         grupo_id: grupo.grupo_id,
         periodo_dias: parseInt(filtroPeriodo),
       });
-      if (res.data?.ok === false) {
+      if (res.data?.error) {
+        toast.error('Erro: ' + res.data.error);
+      } else if (res.data?.ok === false) {
         toast.warning(res.data.mensagem || 'Sem dados suficientes.');
       } else {
         toast.success(`Análise gerada: Score ${res.data?.scores?.geral}`);
         queryClient.invalidateQueries({ queryKey: ['radarAnalises'] });
+        queryClient.invalidateQueries({ queryKey: ['whatsappAnaliseModal'] });
       }
     } catch (e) {
       toast.error('Erro: ' + e.message);
@@ -167,6 +170,7 @@ export default function AbaAnalises({ gruposEnriquecidos, clientes }) {
     }
     toast.success(`${ok} análises geradas. ${err > 0 ? `${err} com erro.` : ''}`);
     queryClient.invalidateQueries({ queryKey: ['radarAnalises'] });
+    queryClient.invalidateQueries({ queryKey: ['whatsappAnaliseModal'] });
     setGerandoTodos(false);
   };
 
