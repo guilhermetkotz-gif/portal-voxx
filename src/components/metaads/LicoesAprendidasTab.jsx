@@ -32,17 +32,59 @@ export default function LicoesAprendidasTab() {
         staleTime: 5 * 60 * 1000
     });
 
-    // Join otimizacoes with avaliacoes by otimizacao_id
+    // Buscar otimizações de origem kanban para verificar setor_responsavel_original da demanda
+    const { data: kanbanOtimizacoes = [] } = useQuery({
+        queryKey: ['kanbanOtimizacoesLicoes'],
+        queryFn: () => base44.entities.MetaAdsOtimizacao.filter({ origem_registro: 'kanban' }, '-data_acao', 500),
+        staleTime: 5 * 60 * 1000
+    });
+
+    // Buscar demandas vinculadas às otimizações kanban para verificar setor_responsavel_original
+    const { data: demandasKanban = [] } = useQuery({
+        queryKey: ['demandasKanbanLicoes', kanbanOtimizacoes.map(o => o.demanda_id).filter(Boolean).join(',')],
+        queryFn: async () => {
+            const demandaIds = [...new Set(kanbanOtimizacoes.map(o => o.demanda_id).filter(Boolean))];
+            if (demandaIds.length === 0) return [];
+            const demandas = [];
+            for (const id of demandaIds) {
+                try {
+                    const found = await base44.entities.Demanda.filter({ id });
+                    if (found[0]) demandas.push(found[0]);
+                } catch (e) { /* skip invalid id */ }
+            }
+            return demandas;
+        },
+        enabled: kanbanOtimizacoes.length > 0,
+        staleTime: 5 * 60 * 1000
+    });
+
+    // Set de otimizacao_ids a excluir (kanban + setor_responsavel_original !== TRAFEGO_META)
+    const otimizacaoIdsExcluir = useMemo(() => {
+        const demandaIdsNaoTrafego = new Set(
+            demandasKanban
+                .filter(d => d.setor_responsavel_original !== 'TRAFEGO_META')
+                .map(d => d.id)
+        );
+        return new Set(
+            kanbanOtimizacoes
+                .filter(o => o.demanda_id && demandaIdsNaoTrafego.has(o.demanda_id))
+                .map(o => o.id)
+        );
+    }, [kanbanOtimizacoes, demandasKanban]);
+
+    // Join otimizacoes with avaliacoes by otimizacao_id (excluindo kanban não-TRAFEGO_META)
     const dadosCombinados = useMemo(() => {
         const avaliacaoMap = new Map();
         avaliacoes.forEach(a => {
             if (a.otimizacao_id) avaliacaoMap.set(a.otimizacao_id, a);
         });
-        return otimizacoes.map(o => ({
-            ...o,
-            avaliacao: avaliacaoMap.get(o.id) || null,
-        }));
-    }, [otimizacoes, avaliacoes]);
+        return otimizacoes
+            .filter(o => !otimizacaoIdsExcluir.has(o.id))
+            .map(o => ({
+                ...o,
+                avaliacao: avaliacaoMap.get(o.id) || null,
+            }));
+    }, [otimizacoes, avaliacoes, otimizacaoIdsExcluir]);
 
     // Filter by period
     const periodoDias = { '30d': 30, '90d': 90, '180d': 180, 'all': 9999 };
