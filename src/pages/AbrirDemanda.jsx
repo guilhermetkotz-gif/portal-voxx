@@ -636,22 +636,27 @@ export default function AbrirDemanda({ currentCliente, selectedClienteId }) {
             Ver Demandas
           </Button>
           <Button onClick={() => {
-            setSuccess(false);
-            setClienteId('');
-            setSearchCliente('');
-            setSetor('');
-            setSubcategoria('');
-            setNovaSubcategoria('');
-            setMostrarNovaSubcategoria(false);
-            setTitulo('');
-            setDescricao('');
-            setUrgente(false);
-            setPrevisaoEntrega('');
-            setCamposAdicionais({});
-            setAnexos([]);
-            setEstruturaDemanda('unitaria');
-            setItensDemanda([]);
-          }}>
+             setSuccess(false);
+             setDemandaId(null);
+             setClienteId('');
+             setSearchCliente('');
+             setSetor('');
+             setSubcategoria('');
+             setNovaSubcategoria('');
+             setMostrarNovaSubcategoria(false);
+             setTitulo('');
+             setDescricao('');
+             setUrgente(false);
+             setPrevisaoEntrega('');
+             setCamposAdicionais({});
+             setAnexos([]);
+             setEstruturaDemanda('unitaria');
+             setItensDemanda([]);
+             // Limpar URL params para evitar modo de edição na próxima criação
+             if (window.location.search.includes('demanda_id')) {
+               window.history.replaceState({}, '', window.location.pathname);
+             }
+           }}>
             Abrir Nova Demanda
           </Button>
         </div>
