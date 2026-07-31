@@ -175,12 +175,17 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       const matchKeyMes = findMatch(findInMes);
       const matchKeyD1 = findMatch(findInD1);
 
-      // Só considerar o valor investido da planilha se o mês selecionado for o mês corrente.
-      // Para meses futuros (ex: agosto quando estamos em julho), o investimento começa em 0.
+      // Mês corrente: usar o valor acumulado da planilha.
+      // Mês futuro (antecipação): começar a puxar os gastos a partir de hoje (D-1) como valor inicial.
       const currentMonthStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
       const isMesCorrente = selectedMonth === currentMonthStr;
-      if (matchKeyMes && isMesCorrente) valorInvestido = amountSpentByAccount[matchKeyMes] || 0;
-      if (matchKeyD1 && isMesCorrente) diarioD1 = diarioD1ByAccount[matchKeyD1] || 0;
+      if (matchKeyD1) diarioD1 = diarioD1ByAccount[matchKeyD1] || 0;
+      if (isMesCorrente) {
+        if (matchKeyMes) valorInvestido = amountSpentByAccount[matchKeyMes] || 0;
+      } else {
+        // Antecipação: o investimento do novo mês começa com o gasto de hoje (D-1)
+        valorInvestido = diarioD1;
+      }
 
       // Cálculos base
       const investimentoTotal = (planejamento.meta_faturamento * planejamento.percentual_investimento_marketing) / 100;
