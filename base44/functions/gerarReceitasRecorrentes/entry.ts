@@ -47,8 +47,13 @@ Deno.serve(async (req) => {
         duplicatasRemovidas++;
       }
     } else if (comDados.length === 0 && semDados.length > 1) {
-      // Sem nenhum com dados: mantém o mais recente, remove os outros
-      const ordenados = semDados.sort((a, b) => (b.updated_date || b.created_date || '').localeCompare(a.updated_date || a.created_date || ''));
+      // Sem nenhum com dados: mantém o mais recente (desempate por id para ser determinístico quando created_date é idêntico), remove os outros
+      const ordenados = semDados.sort((a, b) => {
+        const dtA = b.updated_date || b.created_date || '';
+        const dtB = a.updated_date || a.created_date || '';
+        if (dtA !== dtB) return dtA.localeCompare(dtB);
+        return (b.id || '').localeCompare(a.id || '');
+      });
       for (const r of ordenados.slice(1)) {
         await base44.asServiceRole.entities.FinanceiroReceita.delete(r.id);
         duplicatasRemovidas++;
