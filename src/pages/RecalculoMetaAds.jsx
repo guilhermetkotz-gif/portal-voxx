@@ -176,17 +176,16 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       const matchKeyD1 = findMatch(findInD1);
 
       // Mês corrente: usar o valor acumulado da planilha (gastos do mês atual).
-      // Mês futuro (antecipação): o investimento começa com o gasto de hoje (D-1),
-      // pois o planejamento do novo mês já começa a contar a partir de hoje.
-      // Se o D-1 aparecer 0 mas houve gasto, a aba "ontem meta Ads" da planilha
-      // precisa ser atualizada — o código usa o valor que está na planilha.
+      // Mês futuro (antecipação): nenhum gasto foi registrado ainda para o novo mês,
+      // pois o D-1 (ontem) pertence ao planejamento do mês corrente. O valor
+      // investido do novo mês começa em 0 e passa a acumular quando o mês virar.
       const currentMonthStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
       const isMesCorrente = selectedMonth === currentMonthStr;
       if (matchKeyD1) diarioD1 = diarioD1ByAccount[matchKeyD1] || 0;
       if (isMesCorrente) {
         if (matchKeyMes) valorInvestido = amountSpentByAccount[matchKeyMes] || 0;
       } else {
-        valorInvestido = diarioD1;
+        valorInvestido = 0;
       }
 
       // Cálculos base
@@ -201,11 +200,17 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
 
       // Data final e dias restantes
       const config = customConfigs[cliente.id] || {};
-      // Usar o último dia do mês SELECIONADO
+      // Usar o último dia do mês SELECIONADO como padrão
       const [selAno, selMes] = selectedMonth.split('-').map(Number);
       const mesReferencia = new Date(selAno, selMes - 1, 1);
       const ultimoDiaMes = endOfMonth(mesReferencia);
-      const dataFinal = config.endDate || format(ultimoDiaMes, 'yyyy-MM-dd');
+      const ultimoDiaMesStr = format(ultimoDiaMes, 'yyyy-MM-dd');
+      // Só reutiliza o endDate salvo se ele cair dentro do mês selecionado;
+      // caso contrário (ex: config de julho visualizando agosto), usa o último dia do mês
+      const savedEndDateMonth = config.endDate ? config.endDate.substring(0, 7) : null;
+      const dataFinal = (config.endDate && savedEndDateMonth === selectedMonth)
+        ? config.endDate
+        : ultimoDiaMesStr;
       const diasRestantes = Math.max(0, differenceInDays(startOfDay(new Date(dataFinal + 'T23:59:59')), startOfDay(hoje)));
       const totalDiasMes = getDaysInMonth(mesReferencia);
 
