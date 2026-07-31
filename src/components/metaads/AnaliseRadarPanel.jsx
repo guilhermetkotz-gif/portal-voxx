@@ -91,7 +91,11 @@ export default function AnaliseRadarPanel({ conta, radarRow, recommendations, on
             await queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] });
             await queryClient.invalidateQueries({ queryKey: ['radarMetaData'] });
             await queryClient.invalidateQueries({ queryKey: ['radarGrupos'] });
-            toast.success('Análise atualizada com sucesso!');
+            // Sincroniza também os caches de análise do WhatsApp para que Monitoramento Meta-Ads
+            // e Radar WhatsApp reflitam a mesma versão dos dados da IA instantaneamente
+            await queryClient.invalidateQueries({ queryKey: ['radarAnalises'] });
+            await queryClient.invalidateQueries({ queryKey: ['whatsappAnaliseModal'] });
+            toast.success('Análise atualizada e sincronizada com Radar WhatsApp!');
         } catch (error) {
             toast.error('Erro ao re-analisar: ' + error.message);
         } finally {

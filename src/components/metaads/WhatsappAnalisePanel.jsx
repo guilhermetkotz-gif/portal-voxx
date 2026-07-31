@@ -72,6 +72,9 @@ export default function WhatsappAnalisePanel({ clienteNome, grupoId, clienteId }
       // Invalida ambos os caches para sincronizar Radar WhatsApp e Monitoramento Meta-Ads
       await queryClient.invalidateQueries({ queryKey: ['whatsappAnaliseModal'] });
       await queryClient.invalidateQueries({ queryKey: ['radarAnalises'] });
+      // Sincroniza também os caches do Meta-Ads para que ambos os painéis reflitam a mesma versão
+      await queryClient.invalidateQueries({ queryKey: ['metaAdsAccounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['radarMetaData'] });
       await queryClient.refetchQueries({ queryKey });
     } catch (error) {
       toast.error('Erro ao re-analisar: ' + (error.message || 'erro desconhecido'));
