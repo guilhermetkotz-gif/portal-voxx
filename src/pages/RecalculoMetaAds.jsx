@@ -22,10 +22,10 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
   const queryClient = useQueryClient();
   const hoje = new Date();
   
-  // Gerar lista de meses disponíveis (12 meses à frente e 6 atrás a partir do mês atual)
+  // Gerar lista de meses disponíveis (6 meses à frente e 3 atrás a partir do mês atual)
   const mesesDisponiveis = useMemo(() => {
     const meses = [];
-    for (let i = -6; i <= 12; i++) {
+    for (let i = -3; i <= 6; i++) {
       const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
       const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = `${d.toLocaleDateString('pt-BR', { month: 'long' })}/${d.getFullYear()}`;
