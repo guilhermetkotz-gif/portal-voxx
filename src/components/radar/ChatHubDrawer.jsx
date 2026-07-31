@@ -17,6 +17,7 @@ import { useCopilot } from '@/hooks/useCopilot';
 import { useTextareaAutoHeight } from '@/hooks/useTextareaAutoHeight';
 import CopilotFeedbackBar from '@/components/radar/CopilotFeedbackBar';
 import GrupoDetalheDrawer from '@/components/radar/GrupoDetalheDrawer';
+import ContactCard from '@/components/radar/ContactCard';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 import moment from 'moment';
 import 'moment-timezone';
@@ -1236,6 +1237,10 @@ export default function ChatHubDrawer({ onClose, user }) {
                             </div>
                           );
                         }
+                        // Contato (vCard compartilhado)
+                        if (m.tipo_mensagem === 'contato') {
+                          return <ContactCard mensagem={m} themeStyles={t} />;
+                        }
                         const textoLimpo = (m.mensagem || '').replace(/\n*— [^\n]+ \| Voxx\n*$/, '').trim();
                         return renderizarTextoComLinks(textoLimpo || '[Sem conteúdo]', 'whitespace-pre-wrap break-words', telefoneParaNome);
                       };
@@ -1278,6 +1283,10 @@ export default function ChatHubDrawer({ onClose, user }) {
                                   </div>
                                 ) : m.citacao_tipo === 'sticker' ? (
                                   <span className="italic opacity-70">Sticker</span>
+                                ) : m.citacao_tipo === 'contato' ? (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="italic opacity-70">👤 {m.citacao_texto || 'Contato'}</span>
+                                  </div>
                                 ) : (
                                   <p className="opacity-80 line-clamp-2">{m.citacao_texto}</p>
                                 )}

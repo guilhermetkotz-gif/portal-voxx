@@ -16,6 +16,7 @@ import ForwardMessageModal from '@/components/radar/ForwardMessageModal';
 import AudioTranscription from '@/components/radar/AudioTranscription';
 import ModalReativacaoGrupo from '@/components/radar/ModalReativacaoGrupo';
 import GrupoDetalheDrawer from '@/components/radar/GrupoDetalheDrawer';
+import ContactCard from '@/components/radar/ContactCard';
 import { useChatTheme, chatTheme } from '@/hooks/useChatTheme';
 import { useTextareaAutoHeight } from '@/hooks/useTextareaAutoHeight';
 import { useCopilot } from '@/hooks/useCopilot';
@@ -798,6 +799,10 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                       </a>
                     );
                   }
+                  // Contato (vCard compartilhado)
+                  if (m.tipo_mensagem === 'contato') {
+                    return <ContactCard mensagem={m} themeStyles={t} />;
+                  }
                   // Reação (tipo legado — se tiver texto do emoji)
                   if (m.tipo_mensagem === 'reacao') {
                     if (m.mensagem && m.mensagem !== '[Sem conteúdo]') {
@@ -887,8 +892,12 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                               <span className="italic opacity-70 truncate">{m.citacao_texto}</span>
                             </div>
                           ) : m.citacao_tipo === 'sticker' ? (
-                            <span className="italic opacity-70">Sticker</span>
-                          ) : (
+                             <span className="italic opacity-70">Sticker</span>
+                           ) : m.citacao_tipo === 'contato' ? (
+                             <div className="flex items-center gap-1.5">
+                               <span className="italic opacity-70">👤 {m.citacao_texto || 'Contato'}</span>
+                             </div>
+                           ) : (
                             <p className="opacity-80 line-clamp-2">{m.citacao_texto}</p>
                           )}
                         </div>
@@ -1068,8 +1077,9 @@ export default function ChatDrawer({ chatId, chatName, clienteId, clienteNome, i
                    respondendoA.tipo_mensagem === 'video' ? '🎬 Vídeo' :
                    respondendoA.tipo_mensagem === 'audio' ? '🎵 Áudio' :
                    respondendoA.tipo_mensagem === 'documento' ? '📄 Documento' :
-                   respondendoA.tipo_mensagem === 'sticker' ? '🌟 Sticker' :
-                   respondendoA.mensagem?.substring(0, 80) || 'Mensagem'}
+                    respondendoA.tipo_mensagem === 'sticker' ? '🌟 Sticker' :
+                    respondendoA.tipo_mensagem === 'contato' ? '👤 Contato' :
+                    respondendoA.mensagem?.substring(0, 80) || 'Mensagem'}
                 </p>
               </div>
               <button

@@ -75,6 +75,7 @@
         "audio",
         "documento",
         "sticker",
+        "contato",
         "reacao",
         "sistema",
         "atividade",
@@ -92,7 +93,7 @@
     },
     "midia_nome": {
       "type": "string",
-      "description": "Nome original do arquivo de m\u00eddia"
+      "description": "Nome original do arquivo de m\u00eddia (ou telefones do contato, para tipo=contato)"
     },
     "transcricao_audio": {
       "type": "string",
@@ -161,7 +162,8 @@
         "video",
         "audio",
         "documento",
-        "sticker"
+        "sticker",
+        "contato"
       ]
     },
     "citacao_midia_url": {

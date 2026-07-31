@@ -90,6 +90,35 @@ function extrairConteudo(body) {
     if (docMime.startsWith('image/')) return { mensagem: body.document?.caption || '[Imagem]', tipo: 'imagem' };
     return { mensagem: body.document?.caption || body.caption || (body.document?.fileName ? `[Documento: ${body.document.fileName}]` : '[Documento]'), tipo: 'documento' };
   }
+  // Contato (vCard) — cliente compartilhou um contato
+  if (body.contact) {
+    const c = body.contact;
+    const displayName = c.displayName || c.name || 'Contato';
+    const phones = c.phones || [];
+    const vcard = c.vCard || c.vcard || '';
+    let phoneStr = '';
+    if (Array.isArray(phones) && phones.length > 0) {
+      phoneStr = phones.join(', ');
+    } else if (vcard) {
+      const telMatch = vcard.match(/TEL[^:]*:([+\d\s()\-]+)/);
+      if (telMatch) phoneStr = telMatch[1].trim();
+    }
+    return { mensagem: displayName, tipo: 'contato', dadosContato: { nome: displayName, telefones: phoneStr, vcard } };
+  }
+  if (body.message?.contact) {
+    const c = body.message.contact;
+    const displayName = c.displayName || c.name || 'Contato';
+    const phones = c.phones || [];
+    const vcard = c.vCard || c.vcard || '';
+    let phoneStr = '';
+    if (Array.isArray(phones) && phones.length > 0) {
+      phoneStr = phones.join(', ');
+    } else if (vcard) {
+      const telMatch = vcard.match(/TEL[^:]*:([+\d\s()\-]+)/);
+      if (telMatch) phoneStr = telMatch[1].trim();
+    }
+    return { mensagem: displayName, tipo: 'contato', dadosContato: { nome: displayName, telefones: phoneStr, vcard } };
+  }
   if (body.caption) return { mensagem: body.caption, tipo: 'texto' };
   if (body.sticker) return { mensagem: '[Sticker]', tipo: 'sticker' };
   // Mídia aninhada em body.message.* (formato alternativo usado em conversas diretas)
@@ -102,6 +131,20 @@ function extrairConteudo(body) {
     if (docMime.startsWith('video/')) return { mensagem: body.message.document?.caption || '[Vídeo]', tipo: 'video' };
     if (docMime.startsWith('image/')) return { mensagem: body.message.document?.caption || '[Imagem]', tipo: 'imagem' };
     return { mensagem: body.message.document?.caption || body.message?.caption || (body.message.document?.fileName ? `[Documento: ${body.message.document.fileName}]` : '[Documento]'), tipo: 'documento' };
+  }
+  if (body.message?.contact) {
+    const c = body.message.contact;
+    const displayName = c.displayName || c.name || 'Contato';
+    const phones = c.phones || [];
+    const vcard = c.vCard || c.vcard || '';
+    let phoneStr = '';
+    if (Array.isArray(phones) && phones.length > 0) {
+      phoneStr = phones.join(', ');
+    } else if (vcard) {
+      const telMatch = vcard.match(/TEL[^:]*:([+\d\s()\-]+)/);
+      if (telMatch) phoneStr = telMatch[1].trim();
+    }
+    return { mensagem: displayName, tipo: 'contato', dadosContato: { nome: displayName, telefones: phoneStr, vcard } };
   }
   if (body.message?.caption) return { mensagem: body.message.caption, tipo: 'texto' };
   if (body.message?.sticker) return { mensagem: '[Sticker]', tipo: 'sticker' };
@@ -190,7 +233,7 @@ Deno.serve(async (req) => {
     }
 
     const candidatos = [ids.raw, ids.hyphen, ids.atsign, ids.numeric, directChatId].filter(Boolean);
-    const { mensagem, tipo, dadosReacao } = extrairConteudo(body);
+    const { mensagem, tipo, dadosReacao, dadosContato } = extrairConteudo(body);
     const timestamp = body.momment
       ? new Date(body.momment * 1000).toISOString()
       : receivedAt;
@@ -474,6 +517,9 @@ Deno.serve(async (req) => {
       } else if (quotedMsg.sticker) {
         citacaoTipo = 'sticker';
         citacaoMidiaUrl = quotedMsg.sticker.stickerUrl || quotedMsg.sticker || null;
+      } else if (quotedMsg.contact) {
+        citacaoTipo = 'contato';
+        citacaoTexto = quotedMsg.contact.displayName || quotedMsg.contact.name || 'Contato';
       } else if (citacaoTexto) {
         citacaoTipo = 'texto';
       }
@@ -534,7 +580,7 @@ Deno.serve(async (req) => {
       tipo_mensagem:       tipo,
       midia_url:           midia?.midia_url || null,
       midia_mimetype:      midia?.midia_mimetype || null,
-      midia_nome:          midia?.midia_nome || null,
+      midia_nome:          midia?.midia_nome || dadosContato?.telefones || null,
       timestamp_mensagem:  timestamp,
       received_at:         receivedAt,
       from_me:             isFromMe,
