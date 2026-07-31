@@ -175,16 +175,16 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       const matchKeyMes = findMatch(findInMes);
       const matchKeyD1 = findMatch(findInD1);
 
-      // Mês corrente: usar o valor acumulado da planilha.
-      // Mês futuro (antecipação): começar a puxar os gastos a partir de hoje (D-1) como valor inicial.
+      // Mês corrente: usar o valor acumulado da planilha (gastos do mês atual).
+      // Mês futuro (antecipação): o investimento começa em 0 — o sistema passa a puxar
+      // os gastos a partir de hoje, e os dias restantes já contam de hoje até o fim do mês.
       const currentMonthStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
       const isMesCorrente = selectedMonth === currentMonthStr;
       if (matchKeyD1) diarioD1 = diarioD1ByAccount[matchKeyD1] || 0;
       if (isMesCorrente) {
         if (matchKeyMes) valorInvestido = amountSpentByAccount[matchKeyMes] || 0;
       } else {
-        // Antecipação: o investimento do novo mês começa com o gasto de hoje (D-1)
-        valorInvestido = diarioD1;
+        valorInvestido = 0;
       }
 
       // Cálculos base
