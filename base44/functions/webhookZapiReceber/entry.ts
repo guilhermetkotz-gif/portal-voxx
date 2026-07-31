@@ -132,20 +132,6 @@ function extrairConteudo(body) {
     if (docMime.startsWith('image/')) return { mensagem: body.message.document?.caption || '[Imagem]', tipo: 'imagem' };
     return { mensagem: body.message.document?.caption || body.message?.caption || (body.message.document?.fileName ? `[Documento: ${body.message.document.fileName}]` : '[Documento]'), tipo: 'documento' };
   }
-  if (body.message?.contact) {
-    const c = body.message.contact;
-    const displayName = c.displayName || c.name || 'Contato';
-    const phones = c.phones || [];
-    const vcard = c.vCard || c.vcard || '';
-    let phoneStr = '';
-    if (Array.isArray(phones) && phones.length > 0) {
-      phoneStr = phones.join(', ');
-    } else if (vcard) {
-      const telMatch = vcard.match(/TEL[^:]*:([+\d\s()\-]+)/);
-      if (telMatch) phoneStr = telMatch[1].trim();
-    }
-    return { mensagem: displayName, tipo: 'contato', dadosContato: { nome: displayName, telefones: phoneStr, vcard } };
-  }
   if (body.message?.caption) return { mensagem: body.message.caption, tipo: 'texto' };
   if (body.message?.sticker) return { mensagem: '[Sticker]', tipo: 'sticker' };
   if (body.mimetype || body.message?.mimetype) return { mensagem: `[Mídia: ${body.mimetype || body.message?.mimetype}]`, tipo: 'sem_conteudo' };

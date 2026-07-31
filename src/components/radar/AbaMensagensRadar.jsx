@@ -39,6 +39,7 @@ const TIPO_COLORS = {
   audio:     'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
   documento: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   sticker:   'bg-pink-500/20 text-pink-400 border-pink-500/30',
+  contato:   'bg-teal-500/20 text-teal-400 border-teal-500/30',
   sistema:   'bg-slate-700 text-slate-500 border-slate-600',
 };
 
@@ -151,6 +152,7 @@ export default function AbaMensagensRadar({ mensagens, clientes, loading, grupos
             <SelectItem value="audio">Áudio</SelectItem>
             <SelectItem value="video">Vídeo</SelectItem>
             <SelectItem value="documento">Documento</SelectItem>
+            <SelectItem value="contato">Contato</SelectItem>
           </SelectContent>
         </Select>
 
