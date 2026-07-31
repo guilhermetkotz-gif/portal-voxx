@@ -166,20 +166,22 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'No clients with Google Sheets URL configured', totalImported: 0 });
     }
 
-    // Pre-load existing leads for these specific clients only (last 3 days to reduce payload)
-    const clienteIds = clientesComPlanilha.map(c => c.id);
-    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
-    const existingLeads = await base44.asServiceRole.entities.CrcLead.filter(
-      { created_date: { $gte: threeDaysAgo } },
-      '-created_date',
-      5000
-    );
-    const existingPhoneKeys = new Set(
-      existingLeads
-        .filter(l => clienteIds.includes(l.unidade_id))
-        .map(l => l.unidade_id && l.telefone ? `${l.unidade_id}|${normalizePhone(l.telefone)}` : null)
-        .filter(Boolean)
-    );
+    // Pre-load ALL existing Google-sourced leads for the clients being processed.
+    // No date filter — the dedup set must include leads imported >3 days ago,
+    // otherwise the sync re-imports them (the sheet contains all historical rows).
+    const existingPhoneKeys = new Set();
+    for (const cliente of clientesComPlanilha) {
+      const leads = await base44.asServiceRole.entities.CrcLead.filter(
+        { unidade_id: cliente.id, fonte_cadastro: 'google_sheet' },
+        '-created_date',
+        5000
+      );
+      for (const l of leads) {
+        if (l.telefone) {
+          existingPhoneKeys.add(`${l.unidade_id}|${normalizePhone(l.telefone)}`);
+        }
+      }
+    }
 
     let totalImported = 0;
     const results = [];
