@@ -21,10 +21,22 @@ const formatCurrency = (value) => {
 export default function RecalculoMetaAds({ selectedClienteId, user }) {
   const queryClient = useQueryClient();
   const hoje = new Date();
-  const ano = hoje.getFullYear();
-  const mes = hoje.getMonth() + 1; // getMonth() retorna 0-11
-  const currentMonth = `${ano}-${String(mes).padStart(2, '0')}`;
   
+  // Gerar lista de meses disponíveis (12 meses à frente e 6 atrás a partir do mês atual)
+  const mesesDisponiveis = useMemo(() => {
+    const meses = [];
+    for (let i = -6; i <= 12; i++) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = `${d.toLocaleDateString('pt-BR', { month: 'long' })}/${d.getFullYear()}`;
+      meses.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    }
+    return meses;
+  }, []);
+
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+  );
   const [expandedCards, setExpandedCards] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -54,11 +66,11 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
     }
   }, [clientes]);
 
-  // Buscar planejamentos do mês atual
+  // Buscar planejamentos do mês selecionado
   const { data: planejamentos = [] } = useQuery({
-    queryKey: ['planejamentosRecalculo', currentMonth],
+    queryKey: ['planejamentosRecalculo', selectedMonth],
     queryFn: () => base44.entities.PlanejamentoEstrategico.filter({
-      mes_referencia: `${currentMonth}-01`
+      mes_referencia: `${selectedMonth}-01`
     }),
     staleTime: 30 * 1000
   });
@@ -178,8 +190,9 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
 
       // Data final e dias restantes
       const config = customConfigs[cliente.id] || {};
-      // Usar o último dia do mês CORRENTE
-      const mesReferencia = new Date(ano, mes - 1, 1);
+      // Usar o último dia do mês SELECIONADO
+      const [selAno, selMes] = selectedMonth.split('-').map(Number);
+      const mesReferencia = new Date(selAno, selMes - 1, 1);
       const ultimoDiaMes = endOfMonth(mesReferencia);
       const dataFinal = config.endDate || format(ultimoDiaMes, 'yyyy-MM-dd');
       const diasRestantes = Math.max(0, differenceInDays(startOfDay(new Date(dataFinal + 'T23:59:59')), startOfDay(hoje)));
@@ -262,7 +275,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         diarioD1
       };
     }).filter(Boolean);
-  }, [clientes, planejamentos, amountSpentByAccount, customConfigs, currentMonth]);
+  }, [clientes, planejamentos, amountSpentByAccount, customConfigs, selectedMonth]);
 
   // Filtrar por busca e status
   const dadosFiltrados = useMemo(() => {
@@ -471,10 +484,17 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
             <SelectItem value="acima">Acima do sugerido</SelectItem>
           </SelectContent>
         </Select>
-        <Badge variant="outline" className="px-3 py-2">
-          <Calendar className="w-4 h-4 mr-2" />
-          Mês: {mes}/{ano}
-        </Badge>
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <SelectTrigger className="w-48">
+            <Calendar className="w-4 h-4 mr-2 text-slate-500" />
+            <SelectValue placeholder="Selecione o mês" />
+          </SelectTrigger>
+          <SelectContent>
+            {mesesDisponiveis.map(m => (
+              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Resumo */}
@@ -718,7 +738,7 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
                         <Label className="text-xs">Total de Dias do Mês</Label>
                         <div className="mt-1 h-9 px-3 flex items-center bg-slate-100 rounded-md border">
                           <span className="text-lg font-bold text-slate-900">
-                            {getDaysInMonth(new Date(currentMonth + '-01'))}
+                            {getDaysInMonth(new Date(selectedMonth + '-01'))}
                           </span>
                           <span className="text-xs text-slate-600 ml-2">dias</span>
                         </div>
