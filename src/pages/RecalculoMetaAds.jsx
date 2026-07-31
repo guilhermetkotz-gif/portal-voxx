@@ -176,11 +176,12 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
       const matchKeyD1 = findMatch(findInD1);
 
       // Mês corrente: usar o valor acumulado da planilha (gastos do mês atual).
-      // Mês futuro (antecipação): usar o D-1 (gasto mais recente) apenas quando o
-      // planejamento do mês corrente já terminou (ex: julho terminou 30/07 e hoje
-      // é 31/07 = 1º dia do planejamento de agosto). Nesse caso, o D-1 passa a
-      // contar como o primeiro dia do novo planejamento. Para meses mais distantes
-      // (ex: setembro) que ainda nem começaram, o investido permanece 0.
+      // Mês futuro (antecipação): quando o planejamento do mês corrente já
+      // terminou (ex: julho terminou 30/07 e hoje é 31/07 = 1º dia do
+      // planejamento de agosto), o valor investido no mês do novo planejamento
+      // passa a usar o valor acumulado da planilha — hoje é o início do novo
+      // ciclo e o gasto acumulado passa a contar para o novo mês. Para meses
+      // mais distantes (ex: setembro) que ainda nem começaram, investido = 0.
       const currentMonthStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
       const isMesCorrente = selectedMonth === currentMonthStr;
       if (matchKeyD1) diarioD1 = diarioD1ByAccount[matchKeyD1] || 0;
@@ -194,7 +195,11 @@ export default function RecalculoMetaAds({ selectedClienteId, user }) {
         const planningTransitioned = startOfDay(hoje) > startOfDay(new Date(currentMonthEndStr + 'T23:59:59'));
         const nextMonthDate = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
         const nextMonthStr = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
-        valorInvestido = (selectedMonth === nextMonthStr && planningTransitioned) ? diarioD1 : 0;
+        if (selectedMonth === nextMonthStr && planningTransitioned) {
+          if (matchKeyMes) valorInvestido = amountSpentByAccount[matchKeyMes] || 0;
+        } else {
+          valorInvestido = 0;
+        }
       }
 
       // Cálculos base
