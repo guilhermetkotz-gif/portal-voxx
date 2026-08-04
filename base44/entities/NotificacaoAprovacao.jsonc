@@ -44,6 +44,29 @@
       "type": "string",
       "description": "Observa\u00e7\u00e3o/coment\u00e1rio enviado pelo cliente"
     },
+    "anexos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Anexos enviados pelo cliente junto com a solicita\u00e7\u00e3o de altera\u00e7\u00e3o (arquivos, links)"
+    },
+    "link_alteracao": {
+      "type": "string",
+      "description": "Link de refer\u00eancia enviado pelo cliente para a altera\u00e7\u00e3o"
+    },
     "lida": {
       "type": "boolean",
       "default": false
